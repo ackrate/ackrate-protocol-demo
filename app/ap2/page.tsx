@@ -564,11 +564,11 @@ export default function Ap2Page() {
           className="glass sheen relative rounded-xl p-4 transition hover:border-emerald-300/25"
         >
           <div className="flex items-center justify-between gap-3">
-            <div className="text-sm font-semibold text-emerald-100">Source + test suite</div>
+            <div className="text-sm font-semibold text-emerald-100">Source repository</div>
             <ExternalLink className="h-4 w-4 text-emerald-300/60" aria-hidden />
           </div>
           <div className="mt-1 text-xs uppercase tracking-[0.14em] text-emerald-300/55">typescript source on github</div>
-          <p className="mt-3 text-xs leading-relaxed text-emerald-100/50">The npm package ships compiled output only; the tests above live here. The validator is an adapter — contract enforcement remains the money boundary.</p>
+          <p className="mt-3 text-xs leading-relaxed text-emerald-100/50">The npm package ships compiled output only; the TypeScript and the cases above live in the repository. The validator is an adapter — contract enforcement remains the money boundary.</p>
         </a>
       </motion.section>
 

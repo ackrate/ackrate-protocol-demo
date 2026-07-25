@@ -16,23 +16,42 @@ export const BUDGET = "3.00"; // mandate cap: 3 unlocks, then the contract block
 const short = (s: string) => (s ? `${s.slice(0, 6)}…${s.slice(-4)}` : "");
 
 const HORIZON = "https://horizon-testnet.stellar.org";
+/** Every request is individually bounded so a stalled socket cannot hang the route. */
+const REQUEST_TIMEOUT_MS = 8_000;
+const FUNDING_DEADLINE_MS = 25_000;
 
 async function friendbot(pub: string): Promise<void> {
-  await fetch(`https://friendbot.stellar.org/?addr=${pub}`).catch(() => undefined);
+  await fetch(`https://friendbot.stellar.org/?addr=${pub}`, {
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+  }).catch(() => undefined);
 }
 
 /**
  * Friendbot failures used to be swallowed and followed by an unconditional
- * "accounts funded + settled" line, so a faucet outage was reported to the
- * page as success. Ask Horizon whether the account actually exists instead of
- * sleeping and assuming.
+ * "accounts funded + settled" line, so a faucet outage was reported to the page
+ * as success. Ask whether the account actually exists instead of sleeping and
+ * assuming.
+ *
+ * Both Horizon and the Soroban RPC are polled: Horizon ingesting the account
+ * does not mean the RPC the SDK is about to call can read it yet, and returning
+ * on Horizon alone reintroduces that race in a different place.
  */
-async function waitForAccount(pub: string, attempts = 10): Promise<void> {
-  for (let attempt = 0; attempt < attempts; attempt += 1) {
-    const exists = await fetch(`${HORIZON}/accounts/${pub}`)
+async function waitForAccount(pub: string, deadlineMs = FUNDING_DEADLINE_MS): Promise<void> {
+  const bounded = (url: string, init?: RequestInit) =>
+    fetch(url, { ...init, signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) })
       .then((response) => response.ok)
       .catch(() => false);
-    if (exists) return;
+
+  const giveUpAt = Date.now() + deadlineMs;
+  while (Date.now() < giveUpAt) {
+    if (await bounded(`${HORIZON}/accounts/${pub}`)) {
+      const rpcReady = await bounded(TESTNET.rpcUrl, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "getHealth" }),
+      });
+      if (rpcReady) return;
+    }
     await new Promise((resolve) => setTimeout(resolve, 1000));
   }
   throw new Error(

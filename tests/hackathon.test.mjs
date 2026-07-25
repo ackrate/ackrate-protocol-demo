@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
-import { readFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import test from "node:test";
 import { promisify } from "node:util";
 
@@ -238,11 +240,21 @@ test("every displayed contract id is the registry the installed SDK settles agai
     }
   }
 
-  // The hosted terminal runs the bundle, so its embedded target is what a
-  // reviewer's transactions actually hit.
-  const bundle = await read("vendor/reapp-cli.mjs");
-  assert.ok(
-    bundle.includes(registry),
-    `the vendored CLI does not target ${registry}; regenerate it from reapp-protocol`,
-  );
+  // The hosted terminal runs the bundle, so what matters is the registry it
+  // actually targets — not whether the right string appears somewhere in it.
+  // `reapp init` writes that choice to disk, so ask it rather than grep it.
+  const scratch = await mkdtemp(join(tmpdir(), "reapp-cli-probe-"));
+  try {
+    await run(process.execPath, [new URL("../vendor/reapp-cli.mjs", import.meta.url).pathname, "init"], {
+      cwd: scratch,
+    });
+    const config = JSON.parse(await readFile(join(scratch, "reapp.config.json"), "utf8"));
+    assert.equal(
+      config.contractId,
+      registry,
+      `the vendored CLI targets ${config.contractId}; regenerate it from reapp-protocol`,
+    );
+  } finally {
+    await rm(scratch, { recursive: true, force: true });
+  }
 });
