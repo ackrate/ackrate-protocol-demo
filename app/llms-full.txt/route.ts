@@ -67,7 +67,7 @@ The AP2 page demonstrates canonical mandate binding and negative cases against e
 
 ### Research agent — https://reapp.live/research
 
-The research agent can autonomously buy paid sources. Each purchase consumes the same bounded mandate. It may decide that another source is useful, but the contract rejects purchases after the budget is exhausted. The final answer is therefore constrained by both available evidence and financial authority.
+The research agent can autonomously buy paid sources. Each purchase consumes the same bounded mandate. The payment and its on-chain enforcement are real testnet activity; the source content returned after payment is model-generated for the demonstration rather than fetched from the named providers. It may decide that another source is useful, but the contract rejects purchases after the budget is exhausted. The final answer is therefore constrained by both available evidence and financial authority.
 
 ### Video paywall — https://reapp.live/video
 

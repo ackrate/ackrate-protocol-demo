@@ -15,8 +15,29 @@ export const BUDGET = "3.00"; // mandate cap: 3 unlocks, then the contract block
 
 const short = (s: string) => (s ? `${s.slice(0, 6)}…${s.slice(-4)}` : "");
 
+const HORIZON = "https://horizon-testnet.stellar.org";
+
 async function friendbot(pub: string): Promise<void> {
   await fetch(`https://friendbot.stellar.org/?addr=${pub}`).catch(() => undefined);
+}
+
+/**
+ * Friendbot failures used to be swallowed and followed by an unconditional
+ * "accounts funded + settled" line, so a faucet outage was reported to the
+ * page as success. Ask Horizon whether the account actually exists instead of
+ * sleeping and assuming.
+ */
+async function waitForAccount(pub: string, attempts = 10): Promise<void> {
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    const exists = await fetch(`${HORIZON}/accounts/${pub}`)
+      .then((response) => response.ok)
+      .catch(() => false);
+    if (exists) return;
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+  }
+  throw new Error(
+    `testnet funding did not complete for ${short(pub)} — friendbot may be rate limited or down; retry in a moment`,
+  );
 }
 
 const xlm = (stroops: bigint) => Number(stroops) / 1e7;
@@ -36,8 +57,11 @@ export async function init() {
     friendbot(agent.publicKey()),
     friendbot(merchant.publicKey()),
   ]);
-  // brief settle
-  await new Promise((r) => setTimeout(r, 3000));
+  await Promise.all([
+    waitForAccount(user.publicKey()),
+    waitForAccount(agent.publicKey()),
+    waitForAccount(merchant.publicKey()),
+  ]);
   log.chain("accounts funded + settled");
   return {
     userSecret: user.secret(),

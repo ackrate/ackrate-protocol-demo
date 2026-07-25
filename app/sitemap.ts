@@ -1,7 +1,9 @@
 import type { MetadataRoute } from "next";
 
 const BASE_URL = "https://reapp.live";
-const LAST_MODIFIED = new Date("2026-07-18T00:00:00Z");
+// Build time, not a pinned date: a constant silently goes stale for every
+// page changed after it, which is worse than no signal.
+const LAST_MODIFIED = new Date();
 
 const routes = [
   "",

@@ -204,7 +204,9 @@ test("the vendored CLI bundle is the version the site claims to run", async () =
     // VERSION constant the /cli page renders on its own.
     const claimed = [
       ...source.matchAll(/reapp-protocol-cli(?:@|\/v\/| )(\d+\.\d+\.\d+)/g),
-      ...source.matchAll(/^const VERSION = "(\d+\.\d+\.\d+)"/gm),
+      // Quote-agnostic: a single-quoted or backticked constant is still a
+      // version this page renders.
+      ...source.matchAll(/^const VERSION = ['"`](\d+\.\d+\.\d+)['"`]/gm),
     ].map((match) => match[1]);
     // Per surface, not a total: a total is still satisfied when one file's
     // claims vanish and another file happens to carry several.
@@ -223,14 +225,24 @@ test("every displayed contract id is the registry the installed SDK settles agai
   const registry = reapp.testnet.mandateRegistryId;
   assert.match(registry, /^C[A-Z2-7]{55}$/);
 
-  let found = 0;
   for (const path of ["app/page.tsx", "app/cli/page.tsx", "app/t2/demo/page.tsx"]) {
     const source = await read(path);
-    const ids = [...source.matchAll(/"(C[A-Z2-7]{55})"/g)].map((match) => match[1]);
+    // Every contract-shaped string anywhere in the file, not just double-quoted
+    // literals: a wrong id typed straight into JSX is exactly the defect this
+    // guards, and a per-file assertion beats an aggregate count that one page
+    // can satisfy on another's behalf.
+    const ids = [...source.matchAll(/C[A-Z2-7]{55}/g)].map((match) => match[0]);
+    assert.ok(ids.length > 0, `${path} names no contract, so nothing here is guarded`);
     for (const id of ids) {
       assert.equal(id, registry, `${path} shows ${id} but the SDK settles against ${registry}`);
     }
-    found += ids.length;
   }
-  assert.ok(found >= 3, `expected each page to name the contract, found ${found}`);
+
+  // The hosted terminal runs the bundle, so its embedded target is what a
+  // reviewer's transactions actually hit.
+  const bundle = await read("vendor/reapp-cli.mjs");
+  assert.ok(
+    bundle.includes(registry),
+    `the vendored CLI does not target ${registry}; regenerate it from reapp-protocol`,
+  );
 });

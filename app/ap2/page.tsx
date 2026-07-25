@@ -558,7 +558,7 @@ export default function Ap2Page() {
           <p className="mt-3 text-xs leading-relaxed text-emerald-100/50">Installable, typed, documented, and verified from a clean project.</p>
         </a>
         <a
-          href="https://www.npmjs.com/package/@reapp-sdk/ap2/v/0.4.0?activeTab=code"
+          href="https://github.com/reapp-protocol/reapp-protocol/tree/main/packages/ap2"
           target="_blank"
           rel="noreferrer"
           className="glass sheen relative rounded-xl p-4 transition hover:border-emerald-300/25"
@@ -567,8 +567,8 @@ export default function Ap2Page() {
             <div className="text-sm font-semibold text-emerald-100">Source + test suite</div>
             <ExternalLink className="h-4 w-4 text-emerald-300/60" aria-hidden />
           </div>
-          <div className="mt-1 text-xs uppercase tracking-[0.14em] text-emerald-300/55">review every check</div>
-          <p className="mt-3 text-xs leading-relaxed text-emerald-100/50">The validator is an adapter. Contract enforcement remains the money boundary.</p>
+          <div className="mt-1 text-xs uppercase tracking-[0.14em] text-emerald-300/55">typescript source on github</div>
+          <p className="mt-3 text-xs leading-relaxed text-emerald-100/50">The npm package ships compiled output only; the tests above live here. The validator is an adapter — contract enforcement remains the money boundary.</p>
         </a>
       </motion.section>
 

@@ -229,6 +229,14 @@ export default function ResearchPage() {
           spent it <b className="text-emerald-200">blocks</b> the next purchase, so the agent cannot overspend even when it
           wants more.
         </motion.p>
+        <motion.p
+          variants={{ hidden: { opacity: 0, y: 14 }, show: { opacity: 1, y: 0 } }}
+          className="mt-3 max-w-2xl text-sm leading-relaxed text-emerald-100/45"
+        >
+          What is real here is the money: each purchase is a live Stellar testnet payment enforced on-chain, with a
+          transaction you can open in the explorer. The source content itself is model-generated for the demo — these
+          are stand-ins for paid APIs, not live feeds from the named providers.
+        </motion.p>
         <motion.div variants={{ hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0 } }} className="mt-6 flex flex-wrap gap-2.5 text-xs">
           {["Autonomous agent", "Budget enforced on-chain", "LLM Agnostic Agent", "Testnet payments"].map((t) => (
             <span key={t} className="rounded-full border border-emerald-400/20 bg-emerald-400/[0.06] px-3 py-1 text-emerald-200/80">
