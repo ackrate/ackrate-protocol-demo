@@ -33,7 +33,7 @@ The fourth payment in a three-payment budget is not a UI simulation. The contrac
 
 - @reapp-sdk/core 0.3.1: mandate construction, registration, payment helpers, and agent.fetch().
 - @reapp-sdk/stellar 0.2.2: typed contract client, Stellar testnet configuration, signers, token helpers, and explorer integration.
-- @reapp-sdk/ap2 0.3.0: AP2 IntentMandate and TransactionMandate translation with pinned canonicalization and validation behavior.
+- @reapp-sdk/ap2 0.4.0: AP2 v0.2 Open Payment Mandate admission, merchant open/closed verification, and typed contract authorization with pinned canonicalization.
 - @reapp-sdk/express-middleware 0.2.2: HTTP payment challenge, settlement verification, protected-route integration, and one-time redemption controls for Express 4 and 5.
 - reapp-protocol-cli 0.1.5: terminal setup, mandate, payment, inspection, and demonstration commands.
 

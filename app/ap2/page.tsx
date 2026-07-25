@@ -19,7 +19,15 @@ import {
   XCircle,
 } from "lucide-react";
 
-type Scenario = "all" | "valid" | "signature" | "merchant" | "amount" | "expiry" | "replay";
+type Scenario =
+  | "all"
+  | "valid"
+  | "signature"
+  | "merchant"
+  | "checkout"
+  | "amount"
+  | "expiry"
+  | "replay";
 type CheckResult = {
   id: Exclude<Scenario, "all">;
   label: string;
@@ -34,8 +42,11 @@ type ValidatorResponse = {
   testCount: number;
   mandateHash: string;
   signatureAlgorithm: string;
+  ap2SpecVersion: string;
+  ap2Vct: string;
   user: string;
   merchant: string;
+  checkoutReference: string;
   durationMs: number;
   results: CheckResult[];
 };
@@ -46,10 +57,16 @@ const OPTIONS: Array<{
   detail: string;
   Icon: typeof ShieldCheck;
 }> = [
-  { id: "all", label: "Run all checks", detail: "Valid + five rejection paths", Icon: ShieldCheck },
+  { id: "all", label: "Run all checks", detail: "Valid + six rejection paths", Icon: ShieldCheck },
   { id: "valid", label: "Valid mandate", detail: "Expected to be accepted", Icon: UserRoundCheck },
   { id: "signature", label: "Tampered signature", detail: "Expected INVALID_SIGNATURE", Icon: KeyRound },
   { id: "merchant", label: "Wrong merchant", detail: "Expected MERCHANT_MISMATCH", Icon: Fingerprint },
+  {
+    id: "checkout",
+    label: "Wrong checkout",
+    detail: "Expected CHECKOUT_REFERENCE_MISMATCH",
+    Icon: Fingerprint,
+  },
   { id: "amount", label: "Overspend", detail: "Expected AMOUNT_EXCEEDS_MANDATE", Icon: Gauge },
   { id: "expiry", label: "Expired mandate", detail: "Expected EXPIRED", Icon: Clock3 },
   { id: "replay", label: "Replayed hash", detail: "Expected REPLAYED", Icon: RefreshCw },
@@ -61,7 +78,7 @@ const TEST_GROUPS = [
     start: 1,
     tests: [
       "canonical JSON is independent of object key insertion order",
-      "binds the supported AP2 v0.1.0 intent to a 32-byte REAPP vc_hash",
+      "binds the supported AP2 v0.2 Open Payment Mandate to a 32-byte REAPP vc_hash",
       "pins a canonical AP2 hash vector",
       "provided nonce makes the full binding reproducible across key order",
       "secure default nonces keep identical intents distinct",
@@ -430,7 +447,7 @@ export default function Ap2Page() {
           <p className="mt-3 text-xs leading-relaxed text-emerald-100/50">Valid mandates, tampering, scope, amount, expiry, replay, and concurrency.</p>
         </div>
         <a
-          href="https://www.npmjs.com/package/@reapp-sdk/ap2/v/0.3.0"
+          href="https://www.npmjs.com/package/@reapp-sdk/ap2/v/0.4.0"
           target="_blank"
           rel="noreferrer"
           className="glass sheen relative rounded-xl p-4 transition hover:border-emerald-300/25"
