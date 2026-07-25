@@ -2,7 +2,7 @@
  * Server-side glue around the PUBLISHED @reapp-sdk/core. Runs only in API
  * routes (Node). Ephemeral testnet keys, this is a demo, never mainnet.
  */
-import { Keypair } from "@stellar/stellar-sdk";
+import { Keypair, rpc as rpcModule } from "@stellar/stellar-sdk";
 import { reapp, type CreateIntentMandateInput } from "@reapp-sdk/core";
 import { TESTNET, token } from "@reapp-sdk/stellar";
 import { EXPLORER_BASE } from "./explorer";
@@ -15,47 +15,49 @@ export const BUDGET = "3.00"; // mandate cap: 3 unlocks, then the contract block
 
 const short = (s: string) => (s ? `${s.slice(0, 6)}…${s.slice(-4)}` : "");
 
-const HORIZON = "https://horizon-testnet.stellar.org";
 /** Every request is individually bounded so a stalled socket cannot hang the route. */
 const REQUEST_TIMEOUT_MS = 8_000;
 const FUNDING_DEADLINE_MS = 25_000;
 
-async function friendbot(pub: string): Promise<void> {
+async function friendbot(pub: string, giveUpAt: number): Promise<void> {
   await fetch(`https://friendbot.stellar.org/?addr=${pub}`, {
-    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    signal: AbortSignal.timeout(remainingBudget(giveUpAt)),
   }).catch(() => undefined);
+}
+
+/** Never let a single request outlive the overall deadline. */
+function remainingBudget(giveUpAt: number): number {
+  return Math.max(1, Math.min(REQUEST_TIMEOUT_MS, giveUpAt - Date.now()));
 }
 
 /**
  * Friendbot failures used to be swallowed and followed by an unconditional
  * "accounts funded + settled" line, so a faucet outage was reported to the page
- * as success. Ask whether the account actually exists instead of sleeping and
- * assuming.
+ * as success. Ask whether the account is actually readable instead of sleeping
+ * and assuming.
  *
- * Both Horizon and the Soroban RPC are polled: Horizon ingesting the account
- * does not mean the RPC the SDK is about to call can read it yet, and returning
- * on Horizon alone reintroduces that race in a different place.
+ * The check is `rpc.getAccount`, which is exactly the call the SDK makes next.
+ * Horizon having ingested the account does not mean the RPC can read it, and
+ * RPC `getHealth` only says the node is up — neither answers the question that
+ * matters, so both just move the race somewhere less visible.
  */
-async function waitForAccount(pub: string, deadlineMs = FUNDING_DEADLINE_MS): Promise<void> {
-  const bounded = (url: string, init?: RequestInit) =>
-    fetch(url, { ...init, signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) })
-      .then((response) => response.ok)
-      .catch(() => false);
-
-  const giveUpAt = Date.now() + deadlineMs;
+async function waitForAccount(pub: string, giveUpAt: number): Promise<void> {
+  const rpc = new rpcModule.Server(TESTNET.rpcUrl);
+  let lastError: unknown;
   while (Date.now() < giveUpAt) {
-    if (await bounded(`${HORIZON}/accounts/${pub}`)) {
-      const rpcReady = await bounded(TESTNET.rpcUrl, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "getHealth" }),
-      });
-      if (rpcReady) return;
+    try {
+      await rpc.getAccount(pub);
+      return;
+    } catch (error) {
+      lastError = error;
     }
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    if (Date.now() >= giveUpAt) break;
+    await new Promise((resolve) => setTimeout(resolve, Math.min(1000, giveUpAt - Date.now())));
   }
   throw new Error(
-    `testnet funding did not complete for ${short(pub)} — friendbot may be rate limited or down; retry in a moment`,
+    `testnet funding did not complete for ${short(pub)} within ${FUNDING_DEADLINE_MS / 1000}s — ` +
+      `friendbot may be rate limited or down; retry in a moment` +
+      (lastError instanceof Error ? ` (last error: ${lastError.message})` : ""),
   );
 }
 
@@ -71,15 +73,18 @@ export async function init() {
     agent: short(agent.publicKey()),
     merchant: short(merchant.publicKey()),
   });
+  // One clock for the whole operation, started before the first request:
+  // a deadline that begins after funding is not a bound on the request.
+  const giveUpAt = Date.now() + FUNDING_DEADLINE_MS;
   await Promise.all([
-    friendbot(user.publicKey()),
-    friendbot(agent.publicKey()),
-    friendbot(merchant.publicKey()),
+    friendbot(user.publicKey(), giveUpAt),
+    friendbot(agent.publicKey(), giveUpAt),
+    friendbot(merchant.publicKey(), giveUpAt),
   ]);
   await Promise.all([
-    waitForAccount(user.publicKey()),
-    waitForAccount(agent.publicKey()),
-    waitForAccount(merchant.publicKey()),
+    waitForAccount(user.publicKey(), giveUpAt),
+    waitForAccount(agent.publicKey(), giveUpAt),
+    waitForAccount(merchant.publicKey(), giveUpAt),
   ]);
   log.chain("accounts funded + settled");
   return {
