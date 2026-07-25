@@ -35,22 +35,16 @@ bridge requires to agree exactly; under v0.1 the same ceiling is written
 directly as `maxAmount: "5.00"`. Both resolve to `5.00`, and the overspend
 scenario probes `5.0000001` against either.
 
-## Blocked on publish
+## Published
 
-`@reapp-sdk/ap2@0.4.0` is not on npm yet, so `npm ci` at the repository root
-cannot resolve it. To verify this branch before publication, build the package
-from `reapp-protocol` on its `ap2v0.2` branch and stage it:
+`@reapp-sdk/ap2@0.4.0` is on npm (published 2026-07-25, integrity
+`sha512-zFV2MBANMqNQE…`). The branch installs it straight from the registry;
+the local staging that this document previously described is gone.
 
 ```bash
-cd ../reapp-protocol/packages/ap2 && npm run build && npm pack
-tar -xzf reapp-sdk-ap2-0.4.0.tgz -C /tmp
-rm -rf ../../../reapp-protocol-live/node_modules/@reapp-sdk/ap2
-cp -R /tmp/package ../../../reapp-protocol-live/node_modules/@reapp-sdk/ap2
+npm ci
+npm run typecheck && npm run test:hackathon && npm run build
 ```
-
-`npm run typecheck`, `npm run test:hackathon` (89 tests), and `npm run build`
-all pass against that staged package. A normal `npm ci` after publication undoes
-the staging.
 
 To exercise both versions against the running route:
 
@@ -62,15 +56,18 @@ curl -s -X POST localhost:3000/api/ap2 -H 'content-type: application/json' \
   -d '{"scenario":"all","version":"0.1.0"}'
 ```
 
-## The 20 starter packs stay on 0.3.0 for now
+An omitted `version` defaults to `0.2.0`; an unknown version or an extra body
+key is a 400.
 
-None of them import `@reapp-sdk/ap2`; they only declare it. Their
-`package-lock.json` files are canonical artifacts carrying registry `resolved`
-URLs and `integrity` hashes, so they cannot name `0.4.0` until the tarball
-exists. After publication, bump `starter-kit-src/dependency-policy.json` and
-run `npm run generate:starters`, which rewrites the catalog, the generated
-metadata, and all 20 lockfiles together. `npm run check:starters` verifies the
-result.
+## The 20 starter packs
 
-Because 0.4.0 still signs v0.1, that bump is now a routine version update: any
-starter that did adopt the v0.1 API would keep working across it.
+All 20 are on `0.4.0`. Their `package-lock.json` files are canonical artifacts
+carrying registry `resolved` URLs and `integrity` hashes, so they could not name
+`0.4.0` until the tarball existed. After publication the pin was bumped in both
+places that hold it — `starter-kit-src/dependency-policy.json` and the
+`EXPECTED_DEPENDENCIES` copy in `scripts/starters/catalog.mjs` — and
+`npm run generate:starters` rewrote the catalog, the generated metadata, and all
+20 lockfiles together. `npm run check:starters` verifies the result.
+
+Because 0.4.0 still signs v0.1, that was a routine version bump: a starter that
+had adopted the v0.1 API keeps working across it.

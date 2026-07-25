@@ -9,7 +9,7 @@ import { Package, Play, Terminal } from "lucide-react";
 const CONTRACT_ID = "CCHQ5G4Y4YBMY6D3TYYJSVJVCKUM22Q6TMKCCHVAHY4X7K6QELQACZRM";
 
 const INSTALL = `npm install @reapp-sdk/core@0.3.1 @reapp-sdk/stellar@0.2.2 \\
-  @reapp-sdk/ap2@0.3.0 @reapp-sdk/express-middleware@0.2.2 \\
+  @reapp-sdk/ap2@0.4.0 @reapp-sdk/express-middleware@0.2.2 \\
   @stellar/stellar-sdk express
 npm install --global reapp-protocol-cli@0.1.7`;
 
@@ -63,7 +63,7 @@ app.get("/source/:id", paidSource);`;
 const PACKAGES: [string, string][] = [
   ["@reapp-sdk/core 0.3.1", "Mandates, contract-enforced payments, and bound-v2 agent.fetch()"],
   ["@reapp-sdk/stellar 0.2.2", "Typed contract client, testnet config, signers, and token helpers"],
-  ["@reapp-sdk/ap2 0.3.0", "Signed, version-pinned AP2 IntentMandate validation"],
+  ["@reapp-sdk/ap2 0.4.0", "Signed AP2 v0.2 Open Payment and v0.1 IntentMandate validation"],
   ["@reapp-sdk/express-middleware 0.2.2", "Exact-request proof verification and safe same-resource recovery"],
   ["reapp-protocol-cli 0.1.7", "Terminal setup, mandate, payment, reconciliation, and demo commands"],
 ];

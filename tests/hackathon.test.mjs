@@ -122,7 +122,7 @@ test("the starter is deterministic, typed by package metadata, and testnet-only"
   const manifest = JSON.parse(sources["starters/research-source-scout/package.json"]);
   assert.equal(manifest.dependencies["@reapp-sdk/core"], "0.3.1");
   assert.equal(manifest.dependencies["@reapp-sdk/stellar"], "0.2.2");
-  assert.equal(manifest.dependencies["@reapp-sdk/ap2"], "0.3.0");
+  assert.equal(manifest.dependencies["@reapp-sdk/ap2"], "0.4.0");
   assert.equal(manifest.dependencies["@reapp-sdk/express-middleware"], "0.2.2");
   assert.ok(manifest.scripts.demo);
   assert.ok(manifest.scripts.fulfillment);
@@ -175,8 +175,6 @@ test("new public copy follows repository terminology rules", async () => {
   for (const version of [
     "@reapp-sdk/core 0.3.1",
     "@reapp-sdk/stellar 0.2.2",
-    // The site's own AP2 validator runs the v0.2 bridge. The starter kit stays
-    // on 0.3.0 until 0.4.0 is published and its lockfiles can be regenerated.
     "@reapp-sdk/ap2 0.4.0",
     "@reapp-sdk/express-middleware 0.2.2",
     "reapp-protocol-cli 0.1.7",

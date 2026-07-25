@@ -19,7 +19,7 @@ const EXPECTED_CONSTRAINTS = Object.freeze({
 });
 
 const EXPECTED_DEPENDENCIES = Object.freeze({
-  "@reapp-sdk/ap2": "0.3.0",
+  "@reapp-sdk/ap2": "0.4.0",
   "@reapp-sdk/core": "0.3.1",
   "@reapp-sdk/express-middleware": "0.2.2",
   "@reapp-sdk/stellar": "0.2.2",

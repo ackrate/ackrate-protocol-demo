@@ -2,7 +2,7 @@ $ErrorActionPreference = 'Stop'
 $archive = 'reapp-rights-receipt.zip'
 try {
   Invoke-WebRequest -Uri 'https://reapp.live/starters/v1/rights-receipt.zip' -OutFile $archive
-  node -e "const f='reapp-rights-receipt.zip',e='4bd754a32f59f10cf599fbca40835b9e8630fb638dea4ce55aae3852218e4350',s=require('node:fs'),a=require('node:crypto').createHash('sha256').update(s.readFileSync(f)).digest('hex');if(a!==e){s.rmSync(f);throw Error('Starter integrity check failed')}"
+  node -e "const f='reapp-rights-receipt.zip',e='64dee88cfc0d379c07383258f3a82103dcabc1c41c14b6abb07bfe554cd0d74b',s=require('node:fs'),a=require('node:crypto').createHash('sha256').update(s.readFileSync(f)).digest('hex');if(a!==e){s.rmSync(f);throw Error('Starter integrity check failed')}"
   if ($LASTEXITCODE -ne 0) { throw 'Starter integrity verification failed' }
   Expand-Archive -LiteralPath $archive -DestinationPath '.' -Force
   Remove-Item -LiteralPath $archive

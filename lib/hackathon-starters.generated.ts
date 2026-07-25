@@ -584,7 +584,7 @@ export const HACKATHON_STARTER_CATALOG = {
 } as const;
 
 export const HACKATHON_STARTER_DEPENDENCIES = {
-  "@reapp-sdk/ap2": "0.3.0",
+  "@reapp-sdk/ap2": "0.4.0",
   "@reapp-sdk/core": "0.3.1",
   "@reapp-sdk/express-middleware": "0.2.2",
   "@reapp-sdk/stellar": "0.2.2",
