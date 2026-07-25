@@ -4,7 +4,9 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { Package, Play, Terminal } from "lucide-react";
 
-const CONTRACT_ID = "CC6JMPDHRPBR2HBLJKRCIKV54HXDV2RFXDKW6MALQKWM6JEAJQHICRWE";
+// The permanent same-address MandateRegistry the installed SDK and the
+// vendored CLI actually settle against. Guarded in tests/hackathon.test.mjs.
+const CONTRACT_ID = "CCHQ5G4Y4YBMY6D3TYYJSVJVCKUM22Q6TMKCCHVAHY4X7K6QELQACZRM";
 
 const INSTALL = `npm install @reapp-sdk/core@0.3.1 @reapp-sdk/stellar@0.2.2 \\
   @reapp-sdk/ap2@0.3.0 @reapp-sdk/express-middleware@0.2.2 \\

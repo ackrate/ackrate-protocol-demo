@@ -129,10 +129,11 @@ async function expectAccept(
   id: IndividualScenario,
   detail: string,
   run: () => Promise<unknown>,
+  code = "ACCEPTED",
 ): Promise<CheckResult> {
   try {
     await run();
-    return { id, label: labels[id], passed: true, code: "ACCEPTED", detail };
+    return { id, label: labels[id], passed: true, code, detail };
   } catch (error) {
     return {
       id,
@@ -313,15 +314,18 @@ export async function POST(request: Request): Promise<Response> {
 
     if (check === "checkout") {
       // The one place the two profiles genuinely differ. v0.2 binds the payment
-      // to a checkout; v0.1 has no such concept, so a stray reference is not
-      // silently treated as a constraint the user never signed.
+      // to the checkout it was signed against. v0.1 has no such concept, so
+      // this is NOT a boundary v0.1 passes — it is protection v0.1 does not
+      // have, and the result says so rather than showing a green tick for a
+      // check that never ran.
       results.push(profile.version === "0.2.0"
         ? await expectCode(check, "CHECKOUT_REFERENCE_MISMATCH", () =>
           admit(namespace, { checkoutReference: "checkout-from-another-session" }))
         : await expectAccept(
           check,
-          "AP2 v0.1 carries no checkout binding, so an unrelated reference is ignored rather than enforced.",
+          "Not a boundary under v0.1: the IntentMandate profile never carried a checkout reference, so there is nothing to bind a payment to. Use v0.2 if you need this protection.",
           () => admit(namespace, { checkoutReference: "checkout-from-another-session" }),
+          "NOT_APPLICABLE",
         ));
       continue;
     }

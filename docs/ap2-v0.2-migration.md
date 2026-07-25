@@ -24,7 +24,7 @@ always explicit at the call site.
 | `app/api/ap2/route.ts` | Accepts a `version` of `"0.2.0"` (default) or `"0.1.0"` and mints the matching credential with `signAp2Mandate` or `signAp2V01Mandate`. |
 | `app/api/ap2/route.ts` | Builds an AP2 v0.2 Open Payment Mandate: six required constraints, an Ed25519 `cnf` JWK confirming the agent key, and `exp` equal to `payment.execution_date.not_after`. |
 | `app/api/ap2/route.ts` | v0.2 admissions pass `checkoutReference`; v0.2 binds a payment to the checkout it was signed against. |
-| `app/api/ap2/route.ts` | New `checkout` scenario: `CHECKOUT_REFERENCE_MISMATCH` under v0.2, and under v0.1 an accepted admission showing the reference is not enforced by a profile that never carried one. |
+| `app/api/ap2/route.ts` | New `checkout` scenario: `CHECKOUT_REFERENCE_MISMATCH` under v0.2. Under v0.1 it reports `NOT_APPLICABLE` — the IntentMandate profile never carried a checkout reference, so this is protection v0.1 lacks, not a boundary it passes, and the UI renders it neutrally rather than as a green tick. |
 | `app/api/ap2/route.ts` | Response now reports `version`, `ap2SpecVersion`, `ap2MandateType`, and `bindingVersion`; `checkoutReference` is `null` for v0.1. |
 | `app/ap2/page.tsx` | Mandate-version toggle, seventh scenario card, corrected header badge and package chip, and a test matrix regenerated from the real 77-test suite. |
 | `app/llms.txt`, `app/llms-full.txt` | Describe the dual-version bridge. |
@@ -48,7 +48,7 @@ rm -rf ../../../reapp-protocol-live/node_modules/@reapp-sdk/ap2
 cp -R /tmp/package ../../../reapp-protocol-live/node_modules/@reapp-sdk/ap2
 ```
 
-`npm run typecheck`, `npm run test:hackathon` (87 tests), and `npm run build`
+`npm run typecheck`, `npm run test:hackathon` (89 tests), and `npm run build`
 all pass against that staged package. A normal `npm ci` after publication undoes
 the staging.
 

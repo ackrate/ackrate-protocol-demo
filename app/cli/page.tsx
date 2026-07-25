@@ -18,7 +18,9 @@ import "@xterm/xterm/css/xterm.css";
 const PACKAGE = "reapp-protocol-cli";
 const VERSION = "0.1.7";
 const COMMAND = "reapp";
-const CONTRACT = "CC6JMPDHRPBR2HBLJKRCIKV54HXDV2RFXDKW6MALQKWM6JEAJQHICRWE";
+// The permanent same-address MandateRegistry the installed SDK and the
+// vendored CLI actually settle against. Guarded in tests/hackathon.test.mjs.
+const CONTRACT = "CCHQ5G4Y4YBMY6D3TYYJSVJVCKUM22Q6TMKCCHVAHY4X7K6QELQACZRM";
 
 const INSTALL = `npx reapp-protocol-cli@0.1.7 demo research-agent
 

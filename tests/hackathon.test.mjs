@@ -184,17 +184,53 @@ test("new public copy follows repository terminology rules", async () => {
 // The site shipped a vendored bundle reporting 0.1.4 under a banner claiming
 // 0.1.5 while 0.1.7 was published. Copy alone cannot catch that, so this asks
 // the bundle what it actually is.
+const CLI_VERSION_SURFACES = [
+  "app/page.tsx",
+  "app/cli/page.tsx",
+  "app/t2/demo/page.tsx",
+  "app/llms.txt/route.ts",
+  "app/llms-full.txt/route.ts",
+];
+
 test("the vendored CLI bundle is the version the site claims to run", async () => {
   const bundle = new URL("../vendor/reapp-cli.mjs", import.meta.url);
   const { stdout } = await run(process.execPath, [bundle.pathname, "--version"]);
   const actual = stdout.trim();
-
   assert.match(actual, /^\d+\.\d+\.\d+$/, `unexpected --version output ${JSON.stringify(actual)}`);
-  for (const path of ["app/t2/demo/page.tsx", "app/cli/page.tsx", "app/page.tsx"]) {
+
+  for (const path of CLI_VERSION_SURFACES) {
     const source = await read(path);
-    const claimed = [...source.matchAll(/reapp-protocol-cli[@ ](\d+\.\d+\.\d+)/g)].map((m) => m[1]);
+    // Both `reapp-protocol-cli@x` / `reapp-protocol-cli x` and the standalone
+    // VERSION constant the /cli page renders on its own.
+    const claimed = [
+      ...source.matchAll(/reapp-protocol-cli(?:@|\/v\/| )(\d+\.\d+\.\d+)/g),
+      ...source.matchAll(/^const VERSION = "(\d+\.\d+\.\d+)"/gm),
+    ].map((match) => match[1]);
+    // Per surface, not a total: a total is still satisfied when one file's
+    // claims vanish and another file happens to carry several.
+    assert.ok(claimed.length > 0, `${path} names no CLI version, so nothing here is guarded`);
     for (const version of claimed) {
       assert.equal(version, actual, `${path} advertises CLI ${version} but the bundle is ${actual}`);
     }
   }
+});
+
+// The pages once linked reviewers to a contract the demo does not use. The
+// installed SDK is the authority for which registry the site actually settles
+// against, so compare against it rather than against another hardcoded string.
+test("every displayed contract id is the registry the installed SDK settles against", async () => {
+  const { reapp } = await import("@reapp-sdk/core");
+  const registry = reapp.testnet.mandateRegistryId;
+  assert.match(registry, /^C[A-Z2-7]{55}$/);
+
+  let found = 0;
+  for (const path of ["app/page.tsx", "app/cli/page.tsx", "app/t2/demo/page.tsx"]) {
+    const source = await read(path);
+    const ids = [...source.matchAll(/"(C[A-Z2-7]{55})"/g)].map((match) => match[1]);
+    for (const id of ids) {
+      assert.equal(id, registry, `${path} shows ${id} but the SDK settles against ${registry}`);
+    }
+    found += ids.length;
+  }
+  assert.ok(found >= 3, `expected each page to name the contract, found ${found}`);
 });

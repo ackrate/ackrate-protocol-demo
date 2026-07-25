@@ -4,7 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import "@xterm/xterm/css/xterm.css";
 
-const CONTRACT = "CC6JMPDHRPBR2HBLJKRCIKV54HXDV2RFXDKW6MALQKWM6JEAJQHICRWE";
+// The permanent same-address MandateRegistry the installed SDK and the
+// vendored CLI actually settle against. Guarded in tests/hackathon.test.mjs.
+const CONTRACT = "CCHQ5G4Y4YBMY6D3TYYJSVJVCKUM22Q6TMKCCHVAHY4X7K6QELQACZRM";
 
 const QUICK = [
   { label: "demo research-agent", cmd: "demo research-agent" },

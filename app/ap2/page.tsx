@@ -11,6 +11,7 @@ import {
   Gauge,
   KeyRound,
   Loader2,
+  MinusCircle,
   Play,
   RefreshCw,
   ShieldCheck,
@@ -65,7 +66,7 @@ const OPTIONS: Array<{
   detail: string;
   Icon: typeof ShieldCheck;
 }> = [
-  { id: "all", label: "Run all checks", detail: "Valid + six boundaries", Icon: ShieldCheck },
+  { id: "all", label: "Run all checks", detail: "Valid + every boundary", Icon: ShieldCheck },
   { id: "valid", label: "Valid mandate", detail: "Expected to be accepted", Icon: UserRoundCheck },
   { id: "signature", label: "Tampered signature", detail: "Expected INVALID_SIGNATURE", Icon: KeyRound },
   { id: "merchant", label: "Wrong merchant", detail: "Expected MERCHANT_MISMATCH", Icon: Fingerprint },
@@ -404,7 +405,7 @@ export default function Ap2Page() {
                   <ShieldCheck className="mx-auto h-10 w-10 text-emerald-300/55" aria-hidden />
                   <div className="mt-4 text-base font-semibold text-emerald-50">Ready to validate</div>
                   <p className="mt-2 max-w-sm text-sm leading-relaxed text-emerald-100/50">
-                    Select one boundary or run the complete visual suite. Every rejection must return its exact typed code.
+                    Select one boundary or run the complete visual suite. Every rejection must return its exact typed code; a boundary a version does not have is reported as such, not as a pass.
                   </p>
                 </div>
               </div>
@@ -436,28 +437,38 @@ export default function Ap2Page() {
                   exit={{ opacity: 0, y: -8 }}
                   className="space-y-3"
                 >
-                  {result.results.map((check, index) => (
-                    <motion.div
-                      key={check.id}
-                      initial={{ opacity: 0, x: -8 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: index * 0.05 }}
-                      className={"rounded-xl border p-3.5 " + (check.passed ? "border-emerald-300/15 bg-emerald-400/[0.055]" : "border-rose-300/20 bg-rose-400/[0.06]")}
-                    >
-                      <div className="flex items-start gap-3">
-                        {check.passed
-                          ? <CheckCircle2 className="mt-0.5 h-4 w-4 flex-none text-emerald-300" aria-hidden />
-                          : <XCircle className="mt-0.5 h-4 w-4 flex-none text-rose-300" aria-hidden />}
-                        <div className="min-w-0 flex-1">
-                          <div className="flex flex-wrap items-center justify-between gap-2">
-                            <span className="text-sm font-semibold text-emerald-50">{check.label}</span>
-                            <code className={"rounded px-2 py-0.5 text-[10px] " + (check.passed ? "bg-emerald-400/10 text-emerald-200" : "bg-rose-400/10 text-rose-200")}>{check.code}</code>
+                  {result.results.map((check, index) => {
+                    // A boundary the selected AP2 version simply does not have
+                    // is neither a pass nor a failure. Showing it in green
+                    // would credit v0.1 with protection it never had.
+                    const notApplicable = check.code === "NOT_APPLICABLE";
+                    const tone = notApplicable
+                      ? { card: "border-white/12 bg-white/[0.035]", chip: "bg-white/[0.06] text-emerald-100/60", icon: "text-emerald-100/45" }
+                      : check.passed
+                        ? { card: "border-emerald-300/15 bg-emerald-400/[0.055]", chip: "bg-emerald-400/10 text-emerald-200", icon: "text-emerald-300" }
+                        : { card: "border-rose-300/20 bg-rose-400/[0.06]", chip: "bg-rose-400/10 text-rose-200", icon: "text-rose-300" };
+                    const Icon = notApplicable ? MinusCircle : check.passed ? CheckCircle2 : XCircle;
+                    return (
+                      <motion.div
+                        key={check.id}
+                        initial={{ opacity: 0, x: -8 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: index * 0.05 }}
+                        className={"rounded-xl border p-3.5 " + tone.card}
+                      >
+                        <div className="flex items-start gap-3">
+                          <Icon className={"mt-0.5 h-4 w-4 flex-none " + tone.icon} aria-hidden />
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <span className="text-sm font-semibold text-emerald-50">{check.label}</span>
+                              <code className={"rounded px-2 py-0.5 text-[10px] " + tone.chip}>{check.code}</code>
+                            </div>
+                            <p className="mt-1 text-xs leading-relaxed text-emerald-100/50">{check.detail}</p>
                           </div>
-                          <p className="mt-1 text-xs leading-relaxed text-emerald-100/50">{check.detail}</p>
                         </div>
-                      </div>
-                    </motion.div>
-                  ))}
+                      </motion.div>
+                    );
+                  })}
 
                   <div className="grid gap-2.5 pt-1 sm:grid-cols-2">
                     {[
@@ -543,11 +554,11 @@ export default function Ap2Page() {
             <div className="font-mono text-sm text-emerald-100">@reapp-sdk/ap2</div>
             <ExternalLink className="h-4 w-4 text-emerald-300/60" aria-hidden />
           </div>
-          <div className="mt-1 text-xs uppercase tracking-[0.14em] text-emerald-300/55">public npm package · 0.3.0</div>
+          <div className="mt-1 text-xs uppercase tracking-[0.14em] text-emerald-300/55">public npm package · 0.4.0</div>
           <p className="mt-3 text-xs leading-relaxed text-emerald-100/50">Installable, typed, documented, and verified from a clean project.</p>
         </a>
         <a
-          href="https://github.com/reapp-protocol/reapp-protocol/tree/main/packages/ap2"
+          href="https://www.npmjs.com/package/@reapp-sdk/ap2/v/0.4.0?activeTab=code"
           target="_blank"
           rel="noreferrer"
           className="glass sheen relative rounded-xl p-4 transition hover:border-emerald-300/25"
