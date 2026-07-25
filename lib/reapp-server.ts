@@ -31,6 +31,23 @@ function remainingBudget(giveUpAt: number): number {
 }
 
 /**
+ * The SDK builds its RPC transport with timeout 0, so `getAccount` can hang
+ * indefinitely and never return control to the loop below — which would make
+ * the deadline unreachable no matter how carefully the loop checks it. An
+ * AbortSignal cannot help here because the call does not accept one, so race it
+ * and let the loop move on.
+ */
+function withDeadline<T>(work: Promise<T>, budgetMs: number, label: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout>;
+  return Promise.race([
+    work,
+    new Promise<never>((_, reject) => {
+      timer = setTimeout(() => reject(new Error(`${label} did not respond within ${budgetMs}ms`)), budgetMs);
+    }),
+  ]).finally(() => clearTimeout(timer)) as Promise<T>;
+}
+
+/**
  * Friendbot failures used to be swallowed and followed by an unconditional
  * "accounts funded + settled" line, so a faucet outage was reported to the page
  * as success. Ask whether the account is actually readable instead of sleeping
@@ -46,7 +63,7 @@ async function waitForAccount(pub: string, giveUpAt: number): Promise<void> {
   let lastError: unknown;
   while (Date.now() < giveUpAt) {
     try {
-      await rpc.getAccount(pub);
+      await withDeadline(rpc.getAccount(pub), remainingBudget(giveUpAt), "soroban rpc getAccount");
       return;
     } catch (error) {
       lastError = error;
