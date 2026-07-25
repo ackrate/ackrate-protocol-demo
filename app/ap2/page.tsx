@@ -28,6 +28,7 @@ type Scenario =
   | "amount"
   | "expiry"
   | "replay";
+type Ap2Version = "0.2.0" | "0.1.0";
 type CheckResult = {
   id: Exclude<Scenario, "all">;
   label: string;
@@ -38,18 +39,25 @@ type CheckResult = {
 type ValidatorResponse = {
   ok: boolean;
   scenario: Scenario;
+  version: Ap2Version;
   package: string;
   testCount: number;
   mandateHash: string;
   signatureAlgorithm: string;
   ap2SpecVersion: string;
-  ap2Vct: string;
+  ap2MandateType: string;
+  bindingVersion: string;
   user: string;
   merchant: string;
-  checkoutReference: string;
+  checkoutReference: string | null;
   durationMs: number;
   results: CheckResult[];
 };
+
+const AP2_VERSIONS: Array<{ id: Ap2Version; label: string; detail: string }> = [
+  { id: "0.2.0", label: "AP2 v0.2", detail: "Open Payment Mandate" },
+  { id: "0.1.0", label: "AP2 v0.1", detail: "IntentMandate" },
+];
 
 const OPTIONS: Array<{
   id: Scenario;
@@ -57,14 +65,15 @@ const OPTIONS: Array<{
   detail: string;
   Icon: typeof ShieldCheck;
 }> = [
-  { id: "all", label: "Run all checks", detail: "Valid + six rejection paths", Icon: ShieldCheck },
+  { id: "all", label: "Run all checks", detail: "Valid + six boundaries", Icon: ShieldCheck },
   { id: "valid", label: "Valid mandate", detail: "Expected to be accepted", Icon: UserRoundCheck },
   { id: "signature", label: "Tampered signature", detail: "Expected INVALID_SIGNATURE", Icon: KeyRound },
   { id: "merchant", label: "Wrong merchant", detail: "Expected MERCHANT_MISMATCH", Icon: Fingerprint },
   {
     id: "checkout",
     label: "Wrong checkout",
-    detail: "Expected CHECKOUT_REFERENCE_MISMATCH",
+    // v0.1 has no checkout binding, so this one boundary is version-dependent.
+    detail: "v0.2: CHECKOUT_REFERENCE_MISMATCH",
     Icon: Fingerprint,
   },
   { id: "amount", label: "Overspend", detail: "Expected AMOUNT_EXCEEDS_MANDATE", Icon: Gauge },
@@ -72,95 +81,143 @@ const OPTIONS: Array<{
   { id: "replay", label: "Replayed hash", detail: "Expected REPLAYED", Icon: RefreshCw },
 ];
 
+// Mirrors the published package suite, in `npm test -w @reapp-sdk/ap2` order.
 const TEST_GROUPS = [
   {
-    title: "Binding & canonicalization",
+    title: "Contract authorization vectors",
     start: 1,
     tests: [
+      "capture authorization ID matches the Soroban contract vector",
+      "authorization IDs are route-specific and network-bound",
+      "pool participation authorization ID matches the Soroban contract vector",
+      "pool participation authorizations have a separate domain and signature",
+      "every authorization field changes its ID",
+    ],
+  },
+  {
+    title: "Binding & canonicalization",
+    start: 6,
+    tests: [
       "canonical JSON is independent of object key insertion order",
-      "binds the supported AP2 v0.2 Open Payment Mandate to a 32-byte REAPP vc_hash",
-      "pins a canonical AP2 hash vector",
-      "provided nonce makes the full binding reproducible across key order",
-      "secure default nonces keep identical intents distinct",
-      "fails closed for AP2 constraints MandateRegistry cannot enforce",
-      "rejects ambiguous expiry and invalid Stellar authorization",
-      "fails closed on unknown intent and Stellar authorization fields",
-      "rejects impossible calendar expiries instead of normalizing them",
-      "signer and validator share the same canonical UTC year range",
-      "signer and validator share the same decimal range",
-      "agent authorization requires an Ed25519 G-address",
+      "binds the supported AP2 v0.2 open payment mandate to REAPP",
+      "canonical constraint order makes input array order irrelevant",
+      "secure default nonces keep identical mandates distinct",
+      "requires the exact v0.2 mandate type and supported constraint set",
+      "requires exactly one Stellar payee",
+      "requires matching amount range and cumulative budget",
+      "accepts exact decimal budgets without binary floating-point rejection",
+      "rejects unenforceable recurrence, minimum, and start time",
+      "requires cnf to bind the Stellar agent's Ed25519 key",
+      "requires exp and execution-date expiry to match",
+      "rejects unknown top-level and Stellar fields",
+    ],
+  },
+  {
+    title: "AP2 v0.1 backward compatibility",
+    start: 18,
+    tests: [
+      "minted v0.1 credential is byte-identical to the published 0.3.0 vector",
+      "v0.1 binding reproduces the 0.3.0 intent hash and mandate id",
+      "a freshly minted v0.1 credential is admitted by this package's validator",
+      "an omitted nonce is random, so two mints of the same intent differ",
+      "v0.1 and v0.2 mints of the same authorization produce different mandate ids",
+      "v0.1 minting keeps the legacy fail-closed rules",
+      "v0.1 minting refuses a signer that is not the mandate user",
+      "a v0.1 offset expiry normalizes to the same mandate as its UTC form",
+    ],
+  },
+  {
+    title: "Merchant checkout & payment chains",
+    start: 26,
+    tests: [
+      "verifies linked AP2 v0.2 Checkout and Payment chains",
+      "fails closed on unknown constraints and trusted amount mismatches",
+      "a chain with no open mandate cannot satisfy audience, nonce or constraints",
+      "a stale audience or nonce is rejected on the terminal hop",
+      "an omitted execution_date cannot escape a signed execution window",
+      "a declared execution_date is still held to the window",
+      "a canceled or unfinished checkout cannot back a capture",
+      "a caller may widen the payable statuses but not invent one",
+      "creates verifiable AP2 success and rejection receipts",
+    ],
+  },
+  {
+    title: "Pooled participation",
+    start: 35,
+    tests: [
+      "verifies an exact REAPP open/closed pool-participation chain",
+      "schedule hash matches the Composite contract vector",
+      "pool participation fails closed on unknown constraints and changed terms",
+      "builds and signs the contract participation authorization from verified evidence",
+    ],
+  },
+  {
+    title: "Delegate SD-JWT chains",
+    start: 39,
+    tests: [
+      "verifies AP2 root -> intermediate -> terminal Delegate SD-JWT chains",
+      "resolves selectively disclosed delegate payloads and Ed25519 key binding",
+      "rejects a wrong terminal challenge and altered predecessor binding",
+      "rejects unbound disclosures and unsupported algorithms",
+      "a one-hop presentation is refused by default",
+      "a one-hop presentation still has its audience and nonce checked",
+      "minHops must be a sane bound",
     ],
   },
   {
     title: "Credential, signature & identity",
-    start: 13,
-    lastNumber: 59,
+    start: 46,
     tests: [
-      "valid signed AP2 mandate succeeds",
-      "returned mandate hash equals the recomputed REAPP id",
-      "fixed seed and nonce produce a deterministic signature digest and signature",
-      "exact signed maximum amount succeeds",
-      "one-stroop positive amount succeeds",
-      "signing key must match the payload user",
-      "trusted expected user mismatch is rejected",
-      "tampered natural-language intent is rejected by binding",
-      "tampered merchant is rejected by binding",
-      "tampered maximum amount is rejected by binding",
-      "tampered decimals are rejected by the full-payload signature",
-      "tampered expiry is rejected by binding",
-      "tampered agent is rejected by binding",
-      "tampered asset is rejected before signature verification",
-      "malformed base64 signature is rejected",
-      "non-canonical base64 signature is rejected",
-      "signature with the wrong decoded length is rejected",
-      "signature created by another Ed25519 key is rejected",
-      "unsupported signature algorithm is rejected",
-      "unsupported credential version is rejected",
-      "unsupported AP2 version is rejected",
-      "unsupported REAPP binding version is rejected",
-      "wrong AP2 data key is rejected",
-      "envelope mandate hash mismatch is rejected",
-      "unknown top-level credential field fails closed",
-      "unknown intent field fails closed",
-      "invalid user, agent, and asset identities fail closed",
+      "valid signed AP2 v0.2 mandate succeeds and rebuilds the same REAPP id",
+      "valid AP2 v0.1 IntentMandate is admitted with legacy semantics",
+      "AP2 v0.1 rejects a signature from another key",
+      "AP2 v0.1 rejects a merchant outside the signed scope",
+      "AP2 v0.1 rejects replayed mandate hashes",
+      "fixed seed and nonce produce a deterministic signature",
+      "signing key must match the signed Stellar user",
+      "trusted expected user must match the signed user",
+      "tampered payee fails the signed mandate binding",
+      "tampered budget fails closed",
+      "tampered expiry fails closed",
+      "tampered agent fails closed",
+      "tampered asset fails closed",
+      "signature created by another key is rejected",
+      "malformed signature encoding is rejected",
+      "unknown AP2 credential versions are rejected",
+      "cross-version AP2 spec fields are rejected",
+      "cross-version REAPP binding fields are rejected",
+      "cross-version AP2 mandate types are rejected",
     ],
   },
   {
     title: "Scope & amount",
-    start: 39,
+    start: 65,
     tests: [
-      "trusted merchant outside signed scope is rejected",
-      "zero amount is rejected",
-      "negative amount is rejected",
-      "scientific-notation amount is rejected",
-      "excess fractional precision is rejected",
+      "trusted merchant must match the signed scope",
+      "trusted checkout reference must match the signed reference",
+      "amount exactly equal to the signed maximum succeeds",
       "one stroop over the signed maximum is rejected as overspend",
-      "amount beyond contract i128 is rejected",
+      "zero payment amount is rejected",
+      "scientific-notation payment amount is rejected",
     ],
   },
   {
     title: "Expiry & trusted clock",
-    start: 46,
+    start: 71,
     tests: [
-      "expired signed mandate is rejected",
-      "expiry exactly equal to the trusted clock is rejected",
-      "future expiry succeeds under the injected clock",
-      "impossible calendar expiry fails closed",
+      "expiry equal to the trusted clock is rejected",
+      "expiry before the trusted clock is rejected",
+      "a genuinely past-dated credential reports EXPIRED, not INVALID_CREDENTIAL",
+      "authoring a past-dated mandate is still refused",
     ],
   },
   {
     title: "Replay & storage isolation",
-    start: 50,
+    start: 75,
     tests: [
-      "replayed mandate hash is rejected on second admission",
-      "100 concurrent admissions yield exactly one success",
-      "replay store exception fails closed",
-      "unsupported replay store result fails closed",
-      "bad signature does not poison the replay store",
-      "wrong merchant does not poison the replay store",
-      "overspend does not poison the replay store",
-      "expired credential does not poison the replay store",
-      "explicit replay namespaces isolate independent registries",
+      "replay admission is atomic under concurrency",
+      "replay store outages fail closed",
+      "invalid credentials do not poison replay state",
     ],
   },
 ] as const;
@@ -178,6 +235,7 @@ const short = (value: string, lead = 10, tail = 8) =>
 
 export default function Ap2Page() {
   const [scenario, setScenario] = useState<Scenario>("all");
+  const [version, setVersion] = useState<Ap2Version>("0.2.0");
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<ValidatorResponse | null>(null);
   const [error, setError] = useState("");
@@ -191,7 +249,7 @@ export default function Ap2Page() {
       const response = await fetch("/api/ap2", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ scenario }),
+        body: JSON.stringify({ scenario, version }),
       });
       const body = await response.json() as ValidatorResponse | { error?: string };
       if (!response.ok || !("results" in body)) {
@@ -214,7 +272,7 @@ export default function Ap2Page() {
       <motion.header {...fade()} className="pt-6">
         <div className="inline-flex items-center gap-2 rounded-full glass px-3.5 py-1.5 text-[11px] font-semibold tracking-[0.18em] text-emerald-300/90">
           <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.9)]" />
-          AP2 V0.1 · SIGNED REAPP PROFILE · PUBLIC NPM RELEASE
+          AP2 V0.2 + V0.1 · SIGNED REAPP PROFILE · PUBLIC NPM RELEASE
         </div>
         <h1 className="mt-5 max-w-4xl text-4xl font-black leading-[1.03] tracking-tight sm:text-6xl">
           Validate the mandate{" "}
@@ -237,11 +295,40 @@ export default function Ap2Page() {
               <h2 className="mt-2 text-xl font-bold text-white">AP2 validation console</h2>
             </div>
             <div className="rounded-full border border-emerald-300/20 bg-emerald-400/10 px-3 py-1 font-mono text-[11px] text-emerald-200">
-              0.3.0
+              0.4.0
             </div>
           </div>
 
-          <div className="mt-5 grid gap-2.5 sm:grid-cols-2 lg:grid-cols-1">
+          <div className="mt-5">
+            <div className="text-[9px] uppercase tracking-[0.15em] text-emerald-300/50">Mandate version</div>
+            <div className="mt-2 grid grid-cols-2 gap-2" role="group" aria-label="AP2 mandate version">
+              {AP2_VERSIONS.map(({ id, label, detail }) => {
+                const active = version === id;
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    aria-pressed={active}
+                    onClick={() => {
+                      setVersion(id);
+                      setResult(null);
+                      setError("");
+                    }}
+                    className={"rounded-xl border px-3 py-2.5 text-left transition " + (
+                      active
+                        ? "border-emerald-300/35 bg-emerald-400/12"
+                        : "border-white/10 bg-black/20 hover:border-emerald-300/25 hover:bg-emerald-400/[0.06]"
+                    )}
+                  >
+                    <span className="block text-sm font-semibold text-emerald-50">{label}</span>
+                    <span className="mt-0.5 block truncate font-mono text-[11px] text-emerald-100/45">{detail}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="mt-4 grid gap-2.5 sm:grid-cols-2 lg:grid-cols-1">
             {OPTIONS.map(({ id, label, detail, Icon }) => {
               const active = scenario === id;
               return (
@@ -375,7 +462,9 @@ export default function Ap2Page() {
                   <div className="grid gap-2.5 pt-1 sm:grid-cols-2">
                     {[
                       ["mandate hash", short(result.mandateHash)],
-                      ["signature", result.signatureAlgorithm],
+                      ["ap2 version", result.ap2SpecVersion],
+                      ["mandate type", result.ap2MandateType],
+                      ["binding", result.bindingVersion],
                       ["user", short(result.user)],
                       ["merchant", short(result.merchant)],
                       ["package", result.package],
@@ -400,7 +489,7 @@ export default function Ap2Page() {
             <div className="text-xs font-semibold uppercase tracking-[0.17em] text-emerald-300/70">Published package gate</div>
             <h2 className="mt-2 text-xl font-bold text-white">Complete AP2 test matrix</h2>
             <p className="mt-2 max-w-3xl text-sm leading-relaxed text-emerald-100/55">
-              The console above runs six representative checks live. The published package gate runs every named case below.
+              The console above runs seven representative checks live against whichever mandate version you pick. The published package gate runs every named case below.
             </p>
           </div>
           <div className="rounded-full border border-emerald-300/25 bg-emerald-400/10 px-3.5 py-1.5 font-mono text-xs text-emerald-200">
@@ -419,9 +508,7 @@ export default function Ap2Page() {
               </div>
               <ol className="mt-3 space-y-2.5" start={group.start}>
                 {group.tests.map((test, index) => {
-                  const number = "lastNumber" in group && index === group.tests.length - 1
-                    ? group.lastNumber
-                    : group.start + index;
+                  const number = group.start + index;
                   return (
                     <li key={test} className="flex items-start gap-2.5 text-xs leading-relaxed text-emerald-100/60">
                       <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 flex-none text-emerald-300/80" aria-hidden />
@@ -442,7 +529,7 @@ export default function Ap2Page() {
 
       <motion.section {...fade(0.18)} className="mt-6 grid gap-3 sm:grid-cols-3">
         <div className="glass rounded-xl p-4">
-          <div className="text-3xl font-black text-emerald-200">59 / 59</div>
+          <div className="text-3xl font-black text-emerald-200">{PUBLISHED_TEST_COUNT} / {PUBLISHED_TEST_COUNT}</div>
           <div className="mt-1 text-xs uppercase tracking-[0.14em] text-emerald-300/55">package tests passing</div>
           <p className="mt-3 text-xs leading-relaxed text-emerald-100/50">Valid mandates, tampering, scope, amount, expiry, replay, and concurrency.</p>
         </div>

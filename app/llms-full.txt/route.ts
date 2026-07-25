@@ -33,7 +33,7 @@ The fourth payment in a three-payment budget is not a UI simulation. The contrac
 
 - @reapp-sdk/core 0.3.1: mandate construction, registration, payment helpers, and agent.fetch().
 - @reapp-sdk/stellar 0.2.2: typed contract client, Stellar testnet configuration, signers, token helpers, and explorer integration.
-- @reapp-sdk/ap2 0.4.0: AP2 v0.2 Open Payment Mandate admission, merchant open/closed verification, and typed contract authorization with pinned canonicalization.
+- @reapp-sdk/ap2 0.4.0: AP2 v0.2 Open Payment Mandate admission, merchant open/closed verification, and typed contract authorization with pinned canonicalization. Signs and admits the AP2 v0.1 IntentMandate profile as well, byte-identical to 0.3.0.
 - @reapp-sdk/express-middleware 0.2.2: HTTP payment challenge, settlement verification, protected-route integration, and one-time redemption controls for Express 4 and 5.
 - reapp-protocol-cli 0.1.5: terminal setup, mandate, payment, inspection, and demonstration commands.
 
@@ -63,7 +63,7 @@ The Hackathon starter creates a disposable hosted fulfillment workspace and gene
 
 ### AP2 — https://reapp.live/ap2
 
-The AP2 page demonstrates canonical mandate binding and negative cases. It covers signature validity, merchant mismatch, amount limits, expiry, and replay. AP2 artifacts represent intent and transaction authority; REAPP maps those artifacts into enforceable payment constraints rather than treating signed text as unlimited permission.
+The AP2 page demonstrates canonical mandate binding and negative cases against either AP2 version, chosen with a toggle: v0.2 Open Payment Mandate or v0.1 IntentMandate. It covers signature validity, merchant mismatch, checkout reference, amount limits, expiry, and replay. AP2 artifacts represent intent and transaction authority; REAPP maps those artifacts into enforceable payment constraints rather than treating signed text as unlimited permission.
 
 ### Research agent — https://reapp.live/research
 
