@@ -1,9 +1,12 @@
 import assert from "node:assert/strict";
+import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
+import { promisify } from "node:util";
 
 const read = (path) => readFile(new URL(`../${path}`, import.meta.url), "utf8");
+const run = promisify(execFile);
 
 const protectedHashes = {
   "app/express/page.tsx": "ba0df89a81c1a10f12648fbd5bd951ba2a872847a8ea65dfd32ac3294350e33c",
@@ -174,6 +177,24 @@ test("new public copy follows repository terminology rules", async () => {
     // on 0.3.0 until 0.4.0 is published and its lockfiles can be regenerated.
     "@reapp-sdk/ap2 0.4.0",
     "@reapp-sdk/express-middleware 0.2.2",
-    "reapp-protocol-cli 0.1.5",
+    "reapp-protocol-cli 0.1.7",
   ]) assert.match(combined, new RegExp(version.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")), version);
+});
+
+// The site shipped a vendored bundle reporting 0.1.4 under a banner claiming
+// 0.1.5 while 0.1.7 was published. Copy alone cannot catch that, so this asks
+// the bundle what it actually is.
+test("the vendored CLI bundle is the version the site claims to run", async () => {
+  const bundle = new URL("../vendor/reapp-cli.mjs", import.meta.url);
+  const { stdout } = await run(process.execPath, [bundle.pathname, "--version"]);
+  const actual = stdout.trim();
+
+  assert.match(actual, /^\d+\.\d+\.\d+$/, `unexpected --version output ${JSON.stringify(actual)}`);
+  for (const path of ["app/t2/demo/page.tsx", "app/cli/page.tsx", "app/page.tsx"]) {
+    const source = await read(path);
+    const claimed = [...source.matchAll(/reapp-protocol-cli[@ ](\d+\.\d+\.\d+)/g)].map((m) => m[1]);
+    for (const version of claimed) {
+      assert.equal(version, actual, `${path} advertises CLI ${version} but the bundle is ${actual}`);
+    }
+  }
 });

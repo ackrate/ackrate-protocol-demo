@@ -3069,6 +3069,11 @@ var c = {
   amber: (s) => wrap("38;5;215", s),
   red: (s) => wrap("38;5;203", s)
 };
+var link = (url, label) => `\x1B]8;;${url}\x07${label}\x1B]8;;\x07`;
+var explorer = {
+  tx: (hash3) => `https://stellar.expert/explorer/testnet/tx/${hash3}`,
+  account: (addr) => `https://stellar.expert/explorer/testnet/account/${addr}`
+};
 var TAGS = {
   INFO: c.cyan,
   OK: c.green,
@@ -3120,7 +3125,7 @@ __export(dist_exports, {
 var DEPLOYMENTS = {
   testnet: {
     /** Deployed MandateRegistry contract id. */
-    mandateRegistryId: "CC6JMPDHRPBR2HBLJKRCIKV54HXDV2RFXDKW6MALQKWM6JEAJQHICRWE",
+    mandateRegistryId: "CCHQ5G4Y4YBMY6D3TYYJSVJVCKUM22Q6TMKCCHVAHY4X7K6QELQACZRM",
     /** Native XLM Stellar Asset Contract — a real SEP-41 token. */
     nativeSac: "CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC"
   }
@@ -3184,7 +3189,7 @@ var Client = class extends ContractClient {
       "AAAAAAAAAV1UaGUgb25seSBtb25leSBwYXRoLiBBdG9taWM6IHJlcXVpcmVfYXV0aChhZ2VudCkg4oaSIHJlcGxheSBndWFyZAooYGV4cGVjdGVkX3NlcWAgPT0gY3VycmVudCBgc2VxYCwgZWxzZSBgQmFkU2VxdWVuY2VgKSDihpIgcmUtdmFsaWRhdGUg4oaSCmFkdmFuY2Ugc3BlbnQrc2VxIOKGkiBTRVAtNDEgdHJhbnNmZXJfZnJvbSh1c2VyIOKGkiBtZXJjaGFudCkuIFJldmVydHMgb24gYW55CmZhaWx1cmUuIGBleHBlY3RlZF9zZXFgIGlzIHRoZSBtYW5kYXRlJ3MgY3VycmVudCBzZXF1ZW5jZSAocmVhZCBmcm9tCmBnZXRfbWFuZGF0ZWApLCBwcmV2ZW50aW5nIGR1cGxpY2F0ZS9vdXQtb2Ytb3JkZXIgY29uc3VtcHRpb24uAAAAAAAAD2V4ZWN1dGVfcGF5bWVudAAAAAADAAAAAAAAAAptYW5kYXRlX2lkAAAAAAPuAAAAIAAAAAAAAAAGYW1vdW50AAAAAAALAAAAAAAAAAxleHBlY3RlZF9zZXEAAAAEAAAAAQAAA+kAAAPtAAAAAAAAAAM=",
       "AAAAAAAAAEtFeGVjdXRlIHRoZSBzY2hlZHVsZWQgdXBncmFkZSBhZnRlciB0aGUgZGVsYXkgd2hpbGUgdGhlIGNvbnRyYWN0IGlzIHBhdXNlZC4AAAAAD2V4ZWN1dGVfdXBncmFkZQAAAAAAAAAAAQAAA+kAAAPtAAAAAAAAAAM=",
       "AAAAAAAAAMJTdG9yZSBhIHVzZXItc2lnbmVkIG1hbmRhdGUgZnJvbSBpdHMgYXV0aG9yaXplZCBwYXJhbWV0ZXJzLiBUaGUgY29udHJhY3QKc2V0cyBgc3BlbnQ9MCwgc2VxPTAsIHN0YXR1cz1BY3RpdmVgIGl0c2VsZi4gQXV0aG9yaXplZCBieSBgdXNlcmAuClJldHVybnMgdGhlIG1hbmRhdGUgaWQgKD0gYHZjX2hhc2hgLCB0aGUgc3RvcmFnZSBrZXkpLgAAAAAAEHJlZ2lzdGVyX21hbmRhdGUAAAAHAAAAAAAAAAR1c2VyAAAAEwAAAAAAAAAFYWdlbnQAAAAAAAATAAAAAAAAAAhtZXJjaGFudAAAABMAAAAAAAAABWFzc2V0AAAAAAAAEwAAAAAAAAAKbWF4X2Ftb3VudAAAAAAACwAAAAAAAAAGZXhwaXJ5AAAAAAAGAAAAAAAAAAd2Y19oYXNoAAAAA+4AAAAgAAAAAQAAA+kAAAPuAAAAIAAAAAM=",
-      "AAAAAAAAAENTY2hlZHVsZSBhIHNhbWUtYWRkcmVzcyBXQVNNIHVwZ3JhZGUgYWZ0ZXIgdGhlIGZpeGVkIDI0LWhvdXIgZGVsYXkuAAAAABBzY2hlZHVsZV91cGdyYWRlAAAAAQAAAAAAAAANbmV3X3dhc21faGFzaAAAAAAAA+4AAAAgAAAAAQAAA+kAAAAGAAAAAw==",
+      "AAAAAAAAAERTY2hlZHVsZSBhIHNhbWUtYWRkcmVzcyBXQVNNIHVwZ3JhZGUgYWZ0ZXIgdGhlIGZpeGVkIG9uZS1ob3VyIGRlbGF5LgAAABBzY2hlZHVsZV91cGdyYWRlAAAAAQAAAAAAAAANbmV3X3dhc21faGFzaAAAAAAAA+4AAAAgAAAAAQAAA+kAAAAGAAAAAw==",
       "AAAAAAAAAMtSZWFkLW9ubHkgcHJlZmxpZ2h0IOKAlCB3b3VsZCB0aGlzIHNwZW5kIGJlIHBlcm1pdHRlZCByaWdodCBub3c/IE11dGF0ZXMKbm90aGluZyBhbmQgcmVxdWlyZXMgbm8gYXV0aDsgdGhlIGF1dGhvcml0YXRpdmUgY29uc3VtZSBoYXBwZW5zIG9ubHkgaW4KYGV4ZWN1dGVfcGF5bWVudGAuIChJdCBpcyBhIGRyeS1ydW47IGl0IGNvbnN1bWVzIG5vdGhpbmcuKQAAAAAQdmFsaWRhdGVfbWFuZGF0ZQAAAAMAAAAAAAAACm1hbmRhdGVfaWQAAAAAA+4AAAAgAAAAAAAAAAZhbW91bnQAAAAAAAsAAAAAAAAACG1lcmNoYW50AAAAEwAAAAEAAAPpAAAD7QAAAAAAAAAD",
       "AAAAAAAAACNGaXhlZCB0aW1lbG9jayBkdXJhdGlvbiBpbiBzZWNvbmRzLgAAAAARZ2V0X3VwZ3JhZGVfZGVsYXkAAAAAAAAAAAAAAQAAAAY=",
       "AAAAAAAAAEVSZWFkIHRoZSBwZW5kaW5nIHVwZ3JhZGUsIGluY2x1ZGluZyBoYXNoIGFuZCBlYXJsaWVzdCBleGVjdXRpb24gdGltZS4AAAAAAAATZ2V0X3BlbmRpbmdfdXBncmFkZQAAAAAAAAAAAQAAA+gAAAfQAAAADlBlbmRpbmdVcGdyYWRlAAA=",
@@ -3687,6 +3692,37 @@ function isBoundPaymentProof(proof) {
   return "proofVersion" in proof && proof.proofVersion === 2;
 }
 
+// packages/sdk/dist/payment-sequence.js
+var U32_MAX = 2n ** 32n - 1n;
+function normalizeExpectedPaymentSequence(value) {
+  let normalized;
+  if (typeof value === "bigint") {
+    normalized = value;
+  } else if (typeof value === "number") {
+    if (!Number.isSafeInteger(value)) {
+      throw new Error("expected payment sequence must be a safe non-negative integer");
+    }
+    normalized = BigInt(value);
+  } else {
+    if (!/^(?:0|[1-9]\d*)$/.test(value)) {
+      throw new Error("expected payment sequence must be canonical unsigned decimal");
+    }
+    normalized = BigInt(value);
+  }
+  if (normalized < 0n || normalized > U32_MAX) {
+    throw new Error("expected payment sequence is outside the contract u32 range");
+  }
+  return Number(normalized);
+}
+function resolveExpectedPaymentSequence(currentSequence, requestedSequence) {
+  const current = normalizeExpectedPaymentSequence(currentSequence);
+  const expected = requestedSequence === void 0 ? current : normalizeExpectedPaymentSequence(requestedSequence);
+  if (current !== expected) {
+    throw new Error(`payment operation expected mandate sequence ${expected}, but current sequence is ${current}; refusing to create another transaction`);
+  }
+  return expected;
+}
+
 // packages/sdk/dist/index.js
 function createSettlementReceiptId(receipt) {
   return hash2(Buffer4.from(JSON.stringify([
@@ -3731,7 +3767,6 @@ var DEFAULT_DECIMALS = 7;
 var PAYMENT_TIMEOUT_SECONDS = 60;
 var I128_MAX = 2n ** 127n - 1n;
 var MAX_EXPIRY = Number.MAX_SAFE_INTEGER;
-var U64_MAX = 2n ** 64n - 1n;
 var activeMandatePaymentClaims = /* @__PURE__ */ new Map();
 var FINALIZED_CONTRACT_ERROR_CODES = /* @__PURE__ */ new Set([
   1,
@@ -3782,23 +3817,6 @@ function toStroops(human, decimals = DEFAULT_DECIMALS) {
   return stroops;
 }
 var asKeypair = (s) => typeof s === "string" ? Keypair4.fromSecret(s) : s;
-function normalizeExpectedSequence(value) {
-  let normalized;
-  if (typeof value === "bigint")
-    normalized = value;
-  else if (typeof value === "number") {
-    if (!Number.isSafeInteger(value))
-      throw new Error("expected payment sequence must be a safe non-negative integer");
-    normalized = BigInt(value);
-  } else {
-    if (!/^\d+$/.test(value))
-      throw new Error("expected payment sequence must be canonical unsigned decimal");
-    normalized = BigInt(value);
-  }
-  if (normalized < 0n || normalized > U64_MAX)
-    throw new Error("expected payment sequence is outside the contract u64 range");
-  return normalized;
-}
 var Agent = class {
   net;
   mandate;
@@ -3892,10 +3910,7 @@ ${this.mandate.id}`;
       const signer = keypairSigner(this.agentKeypair, this.net.networkPassphrase);
       const client = registryClient(this.net, signer);
       const current = (await client.get_mandate({ mandate_id: this.mandate.idBuffer })).result.unwrap();
-      const expectedSeq = lifecycle.expectedSeq === void 0 ? current.seq : normalizeExpectedSequence(lifecycle.expectedSeq);
-      if (current.seq !== expectedSeq) {
-        throw new Error(`payment operation expected mandate sequence ${expectedSeq}, but current sequence is ${current.seq}; refusing to create another transaction`);
-      }
+      const expectedSeq = resolveExpectedPaymentSequence(current.seq, lifecycle.expectedSeq);
       const at = await client.execute_payment({
         mandate_id: this.mandate.idBuffer,
         amount: toStroops(amount, this.mandate.decimals),
@@ -4826,10 +4841,30 @@ async function attemptPurchase(agent) {
     return { kind: "error", msg: (msg.split("\n")[0] ?? msg).slice(0, 90) };
   }
 }
-async function runDemo(target = "research-agent") {
-  if (target !== "research-agent") {
+var DEMOS = [
+  {
+    id: "research-agent",
+    summary: "An agent buys research sources on-chain, one real payment each; the 3 XLM mandate budget covers three and the contract rejects the fourth."
+  }
+];
+function listDemos() {
+  console.log("\n" + banner() + "\n");
+  log.info("available demos");
+  for (const d of DEMOS) {
+    log.step(d.id, { run: `reapp demo ${d.id}` });
+    console.log("  " + c.gray(d.summary));
+  }
+  console.log();
+}
+async function runDemo(target) {
+  if (!target) {
+    listDemos();
+    return;
+  }
+  if (!DEMOS.some((d) => d.id === target)) {
     log.warn(`unknown demo "${target}"`);
-    log.info("available demos", { run: "reapp demo research-agent" });
+    listDemos();
+    process.exitCode = 1;
     return;
   }
   try {
@@ -4881,7 +4916,7 @@ async function runDemo(target = "research-agent") {
         seq += 1;
         await waitForSeq(rclient, mandate2.idBuffer, seq);
         purchased += 1;
-        log.ok("purchased on-chain", { tx: short4(r.hash) });
+        log.ok("purchased on-chain", { tx: link(explorer.tx(r.hash), short4(r.hash)) });
         await acknowledgeCompletedSettlement(r.hash);
         break;
       }
@@ -4918,7 +4953,7 @@ async function runDemo(target = "research-agent") {
 // packages/cli/src/commands/reconcile.ts
 import { rpc as rpc6 } from "@stellar/stellar-sdk";
 var short5 = (value) => `${value.slice(0, 8)}\u2026${value.slice(-6)}`;
-var explorer = (hash3) => `https://stellar.expert/explorer/testnet/tx/${hash3}`;
+var explorer2 = (hash3) => `https://stellar.expert/explorer/testnet/tx/${hash3}`;
 async function runSettlementReconcile() {
   const loaded = await loadPendingSettlement();
   if (loaded.kind === "none") {
@@ -4933,7 +4968,7 @@ async function runSettlementReconcile() {
   if (loaded.kind === "completed") {
     const hash3 = loaded.record.pending.txHash;
     log.chain("prepared payment succeeded and remains durably locked", { tx: short5(hash3) });
-    console.log(c.dim(`  ${explorer(hash3)}`));
+    console.log(c.dim(`  ${explorer2(hash3)}`));
     log.info(`after you durably accept this result, run \`reapp settlement acknowledge ${hash3}\``);
     return;
   }
@@ -4957,14 +4992,14 @@ async function runSettlementReconcile() {
   if (response.status === rpc6.Api.GetTransactionStatus.SUCCESS) {
     await markSettlementCompleted(pending.txHash);
     log.chain("prepared payment succeeded; durable acknowledgment is required", { tx: short5(pending.txHash) });
-    console.log(c.dim(`  ${explorer(pending.txHash)}`));
+    console.log(c.dim(`  ${explorer2(pending.txHash)}`));
     log.info(`after you durably accept this result, run \`reapp settlement acknowledge ${pending.txHash}\``);
     return;
   }
   if (response.status === rpc6.Api.GetTransactionStatus.FAILED) {
     await clearPendingSettlement(pending.txHash);
     log.warn("prepared payment finalized as failed; journal cleared");
-    console.log(c.dim(`  ${explorer(pending.txHash)}`));
+    console.log(c.dim(`  ${explorer2(pending.txHash)}`));
     return;
   }
   const decision = classifyMissingSettlement(pending, response);
@@ -4996,7 +5031,7 @@ async function runSettlementAcknowledge(txHash) {
 }
 
 // packages/cli/src/version.ts
-var CLI_VERSION = "0.1.4";
+var CLI_VERSION = "0.1.7";
 
 // packages/cli/src/index.ts
 var program2 = new Command();
@@ -5009,7 +5044,7 @@ program2.command("pay").description("make an agent-signed payment against the ac
 var settlement = program2.command("settlement").description("inspect crash-safe payment state");
 settlement.command("reconcile").description("query the exact prepared transaction hash before allowing another payment").action(() => runSettlementReconcile());
 settlement.command("acknowledge").description("acknowledge one exact durably recorded successful payment").argument("<tx-hash>", "the exact 64-character lowercase transaction hash").action((txHash) => runSettlementAcknowledge(txHash));
-program2.command("demo").description("run a self-contained on-chain demo (ephemeral accounts, no setup needed)").argument("[target]", "which demo to run", "research-agent").action((target) => runDemo(target));
+program2.command("demo").description("list or run a self-contained on-chain demo (ephemeral accounts, no setup needed)").argument("[target]", "which demo to run; omit to list available demos").action((target) => runDemo(target));
 program2.parseAsync(process.argv).catch((err) => {
   console.error(err instanceof Error ? err.message : err);
   process.exit(1);
