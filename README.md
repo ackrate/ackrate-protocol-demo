@@ -178,6 +178,7 @@ Without an LLM key, the starter library, Express, CLI, AP2, composite, and video
 - `app/api/express/` — hosted Express session and fulfillment routes.
 - `lib/reapp-server.ts` — server-side integration with `@reapp-sdk/core`.
 - `app/` — the documentation and demonstration surfaces listed above.
+- [`docs/mainnet-roadmap.md`](docs/mainnet-roadmap.md) — hosted wallet and chat workstream in the canonical mainnet plan.
 
 Contract and protocol source: [reapp-protocol/reapp-protocol](https://github.com/reapp-protocol/reapp-protocol)
 
