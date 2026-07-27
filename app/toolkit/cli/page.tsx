@@ -15,7 +15,7 @@ const QUICK = [
   { label: "settlement reconcile", cmd: "settlement reconcile" },
 ];
 
-export default function T2DemoPage() {
+export default function ToolkitCliPage() {
   const hostRef = useRef<HTMLDivElement>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const termRef = useRef<any>(null);
@@ -96,7 +96,7 @@ export default function T2DemoPage() {
 
   return (
     <main className="mx-auto max-w-4xl px-5 py-10">
-      <Link href="/t2" className="text-sm text-emerald-400 underline underline-offset-2 hover:text-emerald-300">
+      <Link href="/toolkit" className="text-sm text-emerald-400 underline underline-offset-2 hover:text-emerald-300">
         ← Toolkit preview
       </Link>
       <h1 className="mt-3 text-2xl font-semibold text-white">CLI · live terminal</h1>

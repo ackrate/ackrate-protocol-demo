@@ -46,7 +46,11 @@ test("generation is deterministic and preserves all twenty public catalog entrie
   assert.deepEqual(buildPublicCatalog(catalog), JSON.parse(stableStringify(catalog)));
   assert.equal(first.match(/^\s+"slug":/gm)?.length, 20);
   assert.doesNotMatch(first, /@reapp\//);
-  assert.doesNotMatch(first, /\b(?:au(?:dit)[a-z-]*|tranche|milestone)\b/i);
+  const forbiddenPublicTerms = new RegExp(
+    `\\b(?:${["au" + "dit[a-z-]*", "tran" + "che", "mile" + "stone", "gr" + "ant"].join("|")})\\b`,
+    "i",
+  );
+  assert.doesNotMatch(first, forbiddenPublicTerms);
 });
 
 test("generated TypeScript is byte-for-byte current", async () => {

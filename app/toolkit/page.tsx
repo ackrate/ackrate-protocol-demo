@@ -4,11 +4,11 @@ import { createPageMetadata } from "@/lib/site-metadata";
 export const metadata = createPageMetadata({
   title: "REAPP Agentic Payments Toolkit Preview",
   description: "Preview the REAPP developer toolkit, research-agent runner, and composite mandate demonstrations on live Stellar testnet contracts.",
-  path: "/t2",
+  path: "/toolkit",
   keywords: ["developer toolkit", "testnet", "composite mandates"],
 });
 
-export default function T2Page() {
+export default function ToolkitPage() {
   return (
     <main className="mx-auto max-w-3xl px-5 py-10">
       <h1 className="text-2xl font-semibold text-white">Developer toolkit · testnet</h1>
@@ -19,7 +19,7 @@ export default function T2Page() {
 
       <div className="mt-6 grid gap-4">
         <Link
-          href="/t2/demo"
+          href="/toolkit/cli"
           className="rounded-xl border border-emerald-400/15 bg-black/30 p-5 transition hover:border-emerald-400/40"
         >
           <div className="text-lg font-semibold text-emerald-100">CLI demo · research agent</div>

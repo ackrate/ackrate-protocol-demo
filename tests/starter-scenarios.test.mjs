@@ -142,7 +142,11 @@ test("scenario sources remain deterministic, local, GET-only, and terminology-sa
     ...value.kits.map(({ id }) => readFile(new URL(`${id}.mjs`, SCENARIO_ROOT), "utf8")),
   ]);
   const combined = sources.join("\n");
-  assert.doesNotMatch(combined, /\b(?:au(?:dit)[a-z-]*|tranche|milestone)\b/i);
+  const forbiddenPublicTerms = new RegExp(
+    `\\b(?:${["au" + "dit[a-z-]*", "tran" + "che", "mile" + "stone", "gr" + "ant"].join("|")})\\b`,
+    "i",
+  );
+  assert.doesNotMatch(combined, forbiddenPublicTerms);
   assert.doesNotMatch(combined, /@reapp\//);
   assert.doesNotMatch(combined, /paid POST|body-bound payment|generic x402-v2 compatibility/i);
   assert.doesNotMatch(combined, /\b(?:fetch|setTimeout|setInterval)\s*\(|Math\.random|Date\.now/);

@@ -21,7 +21,7 @@ REAPP separates adaptive agent planning from deterministic financial authority. 
 - [Research agent](https://reapp.live/research): An AI agent buys paid sources until the on-chain budget is exhausted.
 - [Video paywall](https://reapp.live/video): Three permitted pay-per-use unlocks followed by a rejected fourth payment.
 - [Composite mandates](https://reapp.live/composites): Multiple agents coordinate a group buy and atomic clearing result.
-- [Toolkit preview](https://reapp.live/t2): Guided access to newer REAPP demonstrations.
+- [Toolkit preview](https://reapp.live/toolkit): Guided access to the CLI runner and composite-payment demonstrations.
 
 ## Packages and source
 

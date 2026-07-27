@@ -12,8 +12,8 @@ const routes = [
   "/express",
   "/solutions",
   "/research",
-  "/t2",
-  "/t2/demo",
+  "/toolkit",
+  "/toolkit/cli",
   "/video",
 ] as const;
 

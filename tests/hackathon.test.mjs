@@ -163,11 +163,19 @@ test("new public copy follows repository terminology rules", async () => {
   const combined = [
     await read("app/solutions/page.tsx"),
     await read("app/solutions/layout.tsx"),
+    await read("app/toolkit/page.tsx"),
+    await read("app/toolkit/cli/layout.tsx"),
+    await read("app/toolkit/cli/page.tsx"),
+    await read("app/sitemap.ts"),
     await read("app/llms.txt/route.ts"),
     await read("app/llms-full.txt/route.ts"),
     await read("starters/research-source-scout/README.md"),
   ].join("\n");
-  assert.doesNotMatch(combined, /\b(?:au(?:dit)[a-z-]*|tranche|milestone)\b/i);
+  const forbiddenPublicTerms = new RegExp(
+    `\\b(?:${["au" + "dit[a-z-]*", "tran" + "che", "mile" + "stone", "gr" + "ant"].join("|")})\\b`,
+    "i",
+  );
+  assert.doesNotMatch(combined, forbiddenPublicTerms);
   assert.doesNotMatch(combined, /\bNO MOCKS\b/i);
   assert.doesNotMatch(combined, /@reapp\//, "only the @reapp-sdk namespace is valid");
   assert.doesNotMatch(combined, /Hackathon starter[\s\S]*?calls the hosted endpoint through agent\.fetch\(\)/);
@@ -188,7 +196,7 @@ test("the vendored CLI and public pages use the released CLI and permanent contr
 
   assert.equal(actualVersion, "0.1.7");
   for (const path of [
-    "app/t2/demo/page.tsx",
+    "app/toolkit/cli/page.tsx",
     "app/cli/page.tsx",
     "app/page.tsx",
     "app/llms.txt/route.ts",
@@ -206,13 +214,13 @@ test("the vendored CLI and public pages use the released CLI and permanent contr
   const [home, cli, terminal, bundleSource] = await Promise.all([
     read("app/page.tsx"),
     read("app/cli/page.tsx"),
-    read("app/t2/demo/page.tsx"),
+    read("app/toolkit/cli/page.tsx"),
     read("vendor/reapp-cli.mjs"),
   ]);
   for (const [path, source] of [
     ["app/page.tsx", home],
     ["app/cli/page.tsx", cli],
-    ["app/t2/demo/page.tsx", terminal],
+    ["app/toolkit/cli/page.tsx", terminal],
     ["vendor/reapp-cli.mjs", bundleSource],
   ]) {
     assert.match(source, new RegExp(PERMANENT_SIMPLE_CONTRACT), path);

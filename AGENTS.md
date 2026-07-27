@@ -36,10 +36,10 @@ video demo still works and the research page shows a notice.
 - `/solutions` — beginner onboarding: scaffold a clean project, connect it to
   hosted Express fulfillment, and watch local `agent.fetch()` evidence arrive.
   Source: `app/solutions/page.tsx`.
-- `/t2` — developer toolkit preview hub. New preview work is isolated here so it
-  doesn't confuse the earlier review. Source: `app/t2/page.tsx`.
-- `/t2/demo` — live **xterm.js terminal** that runs the real `reapp` CLI on the
-  server and streams its output. Source: `app/t2/demo/page.tsx`.
+- `/toolkit` — product-facing developer toolkit hub. Source:
+  `app/toolkit/page.tsx`.
+- `/toolkit/cli` — live **xterm.js terminal** that runs the real `reapp` CLI on
+  the server and streams its output. Source: `app/toolkit/cli/page.tsx`.
 - `/composites` — composite mandates (clearing pools) demo: three buyer agents pool one
   group buy; the contract clears everyone at one uniform price in a single atomic
   transaction. Runs against the composite build of MandateRegistry (a separate
@@ -47,9 +47,9 @@ video demo still works and the research page shows a notice.
 
 Nav order is defined in `components/Nav.tsx` (`links` array): Docs · CLI ·
 Express · AP2 · Research · Solutions. The `/consumer` and `/video` routes remain
-available by direct link. The preview surfaces are UNLISTED (not in the nav, per team
-decision — no gate-check-era labels in the site chrome): `/t2` and `/composites` are
-reachable by direct link only; the `/t2` hub links to `/composites`.
+available by direct link. The toolkit and composite surfaces are UNLISTED (not
+in the nav): `/toolkit` and `/composites` are reachable by direct link only;
+the `/toolkit` hub links to `/composites`.
 
 ## Key files
 
@@ -69,10 +69,11 @@ reachable by direct link only; the `/t2` hub links to `/composites`.
   *LLM*. The only allowed references are functional and required to run: the
   `@anthropic-ai/sdk` import, the `model:` strings passed to `client.messages.create(...)`
   in `lib/research-agent.ts`, and the `ANTHROPIC_API_KEY` env var name.
-- **Terminology (hard rule):** never use the prohibited T1 review term in copy/docs/commits — say "gate check";
-  never "Tranche" or "milestone"; no grant-program wording on any user-visible page.
-  (The verb "grant" for SEP-41 allowances is fine.) The `/t2` route name stays; its
-  user-visible copy says "Developer toolkit · preview".
+- **Terminology (hard rule):** public product surfaces, routes, copy,
+  documentation, and commits use product and release language only. Do not
+  expose program-funding language, delivery-phase labels, or internal review
+  labels. Say "gate check" for verification work. Protocol authorization copy
+  may still describe an allowance being given to the contract.
 - **No marketing hype / AI-slop copy.** Avoid empty intensifiers ("NO MOCKS",
   "*-POWERED", "slick", "Premium", emphatic "Real …"). Keep concrete, accurate
   technical statements (the on-chain budget cap, contract-enforced limits, revocable mandate).

@@ -52,7 +52,10 @@ const KIT_KEYS = Object.freeze([
 
 const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const EXACT_VERSION_PATTERN = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
-const FORBIDDEN_PUBLIC_TERMS = /\b(?:au(?:dit)[a-z-]*|tranche|milestone)\b/i;
+const FORBIDDEN_PUBLIC_TERMS = new RegExp(
+  `\\b(?:${["au" + "dit[a-z-]*", "tran" + "che", "mile" + "stone", "gr" + "ant"].join("|")})\\b`,
+  "i",
+);
 const INVALID_PACKAGE_SCOPE = /@reapp\//;
 
 function fail(message) {
