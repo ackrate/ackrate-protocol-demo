@@ -35,7 +35,7 @@ The fourth payment in a three-payment budget is not a UI simulation. The contrac
 - @reapp-sdk/stellar 0.2.2: typed contract client, Stellar testnet configuration, signers, token helpers, and explorer integration.
 - @reapp-sdk/ap2 0.3.0: AP2 IntentMandate and TransactionMandate translation with pinned canonicalization and validation behavior.
 - @reapp-sdk/express-middleware 0.2.2: HTTP payment challenge, settlement verification, protected-route integration, and one-time redemption controls for Express 4 and 5.
-- reapp-protocol-cli 0.1.5: terminal setup, mandate, payment, inspection, and demonstration commands.
+- reapp-protocol-cli 0.1.7: terminal setup, mandate, payment, inspection, and demonstration commands.
 
 Confirm versions at https://reapp.live/ and the npm registry before copying an installation command.
 

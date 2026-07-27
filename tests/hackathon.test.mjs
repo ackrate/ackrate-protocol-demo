@@ -1,9 +1,14 @@
 import assert from "node:assert/strict";
+import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
+import { promisify } from "node:util";
 
 const read = (path) => readFile(new URL(`../${path}`, import.meta.url), "utf8");
+const run = promisify(execFile);
+const PERMANENT_SIMPLE_CONTRACT =
+  "CCHQ5G4Y4YBMY6D3TYYJSVJVCKUM22Q6TMKCCHVAHY4X7K6QELQACZRM";
 
 const protectedHashes = {
   "app/express/page.tsx": "ba0df89a81c1a10f12648fbd5bd951ba2a872847a8ea65dfd32ac3294350e33c",
@@ -172,6 +177,44 @@ test("new public copy follows repository terminology rules", async () => {
     "@reapp-sdk/stellar 0.2.2",
     "@reapp-sdk/ap2 0.3.0",
     "@reapp-sdk/express-middleware 0.2.2",
-    "reapp-protocol-cli 0.1.5",
+    "reapp-protocol-cli 0.1.7",
   ]) assert.match(combined, new RegExp(version.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")), version);
+});
+
+test("the vendored CLI and public pages use the released CLI and permanent contract", async () => {
+  const bundle = new URL("../vendor/reapp-cli.mjs", import.meta.url);
+  const { stdout } = await run(process.execPath, [bundle.pathname, "--version"]);
+  const actualVersion = stdout.trim();
+
+  assert.equal(actualVersion, "0.1.7");
+  for (const path of [
+    "app/t2/demo/page.tsx",
+    "app/cli/page.tsx",
+    "app/page.tsx",
+    "app/llms.txt/route.ts",
+    "app/llms-full.txt/route.ts",
+  ]) {
+    const source = await read(path);
+    const claimedVersions = [
+      ...source.matchAll(/reapp-protocol-cli(?:@| · | )(\d+\.\d+\.\d+)/g),
+    ].map((match) => match[1]);
+    for (const version of claimedVersions) {
+      assert.equal(version, actualVersion, `${path} advertises CLI ${version}`);
+    }
+  }
+
+  const [home, cli, terminal, bundleSource] = await Promise.all([
+    read("app/page.tsx"),
+    read("app/cli/page.tsx"),
+    read("app/t2/demo/page.tsx"),
+    read("vendor/reapp-cli.mjs"),
+  ]);
+  for (const [path, source] of [
+    ["app/page.tsx", home],
+    ["app/cli/page.tsx", cli],
+    ["app/t2/demo/page.tsx", terminal],
+    ["vendor/reapp-cli.mjs", bundleSource],
+  ]) {
+    assert.match(source, new RegExp(PERMANENT_SIMPLE_CONTRACT), path);
+  }
 });

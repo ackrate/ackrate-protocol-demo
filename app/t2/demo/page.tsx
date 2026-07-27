@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import "@xterm/xterm/css/xterm.css";
 
-const CONTRACT = "CC6JMPDHRPBR2HBLJKRCIKV54HXDV2RFXDKW6MALQKWM6JEAJQHICRWE";
+const CONTRACT = "CCHQ5G4Y4YBMY6D3TYYJSVJVCKUM22Q6TMKCCHVAHY4X7K6QELQACZRM";
 
 const QUICK = [
   { label: "demo research-agent", cmd: "demo research-agent" },
@@ -45,7 +45,7 @@ export default function T2DemoPage() {
       fit.fit();
       termRef.current = term;
       fitRef.current = fit;
-      term.writeln("\x1b[2mreapp-protocol-cli@0.1.5 · installed command: reapp · pick a command below or type one, then Run.\x1b[0m");
+      term.writeln("\x1b[2mreapp-protocol-cli@0.1.7 · installed command: reapp · pick a command below or type one, then Run.\x1b[0m");
       term.writeln("\x1b[2mState (config, keys, mandate) persists across commands in this session.\x1b[0m\r\n");
       setReady(true);
       const onResize = () => fit.fit();
