@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
+import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 
 // Client-only: the WebGL scene must never run during SSR.
@@ -10,6 +11,7 @@ const Intro = dynamic(() => import("./Intro"), { ssr: false });
 const SEEN_KEY = "reapp_intro_seen_v1";
 
 export default function IntroGate() {
+  const path = usePathname();
   // Default true so the overlay covers the page from first paint (no flash on
   // the first visit). On repeat visits this session, the effect hides it fast.
   const [show, setShow] = useState(true);
@@ -22,6 +24,8 @@ export default function IntroGate() {
       /* sessionStorage unavailable: just play it */
     }
   }, []);
+
+  if (path.startsWith("/wallet")) return null;
 
   return (
     <AnimatePresence>

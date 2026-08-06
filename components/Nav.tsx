@@ -16,6 +16,7 @@ const links = [
 
 export default function Nav() {
   const path = usePathname();
+  if (path.startsWith("/wallet")) return null;
   return (
     <motion.nav
       initial={{ y: -16, opacity: 0 }}

@@ -5,7 +5,7 @@
   "description": "Next.js demo of @reapp-sdk/core: an AI agent makes pay-per-use content payments enforced on-chain by the REAPP MandateRegistry.",
   "type": "module",
   "scripts": {
-    "dev": "NODE_OPTIONS='--disable-warning=DEP0205' next dev",
+    "dev": "WATCHPACK_POLLING=true NODE_OPTIONS='--disable-warning=DEP0205' next dev --webpack",
     "build": "next build",
     "start": "NODE_OPTIONS='--disable-warning=DEP0205' next start",
     "lint": "next lint",
@@ -13,11 +13,19 @@
     "generate:starters": "node scripts/starters/generate.mjs",
     "check:starters": "node scripts/starters/verify.mjs",
     "test:hackathon": "node --test tests/hackathon.test.mjs tests/starter-catalog.test.mjs tests/starter-generation.test.mjs tests/starter-install.test.mjs tests/starter-presenter.test.mjs tests/starter-scenarios.test.mjs tests/shared-runtime.test.mjs tests/scenario-contract.test.mjs tests/scenario-runtime-boundary.test.mjs tests/contract-exact-payment.test.mjs tests/fulfillment-recovery.test.mjs tests/storage-recovery.test.mjs tests/operator-closure.test.mjs",
+    "test:wallet": "node --import tsx --test tests/wallet-*.test.ts",
     "smoke:hackathon": "node scripts/hackathon-smoke.mjs",
-    "gatecheck:hackathon": "npm run typecheck && npm run test:hackathon && npm run build && npm run smoke:hackathon"
+    "gatecheck:hackathon": "npm run typecheck && npm run test:hackathon && npm run build && npm run smoke:hackathon",
+    "gatecheck:t3": "npm run typecheck && npm run test:hackathon && npm run test:wallet && npm audit --audit-level=high && npm run build && npm run smoke:hackathon"
   },
   "dependencies": {
+    "@ai-sdk/openai": "4.0.33",
+    "@ai-sdk/react": "4.0.58",
     "@anthropic-ai/sdk": "^0.104.1",
+    "@assistant-ui/react": "0.15.5",
+    "@assistant-ui/react-ai-sdk": "1.4.4",
+    "@lobstrco/signer-extension-api": "2.1.0",
+    "@neondatabase/serverless": "1.1.0",
     "@reapp-sdk/ap2": "0.3.0",
     "@reapp-sdk/core": "0.3.1",
     "@reapp-sdk/express-middleware": "0.2.2",
@@ -26,26 +34,32 @@
     "@types/three": "^0.184.1",
     "@xterm/addon-fit": "^0.11.0",
     "@xterm/xterm": "^6.0.0",
+    "ai": "7.0.55",
+    "buffer": "6.0.3",
     "express": "^5.2.1",
     "framer-motion": "^11.15.0",
     "lucide-react": "^1.24.0",
-    "next": "^15.5.19",
+    "next": "16.3.0",
     "openai": "^6.45.0",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
     "react-markdown": "^10.1.0",
-    "three": "^0.184.0"
+    "three": "^0.184.0",
+    "zod": "4.4.3"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.0.0",
-    "@types/node": "^22.10.2",
     "@types/express": "^5.0.6",
-    "@types/react": "^19.0.2",
-    "@types/react-dom": "^19.0.2",
+    "@types/node": "^22.10.2",
+    "@types/react": "19.2.17",
+    "@types/react-dom": "19.2.3",
     "tailwindcss": "^4.0.0",
+    "tsx": "^4.23.9",
     "typescript": "^5.7.2"
   },
   "overrides": {
-    "postcss": "^8.5.10"
+    "axios": "1.19.0",
+    "postcss": "8.5.26",
+    "sharp": "0.35.3"
   }
 }
