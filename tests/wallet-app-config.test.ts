@@ -46,7 +46,7 @@ test("mainnet loads only the verified USDC release and never falls back to testn
   assert.equal(config.public.catalog[0]?.price, "0.01");
   assert.equal(config.public.networkPassphrase, Networks.PUBLIC);
   assert.equal(config.public.rpcUrl, "https://reapp.live/api/wallet/rpc");
-  assert.equal(config.network.rpcUrl, "https://mainnet.sorobanrpc.com");
+  assert.equal(config.network.rpcUrl, "https://soroban-rpc.mainnet.stellar.gateway.fm");
 });
 
 test("merchant URL and catalog cannot redirect payments off the allowlisted origin", () => {
