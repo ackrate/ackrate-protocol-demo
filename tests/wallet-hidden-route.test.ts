@@ -26,3 +26,14 @@ test("wallet browser calls stay inside the isolated API namespace", () => {
   assert.match(app, /"\/api\/wallet\/mandate\/status"/);
   assert.match(thread, /api: "\/api\/wallet\/chat"/);
 });
+
+test("wallet transaction assembly uses authenticated same-origin Stellar relays", () => {
+  const config = read("lib/wallet/app-config.ts");
+  const account = read("lib/wallet/horizon-account.ts");
+  const rpc = read("app/api/wallet/rpc/route.ts");
+
+  assert.match(config, /\$\{appOrigin\}\/api\/wallet\/rpc/);
+  assert.match(account, /"\/api\/wallet\/account\/sequence"/);
+  assert.match(rpc, /requireSession/);
+  assert.match(rpc, /config\.network\.rpcUrl/);
+});

@@ -199,7 +199,7 @@ export function loadAppConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     releaseState: ready ? (networkName === "mainnet" ? "mainnet-ready" : "testnet-ready") : "configuration-required",
     ready,
     blockers,
-    rpcUrl: network.rpcUrl,
+    rpcUrl: appOrigin ? `${appOrigin}/api/wallet/rpc` : network.rpcUrl,
     networkPassphrase: network.networkPassphrase,
     mandateRegistryId: network.mandateRegistryId,
     asset,
