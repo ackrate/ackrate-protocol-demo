@@ -1,10 +1,10 @@
 import { createPageMetadata } from "@/lib/site-metadata";
 
 export const metadata = createPageMetadata({
-  title: "Agentic Payments for Express",
-  description: "A live Express agentic payments flow that verifies REAPP settlement, contract events, token transfer, resource scope, and one-time redemption before fulfillment.",
+  title: "Mainnet Agent Payments in Circle USDC",
+  description: "A live Mainnet flow for wallet-authorized agent payments through an Express fulfillment API, settled in Circle USDC and enforced by MandateRegistry.",
   path: "/express",
-  keywords: ["Express middleware", "pay-per-use API", "payment verification"],
+  keywords: ["agent payments", "Circle USDC", "Stellar Mainnet", "Express middleware", "pay-per-use API"],
 });
 
 export default function Layout({ children }: { children: React.ReactNode }) {
