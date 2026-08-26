@@ -8,6 +8,7 @@ import {
   Bot,
   Check,
   CircleDollarSign,
+  Copy,
   ExternalLink,
   Fingerprint,
   LockKeyhole,
@@ -22,6 +23,11 @@ import { connectFreighter } from "@/lib/wallet/freighter";
 const MAINNET_REGISTRY = "CDBTG5ZKASFA7LOYUPBOTGKAVX5MJIM4U24BYGX7VX23IHYDAHLQPAGS";
 const MAINNET_PAYMENT_KEY = "reapp:mainnet:last-payment";
 const MAINNET_PASSPHRASE = "Public Global Stellar Network ; September 2015";
+const MAINNET_RECEIPTS = [
+  { label: "Payment 1", hash: "934239bcace9393e2ed0a39f114bf1d45c70e434ab4963a04ee17a132ea3bf8a" },
+  { label: "Payment 2", hash: "dc4ba3ccfe04ee6daabf70e0253226daae4e73ee686db965fe00634b4bdac48b" },
+  { label: "Payment 3", hash: "ba282c06511815319fb204d5e49bbed1ce2e062791032935dbb1031b1c03e90e" },
+] as const;
 
 type MainnetPayment = {
   txHash: string;
@@ -213,6 +219,16 @@ export default function ExpressPage() {
             </div>
             <div className="mt-5 border-t border-white/10 pt-5">
               <div className="flex items-center justify-between gap-3">
+                <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-emerald-300/65">Live settlement proof</span>
+                <span className="text-[10px] font-semibold text-emerald-100/40">3 × $0.01 USDC</span>
+              </div>
+              <div className="mt-3 space-y-2">
+                {MAINNET_RECEIPTS.map((receipt) => <ReceiptRow key={receipt.hash} {...receipt} />)}
+              </div>
+              <p className="mt-3 text-[10px] leading-4 text-emerald-100/35">The fourth request exceeded the $0.03 mandate and was rejected before broadcast.</p>
+            </div>
+            <div className="mt-5 border-t border-white/10 pt-5">
+              <div className="flex items-center justify-between gap-3">
                 <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-emerald-300/65">Your Freighter balance</span>
                 {walletBalances && (
                   <button
@@ -354,6 +370,43 @@ export default function ExpressPage() {
         </Link>
       </motion.section>
     </main>
+  );
+}
+
+function ReceiptRow({ label, hash }: { label: string; hash: string }) {
+  const [copied, setCopied] = useState(false);
+  const copyHash = async () => {
+    await navigator.clipboard.writeText(hash);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1_500);
+  };
+  return (
+    <div className="flex items-center gap-2 rounded-xl border border-emerald-400/15 bg-black/20 px-3 py-2.5">
+      <Check className="h-3.5 w-3.5 shrink-0 text-emerald-300" aria-hidden />
+      <span className="min-w-0 flex-1">
+        <span className="block text-[11px] font-bold text-emerald-100">{label}</span>
+        <code className="block truncate text-[9px] text-emerald-100/35">{short(hash, 6)}</code>
+      </span>
+      <button
+        type="button"
+        onClick={() => void copyHash()}
+        className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-white/10 text-emerald-100/45 transition hover:border-emerald-400/35 hover:text-emerald-200"
+        aria-label={`Copy ${label} transaction hash`}
+        title={copied ? "Copied" : "Copy transaction hash"}
+      >
+        {copied ? <Check className="h-3.5 w-3.5" aria-hidden /> : <Copy className="h-3.5 w-3.5" aria-hidden />}
+      </button>
+      <a
+        href={`https://stellar.expert/explorer/public/tx/${hash}`}
+        target="_blank"
+        rel="noreferrer"
+        className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-emerald-400/20 text-emerald-300 transition hover:border-emerald-400/45 hover:bg-emerald-400/[0.08]"
+        aria-label={`Open ${label} in Stellar Explorer`}
+        title="Open in Stellar Explorer"
+      >
+        <ExternalLink className="h-3.5 w-3.5" aria-hidden />
+      </a>
+    </div>
   );
 }
 

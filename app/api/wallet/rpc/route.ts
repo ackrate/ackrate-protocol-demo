@@ -6,6 +6,10 @@ import { compactWalletRpcResponse } from "@/lib/wallet/rpc-response";
 import { requireSameOrigin, requireSession } from "@/lib/wallet/security";
 import { NextResponse } from "next/server";
 
+export const maxDuration = 30;
+
+const MAINNET_RPC_FALLBACK = "https://soroban-rpc.mainnet.stellar.gateway.fm";
+
 const RpcRequest = z.object({
   jsonrpc: z.literal("2.0"),
   id: z.union([z.string(), z.number(), z.null()]),
@@ -20,7 +24,10 @@ export async function POST(request: Request) {
     if (!config.sessionSecret) throw new Error("wallet authentication is not configured");
     await requireSession(config.sessionSecret, config.public.network);
     const body = RpcRequest.parse(await boundedJson(request, 512 * 1024));
-    const upstream = await postRpcWithRetry(config.network.rpcUrl, body);
+    const endpoints = config.public.network === "mainnet"
+      ? [config.network.rpcUrl, MAINNET_RPC_FALLBACK]
+      : [config.network.rpcUrl];
+    const upstream = await postRpcWithRetry(endpoints, body);
     const raw = await boundedResponseJson(upstream, 8 * 1024 * 1024);
     const result = compactWalletRpcResponse(body.method, upstream.status, raw);
     return NextResponse.json(result, { status: upstream.status, headers: NO_STORE_HEADERS });

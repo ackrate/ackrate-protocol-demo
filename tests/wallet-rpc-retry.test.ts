@@ -2,11 +2,11 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { postRpcWithRetry, retryRateLimited } from "../lib/wallet/rpc-retry";
 
-test("RPC fetch retries the same endpoint after HTTP 429", async () => {
+test("RPC fetch fails over and then retries after HTTP 429", async () => {
   const calls: string[] = [];
   const waits: number[] = [];
   const response = await postRpcWithRetry(
-    "https://rpc.example",
+    ["https://rpc-a.example", "https://rpc-b.example"],
     { jsonrpc: "2.0", id: 1, method: "getLatestLedger" },
     async (input) => {
       calls.push(String(input));
@@ -16,8 +16,8 @@ test("RPC fetch retries the same endpoint after HTTP 429", async () => {
   );
 
   assert.equal(response.status, 200);
-  assert.deepEqual(calls, ["https://rpc.example", "https://rpc.example", "https://rpc.example"]);
-  assert.deepEqual(waits, [2_000, 4_000]);
+  assert.deepEqual(calls, ["https://rpc-a.example", "https://rpc-b.example", "https://rpc-a.example"]);
+  assert.deepEqual(waits, [250]);
 });
 
 test("SDK RPC operation retries only explicit HTTP 429", async () => {
@@ -51,5 +51,21 @@ test("RPC retry honors a bounded Retry-After response", async () => {
   );
 
   assert.equal(response.status, 200);
-  assert.deepEqual(waits, [5_000]);
+  assert.deepEqual(waits, [2_000]);
+});
+
+test("RPC fetch fails over after a reset without leaking the transport error", async () => {
+  const calls: string[] = [];
+  const response = await postRpcWithRetry(
+    ["https://rpc-a.example", "https://rpc-b.example"],
+    { jsonrpc: "2.0", id: 1, method: "simulateTransaction" },
+    async (input) => {
+      calls.push(String(input));
+      if (calls.length === 1) throw Object.assign(new TypeError("fetch failed"), { cause: { code: "ECONNRESET" } });
+      return Response.json({ result: { transactionData: "ok" } });
+    },
+    async () => undefined,
+  );
+  assert.equal(response.status, 200);
+  assert.deepEqual(calls, ["https://rpc-a.example", "https://rpc-b.example"]);
 });

@@ -11,7 +11,7 @@ const PERMANENT_SIMPLE_CONTRACT =
   "CCHQ5G4Y4YBMY6D3TYYJSVJVCKUM22Q6TMKCCHVAHY4X7K6QELQACZRM";
 
 const protectedHashes = {
-  "app/express/page.tsx": "6406d027f3512d0a3a2648ce59509248e17ca0a5cd9290a80da4701c04f90dce",
+  "app/express/page.tsx": "19fbef1659c695b179fb7b67ae45def83a914b1c13d4fd4ed010489f23732638",
   "app/express/layout.tsx": "7fb5a1ee24023ddd61ee8092c0c2e3047d51d5a0c4273fb1f4ba6f7374f8b40d",
   "app/api/express/route.ts": "645a2a92788b61f42537ee0d9f4980c7324a0f76fadd68239939da17b0854141",
   "app/api/express/[sessionId]/source/[resource]/route.ts": "022c94e6c368357692c1981f08f52aea41c28ef39eadde56ca501280a6e552a5",

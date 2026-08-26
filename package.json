@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "WATCHPACK_POLLING=true NODE_OPTIONS='--disable-warning=DEP0205' next dev --webpack",
-    "build": "next build",
+    "build": "next build --webpack",
     "start": "NODE_OPTIONS='--disable-warning=DEP0205' next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
