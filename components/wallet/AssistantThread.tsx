@@ -41,7 +41,7 @@ export function AssistantThread({ mandateId, asset, explorerNetwork }: { mandate
           <div className="composer-wrap">
             <ComposerPrimitive.Root className="composer-root">
               <ComposerPrimitive.Input
-                aria-label="Message the REAPP agent"
+                aria-label="Message the ACKRATE agent"
                 className="composer-input"
                 placeholder="Ask the agent to purchase a source…"
               />
@@ -80,7 +80,7 @@ function QuickPurchase({ mandateId, explorerNetwork }: { mandateId: string; expl
       }
       setResult(body.result);
       setState("success");
-      window.dispatchEvent(new Event("reapp-mandate-updated"));
+      window.dispatchEvent(new Event("ackrate-mandate-updated"));
     } catch (cause) {
       const message = cause instanceof Error ? cause.message : String(cause);
       const budgetReached = /Contract,\s*#6|BudgetExceeded|budget.*(?:exceed|remaining|enough)/i.test(message);
@@ -155,13 +155,13 @@ function CompletedPurchase({ result, explorerNetwork }: { result: PurchaseResult
   const [copied, setCopied] = useState(false);
   useEffect(() => {
     if (explorerNetwork !== "public") return;
-    localStorage.setItem("reapp:mainnet:last-payment", JSON.stringify({
+    localStorage.setItem("ackrate:mainnet:last-payment", JSON.stringify({
       txHash: result.payment.txHash,
       amount: result.payment.amount,
       asset: result.payment.asset,
       recordedAt: new Date().toISOString(),
     }));
-    window.dispatchEvent(new Event("reapp-mainnet-payment"));
+    window.dispatchEvent(new Event("ackrate-mainnet-payment"));
   }, [explorerNetwork, result.payment.amount, result.payment.asset, result.payment.txHash]);
 
   return (

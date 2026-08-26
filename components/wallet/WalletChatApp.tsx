@@ -25,7 +25,7 @@ import {
   X,
   Zap,
 } from "lucide-react";
-import type { IntentMandate } from "@reapp-sdk/core";
+import type { IntentMandate } from "@ackrate/core";
 import { approveWithFreighter, buildMandate, registerWithFreighter, revokeWithFreighter } from "@/lib/wallet/mandate-client";
 import type { MandateView, SafeAppConfig, SessionView } from "@/lib/wallet/types";
 import { addTokenToFreighter, connectFreighter, signFreighterTransaction } from "@/lib/wallet/freighter";
@@ -140,7 +140,7 @@ export function WalletChatApp() {
 
   useEffect(() => {
     if (!config || !session.authenticated || !session.address) return;
-    const key = `reapp:mandate:${config.network}:${session.address}`;
+    const key = `ackrate:mandate:${config.network}:${session.address}`;
     const raw = localStorage.getItem(key);
     if (!raw) return;
     try {
@@ -155,13 +155,13 @@ export function WalletChatApp() {
 
   useEffect(() => {
     const refresh = () => void refreshMandate();
-    window.addEventListener("reapp-mandate-updated", refresh);
-    return () => window.removeEventListener("reapp-mandate-updated", refresh);
+    window.addEventListener("ackrate-mandate-updated", refresh);
+    return () => window.removeEventListener("ackrate-mandate-updated", refresh);
   }, [refreshMandate]);
 
   const saveStored = useCallback((value: StoredMandate) => {
     if (!config) return;
-    localStorage.setItem(`reapp:mandate:${config.network}:${value.user}`, JSON.stringify(value));
+    localStorage.setItem(`ackrate:mandate:${config.network}:${value.user}`, JSON.stringify(value));
     setStored(value);
   }, [config]);
 
@@ -308,7 +308,7 @@ export function WalletChatApp() {
     <main className="wallet-preview app-frame">
       <div className="aurora" aria-hidden />
       <header className="topbar">
-        <Link href="/" className="brand"><span>R</span> REAPP</Link>
+        <Link href="/" className="brand"><span>R</span> ACKRATE</Link>
         <div className="topbar-center"><span className="pulse-dot" /> Mandate control room</div>
         <div className="topbar-actions">
           <Link href="/wallet/diagnostics" className="nav-link">Diagnostics</Link>

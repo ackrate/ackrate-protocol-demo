@@ -6,15 +6,15 @@ import {
   BOUND_PAYMENT_SCHEME,
   DeliveryPendingError,
   PaymentRejectedError,
-  REAPP_PAYMENT_CAPABILITIES_HEADER,
+  ACKRATE_PAYMENT_CAPABILITIES_HEADER,
   SettlementUncertainError,
   createBoundPaymentProof,
   createSettlementReceiptId,
   parse402,
-  reapp,
+  ackrate,
   toStroops,
-} from "@reapp-sdk/core";
-import { keypairSigner, registryClient } from "@reapp-sdk/stellar";
+} from "@ackrate/core";
+import { keypairSigner, registryClient } from "@ackrate/stellar";
 import { fetchWithTimeout } from "./http.mjs";
 import {
   FileBoundRedemptionStore,
@@ -106,7 +106,7 @@ function validatePaidTarget(url, label = "paid URL") {
   return target;
 }
 
-export function createRunStores(stateRoot = resolve(".reapp")) {
+export function createRunStores(stateRoot = resolve(".ackrate")) {
   const root = resolve(stateRoot);
   return Object.freeze({
     stateRoot: root,
@@ -138,17 +138,17 @@ export async function setupTestnetMandate({
   if (!Number.isSafeInteger(expiry) || expiry <= Math.floor(Date.now() / 1_000)) {
     throw new Error("mandate expiry must be a future whole Unix timestamp");
   }
-  const mandate = canonicalMandateSnapshot(reapp.createIntentMandate({
+  const mandate = canonicalMandateSnapshot(ackrate.createIntentMandate({
     user: user.publicKey(),
     agent: agent.publicKey(),
     merchant,
-    asset: reapp.testnet.nativeSac,
+    asset: ackrate.testnet.nativeSac,
     maxAmount: budgetXlm,
     expiry,
     nonce,
   }));
-  const registerTx = await reapp.registerMandate(mandate, { signer: user });
-  const approveTx = await reapp.approveBudget(mandate, { signer: user });
+  const registerTx = await ackrate.registerMandate(mandate, { signer: user });
+  const approveTx = await ackrate.approveBudget(mandate, { signer: user });
   return Object.freeze({ mandate, registerTx, approveTx });
 }
 
@@ -158,7 +158,7 @@ export function createBoundTestnetConsumer({ mandate, agent, receiptStore }) {
   if (!agent || typeof agent.publicKey !== "function" || agent.publicKey() !== checkedMandate.agent) {
     throw new Error("consumer signer does not match the canonical mandate agent");
   }
-  const sdkAgent = reapp.agent({
+  const sdkAgent = ackrate.agent({
     mandate: checkedMandate,
     signer: agent,
     proofPolicy: "bound-v2-only",
@@ -171,7 +171,7 @@ export function createBoundTestnetConsumer({ mandate, agent, receiptStore }) {
     "reconcilePendingSettlement",
   ]) {
     if (typeof sdkAgent?.[method] !== "function") {
-      throw new Error(`REAPP consumer is missing required method ${method}`);
+      throw new Error(`ACKRATE consumer is missing required method ${method}`);
     }
   }
   const context = Object.freeze({
@@ -202,7 +202,7 @@ export async function verifyExactBound402({
     method: "GET",
     headers: {
       accept: "application/json",
-      [REAPP_PAYMENT_CAPABILITIES_HEADER]: BOUND_PAYMENT_CAPABILITY,
+      [ACKRATE_PAYMENT_CAPABILITIES_HEADER]: BOUND_PAYMENT_CAPABILITY,
     },
     redirect: "error",
   }, timeoutMs);
@@ -214,15 +214,15 @@ export async function verifyExactBound402({
   const challenge = requirement.challenge;
   const now = Math.floor(Date.now() / 1_000);
   const expectedNetworkId = createHash("sha256")
-    .update(reapp.testnet.networkPassphrase, "utf8")
+    .update(ackrate.testnet.networkPassphrase, "utf8")
     .digest("hex");
   const exact = requirement.scheme === BOUND_PAYMENT_SCHEME
     && requirement.network === "stellar-testnet"
     && requirement.amount === amount
-    && requirement.asset === reapp.testnet.nativeSac
+    && requirement.asset === ackrate.testnet.nativeSac
     && requirement.payTo === merchant
     && requirement.resource === expectedResource
-    && requirement.contract === reapp.testnet.mandateRegistryId
+    && requirement.contract === ackrate.testnet.mandateRegistryId
     && requirement.proofVersion === 2
     && challenge?.proofVersion === 2
     && challenge.scheme === BOUND_PAYMENT_SCHEME
@@ -232,9 +232,9 @@ export async function verifyExactBound402({
     && challenge.bodySha256 === null
     && challenge.network === "stellar-testnet"
     && challenge.networkId === expectedNetworkId
-    && challenge.registryId === reapp.testnet.mandateRegistryId
+    && challenge.registryId === ackrate.testnet.mandateRegistryId
     && challenge.merchant === merchant
-    && challenge.asset === reapp.testnet.nativeSac
+    && challenge.asset === ackrate.testnet.nativeSac
     && challenge.amountStroops === toStroops(amount, 7).toString()
     && challenge.decimals === 7
     && challenge.issuedAt <= now + 60
@@ -330,9 +330,9 @@ async function submitExactBoundPayment({
   if (
     quote.requirement.payTo !== mandate.merchant
     || quote.requirement.asset !== mandate.asset
-    || quote.requirement.contract !== reapp.testnet.mandateRegistryId
+    || quote.requirement.contract !== ackrate.testnet.mandateRegistryId
     || quote.requirement.network !== "stellar-testnet"
-    || quote.challenge.registryId !== reapp.testnet.mandateRegistryId
+    || quote.challenge.registryId !== ackrate.testnet.mandateRegistryId
     || quote.challenge.merchant !== mandate.merchant
     || quote.challenge.asset !== mandate.asset
     || quote.challenge.decimals !== mandate.decimals
@@ -687,8 +687,8 @@ export async function readTestnetMandateState({ mandate, source, testLoadMandate
     stored = await testLoadMandate(checkedMandate.idBuffer);
   } else {
     if (!source) throw new Error("a funded read source is required");
-    const signer = keypairSigner(source, reapp.testnet.networkPassphrase);
-    const client = registryClient(reapp.testnet, signer);
+    const signer = keypairSigner(source, ackrate.testnet.networkPassphrase);
+    const client = registryClient(ackrate.testnet, signer);
     const transaction = await client.get_mandate({
       mandate_id: checkedMandate.idBuffer,
     });

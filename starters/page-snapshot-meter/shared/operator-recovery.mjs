@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { resolve } from "node:path";
-import { resolveBoundReappInterruptedDelivery } from "@reapp-sdk/express-middleware";
+import { resolveBoundAckrateInterruptedDelivery } from "@ackrate/express-middleware";
 import { FileBoundRedemptionStore } from "./storage.mjs";
 
 export const DEFAULT_INTERRUPTED_DELIVERY_MINIMUM_AGE_SECONDS = 300;
@@ -66,7 +66,7 @@ export function interruptedDeliveryConfirmation(identity) {
   const checked = validateIdentity(identity);
   const digest = createHash("sha256")
     .update([
-      "reapp-interrupted-delivery-v1",
+      "ackrate-interrupted-delivery-v1",
       checked.key,
       checked.executionId,
       checked.proofDigest,
@@ -95,7 +95,7 @@ function publicInterruptedRecord(record, now, minimumAgeSeconds) {
 }
 
 export async function inspectInterruptedDeliveries({
-  stateRoot = resolve(".reapp"),
+  stateRoot = resolve(".ackrate"),
   minimumAgeSeconds = DEFAULT_INTERRUPTED_DELIVERY_MINIMUM_AGE_SECONDS,
   now = () => Math.floor(Date.now() / 1_000),
 } = {}) {
@@ -115,7 +115,7 @@ export async function inspectInterruptedDeliveries({
 }
 
 export async function resolveInterruptedDelivery({
-  stateRoot = resolve(".reapp"),
+  stateRoot = resolve(".ackrate"),
   identity,
   confirmation,
   minimumAgeSeconds = DEFAULT_INTERRUPTED_DELIVERY_MINIMUM_AGE_SECONDS,
@@ -159,7 +159,7 @@ export async function resolveInterruptedDelivery({
     });
   }
 
-  const completed = await resolveBoundReappInterruptedDelivery({
+  const completed = await resolveBoundAckrateInterruptedDelivery({
     redemptionStore: store,
     record,
   });

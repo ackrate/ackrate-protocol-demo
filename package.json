@@ -1,8 +1,8 @@
 {
-  "name": "reapp-protocol-live",
+  "name": "ackrate-protocol-demo",
   "version": "0.1.0",
   "private": true,
-  "description": "Next.js demo of @reapp-sdk/core: an AI agent makes pay-per-use content payments enforced on-chain by the REAPP MandateRegistry.",
+  "description": "Ackrate mainnet demo: an AI agent makes real USDC payments enforced on-chain by MandateRegistry.",
   "type": "module",
   "scripts": {
     "dev": "WATCHPACK_POLLING=true NODE_OPTIONS='--disable-warning=DEP0205' next dev --webpack",
@@ -12,11 +12,12 @@
     "typecheck": "tsc --noEmit",
     "generate:starters": "node scripts/starters/generate.mjs",
     "check:starters": "node scripts/starters/verify.mjs",
+    "check:branding": "node scripts/check-branding.mjs",
     "test:hackathon": "node --test tests/hackathon.test.mjs tests/starter-catalog.test.mjs tests/starter-generation.test.mjs tests/starter-install.test.mjs tests/starter-presenter.test.mjs tests/starter-scenarios.test.mjs tests/shared-runtime.test.mjs tests/scenario-contract.test.mjs tests/scenario-runtime-boundary.test.mjs tests/contract-exact-payment.test.mjs tests/fulfillment-recovery.test.mjs tests/storage-recovery.test.mjs tests/operator-closure.test.mjs",
     "test:wallet": "node --import tsx --test tests/wallet-*.test.ts",
     "smoke:hackathon": "node scripts/hackathon-smoke.mjs",
     "gatecheck:hackathon": "npm run typecheck && npm run test:hackathon && npm run build && npm run smoke:hackathon",
-    "gatecheck:t3": "npm run typecheck && npm run test:hackathon && npm run test:wallet && npm audit --audit-level=high && npm run build && npm run smoke:hackathon"
+    "gatecheck:t3": "npm run check:branding && npm run check:starters && npm run typecheck && npm run test:hackathon && npm run test:wallet && npm audit --audit-level=high && npm run build && npm run smoke:hackathon"
   },
   "dependencies": {
     "@ai-sdk/openai": "4.0.33",
@@ -25,10 +26,11 @@
     "@assistant-ui/react": "0.15.5",
     "@assistant-ui/react-ai-sdk": "1.4.4",
     "@lobstrco/signer-extension-api": "2.1.0",
-    "@reapp-sdk/ap2": "0.3.0",
-    "@reapp-sdk/core": "0.3.1",
-    "@reapp-sdk/express-middleware": "0.2.2",
-    "@reapp-sdk/stellar": "0.2.2",
+    "@ackrate/ap2": "0.3.2",
+    "@ackrate/cli": "0.1.9",
+    "@ackrate/core": "0.3.3",
+    "@ackrate/express-middleware": "0.2.4",
+    "@ackrate/stellar": "0.2.4",
     "@stellar/freighter-api": "6.0.1",
     "@stellar/stellar-sdk": "^14.5.0",
     "@types/three": "^0.184.1",
@@ -61,6 +63,7 @@
   },
   "overrides": {
     "axios": "1.19.0",
+    "nanoid": "3.3.18",
     "postcss": "8.5.26",
     "sharp": "0.35.3"
   }

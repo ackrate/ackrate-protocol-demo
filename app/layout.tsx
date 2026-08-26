@@ -7,18 +7,18 @@ import SiteFooter from "@/components/SiteFooter";
 
 const SITE = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://reapp.live").replace(/\/$/, "");
 
-const title = "REAPP — Mainnet Agent Payments in Circle USDC";
+const title = "ACKRATE — Mainnet Agent Payments in Circle USDC";
 const description =
   "Build agent payments with wallet-approved mandates, contract-enforced limits, and Circle USDC settlement on Stellar Mainnet.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE),
-  title: { default: title, template: "%s | REAPP" },
+  title: { default: title, template: "%s | ACKRATE" },
   description,
-  applicationName: "REAPP",
-  authors: [{ name: "REAPP Protocol", url: "https://github.com/reapp-protocol" }],
-  creator: "REAPP Protocol",
-  publisher: "REAPP Protocol",
+  applicationName: "ACKRATE",
+  authors: [{ name: "Ackrate Protocol", url: "https://github.com/ackrate" }],
+  creator: "ACKRATE Protocol",
+  publisher: "ACKRATE Protocol",
   category: "Developer software",
   keywords: [
     "agentic payments",
@@ -26,14 +26,14 @@ export const metadata: Metadata = {
     "payment mandates",
     "Stellar payments",
     "on-chain payment authorization",
-    "REAPP SDK",
+    "ACKRATE SDK",
     "AP2",
   ],
   alternates: { canonical: "/" },
   icons: { icon: "/icon.svg", apple: "/apple-icon" },
   manifest: "/manifest.webmanifest",
   // og:image + twitter:image are generated from app/opengraph-image.tsx automatically.
-  openGraph: { title, description, siteName: "REAPP", type: "website", url: "/" },
+  openGraph: { title, description, siteName: "ACKRATE", type: "website", url: "/" },
   twitter: { card: "summary_large_image", title, description },
   robots: {
     index: true,
@@ -48,7 +48,7 @@ const structuredData = {
     {
       "@type": "Organization",
       "@id": `${SITE}/#organization`,
-      name: "REAPP Protocol",
+      name: "ACKRATE Protocol",
       url: SITE,
       logo: {
         "@type": "ImageObject",
@@ -56,13 +56,13 @@ const structuredData = {
         width: 180,
         height: 180,
       },
-      sameAs: ["https://github.com/reapp-protocol"],
+      sameAs: ["https://github.com/ackrate"],
     },
     {
       "@type": "WebSite",
       "@id": `${SITE}/#website`,
-      name: "REAPP",
-      alternateName: ["REAPP Protocol", "reapp.live"],
+      name: "ACKRATE",
+      alternateName: ["ACKRATE Protocol", "reapp.live"],
       url: SITE,
       description,
       inLanguage: "en",
@@ -71,21 +71,21 @@ const structuredData = {
     {
       "@type": "SoftwareApplication",
       "@id": `${SITE}/#software`,
-      name: "REAPP",
+      name: "ACKRATE",
       applicationCategory: "DeveloperApplication",
       operatingSystem: "Any system with Node.js",
       url: SITE,
       description,
       softwareVersion: "0.3.1",
-      codeRepository: "https://github.com/reapp-protocol/reapp-protocol",
-      downloadUrl: "https://www.npmjs.com/package/@reapp-sdk/core/v/0.3.1",
+      codeRepository: "https://github.com/ackrate/ackrate-protocol",
+      downloadUrl: "https://www.npmjs.com/package/@ackrate/core/v/0.3.1",
       isAccessibleForFree: true,
       offers: { "@type": "Offer", price: 0, priceCurrency: "USD" },
       provider: { "@id": `${SITE}/#organization` },
       subjectOf: {
         "@type": "WebSite",
-        name: "REAPP NETWORK — agentic payments research",
-        url: "https://reapp.network/",
+        name: "ACKRATE NETWORK — agentic payments research",
+        url: "https://ackrate.network/",
       },
     },
   ],

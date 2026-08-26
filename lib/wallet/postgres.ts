@@ -15,10 +15,10 @@ interface PoolLike {
 }
 
 const runtime = globalThis as typeof globalThis & {
-  __reappPostgresPools?: Map<string, Pool>;
+  __ackratePostgresPools?: Map<string, Pool>;
 };
 
-runtime.__reappPostgresPools ??= new Map();
+runtime.__ackratePostgresPools ??= new Map();
 
 function validateDatabaseUrl(databaseUrl: string): void {
   let url: URL;
@@ -38,11 +38,11 @@ function validateDatabaseUrl(databaseUrl: string): void {
 }
 
 function poolFor(databaseUrl: string): Pool {
-  const existing = runtime.__reappPostgresPools!.get(databaseUrl);
+  const existing = runtime.__ackratePostgresPools!.get(databaseUrl);
   if (existing) return existing;
   const config: PoolConfig = {
     connectionString: databaseUrl,
-    application_name: "reapp-protocol-live",
+    application_name: "ackrate-protocol-demo",
     max: 4,
     connectionTimeoutMillis: 5_000,
     idleTimeoutMillis: 30_000,
@@ -54,7 +54,7 @@ function poolFor(databaseUrl: string): Pool {
   pool.on("error", (error) => {
     console.error("PostgreSQL idle client error", { code: "code" in error ? error.code : "unknown" });
   });
-  runtime.__reappPostgresPools!.set(databaseUrl, pool);
+  runtime.__ackratePostgresPools!.set(databaseUrl, pool);
   return pool;
 }
 

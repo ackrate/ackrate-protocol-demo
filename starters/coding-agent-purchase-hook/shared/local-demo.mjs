@@ -4,13 +4,13 @@ import { resolve } from "node:path";
 import {
   BOUND_PAYMENT_CAPABILITY,
   DeliveryPendingError,
-  REAPP_PAYMENT_CAPABILITIES_HEADER,
+  ACKRATE_PAYMENT_CAPABILITIES_HEADER,
   X_PAYMENT_HEADER,
   createBoundPaymentProof,
   encodePaymentProof,
   parse402,
-  reapp,
-} from "@reapp-sdk/core";
+  ackrate,
+} from "@ackrate/core";
 import {
   assertNoUnresolvedReceipts,
   assertMandateStateUnchanged,
@@ -138,7 +138,7 @@ export async function expectBoundProofRejected({
     method: "GET",
     headers: {
       accept: "application/json",
-      [REAPP_PAYMENT_CAPABILITIES_HEADER]: BOUND_PAYMENT_CAPABILITY,
+      [ACKRATE_PAYMENT_CAPABILITIES_HEADER]: BOUND_PAYMENT_CAPABILITY,
       [X_PAYMENT_HEADER]: encodePaymentProof(receipt.proof),
     },
     redirect: "error",
@@ -176,7 +176,7 @@ export async function expectReboundTransactionConflict({
     method: "GET",
     headers: {
       accept: "application/json",
-      [REAPP_PAYMENT_CAPABILITIES_HEADER]: BOUND_PAYMENT_CAPABILITY,
+      [ACKRATE_PAYMENT_CAPABILITIES_HEADER]: BOUND_PAYMENT_CAPABILITY,
     },
     redirect: "error",
   }, timeoutMs);
@@ -197,7 +197,7 @@ export async function expectReboundTransactionConflict({
     method: "GET",
     headers: {
       accept: "application/json",
-      [REAPP_PAYMENT_CAPABILITIES_HEADER]: BOUND_PAYMENT_CAPABILITY,
+      [ACKRATE_PAYMENT_CAPABILITIES_HEADER]: BOUND_PAYMENT_CAPABILITY,
       [X_PAYMENT_HEADER]: encodePaymentProof(reboundProof),
     },
     redirect: "error",
@@ -217,7 +217,7 @@ export async function expectReboundTransactionConflict({
 
 export async function runLocalTestnetDemo({
   scenario: rawScenario,
-  stateRoot = resolve(".reapp"),
+  stateRoot = resolve(".ackrate"),
   onEvent,
 }) {
   const scenario = assertDefinedScenario(rawScenario);
@@ -231,7 +231,7 @@ export async function runLocalTestnetDemo({
   const runId = await stores.resultStore.begin({
     scenarioId: scenario.id,
     network: "stellar-testnet",
-    contract: reapp.testnet.mandateRegistryId,
+    contract: ackrate.testnet.mandateRegistryId,
     budgetXlm: scenario.budgetXlm,
     proofPolicy: "bound-v2-only",
   });
@@ -473,7 +473,7 @@ export async function runLocalTestnetDemo({
         revocationActionUsed = true;
         const checkedPath = validateRequestPath(path, "revocation rejection path");
         validatePositiveAmount(priceXlm, 7, "revocation rejection price");
-        const revokeTx = await reapp.revokeMandate(
+        const revokeTx = await ackrate.revokeMandate(
           mandateEvidence.mandate,
           { signer: actors.user },
         );
@@ -532,7 +532,7 @@ export async function runLocalTestnetDemo({
           method: "GET",
           headers: {
             accept: "application/json",
-            [REAPP_PAYMENT_CAPABILITIES_HEADER]: BOUND_PAYMENT_CAPABILITY,
+            [ACKRATE_PAYMENT_CAPABILITIES_HEADER]: BOUND_PAYMENT_CAPABILITY,
             [X_PAYMENT_HEADER]: encodePaymentProof(receipt.proof),
           },
           redirect: "error",
@@ -594,7 +594,7 @@ export async function runLocalTestnetDemo({
     });
     const negativeContext = Object.freeze({
       addresses,
-      contract: reapp.testnet.mandateRegistryId,
+      contract: ackrate.testnet.mandateRegistryId,
       mandateId: mandateEvidence.mandate.id,
       network: "stellar-testnet",
       deliveries: publicDeliveries,

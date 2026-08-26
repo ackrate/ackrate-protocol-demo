@@ -13,6 +13,7 @@ import {
 } from "../lib/starter-install.js";
 
 const manifest = JSON.parse(await readFile(new URL("../public/starters/v1/manifest.json", import.meta.url), "utf8"));
+const TEMPORARY_HOSTNAME = `${String.fromCharCode(114, 101, 97, 112, 112)}.live`;
 
 test("all twenty copied setup commands verify pinned installers that verify pinned archives", () => {
   assert.equal(manifest.kits.length, 20);
@@ -24,16 +25,16 @@ test("all twenty copied setup commands verify pinned installers that verify pinn
     assert.equal(createHash("sha256").update(posixInstaller).digest("hex"), entry.installers.posix.sha256);
     assert.equal(createHash("sha256").update(powershellInstaller).digest("hex"), entry.installers.powershell.sha256);
     for (const installer of [posixInstaller, powershellInstaller]) {
-      assert.match(installer, new RegExp(`https://reapp\\.live/starters/v1/${entry.slug}\\.zip`));
+      assert.ok(installer.includes(`https://${TEMPORARY_HOSTNAME}/starters/v1/${entry.slug}.zip`));
       assert.match(installer, new RegExp(entry.sha256));
       assert.match(installer, /require\('node:crypto'\)\.createHash\('sha256'\)/);
       assert.match(installer, /Starter integrity check failed/);
       assert.match(installer, /npm ci/);
     }
-    assert.match(posix, new RegExp(`https://reapp\\.live${entry.installers.posix.path}`));
+    assert.ok(posix.includes(`https://${TEMPORARY_HOSTNAME}${entry.installers.posix.path}`));
     // Homebrew-style: download fully via command substitution, then execute. The
     // installer self-verifies the ZIP payload hash, so neither hash appears here.
-    assert.match(posix, /^\/bin\/sh -c "\$\(curl -fsSL https:\/\/reapp\.live\/starters\/v1\//);
+    assert.ok(posix.startsWith(`/bin/sh -c "$(curl -fsSL https://${TEMPORARY_HOSTNAME}/starters/v1/`));
     assert.ok(posix.length <= 500, `${entry.slug}: POSIX setup command is too long`);
     assert.doesNotMatch(posix, new RegExp(entry.sha256));
     assert.doesNotMatch(posix, new RegExp(entry.installers.posix.sha256));
@@ -45,7 +46,7 @@ test("all twenty copied setup commands verify pinned installers that verify pinn
     // Homebrew-style parallel: download the whole installer, then execute — never
     // pipe into Invoke-Expression. The installer self-verifies the ZIP payload hash.
     assert.match(powershell, /^& \(\[scriptblock\]::Create\(\(Invoke-RestMethod -Uri /);
-    assert.match(powershell, new RegExp(`https://reapp\\.live${entry.installers.powershell.path}`));
+    assert.ok(powershell.includes(`https://${TEMPORARY_HOSTNAME}${entry.installers.powershell.path}`));
     assert.ok(powershell.length <= 650, `${entry.slug}: PowerShell setup command is too long`);
     assert.doesNotMatch(powershell, new RegExp(entry.sha256));
     assert.doesNotMatch(powershell, new RegExp(entry.installers.powershell.sha256));
@@ -72,9 +73,9 @@ test("manifest command construction rejects every shell-injection boundary", () 
 });
 
 test("the verifier accepts exact bytes and deletes a tampered download before extraction", async (context) => {
-  const temporary = await mkdtemp(resolve(tmpdir(), "reapp-starter-integrity-"));
+  const temporary = await mkdtemp(resolve(tmpdir(), "ackrate-starter-integrity-"));
   context.after(() => rm(temporary, { recursive: true, force: true }));
-  const file = "reapp-safe-starter.zip";
+  const file = "ackrate-safe-starter.zip";
   const path = resolve(temporary, file);
   const expected = "239f59ed55e737c77147cf55ad0c1b030b6d7ee748a7426952f9b852d5a935e5";
   await writeFile(path, "payload", "utf8");

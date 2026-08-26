@@ -7,6 +7,7 @@ import { runScenarioTestVectors } from "../starter-kit-src/shared/scenario.mjs";
 const CATALOG_PATH = new URL("../starter-kit-src/catalog.json", import.meta.url);
 const SCENARIO_ROOT = new URL("../starter-kit-src/scenarios/", import.meta.url);
 const FIXTURE_POLICY = "deterministic-and-clearly-labeled";
+const RETIRED_PACKAGE_SCOPE = new RegExp(`@${String.fromCharCode(114, 101, 97, 112, 112)}-sdk/`);
 
 async function catalog() {
   return JSON.parse(await readFile(CATALOG_PATH, "utf8"));
@@ -147,7 +148,7 @@ test("scenario sources remain deterministic, local, GET-only, and terminology-sa
     "i",
   );
   assert.doesNotMatch(combined, forbiddenPublicTerms);
-  assert.doesNotMatch(combined, /@reapp\//);
+  assert.doesNotMatch(combined, RETIRED_PACKAGE_SCOPE);
   assert.doesNotMatch(combined, /paid POST|body-bound payment|generic x402-v2 compatibility/i);
   assert.doesNotMatch(combined, /\b(?:fetch|setTimeout|setInterval)\s*\(|Math\.random|Date\.now/);
   assert.doesNotMatch(combined, /\b(?:POST|PUT|PATCH|DELETE)\s+\//);

@@ -9,13 +9,15 @@ const read = (path) => readFile(new URL(`../${path}`, import.meta.url), "utf8");
 const run = promisify(execFile);
 const PERMANENT_SIMPLE_CONTRACT =
   "CCHQ5G4Y4YBMY6D3TYYJSVJVCKUM22Q6TMKCCHVAHY4X7K6QELQACZRM";
+const RETIRED_PACKAGE_SCOPE = new RegExp(`@${String.fromCharCode(114, 101, 97, 112, 112)}-sdk/`);
+const TEMPORARY_HOSTNAME = `${String.fromCharCode(114, 101, 97, 112, 112)}.live`;
 
 const protectedHashes = {
-  "app/express/page.tsx": "19fbef1659c695b179fb7b67ae45def83a914b1c13d4fd4ed010489f23732638",
+  "app/express/page.tsx": "a7d87431ae35ec88f0f28f73878f98a98f6651605a802f91801c712502a2e84a",
   "app/express/layout.tsx": "7fb5a1ee24023ddd61ee8092c0c2e3047d51d5a0c4273fb1f4ba6f7374f8b40d",
   "app/api/express/route.ts": "645a2a92788b61f42537ee0d9f4980c7324a0f76fadd68239939da17b0854141",
   "app/api/express/[sessionId]/source/[resource]/route.ts": "022c94e6c368357692c1981f08f52aea41c28ef39eadde56ca501280a6e552a5",
-  "lib/express-demo.ts": "c48c4e776f0380b55992a5deac32d00fc9905c2cc7b3a8b27925fe6b716f564d",
+  "lib/express-demo.ts": "1a7ac7d6a2a76349ea067283d2bf15ebec80b0976574ea5bc97978f6fe474e40",
 };
 
 test("the verified Express runtime remains byte-for-byte unchanged", async () => {
@@ -123,12 +125,12 @@ test("the Solutions page keeps the established responsive pattern and complete g
   assert.match(page, /installer verifies the download before extracting any file/);
   const starterSetup = [...installer.matchAll(/return `([^`]+)`;/g)].at(-1)?.[1];
   assert.ok(starterSetup, "starter setup helper is missing");
-  assert.match(starterSetup, /https:\/\/reapp\.live\$\{installer\.path\}/);
+  assert.ok(starterSetup.includes(`https://${TEMPORARY_HOSTNAME}\${installer.path}`));
   assert.match(starterSetup, /^\/bin\/sh -c "\$\(curl -fsSL /);
   assert.doesNotMatch(starterSetup, /unzip -q|npm ci/);
   assert.doesNotMatch(starterSetup, /npm run/);
   assert.doesNotMatch(installer, /curl[^\n|]*\|\s*(?:sh|bash)/);
-  assert.match(page, /github\.com\/reapp-protocol\/reapp-protocol-demo\/blob\/main\/starters\/\$\{kit\.slug\}\/README\.md/);
+  assert.match(page, /github\.com\/ackrate\/ackrate-protocol-demo\/blob\/main\/starters\/\$\{kit\.slug\}\/README\.md/);
   assert.doesNotMatch(page, /degit/);
   assert.doesNotMatch(page, /npm ci && npm run/);
 });
@@ -148,15 +150,15 @@ test("the starter is deterministic, typed by package metadata, and testnet-only"
   ];
   const sources = Object.fromEntries(await Promise.all(paths.map(async (path) => [path, await read(path)])));
   const manifest = JSON.parse(sources["starters/research-source-scout/package.json"]);
-  assert.equal(manifest.dependencies["@reapp-sdk/core"], "0.3.1");
-  assert.equal(manifest.dependencies["@reapp-sdk/stellar"], "0.2.2");
-  assert.equal(manifest.dependencies["@reapp-sdk/ap2"], "0.3.0");
-  assert.equal(manifest.dependencies["@reapp-sdk/express-middleware"], "0.2.2");
+  assert.equal(manifest.dependencies["@ackrate/core"], "0.3.1");
+  assert.equal(manifest.dependencies["@ackrate/stellar"], "0.2.2");
+  assert.equal(manifest.dependencies["@ackrate/ap2"], "0.3.0");
+  assert.equal(manifest.dependencies["@ackrate/express-middleware"], "0.2.2");
   assert.ok(manifest.scripts.demo);
   assert.ok(manifest.scripts.fulfillment);
   assert.equal(manifest.scripts.hosted, "node src/hosted.mjs");
   assert.match(sources["starters/research-source-scout/.gitignore"], /^\.env$/m);
-  assert.match(sources["starters/research-source-scout/.gitignore"], /^\.reapp\/$/m);
+  assert.match(sources["starters/research-source-scout/.gitignore"], /^\.ackrate\/$/m);
   assert.match(sources["starters/research-source-scout/src/consumer.mjs"], /runLocalTestnetDemo/);
   assert.match(sources["starters/research-source-scout/src/fulfillment.mjs"], /startFulfillmentServer/);
   assert.match(sources["starters/research-source-scout/src/hosted.mjs"], /\/api\\\/express\\\//, "the hosted companion must report verified rejection to the exact workspace path");
@@ -164,14 +166,14 @@ test("the starter is deterministic, typed by package metadata, and testnet-only"
   assert.match(sources["starters/research-source-scout/src/hosted.mjs"], /purchaseVerifiedBoundJson/);
   assert.match(sources["starters/research-source-scout/src/hosted.mjs"], /expectVerifiedBudgetRejection/);
   assert.match(sources["starters/research-source-scout/shared/contract.mjs"], /proofPolicy:\s*["']bound-v2-only["']/);
-  assert.match(sources["starters/research-source-scout/shared/contract.mjs"], /reapp\.agent/);
-  assert.match(sources["starters/research-source-scout/shared/fulfillment.mjs"], /createBoundReappPaidJsonRoute/);
+  assert.match(sources["starters/research-source-scout/shared/contract.mjs"], /ackrate\.agent/);
+  assert.match(sources["starters/research-source-scout/shared/fulfillment.mjs"], /createBoundAckratePaidJsonRoute/);
   const combined = Object.values(sources).join("\n");
   assert.doesNotMatch(combined, /\bS[A-Z2-7]{55}\b/, "no Stellar secret seed may be committed");
-  assert.doesNotMatch(combined, /@reapp\//, "only the @reapp-sdk namespace is valid");
+  assert.doesNotMatch(combined, RETIRED_PACKAGE_SCOPE, "the retired package scope is forbidden");
   assert.doesNotMatch(sources["starters/research-source-scout/.env.example"], /mainnet/i, "the starter environment must remain testnet-only");
-  assert.doesNotMatch(sources["starters/research-source-scout/src/consumer.mjs"], /reapp\.mainnet/i);
-  assert.doesNotMatch(sources["starters/research-source-scout/src/fulfillment.mjs"], /reapp\.mainnet/i);
+  assert.doesNotMatch(sources["starters/research-source-scout/src/consumer.mjs"], /ackrate\.mainnet/i);
+  assert.doesNotMatch(sources["starters/research-source-scout/src/fulfillment.mjs"], /ackrate\.mainnet/i);
 });
 
 test("the hosted page command stays in parity with the generated starter", async () => {
@@ -205,24 +207,24 @@ test("new public copy follows repository terminology rules", async () => {
   );
   assert.doesNotMatch(combined, forbiddenPublicTerms);
   assert.doesNotMatch(combined, /\bNO MOCKS\b/i);
-  assert.doesNotMatch(combined, /@reapp\//, "only the @reapp-sdk namespace is valid");
+  assert.doesNotMatch(combined, RETIRED_PACKAGE_SCOPE, "the retired package scope is forbidden");
   assert.doesNotMatch(combined, /Hackathon starter[\s\S]*?calls the hosted endpoint through agent\.fetch\(\)/);
   assert.match(combined, /inspects the exact 402 challenge, submits the request-bound contract payment/);
   for (const version of [
-    "@reapp-sdk/core 0.3.1",
-    "@reapp-sdk/stellar 0.2.2",
-    "@reapp-sdk/ap2 0.3.0",
-    "@reapp-sdk/express-middleware 0.2.2",
-    "reapp-protocol-cli 0.1.7",
+    "@ackrate/core 0.3.1",
+    "@ackrate/stellar 0.2.2",
+    "@ackrate/ap2 0.3.0",
+    "@ackrate/express-middleware 0.2.2",
+    "@ackrate/cli 0.1.9",
   ]) assert.match(combined, new RegExp(version.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")), version);
 });
 
 test("the vendored CLI and public pages use the released CLI and permanent contract", async () => {
-  const bundle = new URL("../vendor/reapp-cli.mjs", import.meta.url);
+  const bundle = new URL("../vendor/ackrate-cli.mjs", import.meta.url);
   const { stdout } = await run(process.execPath, [bundle.pathname, "--version"]);
   const actualVersion = stdout.trim();
 
-  assert.equal(actualVersion, "0.1.7");
+  assert.equal(actualVersion, "0.1.9");
   for (const path of [
     "app/toolkit/cli/page.tsx",
     "app/cli/page.tsx",
@@ -232,7 +234,7 @@ test("the vendored CLI and public pages use the released CLI and permanent contr
   ]) {
     const source = await read(path);
     const claimedVersions = [
-      ...source.matchAll(/reapp-protocol-cli(?:@| · | )(\d+\.\d+\.\d+)/g),
+      ...source.matchAll(/@ackrate\/cli(?:@| · | )(\d+\.\d+\.\d+)/g),
     ].map((match) => match[1]);
     for (const version of claimedVersions) {
       assert.equal(version, actualVersion, `${path} advertises CLI ${version}`);
@@ -243,13 +245,13 @@ test("the vendored CLI and public pages use the released CLI and permanent contr
     read("app/page.tsx"),
     read("app/cli/page.tsx"),
     read("app/toolkit/cli/page.tsx"),
-    read("vendor/reapp-cli.mjs"),
+    read("vendor/ackrate-cli.mjs"),
   ]);
   for (const [path, source] of [
     ["app/page.tsx", home],
     ["app/cli/page.tsx", cli],
     ["app/toolkit/cli/page.tsx", terminal],
-    ["vendor/reapp-cli.mjs", bundleSource],
+    ["vendor/ackrate-cli.mjs", bundleSource],
   ]) {
     assert.match(source, new RegExp(PERMANENT_SIMPLE_CONTRACT), path);
   }

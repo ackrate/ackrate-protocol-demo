@@ -45,7 +45,7 @@ export default function ToolkitCliPage() {
       fit.fit();
       termRef.current = term;
       fitRef.current = fit;
-      term.writeln("\x1b[2mreapp-protocol-cli@0.1.7 · installed command: reapp · pick a command below or type one, then Run.\x1b[0m");
+      term.writeln("\x1b[2m@ackrate/cli@0.1.9 · installed command: ackrate · pick a command below or type one, then Run.\x1b[0m");
       term.writeln("\x1b[2mState (config, keys, mandate) persists across commands in this session.\x1b[0m\r\n");
       setReady(true);
       const onResize = () => fit.fit();
@@ -67,7 +67,7 @@ export default function ToolkitCliPage() {
     const args = command.trim().split(/\s+/).filter(Boolean);
     if (args.length === 0) return;
     setRunning(true);
-    term.write(`\r\n\x1b[32m$\x1b[0m \x1b[1mreapp ${args.join(" ")}\x1b[0m\r\n`);
+    term.write(`\r\n\x1b[32m$\x1b[0m \x1b[1mackrate ${args.join(" ")}\x1b[0m\r\n`);
     try {
       const res = await fetch("/api/cli", {
         method: "POST",
@@ -101,8 +101,8 @@ export default function ToolkitCliPage() {
       </Link>
       <h1 className="mt-3 text-2xl font-semibold text-white">CLI · live terminal</h1>
       <p className="mt-2 leading-relaxed text-emerald-50/80">
-        This runs the real <code className="rounded bg-black/30 px-1.5 py-0.5 font-mono text-[13px] text-emerald-100">reapp-protocol-cli</code> package on the server through its{" "}
-        <code className="rounded bg-black/30 px-1.5 py-0.5 font-mono text-[13px] text-emerald-100">reapp</code> command against Stellar testnet and streams its output here. Try <span className="text-emerald-200">demo research-agent</span>: it funds ephemeral accounts, registers a
+        This runs the real <code className="rounded bg-black/30 px-1.5 py-0.5 font-mono text-[13px] text-emerald-100">@ackrate/cli</code> package on the server through its{" "}
+        <code className="rounded bg-black/30 px-1.5 py-0.5 font-mono text-[13px] text-emerald-100">ackrate</code> command against Stellar testnet and streams its output here. Try <span className="text-emerald-200">demo research-agent</span>: it funds ephemeral accounts, registers a
         3 XLM mandate, and the agent buys research sources on-chain until the contract caps the budget. No LLM key required.
         A successful manual <code className="rounded bg-black/30 px-1.5 py-0.5 font-mono text-[13px] text-emerald-100">pay</code> remains durably locked until you type the printed exact-hash <code className="rounded bg-black/30 px-1.5 py-0.5 font-mono text-[13px] text-emerald-100">settlement acknowledge &lt;tx-hash&gt;</code> command.
       </p>
@@ -130,7 +130,7 @@ export default function ToolkitCliPage() {
         }}
         className="mt-3 flex items-center gap-2 rounded-lg border border-emerald-400/20 bg-black/50 px-3 py-2 font-mono text-sm"
       >
-        <span className="text-emerald-400">reapp</span>
+        <span className="text-emerald-400">ackrate</span>
         <input
           value={cmd}
           onChange={(e) => setCmd(e.target.value)}
@@ -153,7 +153,7 @@ export default function ToolkitCliPage() {
           <span className="h-3 w-3 rounded-full bg-red-400/70" />
           <span className="h-3 w-3 rounded-full bg-amber-400/70" />
           <span className="h-3 w-3 rounded-full bg-emerald-400/70" />
-          <span className="ml-2">reapp · testnet</span>
+          <span className="ml-2">ackrate · testnet</span>
         </div>
         <div ref={hostRef} className="h-[460px] w-full px-3 py-2" />
       </div>

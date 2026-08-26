@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import * as srv from "@/lib/reapp-server";
+import * as srv from "@/lib/ackrate-server";
 import { log } from "@/lib/log";
 
 export const runtime = "nodejs";
@@ -9,7 +9,7 @@ export async function POST(req: Request) {
   const body = await req.json().catch(() => ({}));
   const action: string = body.action ?? "(none)";
   const t0 = Date.now();
-  log.info("POST /api/reapp", { action });
+  log.info("POST /api/ackrate", { action });
   try {
     let result: unknown;
     switch (action) {

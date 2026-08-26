@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { postRpcWithRetry, retryRateLimited } from "../lib/wallet/rpc-retry";
+import { postRpcWithRetry, postRpcWithRetryAndConsume, retryRateLimited } from "../lib/wallet/rpc-retry";
 
 test("RPC fetch fails over and then retries after HTTP 429", async () => {
   const calls: string[] = [];
@@ -67,5 +67,31 @@ test("RPC fetch fails over after a reset without leaking the transport error", a
     async () => undefined,
   );
   assert.equal(response.status, 200);
+  assert.deepEqual(calls, ["https://rpc-a.example", "https://rpc-b.example"]);
+});
+
+test("RPC body resets stay inside the failover boundary", async () => {
+  const calls: string[] = [];
+  const result = await postRpcWithRetryAndConsume(
+    ["https://rpc-a.example", "https://rpc-b.example"],
+    { jsonrpc: "2.0", id: 1, method: "simulateTransaction" },
+    async (response) => response.json() as Promise<{ result: { transactionData: string } }>,
+    async (input) => {
+      calls.push(String(input));
+      if (calls.length === 1) {
+        const reset = Object.assign(new Error("aborted"), { code: "ECONNRESET" });
+        return new Response(new ReadableStream({
+          start(controller) {
+            controller.enqueue(new TextEncoder().encode('{"jsonrpc":"2.0","result":'));
+            controller.error(reset);
+          },
+        }), { status: 200, headers: { "Content-Type": "application/json" } });
+      }
+      return Response.json({ result: { transactionData: "ok" } });
+    },
+    async () => undefined,
+  );
+
+  assert.equal(result.result.transactionData, "ok");
   assert.deepEqual(calls, ["https://rpc-a.example", "https://rpc-b.example"]);
 });

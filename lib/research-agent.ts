@@ -3,7 +3,7 @@
  * data sources it needs to answer a question.
  *
  * The agent is given a single `purchase_source` tool. Every call settles a REAL
- * Stellar payment through @reapp-sdk/core (MandateRegistry.execute_
+ * Stellar payment through @ackrate/core (MandateRegistry.execute_
  * payment). The mandate budget is enforced ON-CHAIN: once the agent has spent its
  * budget, the contract rejects further purchases and the agent must synthesise an
  * answer from what it could afford. The contract enforces the budget on-chain;
@@ -17,12 +17,12 @@
  *
  * Runs only in the Node API route. Streams structured events via an async generator.
  */
-import { reapp, type CreateIntentMandateInput } from "@reapp-sdk/core";
+import { ackrate, type CreateIntentMandateInput } from "@ackrate/core";
 import { AllProvidersExhausted, buildFailoverLlm, type FailoverLlm, type LlmMessage, type LlmTool } from "./llm";
 import { log } from "./log";
 import { journaledPay } from "./payment-journal";
 
-/** Price per source, in XLM. The mandate budget (see reapp-server.BUDGET = "3.00")
+/** Price per source, in XLM. The mandate budget (see ackrate-server.BUDGET = "3.00")
  *  covers three of these — the contract blocks the fourth. */
 export const SOURCE_PRICE = "1.00";
 
@@ -190,9 +190,9 @@ export async function* runResearch({ question, inputs, agentSecret }: RunArgs): 
       log.step("agent wants a source", { source: src.name, reason: reason.slice(0, 48) });
       yield { type: "purchase_attempt", source: src.id, label: src.name, icon: src.icon, reason };
       try {
-        const mandate = reapp.createIntentMandate(inputs); // same nonce, same on-chain id
+        const mandate = ackrate.createIntentMandate(inputs); // same nonce, same on-chain id
         const hash = await journaledPay(
-          reapp.agent({ mandate, signer: agentSecret }),
+          ackrate.agent({ mandate, signer: agentSecret }),
           SOURCE_PRICE,
           `research:${mandate.id}:${spent}`,
           spent,

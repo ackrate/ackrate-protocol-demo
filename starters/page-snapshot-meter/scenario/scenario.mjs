@@ -16,7 +16,7 @@ import {
 } from "./support.mjs";
 
 const RECORDS = {
-  protocol: { html: "<html><head><title>REAPP Protocol</title></head><body><main>Bound payments for software agents.</main><a href=\"/docs\">Docs</a></body></html>" },
+  protocol: { html: "<html><head><title>ACKRATE Protocol</title></head><body><main>Bound payments for software agents.</main><a href=\"/docs\">Docs</a></body></html>" },
   security: { html: "<html><head><title>Security Notes</title></head><body><main>Verify every payment on chain.</main><a href=\"/evidence\">Evidence</a></body></html>" },
 };
 
@@ -59,7 +59,7 @@ export function createScenario(expectedMetadata) {
     outputEvidence,
     testVectors: [
       vector("free-page-index", "free-route", {}, ok({ pages: ["protocol", "security"] }), () => ({ pages: Object.keys(RECORDS).sort() })),
-      vector("normalize-protocol-page", "business-positive", {}, ok({ title: "REAPP Protocol", links: ["/docs"], wordCount: 8 }), () => { const value = normalizePage(RECORDS.protocol.html); return { title: value.title, links: value.links, wordCount: value.wordCount }; }),
+      vector("normalize-protocol-page", "business-positive", {}, ok({ title: "ACKRATE Protocol", links: ["/docs"], wordCount: 8 }), () => { const value = normalizePage(RECORDS.protocol.html); return { title: value.title, links: value.links, wordCount: value.wordCount }; }),
       vector("reject-active-content", "business-rejection", { html: "<title>Unsafe</title><script>alert(1)</script>" }, rejected("unsafe-html"), ({ html }) => normalizePage(html)),
       vector("reject-snapshot-tamper", "delivery-tamper", {}, rejected("delivery-integrity-mismatch"), () => { const body = makeDelivery({ scenarioId: "page-snapshot-meter", resourceId: "protocol", result: snapshot("protocol"), provenance: { fixture: true } }); body.result.title = "tampered"; return validateDelivery(body, { scenarioId: "page-snapshot-meter", resourceId: "protocol" }); }),
     ],

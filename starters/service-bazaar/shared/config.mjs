@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { Keypair } from "@stellar/stellar-sdk";
-import { canonicalPaymentOrigin, toStroops } from "@reapp-sdk/core";
+import { canonicalPaymentOrigin, toStroops } from "@ackrate/core";
 
 const ENVIRONMENT_NAME = /^[A-Z][A-Z0-9_]*$/;
 

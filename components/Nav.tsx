@@ -32,7 +32,7 @@ export default function Nav() {
             R
           </span>
           <span className="text-[15px] font-semibold tracking-tight text-white">
-            REAPP
+            ACKRATE
           </span>
         </Link>
 
@@ -65,7 +65,7 @@ export default function Nav() {
 
         {/* CTA */}
         <a
-          href="https://www.npmjs.com/package/reapp-protocol-cli"
+          href="https://www.npmjs.com/package/@ackrate/cli"
           target="_blank"
           rel="noreferrer"
           className="inline-flex shrink-0 items-center gap-1 rounded-full border border-emerald-300/25 bg-emerald-400/10 px-3.5 py-1.5 text-[13px] font-semibold text-emerald-200 transition hover:border-emerald-300/40 hover:bg-emerald-400/20 hover:text-emerald-100"

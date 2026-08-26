@@ -21,8 +21,8 @@ const FIXTURE_SIGNER_SEED = Buffer.from("33".repeat(32), "hex");
 const fixturePrivateKey = createPrivateKey({ key: Buffer.concat([Buffer.from("302e020100300506032b657004220420", "hex"), FIXTURE_SIGNER_SEED]), format: "der", type: "pkcs8" });
 const fixturePublicKey = createPublicKey(fixturePrivateKey);
 const ARTIFACTS = {
-  [sha256("fixture-binary-alpha")]: { contents: "fixture-binary-alpha", dependencies: ["@reapp-sdk/core@0.3.0", "express@5.1.0"], buildCommand: "npm ci && npm run build" },
-  [sha256("fixture-binary-beta")]: { contents: "fixture-binary-beta", dependencies: ["@reapp-sdk/core@0.3.0"], buildCommand: "npm ci && npm run build" },
+  [sha256("fixture-binary-alpha")]: { contents: "fixture-binary-alpha", dependencies: ["@ackrate/core@0.3.0", "express@5.1.0"], buildCommand: "npm ci && npm run build" },
+  [sha256("fixture-binary-beta")]: { contents: "fixture-binary-beta", dependencies: ["@ackrate/core@0.3.0"], buildCommand: "npm ci && npm run build" },
 };
 const FIRST_SHA = Object.keys(ARTIFACTS).sort()[0];
 

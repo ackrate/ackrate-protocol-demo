@@ -4,7 +4,7 @@ import type { NetworkName } from "./types";
 const RETRY_DELAYS_MS = Object.freeze([250, 750, 1_500]);
 const MAX_RETRY_AFTER_MS = 2_000;
 const RPC_ATTEMPT_TIMEOUT_MS = 6_000;
-const runtime = globalThis as typeof globalThis & { __reappMainnetRpcRetryInstalled?: boolean };
+const runtime = globalThis as typeof globalThis & { __ackrateMainnetRpcRetryInstalled?: boolean };
 
 const sleep = (milliseconds: number) => new Promise<void>((resolve) => setTimeout(resolve, milliseconds));
 
@@ -64,6 +64,22 @@ export async function postRpcWithRetry(
   request: typeof fetch = fetch,
   wait: (milliseconds: number) => Promise<void> = sleep,
 ): Promise<Response> {
+  return postRpcWithRetryAndConsume(endpoint, body, async (response) => response, request, wait);
+}
+
+/**
+ * Keep response consumption inside the retry boundary. A fetch can resolve as
+ * soon as headers arrive and still fail with ECONNRESET while its body is read;
+ * treating those as successful attempts leaks a broken same-origin response to
+ * the browser and prevents endpoint failover.
+ */
+export async function postRpcWithRetryAndConsume<T>(
+  endpoint: string | readonly string[],
+  body: unknown,
+  consume: (response: Response) => Promise<T>,
+  request: typeof fetch = fetch,
+  wait: (milliseconds: number) => Promise<void> = sleep,
+): Promise<T> {
   const endpoints = typeof endpoint === "string" ? [endpoint] : [...new Set(endpoint)];
   if (endpoints.length === 0) throw new Error("at least one RPC endpoint is required");
   const maxAttempts = endpoints.length * 2;
@@ -79,7 +95,7 @@ export async function postRpcWithRetry(
       });
       const retryable = response.status === 429 || response.status >= 500;
       const delay = RETRY_DELAYS_MS[Math.floor(attempt / endpoints.length)];
-      if (!retryable || attempt + 1 === maxAttempts || delay === undefined) return response;
+      if (!retryable || attempt + 1 === maxAttempts || delay === undefined) return await consume(response);
       const retryAfter = retryAfterMs(response.headers.get("retry-after"));
       await response.body?.cancel().catch(() => undefined);
       if ((attempt + 1) % endpoints.length === 0) await wait(Math.max(delay, retryAfter ?? 0));
@@ -94,7 +110,7 @@ export async function postRpcWithRetry(
 
 /** Retry an explicit HTTP 429 against the same manifest-pinned RPC endpoint. */
 export function installMainnetRpcRetry(network: NetworkName): void {
-  if (network !== "mainnet" || runtime.__reappMainnetRpcRetryInstalled) return;
+  if (network !== "mainnet" || runtime.__ackrateMainnetRpcRetryInstalled) return;
   const methods = [
     "getLatestLedger",
     "getLedgerEntries",
@@ -110,5 +126,5 @@ export function installMainnetRpcRetry(network: NetworkName): void {
       return retryRateLimited(() => upstream.apply(this, args));
     };
   }
-  runtime.__reappMainnetRpcRetryInstalled = true;
+  runtime.__ackrateMainnetRpcRetryInstalled = true;
 }

@@ -13,7 +13,7 @@
  */
 import { randomBytes } from "node:crypto";
 import { Keypair, rpc } from "@stellar/stellar-sdk";
-import { keypairSigner, token, TESTNET } from "@reapp-sdk/stellar";
+import { keypairSigner, token, TESTNET } from "@ackrate/stellar";
 import { Client, networks, type ClearOutcome, type ClearingKind } from "./composites-client";
 import { log } from "./log";
 

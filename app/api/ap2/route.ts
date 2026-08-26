@@ -6,8 +6,8 @@ import {
   createAp2ComplianceValidator,
   signAp2Mandate,
   type SignedAp2Mandate,
-} from "@reapp-sdk/ap2";
-import { reapp } from "@reapp-sdk/core";
+} from "@ackrate/ap2";
+import { ackrate } from "@ackrate/core";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -111,7 +111,7 @@ export async function POST(request: Request): Promise<Response> {
     stellar: {
       user: user.publicKey(),
       agent: agent.publicKey(),
-      asset: reapp.testnet.nativeSac,
+      asset: ackrate.testnet.nativeSac,
       maxAmount: "5.00",
       decimals: 7,
     },
@@ -123,7 +123,7 @@ export async function POST(request: Request): Promise<Response> {
   const results: CheckResult[] = [];
 
   for (const check of selected) {
-    const namespace = `reapp-live:${check}:${credential.mandateHash}`;
+    const namespace = `ackrate-live:${check}:${credential.mandateHash}`;
     if (check === "valid") {
       try {
         const accepted = await createAp2ComplianceValidator({
@@ -233,7 +233,7 @@ export async function POST(request: Request): Promise<Response> {
   return json({
     ok: results.every((result) => result.passed),
     scenario,
-    package: `@reapp-sdk/ap2@${PACKAGE_VERSION}`,
+    package: `@ackrate/ap2@${PACKAGE_VERSION}`,
     testCount: TEST_COUNT,
     mandateHash: credential.mandateHash,
     signatureAlgorithm: credential.signature.algorithm,

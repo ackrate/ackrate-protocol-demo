@@ -8,7 +8,7 @@ import { AnimatePresence, motion } from "framer-motion";
 // Client-only: the WebGL scene must never run during SSR.
 const Intro = dynamic(() => import("./Intro"), { ssr: false });
 
-const SEEN_KEY = "reapp_intro_seen_v1";
+const SEEN_KEY = "ackrate_intro_seen_v1";
 
 export default function IntroGate() {
   const path = usePathname();
@@ -31,7 +31,7 @@ export default function IntroGate() {
     <AnimatePresence>
       {show && (
         <motion.div
-          key="reapp-intro"
+          key="ackrate-intro"
           initial={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.7, ease: "easeInOut" }}

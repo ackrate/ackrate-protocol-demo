@@ -1,5 +1,5 @@
 /**
- * REAPP boot wordmark. ONE line on purpose: Railway's log viewer orders and can
+ * ACKRATE boot wordmark. ONE line on purpose: Railway's log viewer orders and can
  * interleave lines, so a multi-line figlet gets fragmented and mixed into the
  * boot feed (see the regression from the original one-liner). A single colored
  * line is reorder-proof. The CLI keeps the full figlet banner — that runs in a

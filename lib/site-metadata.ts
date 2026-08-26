@@ -11,11 +11,11 @@ export function createPageMetadata({ title, description, path, keywords = [] }: 
   return {
     title,
     description,
-    keywords: ["agentic payments", "REAPP", ...keywords],
+    keywords: ["agentic payments", "ACKRATE", ...keywords],
     alternates: { canonical: path },
     openGraph: {
       type: "website",
-      siteName: "REAPP",
+      siteName: "ACKRATE",
       title,
       description,
       url: path,

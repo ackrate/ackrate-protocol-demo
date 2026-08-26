@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
 
-export const alt = "REAPP — agentic payments, bounded by code";
+export const alt = "ACKRATE — agentic payments, bounded by code";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -46,7 +46,7 @@ export default function OpengraphImage() {
               color: "transparent",
             }}
           >
-            REAPP
+            ACKRATE
           </div>
         </div>
         <div style={{ marginTop: 46, fontSize: 48, fontWeight: 700, color: "#eef2ff" }}>

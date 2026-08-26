@@ -84,10 +84,10 @@ function renderPackageJson(dependencyPolicy, kit) {
   };
   if (kit.id === "research-source-scout") scripts.hosted = "node src/hosted.mjs";
   return `${stableStringify({
-    name: "reapp-hackathon-starter",
+    name: "ackrate-hackathon-starter",
     version: "0.0.0",
     private: true,
-    description: "Self-contained REAPP bound-v2 starter for Stellar testnet.",
+    description: "Self-contained ACKRATE bound-v2 starter for Stellar testnet.",
     type: "module",
     engines: { node: dependencyPolicy.nodeEngine },
     scripts,
@@ -98,7 +98,7 @@ function renderPackageJson(dependencyPolicy, kit) {
 function validateCanonicalLock(lock, dependencyPolicy) {
   requireCondition(lock?.lockfileVersion === 3, "canonical starter lockfile must use lockfileVersion 3");
   requireCondition(lock.requires === true, "canonical starter lockfile must require dependencies");
-  requireCondition(lock.name === "reapp-hackathon-starter", "canonical starter lockfile name is not supported");
+  requireCondition(lock.name === "ackrate-hackathon-starter", "canonical starter lockfile name is not supported");
   requireCondition(lock.version === "0.0.0", "canonical starter lockfile version is not supported");
   requireCondition(lock.packages && typeof lock.packages === "object", "canonical starter lockfile packages are missing");
   const root = lock.packages[""];
@@ -147,7 +147,7 @@ export const scenario = createScenario(EXPECTED_SCENARIO_METADATA);
 export const starter = Object.freeze(${presentation});
 
 function printHelp() {
-  console.log(\`REAPP starter: \${starter.title}
+  console.log(\`ACKRATE starter: \${starter.title}
 
 Usage:
   npm run check  # deterministic offline business vectors
@@ -155,12 +155,12 @@ Usage:
 
 The demo explains each 402, contract payment, 200 response, and safety check in
 plain English. It creates temporary testnet keys, stores private recovery data
-under .reapp/, and never requests a wallet or mainnet secret.
+under .ackrate/, and never requests a wallet or mainnet secret.
 
-Advanced: REAPP_VERBOSE=1 npm run demo also shows developer event names.\`);
+Advanced: ACKRATE_VERBOSE=1 npm run demo also shows developer event names.\`);
 }
 
-export async function runDemo({ stateRoot = resolve(".reapp"), onEvent } = {}) {
+export async function runDemo({ stateRoot = resolve(".ackrate"), onEvent } = {}) {
   return runLocalTestnetDemo({ scenario, stateRoot, onEvent });
 }
 
@@ -180,7 +180,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
   main().catch((error) => {
     console.error("\\nThe demo stopped safely before it could finish.");
     console.error(\`Reason: \${error instanceof Error ? error.message : String(error)}\`);
-    console.error("Your recovery evidence is still in .reapp/. Read README.md before resetting it.");
+    console.error("Your recovery evidence is still in .ackrate/. Read README.md before resetting it.");
     process.exitCode = 1;
   });
 }
@@ -206,13 +206,13 @@ import { EXPECTED_SCENARIO_METADATA } from "../scenario/metadata.mjs";
 export const scenario = createScenario(EXPECTED_SCENARIO_METADATA);
 
 function printHelp() {
-  console.log(\`REAPP \${scenario.id} fulfillment
+  console.log(\`ACKRATE \${scenario.id} fulfillment
 
 Usage:
-  REAPP_MERCHANT=G... npm run fulfillment
+  ACKRATE_MERCHANT=G... npm run fulfillment
 
-Optional: PORT, REAPP_PUBLIC_ORIGIN, REAPP_CHALLENGE_SECRET, REAPP_STATE_ROOT.
-The server binds only to 127.0.0.1 and keeps paid-delivery evidence under .reapp/.\`);
+Optional: PORT, ACKRATE_PUBLIC_ORIGIN, ACKRATE_CHALLENGE_SECRET, ACKRATE_STATE_ROOT.
+The server binds only to 127.0.0.1 and keeps paid-delivery evidence under .ackrate/.\`);
 }
 
 export async function runFulfillment({
@@ -220,7 +220,7 @@ export async function runFulfillment({
   port = 4021,
   publicOrigin,
   challengeSecret,
-  stateRoot = resolve(".reapp"),
+  stateRoot = resolve(".ackrate"),
 } = {}) {
   const checkedMerchant = validateMerchant(merchant, "merchant");
   const checkedPort = validatePort(port);
@@ -249,13 +249,13 @@ async function main() {
     return;
   }
   const handle = await runFulfillment({
-    merchant: flags.merchant ?? process.env.REAPP_MERCHANT,
+    merchant: flags.merchant ?? process.env.ACKRATE_MERCHANT,
     port: flags.port ?? process.env.PORT ?? "4021",
-    publicOrigin: flags.origin ?? process.env.REAPP_PUBLIC_ORIGIN,
-    challengeSecret: process.env.REAPP_CHALLENGE_SECRET,
-    stateRoot: resolve(process.env.REAPP_STATE_ROOT ?? ".reapp"),
+    publicOrigin: flags.origin ?? process.env.ACKRATE_PUBLIC_ORIGIN,
+    challengeSecret: process.env.ACKRATE_CHALLENGE_SECRET,
+    stateRoot: resolve(process.env.ACKRATE_STATE_ROOT ?? ".ackrate"),
   });
-  console.log(\`REAPP fulfillment listening at \${handle.origin}\`);
+  console.log(\`ACKRATE fulfillment listening at \${handle.origin}\`);
   console.log(\`Paid route: GET \${scenario.routePattern}\`);
   const stop = () => handle.close().finally(() => process.exit(0));
   process.once("SIGINT", stop);
@@ -264,7 +264,7 @@ async function main() {
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   main().catch((error) => {
-    console.error(\`REAPP fulfillment stopped safely: \${error instanceof Error ? error.message : String(error)}\`);
+    console.error(\`ACKRATE fulfillment stopped safely: \${error instanceof Error ? error.message : String(error)}\`);
     process.exitCode = 1;
   });
 }
@@ -303,7 +303,7 @@ const RESOURCES = Object.freeze(["market", "academic", "news"]);
 const BLOCKED_RESOURCE = "patents";
 
 function printHelp() {
-  console.log(\`REAPP hosted hackathon companion
+  console.log(\`ACKRATE hosted hackathon companion
 
 Usage:
   npm run hosted -- --endpoint="https://reapp.live/api/express/WORKSPACE/source" --merchant="G..."
@@ -359,7 +359,7 @@ async function reportBudgetRejection(url, mandateId) {
   return body;
 }
 
-export async function runHosted({ endpoint, merchant, stateRoot = resolve(".reapp") }) {
+export async function runHosted({ endpoint, merchant, stateRoot = resolve(".ackrate") }) {
   const checkedEndpoint = normalizeEndpoint(endpoint);
   const checkedMerchant = validateMerchant(merchant, "merchant");
   const stores = createRunStores(stateRoot);
@@ -473,15 +473,15 @@ async function main() {
     return;
   }
   const result = await runHosted({
-    endpoint: flags.endpoint ?? process.env.REAPP_ENDPOINT,
-    merchant: flags.merchant ?? process.env.REAPP_MERCHANT,
+    endpoint: flags.endpoint ?? process.env.ACKRATE_ENDPOINT,
+    merchant: flags.merchant ?? process.env.ACKRATE_MERCHANT,
   });
   console.log(\`Complete: \${result.delivered} hosted deliveries verified; fourth payment rejected by the contract.\`);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   main().catch((error) => {
-    console.error(\`REAPP hosted demo stopped safely: \${error instanceof Error ? error.message : String(error)}\`);
+    console.error(\`ACKRATE hosted demo stopped safely: \${error instanceof Error ? error.message : String(error)}\`);
     process.exitCode = 1;
   });
 }
@@ -506,19 +506,19 @@ function renderResetSource() {
 import { runSafeReset } from "../shared/reset.mjs";
 
 const result = await runSafeReset({
-  stateRoot: resolve(process.env.REAPP_STATE_ROOT ?? ".reapp"),
-  archiveRoot: resolve(process.env.REAPP_ARCHIVE_ROOT ?? ".reapp-archive"),
+  stateRoot: resolve(process.env.ACKRATE_STATE_ROOT ?? ".ackrate"),
+  archiveRoot: resolve(process.env.ACKRATE_ARCHIVE_ROOT ?? ".ackrate-archive"),
 });
-console.log(result.kind === "missing" ? "No active REAPP state found." : \`Archived safe REAPP state to \${result.destination}\`);
+console.log(result.kind === "missing" ? "No active ACKRATE state found." : \`Archived safe ACKRATE state to \${result.destination}\`);
 `;
 }
 
 function renderEnvExample() {
-  return `# Advanced local fulfillment only. npm run demo needs no configuration.\nREAPP_MERCHANT=G_REPLACE_WITH_FUNDED_TESTNET_PUBLIC_KEY\nPORT=4021\nREAPP_PUBLIC_ORIGIN=http://127.0.0.1:4021\n# Optional: set a stable private value with at least 32 bytes. Never commit it.\n# REAPP_CHALLENGE_SECRET=replace-with-a-private-random-value\n`;
+  return `# Advanced local fulfillment only. npm run demo needs no configuration.\nACKRATE_MERCHANT=G_REPLACE_WITH_FUNDED_TESTNET_PUBLIC_KEY\nPORT=4021\nACKRATE_PUBLIC_ORIGIN=http://127.0.0.1:4021\n# Optional: set a stable private value with at least 32 bytes. Never commit it.\n# ACKRATE_CHALLENGE_SECRET=replace-with-a-private-random-value\n`;
 }
 
 function renderGitIgnore() {
-  return `node_modules/\n.env\n.env.local\n.reapp/\n.reapp-archive/\n*.log\n.DS_Store\n`;
+  return `node_modules/\n.env\n.env.local\n.ackrate/\n.ackrate-archive/\n*.log\n.DS_Store\n`;
 }
 
 function renderReadme(kit, metadata, dependencyPolicy) {
@@ -526,7 +526,7 @@ function renderReadme(kit, metadata, dependencyPolicy) {
   const hosted = kit.id === "research-source-scout"
     ? `## Optional hosted walkthrough\n\nThe local demo above is the primary starter flow. To connect the same project to the browser companion afterward:\n\n1. Open [reapp.live/solutions](https://reapp.live/solutions).\n2. Start the optional hosted walkthrough.\n3. Copy the displayed \`npm run hosted -- --endpoint=... --merchant=...\` command into this project's VS Code terminal and press **Enter**.\n\nThe browser and terminal then show the same hosted paid flow. Your private signers and recovery evidence stay in this local folder.\n\n`
     : "";
-  return `# ${kit.title}\n\n**${kit.summary}**\n\nThis starter protects \`${kit.paidResource}\` with a request-bound payment on Stellar testnet. The app asks; the MandateRegistry contract decides whether money moves.\n\n## Start — two commands, no wallet\n\nYou need Node.js 20 or newer. You do not need a wallet or a GitHub repo.\n\n### If you used Copy setup command\n\nThe setup command on [reapp.live/solutions](https://reapp.live/solutions) already downloaded this starter, extracted it into your empty folder, and ran \`npm ci\`. Before extraction, it verified the ZIP against the exact SHA-256 in the [public integrity manifest](https://reapp.live/starters/v1/manifest.json). In the same VS Code terminal, run:\n\n\`\`\`bash\nnpm run demo\n\`\`\`\n\n### If you downloaded the ZIP manually\n\nCompare its SHA-256 with the [public integrity manifest](https://reapp.live/starters/v1/manifest.json), extract the ZIP, open the extracted folder in VS Code, select **Terminal → New Terminal**, then run:\n\n\`\`\`bash\n${dependencyPolicy.installCommand}\nnpm run demo\n\`\`\`\n\nThe demo creates disposable testnet accounts, starts the consumer and Express fulfillment service, and explains every step in plain English. It never requests a wallet or mainnet secret.\n\n\`\`\`mermaid\nflowchart LR\n    A["① Open an empty folder"] --> B["② Copy the setup command"]\n    B --> C["③ Run npm run demo"]\n    C --> D["④ Read the guided result"]\n    D --> E["⑤ Open the Stellar proof links"]\n\n    style A fill:#052e2b,stroke:#14b8a6,color:#ecfdf5\n    style B fill:#082f49,stroke:#0ea5e9,color:#f0f9ff\n    style C fill:#312e81,stroke:#818cf8,color:#eef2ff\n    style D fill:#4c1d95,stroke:#a78bfa,color:#f5f3ff\n    style E fill:#064e3b,stroke:#34d399,color:#ecfdf5\n\`\`\`\n\n${hosted}## What the terminal will teach you\n\nThe guided output uses six numbered steps and explains the important words:\n\n1. **Testnet accounts** are temporary practice accounts. No real money is used.\n2. **HTTP 402** means the API is working and requires payment.\n3. **Contract approval** means the user's exact spending rules allowed the payment.\n4. **HTTP 200** means the paid result was delivered.\n5. **Stellar proof links** let anyone inspect each accepted payment.\n6. **The safety check** proves this starter's named boundary or recovery behavior.\n\nThe terminal shows the local fulfillment server starting, accepted Stellar testnet payment evidence with explorer transaction hashes, the protected result delivered to the consumer, and the named negative or recovery check reaching its documented outcome.\n\n\`\`\`mermaid\nsequenceDiagram\n    autonumber\n    participant You\n    participant Agent as Consumer agent\n    participant API as Express API\n    participant Contract as MandateRegistry\n    participant Stellar as Stellar testnet\n\n    You->>Agent: Run npm run demo\n    Agent->>API: GET protected result\n    API-->>Agent: 402 Payment Required\n    Agent->>Contract: Request the exact payment\n    Contract->>Stellar: Verify the spending rules\n    Stellar-->>Agent: Confirm payment\n    Agent->>API: Retry with payment proof\n    API-->>Agent: 200 + protected result\n    Agent->>Agent: Verify the named safety or recovery check\n\`\`\`\n\n## Scenario\n\n- Paid resource: \`${kit.paidResource}\`\n- Price policy: exact decimal amounts declared by the scenario\n- Safety or recovery check: \`${kit.negativePath.id}\`\n- Expected outcome: ${kit.negativePath.outcome}\n- Fixtures: ${kit.fixtures}\n\n${kit.businessLogic}\n\n### Capabilities\n\n${features}\n\n## Make it yours\n\nStart with these three files:\n\n| File | What to change |\n|---|---|\n| \`scenario/scenario.mjs\` | Your product's rules, sample data, delivery checks, and rejection check. |\n| \`src/consumer.mjs\` | How your app requests and pays for the protected result. |\n| \`src/fulfillment.mjs\` | What your paid Express endpoint returns. |\n\nThe shared payment and recovery code lives in \`shared/\`. Leave it unchanged until your project needs advanced customization.\n\n## Run fulfillment separately\n\nThe one-command demo starts both sides automatically. To inspect or modify the server independently:\n\n\`\`\`bash\ncp .env.example .env\n# Put a funded Stellar testnet public G-address in REAPP_MERCHANT.\nnpm run fulfillment\n\`\`\`\n\nKeep the challenge secret private and stable. The reference file store is for one local Node process; multi-process deployments need one shared linearizable store implementing the same interface.\n\n## Safety and recovery\n\n- Paid work is GET-only and bound to the exact origin, method, resource, merchant, asset, amount, registry, and short-lived challenge.\n- Delivery evidence is committed before the client acknowledges and clears a settlement receipt.\n- Exact same-proof replay returns byte-identical recovery; an old proof on a new resource is rejected, and a freshly rebound proof reusing an old transaction conflicts.\n- State under \`.reapp/\` is private and ignored by Git. Run \`npm run reset\` only after all payment and fulfillment evidence is resolved.\n\nCatalog identity: \`${metadata.id}\` · fixture policy: \`${metadata.fixturePolicy}\`.\n`;
+  return `# ${kit.title}\n\n**${kit.summary}**\n\nThis starter protects \`${kit.paidResource}\` with a request-bound payment on Stellar testnet. The app asks; the MandateRegistry contract decides whether money moves.\n\n## Start — two commands, no wallet\n\nYou need Node.js 20 or newer. You do not need a wallet or a GitHub repo.\n\n### If you used Copy setup command\n\nThe setup command on [reapp.live/solutions](https://reapp.live/solutions) already downloaded this starter, extracted it into your empty folder, and ran \`npm ci\`. Before extraction, it verified the ZIP against the exact SHA-256 in the [public integrity manifest](https://reapp.live/starters/v1/manifest.json). In the same VS Code terminal, run:\n\n\`\`\`bash\nnpm run demo\n\`\`\`\n\n### If you downloaded the ZIP manually\n\nCompare its SHA-256 with the [public integrity manifest](https://reapp.live/starters/v1/manifest.json), extract the ZIP, open the extracted folder in VS Code, select **Terminal → New Terminal**, then run:\n\n\`\`\`bash\n${dependencyPolicy.installCommand}\nnpm run demo\n\`\`\`\n\nThe demo creates disposable testnet accounts, starts the consumer and Express fulfillment service, and explains every step in plain English. It never requests a wallet or mainnet secret.\n\n\`\`\`mermaid\nflowchart LR\n    A["① Open an empty folder"] --> B["② Copy the setup command"]\n    B --> C["③ Run npm run demo"]\n    C --> D["④ Read the guided result"]\n    D --> E["⑤ Open the Stellar proof links"]\n\n    style A fill:#052e2b,stroke:#14b8a6,color:#ecfdf5\n    style B fill:#082f49,stroke:#0ea5e9,color:#f0f9ff\n    style C fill:#312e81,stroke:#818cf8,color:#eef2ff\n    style D fill:#4c1d95,stroke:#a78bfa,color:#f5f3ff\n    style E fill:#064e3b,stroke:#34d399,color:#ecfdf5\n\`\`\`\n\n${hosted}## What the terminal will teach you\n\nThe guided output uses six numbered steps and explains the important words:\n\n1. **Testnet accounts** are temporary practice accounts. No real money is used.\n2. **HTTP 402** means the API is working and requires payment.\n3. **Contract approval** means the user's exact spending rules allowed the payment.\n4. **HTTP 200** means the paid result was delivered.\n5. **Stellar proof links** let anyone inspect each accepted payment.\n6. **The safety check** proves this starter's named boundary or recovery behavior.\n\nThe terminal shows the local fulfillment server starting, accepted Stellar testnet payment evidence with explorer transaction hashes, the protected result delivered to the consumer, and the named negative or recovery check reaching its documented outcome.\n\n\`\`\`mermaid\nsequenceDiagram\n    autonumber\n    participant You\n    participant Agent as Consumer agent\n    participant API as Express API\n    participant Contract as MandateRegistry\n    participant Stellar as Stellar testnet\n\n    You->>Agent: Run npm run demo\n    Agent->>API: GET protected result\n    API-->>Agent: 402 Payment Required\n    Agent->>Contract: Request the exact payment\n    Contract->>Stellar: Verify the spending rules\n    Stellar-->>Agent: Confirm payment\n    Agent->>API: Retry with payment proof\n    API-->>Agent: 200 + protected result\n    Agent->>Agent: Verify the named safety or recovery check\n\`\`\`\n\n## Scenario\n\n- Paid resource: \`${kit.paidResource}\`\n- Price policy: exact decimal amounts declared by the scenario\n- Safety or recovery check: \`${kit.negativePath.id}\`\n- Expected outcome: ${kit.negativePath.outcome}\n- Fixtures: ${kit.fixtures}\n\n${kit.businessLogic}\n\n### Capabilities\n\n${features}\n\n## Make it yours\n\nStart with these three files:\n\n| File | What to change |\n|---|---|\n| \`scenario/scenario.mjs\` | Your product's rules, sample data, delivery checks, and rejection check. |\n| \`src/consumer.mjs\` | How your app requests and pays for the protected result. |\n| \`src/fulfillment.mjs\` | What your paid Express endpoint returns. |\n\nThe shared payment and recovery code lives in \`shared/\`. Leave it unchanged until your project needs advanced customization.\n\n## Run fulfillment separately\n\nThe one-command demo starts both sides automatically. To inspect or modify the server independently:\n\n\`\`\`bash\ncp .env.example .env\n# Put a funded Stellar testnet public G-address in ACKRATE_MERCHANT.\nnpm run fulfillment\n\`\`\`\n\nKeep the challenge secret private and stable. The reference file store is for one local Node process; multi-process deployments need one shared linearizable store implementing the same interface.\n\n## Safety and recovery\n\n- Paid work is GET-only and bound to the exact origin, method, resource, merchant, asset, amount, registry, and short-lived challenge.\n- Delivery evidence is committed before the client acknowledges and clears a settlement receipt.\n- Exact same-proof replay returns byte-identical recovery; an old proof on a new resource is rejected, and a freshly rebound proof reusing an old transaction conflicts.\n- State under \`.ackrate/\` is private and ignored by Git. Run \`npm run reset\` only after all payment and fulfillment evidence is resolved.\n\nCatalog identity: \`${metadata.id}\` · fixture policy: \`${metadata.fixturePolicy}\`.\n`;
 }
 
 async function listRegularFiles(root, prefix = "") {

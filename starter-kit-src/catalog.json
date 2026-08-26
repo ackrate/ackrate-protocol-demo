@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
-  "catalogId": "reapp-hackathon-starters-v1",
+  "catalogId": "ackrate-hackathon-starters-v1",
   "constraints": {
     "network": "stellar-testnet",
     "paidMethod": "GET",
     "proofPolicy": "bound-v2-only",
     "runtime": "local-consumer-and-fulfillment",
     "fixturePolicy": "deterministic-and-clearly-labeled",
-    "compatibilityClaim": "reapp-bound-v2"
+    "compatibilityClaim": "ackrate-bound-v2"
   },
   "sources": {
     "cloudflare-x402": {

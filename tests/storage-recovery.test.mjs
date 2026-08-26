@@ -38,7 +38,7 @@ function redemptionRecord({
       merchant: Keypair.random().publicKey(),
       asset: "native-test-asset",
       registryId: "registry",
-      scheme: "reapp-soroban-bound",
+      scheme: "ackrate-soroban-bound",
       network: "stellar-testnet",
       agent: Keypair.random().publicKey(),
       user: Keypair.random().publicKey(),
@@ -57,7 +57,7 @@ function storedResponse(body) {
 }
 
 test("oversized result replacement is rejected before the prior file changes", async (t) => {
-  const directory = await temporaryDirectory(t, "reapp-storage-limit-");
+  const directory = await temporaryDirectory(t, "ackrate-storage-limit-");
   const path = resolve(directory, "results.json");
   const store = new FileRunResultStore(path);
   const runId = await store.begin({ scenarioId: "storage-limit" });
@@ -68,7 +68,7 @@ test("oversized result replacement is rejected before the prior file changes", a
       type: "large-evidence",
       payload: "x".repeat(4 * 1024 * 1024),
     }),
-    /would exceed the safe REAPP state limit/,
+    /would exceed the safe ACKRATE state limit/,
   );
 
   const after = await readFile(path);
@@ -77,7 +77,7 @@ test("oversized result replacement is rejected before the prior file changes", a
 });
 
 test("generic journal append cannot forge lifecycle or delivery events", async (t) => {
-  const directory = await temporaryDirectory(t, "reapp-storage-reserved-");
+  const directory = await temporaryDirectory(t, "ackrate-storage-reserved-");
   const store = new FileRunResultStore(resolve(directory, "results.json"));
   const runId = await store.begin({ scenarioId: "reserved-events" });
 
@@ -108,7 +108,7 @@ test("generic journal append cannot forge lifecycle or delivery events", async (
 });
 
 test("tampered result runs and committed delivery records fail closed", async (t) => {
-  const directory = await temporaryDirectory(t, "reapp-storage-tamper-");
+  const directory = await temporaryDirectory(t, "ackrate-storage-tamper-");
   const path = resolve(directory, "results.json");
   const store = new FileRunResultStore(path);
   const runId = await store.begin({ scenarioId: "tamper" });
@@ -138,7 +138,7 @@ test("tampered result runs and committed delivery records fail closed", async (t
 });
 
 test("operator resolution requires age and exact confirmation then stores immutable terminal bytes", async (t) => {
-  const directory = await temporaryDirectory(t, "reapp-operator-recovery-");
+  const directory = await temporaryDirectory(t, "ackrate-operator-recovery-");
   const stateRoot = resolve(directory, "state");
   const archiveRoot = resolve(directory, "archive");
   const store = new FileBoundRedemptionStore(

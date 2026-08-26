@@ -3,7 +3,7 @@ import { createPageMetadata } from "@/lib/site-metadata";
 export const metadata = createPageMetadata({
   title: "Controlled AI Spending Preview",
   description:
-    "See how REAPP lets a person give an AI agent a task while retaining explicit control over the budget, approved services, deadline, and exceptions.",
+    "See how ACKRATE lets a person give an AI agent a task while retaining explicit control over the budget, approved services, deadline, and exceptions.",
   path: "/consumer",
   keywords: [
     "consumer AI agent payments",

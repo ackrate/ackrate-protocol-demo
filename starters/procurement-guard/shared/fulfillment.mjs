@@ -14,14 +14,14 @@ import {
   boundChallengeAuthorizationBytes,
   decodePaymentProof,
   isBoundPaymentProof,
-  reapp,
+  ackrate,
   verifyBoundPaymentProofSignature,
-} from "@reapp-sdk/core";
+} from "@ackrate/core";
 import {
-  createBoundReappPaidJsonRoute,
+  createBoundAckratePaidJsonRoute,
   createRedemptionKey,
   createStellarPaymentVerifier,
-} from "@reapp-sdk/express-middleware";
+} from "@ackrate/express-middleware";
 import {
   validateChallengeSecret,
   validateExactOrigin,
@@ -34,10 +34,10 @@ import {
 import { closeHttpServer, createIdempotentServerCloser } from "./http.mjs";
 import { FileBoundRedemptionStore } from "./storage.mjs";
 
-const PREFLIGHT = Symbol("reapp.fulfillment.preflight");
-const SAFE_REQUEST = Symbol("reapp.fulfillment.safe-request");
-const RECOVERY_PRICE = Symbol("reapp.fulfillment.recovery-price");
-const AUTHENTICATED_QUOTE = Symbol("reapp.fulfillment.authenticated-quote");
+const PREFLIGHT = Symbol("ackrate.fulfillment.preflight");
+const SAFE_REQUEST = Symbol("ackrate.fulfillment.safe-request");
+const RECOVERY_PRICE = Symbol("ackrate.fulfillment.recovery-price");
+const AUTHENTICATED_QUOTE = Symbol("ackrate.fulfillment.authenticated-quote");
 const NON_BILLABLE_STATUSES = new Set([400, 404, 409, 410, 422]);
 const MAX_REQUEST_COMPONENT_BYTES = 8_192;
 const MAX_REQUEST_FIELDS = 64;
@@ -358,7 +358,7 @@ export function createFulfillmentApp({
   preflight,
   fulfill,
   redemptionStore,
-  stateRoot = resolve(".reapp"),
+  stateRoot = resolve(".ackrate"),
   configureFreeRoutes,
   testVerifier,
   metrics,
@@ -388,13 +388,13 @@ export function createFulfillmentApp({
     resolve(stateRoot, "fulfillment-redemptions.json"),
   );
   const baseVerifier = testVerifier ?? createStellarPaymentVerifier({
-    networkConfig: reapp.testnet,
+    networkConfig: ackrate.testnet,
     sourceAccount: checkedMerchant,
     pollAttempts: 20,
     pollIntervalMs: 1_000,
   });
   const baseLateVerifier = testVerifier ?? createStellarPaymentVerifier({
-    networkConfig: reapp.testnet,
+    networkConfig: ackrate.testnet,
     sourceAccount: checkedMerchant,
     pollAttempts: 20,
     pollIntervalMs: 1_000,
@@ -406,9 +406,9 @@ export function createFulfillmentApp({
   const lateVerifier = instrumentVerifier(baseLateVerifier, metricsState);
   const timingServer = testVerifier
     ? undefined
-    : new rpc.Server(reapp.testnet.rpcUrl);
+    : new rpc.Server(ackrate.testnet.rpcUrl);
   const networkId = createHash("sha256")
-    .update(reapp.testnet.networkPassphrase, "utf8")
+    .update(ackrate.testnet.networkPassphrase, "utf8")
     .digest("hex");
 
   const authenticatedQuoteFor = (request, inspected = inspectBoundProof(request)) => {
@@ -430,9 +430,9 @@ export function createFulfillmentApp({
       && challenge.bodySha256 === null
       && challenge.network === "stellar-testnet"
       && challenge.networkId === networkId
-      && challenge.registryId === reapp.testnet.mandateRegistryId
+      && challenge.registryId === ackrate.testnet.mandateRegistryId
       && challenge.merchant === checkedMerchant
-      && challenge.asset === reapp.testnet.nativeSac
+      && challenge.asset === ackrate.testnet.nativeSac
       && challenge.decimals === 7
       && Number.isSafeInteger(challenge.issuedAt)
       && Number.isSafeInteger(challenge.expiresAt)
@@ -450,10 +450,10 @@ export function createFulfillmentApp({
         network: "stellar-testnet",
         resource: expectedResource,
         merchant: checkedMerchant,
-        asset: reapp.testnet.nativeSac,
+        asset: ackrate.testnet.nativeSac,
         amount: price,
         amountStroops: BigInt(challenge.amountStroops),
-        registryId: reapp.testnet.mandateRegistryId,
+        registryId: ackrate.testnet.mandateRegistryId,
         decimals: 7,
       }),
     });
@@ -472,7 +472,7 @@ export function createFulfillmentApp({
     }
     const parsed = TransactionBuilder.fromXDR(
       result.envelopeXdr,
-      reapp.testnet.networkPassphrase,
+      ackrate.testnet.networkPassphrase,
     );
     const transaction = parsed.innerTransaction ?? parsed;
     const maxTime = Number(transaction.timeBounds?.maxTime);
@@ -529,7 +529,7 @@ export function createFulfillmentApp({
     }
     return quoted;
   };
-  const paidRoute = createBoundReappPaidJsonRoute({
+  const paidRoute = createBoundAckratePaidJsonRoute({
     merchant: checkedMerchant,
     sourceAccount: checkedMerchant,
     audience: checkedAudience,
@@ -537,12 +537,12 @@ export function createFulfillmentApp({
     redemptionStore: durableRedemptions,
     amount: preflightBoundAmount,
     resource: (request) => validateRequestPath(request.originalUrl),
-    networkConfig: reapp.testnet,
+    networkConfig: ackrate.testnet,
     verifier,
     challengeTtlSeconds: CHALLENGE_TTL_SECONDS,
   }, async ({ request, payment }) => executeFulfillment(request, payment));
 
-  const recoveryRoute = createBoundReappPaidJsonRoute({
+  const recoveryRoute = createBoundAckratePaidJsonRoute({
     merchant: checkedMerchant,
     sourceAccount: checkedMerchant,
     audience: checkedAudience,
@@ -555,7 +555,7 @@ export function createFulfillmentApp({
       return request[RECOVERY_PRICE];
     },
     resource: (request) => validateRequestPath(request.originalUrl),
-    networkConfig: reapp.testnet,
+    networkConfig: ackrate.testnet,
     verifier,
     challengeTtlSeconds: CHALLENGE_TTL_SECONDS,
   }, async () => {
@@ -606,8 +606,8 @@ export function createFulfillmentApp({
       && payment.mandateId === quote.proof.mandateId
       && payment.amountStroops === quote.requirement.amountStroops
       && payment.merchant === checkedMerchant
-      && payment.asset === reapp.testnet.nativeSac
-      && payment.registryId === reapp.testnet.mandateRegistryId
+      && payment.asset === ackrate.testnet.nativeSac
+      && payment.registryId === ackrate.testnet.mandateRegistryId
       && payment.scheme === BOUND_PAYMENT_SCHEME
       && payment.network === "stellar-testnet"
       && verifyBoundPaymentProofSignature(quote.proof, payment.agent);
@@ -619,8 +619,8 @@ export function createFulfillmentApp({
     }
 
     const redemptionKey = createRedemptionKey(
-      reapp.testnet.networkPassphrase,
-      reapp.testnet.mandateRegistryId,
+      ackrate.testnet.networkPassphrase,
+      ackrate.testnet.mandateRegistryId,
       quote.proof.txHash,
     );
     const recordMatchesVerifiedPayment = (record) => record?.key === redemptionKey
@@ -735,8 +735,8 @@ export function createFulfillmentApp({
       return;
     }
     const redemptionKey = createRedemptionKey(
-      reapp.testnet.networkPassphrase,
-      reapp.testnet.mandateRegistryId,
+      ackrate.testnet.networkPassphrase,
+      ackrate.testnet.mandateRegistryId,
       inspected.proof.txHash,
     );
     let existing;

@@ -21,7 +21,7 @@ import {
 import { connectFreighter } from "@/lib/wallet/freighter";
 
 const MAINNET_REGISTRY = "CDBTG5ZKASFA7LOYUPBOTGKAVX5MJIM4U24BYGX7VX23IHYDAHLQPAGS";
-const MAINNET_PAYMENT_KEY = "reapp:mainnet:last-payment";
+const MAINNET_PAYMENT_KEY = "ackrate:mainnet:last-payment";
 const MAINNET_PASSPHRASE = "Public Global Stellar Network ; September 2015";
 const MAINNET_RECEIPTS = [
   { label: "Payment 1", hash: "934239bcace9393e2ed0a39f114bf1d45c70e434ab4963a04ee17a132ea3bf8a" },
@@ -126,10 +126,10 @@ export default function ExpressPage() {
     };
     refresh();
     window.addEventListener("storage", refresh);
-    window.addEventListener("reapp-mainnet-payment", refresh);
+    window.addEventListener("ackrate-mainnet-payment", refresh);
     return () => {
       window.removeEventListener("storage", refresh);
-      window.removeEventListener("reapp-mainnet-payment", refresh);
+      window.removeEventListener("ackrate-mainnet-payment", refresh);
     };
   }, [refreshBalances, walletBalances?.address]);
 
@@ -154,7 +154,7 @@ export default function ExpressPage() {
               Agent payments with limits that hold.
             </h1>
             <p className="mt-6 max-w-2xl text-base leading-8 text-emerald-100/65 sm:text-lg">
-              Give an agent permission to buy what it needs—not access to your wallet. REAPP binds every payment to a wallet-approved budget, merchant, and expiry, then enforces those terms on Stellar Mainnet before Circle USDC moves.
+              Give an agent permission to buy what it needs—not access to your wallet. ACKRATE binds every payment to a wallet-approved budget, merchant, and expiry, then enforces those terms on Stellar Mainnet before Circle USDC moves.
             </p>
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">

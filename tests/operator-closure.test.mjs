@@ -9,9 +9,9 @@ import {
   BOUND_PAYMENT_SCHEME,
   createBoundPaymentProof,
   createSettlementReceiptId,
-  reapp,
-} from "@reapp-sdk/core";
-import { createRedemptionKey } from "@reapp-sdk/express-middleware";
+  ackrate,
+} from "@ackrate/core";
+import { createRedemptionKey } from "@ackrate/express-middleware";
 import {
   acknowledgeResolvedTerminalBoundJson,
   canonicalMandateSnapshot,
@@ -35,7 +35,7 @@ async function temporaryDirectory(t, prefix) {
 }
 
 test("operator terminal recovery closes receipt, result, redemption, and reset state", async (t) => {
-  const directory = await temporaryDirectory(t, "reapp-operator-closure-");
+  const directory = await temporaryDirectory(t, "ackrate-operator-closure-");
   const stateRoot = resolve(directory, "state");
   const archiveRoot = resolve(directory, "archive");
   const receiptStore = new FileSettlementReceiptStore(
@@ -56,7 +56,7 @@ test("operator terminal recovery closes receipt, result, redemption, and reset s
     user: Keypair.random().publicKey(),
     agent: signer.publicKey(),
     merchant,
-    asset: reapp.testnet.nativeSac,
+    asset: ackrate.testnet.nativeSac,
     maxAmount: 30_000_000n,
     expiry: Math.floor(Date.now() / 1_000) + 3_600,
     decimals: 7,
@@ -71,11 +71,11 @@ test("operator terminal recovery closes receipt, result, redemption, and reset s
     bodySha256: null,
     network: "stellar-testnet",
     networkId: createHash("sha256")
-      .update(reapp.testnet.networkPassphrase, "utf8")
+      .update(ackrate.testnet.networkPassphrase, "utf8")
       .digest("hex"),
-    registryId: reapp.testnet.mandateRegistryId,
+    registryId: ackrate.testnet.mandateRegistryId,
     merchant,
-    asset: reapp.testnet.nativeSac,
+    asset: ackrate.testnet.nativeSac,
     amountStroops: "10000000",
     decimals: 7,
     issuedAt: submittedAt - 30,
@@ -113,8 +113,8 @@ test("operator terminal recovery closes receipt, result, redemption, and reset s
     .update(JSON.stringify(proof), "utf8")
     .digest("hex");
   const redemptionKey = createRedemptionKey(
-    reapp.testnet.networkPassphrase,
-    reapp.testnet.mandateRegistryId,
+    ackrate.testnet.networkPassphrase,
+    ackrate.testnet.mandateRegistryId,
     txHash,
   );
   const claimed = await redemptionStore.claim(Object.freeze({
@@ -129,8 +129,8 @@ test("operator terminal recovery closes receipt, result, redemption, and reset s
       amount: "1.00",
       amountStroops: 10_000_000n,
       merchant,
-      asset: reapp.testnet.nativeSac,
-      registryId: reapp.testnet.mandateRegistryId,
+      asset: ackrate.testnet.nativeSac,
+      registryId: ackrate.testnet.mandateRegistryId,
       scheme: BOUND_PAYMENT_SCHEME,
       network: "stellar-testnet",
     }),
@@ -179,13 +179,13 @@ test("operator terminal recovery closes receipt, result, redemption, and reset s
       return { kind: "none" };
     },
   };
-  const originalAgentFactory = reapp.agent;
-  reapp.agent = () => rawConsumer;
+  const originalAgentFactory = ackrate.agent;
+  ackrate.agent = () => rawConsumer;
   let consumer;
   try {
     consumer = createBoundTestnetConsumer({ mandate, agent: signer, receiptStore });
   } finally {
-    reapp.agent = originalAgentFactory;
+    ackrate.agent = originalAgentFactory;
   }
 
   const evidence = await acknowledgeResolvedTerminalBoundJson({

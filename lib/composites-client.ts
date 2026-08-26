@@ -1,9 +1,9 @@
 /**
  * Vendored typed client for the composite build of MandateRegistry (clearing
  * pools), source-verified on StellarExpert against
- * github.com/reapp-protocol/reapp-protocol-contracts. Generated with
+ * github.com/ackrate/ackrate-protocol-contracts. Generated with
  * `stellar contract bindings typescript` from the deployed wasm in the
- * reapp-protocol repo; regenerate there and re-copy whenever the contract ABI
+ * ackrate-protocol repo; regenerate there and re-copy whenever the contract ABI
  * changes. The contract id below is a SEPARATE testnet deployment from the
  * simple contract used by the SDK. Server-side only (see next.config.mjs
  * serverExternalPackages).

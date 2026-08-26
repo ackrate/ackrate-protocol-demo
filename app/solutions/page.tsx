@@ -28,7 +28,7 @@ import { HACKATHON_STARTER_CATALOG } from "@/lib/hackathon-starters.generated";
 import { buildStarterInstallCommand } from "@/lib/starter-install";
 import STARTER_MANIFEST from "@/public/starters/v1/manifest.json";
 
-const STORAGE_KEY = "reapp-hackathon-workspace-v1";
+const STORAGE_KEY = "ackrate-hackathon-workspace-v1";
 const STARTER_KITS = HACKATHON_STARTER_CATALOG.kits;
 const STARTER_CATEGORIES = ["All", ...Array.from(new Set(STARTER_KITS.map((kit) => kit.category)))];
 const STARTER_ARCHIVES = new Map(STARTER_MANIFEST.kits.map((entry) => [entry.slug, entry]));
@@ -82,7 +82,7 @@ const LESSONS = [
     title: "Mandate",
     Icon: ShieldCheck,
     summary: "The user authorizes one agent, one merchant, one asset, one limit, and one expiry.",
-    code: `const mandate = reapp.createIntentMandate({
+    code: `const mandate = ackrate.createIntentMandate({
   user, agent, merchant, asset,
   maxAmount: "3.00",
   expiry: Math.floor(Date.now() / 1000) + 3600,
@@ -93,7 +93,7 @@ const LESSONS = [
     title: "Merchant scope",
     Icon: KeyRound,
     summary: "A payment cannot be redirected: MandateRegistry checks the exact merchant before consuming budget.",
-    code: `merchant: process.env.REAPP_MERCHANT
+    code: `merchant: process.env.ACKRATE_MERCHANT
 // The contract rejects any different destination.`,
   },
   {
@@ -176,7 +176,7 @@ export const scenario = createScenario(
 );
 
 export async function runDemo({
-  stateRoot = resolve(".reapp"),
+  stateRoot = resolve(".ackrate"),
   onEvent,
 } = {}) {
   return runLocalTestnetDemo({
@@ -558,7 +558,7 @@ export default function SolutionsPage() {
                           {selected ? <Check className="h-3.5 w-3.5" aria-hidden /> : <Layers3 className="h-3.5 w-3.5" aria-hidden />}
                           <span className="truncate">{selected ? "Selected" : "Use this starter"}</span>
                         </button>
-                        <a href={`https://github.com/reapp-protocol/reapp-protocol-demo/blob/main/starters/${kit.slug}/README.md`} target="_blank" rel="noreferrer" className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl border border-white/15 px-3 py-2 text-xs font-semibold text-emerald-100/60 transition hover:border-emerald-400/35 hover:text-emerald-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/60">
+                        <a href={`https://github.com/ackrate/ackrate-protocol-demo/blob/main/starters/${kit.slug}/README.md`} target="_blank" rel="noreferrer" className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl border border-white/15 px-3 py-2 text-xs font-semibold text-emerald-100/60 transition hover:border-emerald-400/35 hover:text-emerald-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/60">
                           Read the README <ExternalLink className="h-3.5 w-3.5" aria-hidden />
                         </a>
                       </div>
@@ -703,7 +703,7 @@ export default function SolutionsPage() {
                 <div className={delivered.length ? "text-emerald-200" : "text-emerald-100/35"}>{delivered.length ? `✓ ${delivered.length}/3 protected responses delivered` : "· protected response pending"}</div>
                 <div className={blocked ? "text-red-300" : "text-emerald-100/35"}>{blocked ? "✓ fourth purchase rejected by MandateRegistry" : "· contract limit check pending"}</div>
               </div>
-              <p className="text-[11px] leading-relaxed text-emerald-100/40">The scaffold contains the actual consumer and fulfillment source. Add <code className="text-emerald-300">.reapp/</code> to no other workflow: it is already ignored and stores local recovery evidence.</p>
+              <p className="text-[11px] leading-relaxed text-emerald-100/40">The scaffold contains the actual consumer and fulfillment source. Add <code className="text-emerald-300">.ackrate/</code> to no other workflow: it is already ignored and stores local recovery evidence.</p>
             </div>
           </div>
         </div>
@@ -845,7 +845,7 @@ export default function SolutionsPage() {
           <div className="border-t border-white/10 bg-black/20 p-5 lg:border-l lg:border-t-0">
             <div className="flex items-center gap-2 text-sm font-semibold text-emerald-100"><Code2 className="h-4 w-4 text-emerald-400" aria-hidden />Advanced mode</div>
             <p className="mt-3 text-sm leading-relaxed text-emerald-100/55">The guided command runs <code className="text-emerald-300">src/hosted.mjs</code> against this page. Run <code className="text-emerald-300">npm run demo</code> for the complete local consumer-and-fulfillment flow, then edit either side directly.</p>
-            <a href="https://github.com/reapp-protocol/reapp-protocol-demo/tree/main/starters/research-source-scout" target="_blank" rel="noreferrer" className="mt-5 inline-flex items-center gap-2 rounded-xl border border-white/15 px-4 py-2.5 text-sm font-semibold text-emerald-100/75 transition hover:border-emerald-400/40 hover:text-emerald-100">
+            <a href="https://github.com/ackrate/ackrate-protocol-demo/tree/main/starters/research-source-scout" target="_blank" rel="noreferrer" className="mt-5 inline-flex items-center gap-2 rounded-xl border border-white/15 px-4 py-2.5 text-sm font-semibold text-emerald-100/75 transition hover:border-emerald-400/40 hover:text-emerald-100">
               Open starter source <ExternalLink className="h-3.5 w-3.5" aria-hidden />
             </a>
           </div>

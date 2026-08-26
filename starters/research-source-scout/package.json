@@ -1,17 +1,17 @@
 {
   "dependencies": {
-    "@reapp-sdk/ap2": "0.3.0",
-    "@reapp-sdk/core": "0.3.1",
-    "@reapp-sdk/express-middleware": "0.2.2",
-    "@reapp-sdk/stellar": "0.2.2",
+    "@ackrate/ap2": "0.3.0",
+    "@ackrate/core": "0.3.1",
+    "@ackrate/express-middleware": "0.2.2",
+    "@ackrate/stellar": "0.2.2",
     "@stellar/stellar-sdk": "14.6.1",
     "express": "5.2.1"
   },
-  "description": "Self-contained REAPP bound-v2 starter for Stellar testnet.",
+  "description": "Self-contained ACKRATE bound-v2 starter for Stellar testnet.",
   "engines": {
     "node": ">=20"
   },
-  "name": "reapp-hackathon-starter",
+  "name": "ackrate-hackathon-starter",
   "private": true,
   "scripts": {
     "check": "node src/check.mjs",

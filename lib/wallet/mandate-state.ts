@@ -1,6 +1,6 @@
 import { Buffer } from "buffer";
-import { Client, type Mandate } from "@reapp-sdk/stellar";
-import type { NetworkConfig } from "@reapp-sdk/stellar";
+import { Client, type Mandate } from "@ackrate/stellar";
+import type { NetworkConfig } from "@ackrate/stellar";
 import { Networks } from "@stellar/stellar-sdk";
 import type { MandateView } from "./types";
 import { installMainnetAccountFallback } from "./rpc-account-fallback";

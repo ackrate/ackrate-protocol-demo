@@ -1,5 +1,5 @@
 import { Address, Asset, Networks, StrKey } from "@stellar/stellar-sdk";
-import type { NetworkConfig } from "@reapp-sdk/stellar";
+import type { NetworkConfig } from "@ackrate/stellar";
 
 export const MAINNET_USDC = Object.freeze({
   code: "USDC",
@@ -114,12 +114,8 @@ export function mainnetNetworkFromDeploymentManifest(input: unknown): ReleaseNet
   }
 
   const source = objectAt(manifest, "source");
-  const repository = textAt(source, "repository");
-  if (![
-    "https://github.com/ackrate/ackrate-protocol-contracts",
-    "https://github.com/reapp-protocol/reapp-protocol-contracts",
-  ].includes(repository)) {
-    throw new Error("release manifest source repository is not an approved contracts repository");
+  if (textAt(source, "repository") !== "https://github.com/ackrate/ackrate-protocol-contracts") {
+    throw new Error("release manifest source repository is not the canonical contracts repository");
   }
   const sourceCommit = textAt(source, "commit").toLowerCase();
   if (!/^[0-9a-f]{40}$/.test(sourceCommit)) throw new Error("release manifest source commit is invalid");

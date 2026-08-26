@@ -1,8 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   agentRules: false,
-  // @reapp-sdk/core + @stellar/stellar-sdk are server-only (used in API routes).
-  serverExternalPackages: ["@reapp-sdk/core", "@reapp-sdk/stellar", "@stellar/stellar-sdk"],
+  // @ackrate/core + @stellar/stellar-sdk are server-only (used in API routes).
+  serverExternalPackages: ["@ackrate/core", "@ackrate/stellar", "@stellar/stellar-sdk"],
   async headers() {
     const walletHeaders = [
       { key: "X-Robots-Tag", value: "noindex, nofollow, noarchive, nosnippet" },

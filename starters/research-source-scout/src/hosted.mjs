@@ -29,7 +29,7 @@ const RESOURCES = Object.freeze(["market", "academic", "news"]);
 const BLOCKED_RESOURCE = "patents";
 
 function printHelp() {
-  console.log(`REAPP hosted hackathon companion
+  console.log(`ACKRATE hosted hackathon companion
 
 Usage:
   npm run hosted -- --endpoint="https://reapp.live/api/express/WORKSPACE/source" --merchant="G..."
@@ -85,7 +85,7 @@ async function reportBudgetRejection(url, mandateId) {
   return body;
 }
 
-export async function runHosted({ endpoint, merchant, stateRoot = resolve(".reapp") }) {
+export async function runHosted({ endpoint, merchant, stateRoot = resolve(".ackrate") }) {
   const checkedEndpoint = normalizeEndpoint(endpoint);
   const checkedMerchant = validateMerchant(merchant, "merchant");
   const stores = createRunStores(stateRoot);
@@ -199,15 +199,15 @@ async function main() {
     return;
   }
   const result = await runHosted({
-    endpoint: flags.endpoint ?? process.env.REAPP_ENDPOINT,
-    merchant: flags.merchant ?? process.env.REAPP_MERCHANT,
+    endpoint: flags.endpoint ?? process.env.ACKRATE_ENDPOINT,
+    merchant: flags.merchant ?? process.env.ACKRATE_MERCHANT,
   });
   console.log(`Complete: ${result.delivered} hosted deliveries verified; fourth payment rejected by the contract.`);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   main().catch((error) => {
-    console.error(`REAPP hosted demo stopped safely: ${error instanceof Error ? error.message : String(error)}`);
+    console.error(`ACKRATE hosted demo stopped safely: ${error instanceof Error ? error.message : String(error)}`);
     process.exitCode = 1;
   });
 }

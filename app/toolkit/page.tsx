@@ -2,8 +2,8 @@ import Link from "next/link";
 import { createPageMetadata } from "@/lib/site-metadata";
 
 export const metadata = createPageMetadata({
-  title: "REAPP Agentic Payments Toolkit Preview",
-  description: "Preview the REAPP developer toolkit, research-agent runner, and composite mandate demonstrations on live Stellar testnet contracts.",
+  title: "ACKRATE Agentic Payments Toolkit Preview",
+  description: "Preview the ACKRATE developer toolkit, research-agent runner, and composite mandate demonstrations on live Stellar testnet contracts.",
   path: "/toolkit",
   keywords: ["developer toolkit", "testnet", "composite mandates"],
 });
@@ -24,8 +24,8 @@ export default function ToolkitPage() {
         >
           <div className="text-lg font-semibold text-emerald-100">CLI demo · research agent</div>
           <p className="mt-1 text-sm text-emerald-50/70">
-            Run the reapp-protocol-cli research-agent flow live on testnet with the installed command{" "}
-            <span className="font-mono">reapp</span>: the agent buys sources on-chain until the contract caps the
+            Run the @ackrate/cli research-agent flow live on testnet with the installed command{" "}
+            <span className="font-mono">ackrate</span>: the agent buys sources on-chain until the contract caps the
             budget. No LLM key required.
           </p>
         </Link>

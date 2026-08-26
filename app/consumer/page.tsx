@@ -92,7 +92,7 @@ export default function ConsumerPage() {
             </span>
           </h1>
           <p className="mt-6 max-w-2xl text-base leading-relaxed text-emerald-50/65 sm:text-lg">
-            Describe the result you want, set a total budget, choose approved services, and add a deadline. REAPP turns
+            Describe the result you want, set a total budget, choose approved services, and add a deadline. ACKRATE turns
             those choices into spending rules checked before each supported payment.
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
@@ -136,7 +136,7 @@ export default function ConsumerPage() {
               <div className="flex items-center gap-3">
                 <span className="grid h-9 w-9 place-items-center rounded-xl bg-emerald-400 text-sm font-black text-[#06241a]">R</span>
                 <div>
-                  <p className="text-sm font-semibold text-white">REAPP Tasks</p>
+                  <p className="text-sm font-semibold text-white">ACKRATE Tasks</p>
                   <p className="text-[11px] text-white/40">Your agent · your spending rules</p>
                 </div>
               </div>
@@ -191,7 +191,7 @@ export default function ConsumerPage() {
             </div>
             <h2 className="mt-5 text-3xl font-bold tracking-tight text-white sm:text-4xl">Turn a request into clear spending rules.</h2>
             <p className="mt-4 text-sm leading-relaxed text-emerald-50/60 sm:text-base">
-              You choose the job and the limits. REAPP prepares a plain-language summary before the agent receives any
+              You choose the job and the limits. ACKRATE prepares a plain-language summary before the agent receives any
               payment authority.
             </p>
             <div className="mt-6 space-y-3 text-sm text-emerald-50/65">
@@ -392,7 +392,7 @@ export default function ConsumerPage() {
             <h2 className="mt-5 text-2xl font-bold text-white">Your agent can act. It cannot rewrite the rules.</h2>
             <p className="mt-4 text-sm leading-relaxed text-emerald-50/60">
               The consumer signs a mandate defining the maximum amount, approved destination, asset, expiry, and
-              designated agent. In REAPP&apos;s Stellar testnet implementation, MandateRegistry checks those terms before
+              designated agent. In ACKRATE&apos;s Stellar testnet implementation, MandateRegistry checks those terms before
               each supported payment.
             </p>
             <Link
@@ -432,7 +432,7 @@ export default function ConsumerPage() {
               <ArrowRight className="h-4 w-4" aria-hidden />
             </Link>
             <Link href="/solutions" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-white/15 px-4 py-2.5 text-sm font-semibold text-emerald-50/75 transition hover:border-emerald-300/30 hover:text-white">
-              Build with REAPP
+              Build with ACKRATE
             </Link>
           </div>
         </motion.div>

@@ -34,7 +34,7 @@ function rawEventLine(event) {
   return `[${event.type}]${link ? ` · ${link}` : ""}`;
 }
 
-const REAPP_BANNER = String.raw`
+const ACKRATE_BANNER = String.raw`
  ____  _____    _    ____  ____
 |  _ \| ____|  / \  |  _ \|  _ \
 | |_) |  _|   / _ \ | |_) | |_) |
@@ -46,7 +46,7 @@ export function createBeginnerDemoPresenter({
   scenario,
   starter,
   write = (line = "") => console.log(line),
-  verbose = process.env.REAPP_VERBOSE === "1",
+  verbose = process.env.ACKRATE_VERBOSE === "1",
 } = {}) {
   if (!scenario || typeof scenario !== "object") throw new Error("scenario is required");
   if (!starter || typeof starter !== "object") throw new Error("starter presentation is required");
@@ -69,9 +69,9 @@ export function createBeginnerDemoPresenter({
     say(`${number}/6  ${heading}`);
   };
 
-  say(REAPP_BANNER);
+  say(ACKRATE_BANNER);
   say("============================================================");
-  say(`REAPP STARTER: ${title}`);
+  say(`ACKRATE STARTER: ${title}`);
   say("Stellar testnet — demo funds only, no real money");
   say("============================================================");
   say(summary);
@@ -144,7 +144,7 @@ export function createBeginnerDemoPresenter({
         break;
       default:
         // Scenario-specific events remain in the durable evidence log and in
-        // REAPP_VERBOSE=1 output. Beginners only need the verified outcome.
+        // ACKRATE_VERBOSE=1 output. Beginners only need the verified outcome.
         break;
       }
     } catch (error) {
@@ -175,7 +175,7 @@ export function createBeginnerDemoPresenter({
     say("");
     say(`Result: ${delivered} paid result${delivered === 1 ? "" : "s"} delivered safely.`);
     say("Next: open scenario/scenario.mjs to change the product rules and sample data.");
-    say("Tip: run REAPP_VERBOSE=1 npm run demo to also see developer event names.");
+    say("Tip: run ACKRATE_VERBOSE=1 npm run demo to also see developer event names.");
   };
 
   return Object.freeze({ finish, onEvent });

@@ -1,7 +1,7 @@
 node_modules/
 .env
 .env.local
-.reapp/
-.reapp-archive/
+.ackrate/
+.ackrate-archive/
 *.log
 .DS_Store

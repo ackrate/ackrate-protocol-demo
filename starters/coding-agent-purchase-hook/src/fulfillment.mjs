@@ -16,13 +16,13 @@ import { EXPECTED_SCENARIO_METADATA } from "../scenario/metadata.mjs";
 export const scenario = createScenario(EXPECTED_SCENARIO_METADATA);
 
 function printHelp() {
-  console.log(`REAPP ${scenario.id} fulfillment
+  console.log(`ACKRATE ${scenario.id} fulfillment
 
 Usage:
-  REAPP_MERCHANT=G... npm run fulfillment
+  ACKRATE_MERCHANT=G... npm run fulfillment
 
-Optional: PORT, REAPP_PUBLIC_ORIGIN, REAPP_CHALLENGE_SECRET, REAPP_STATE_ROOT.
-The server binds only to 127.0.0.1 and keeps paid-delivery evidence under .reapp/.`);
+Optional: PORT, ACKRATE_PUBLIC_ORIGIN, ACKRATE_CHALLENGE_SECRET, ACKRATE_STATE_ROOT.
+The server binds only to 127.0.0.1 and keeps paid-delivery evidence under .ackrate/.`);
 }
 
 export async function runFulfillment({
@@ -30,7 +30,7 @@ export async function runFulfillment({
   port = 4021,
   publicOrigin,
   challengeSecret,
-  stateRoot = resolve(".reapp"),
+  stateRoot = resolve(".ackrate"),
 } = {}) {
   const checkedMerchant = validateMerchant(merchant, "merchant");
   const checkedPort = validatePort(port);
@@ -59,13 +59,13 @@ async function main() {
     return;
   }
   const handle = await runFulfillment({
-    merchant: flags.merchant ?? process.env.REAPP_MERCHANT,
+    merchant: flags.merchant ?? process.env.ACKRATE_MERCHANT,
     port: flags.port ?? process.env.PORT ?? "4021",
-    publicOrigin: flags.origin ?? process.env.REAPP_PUBLIC_ORIGIN,
-    challengeSecret: process.env.REAPP_CHALLENGE_SECRET,
-    stateRoot: resolve(process.env.REAPP_STATE_ROOT ?? ".reapp"),
+    publicOrigin: flags.origin ?? process.env.ACKRATE_PUBLIC_ORIGIN,
+    challengeSecret: process.env.ACKRATE_CHALLENGE_SECRET,
+    stateRoot: resolve(process.env.ACKRATE_STATE_ROOT ?? ".ackrate"),
   });
-  console.log(`REAPP fulfillment listening at ${handle.origin}`);
+  console.log(`ACKRATE fulfillment listening at ${handle.origin}`);
   console.log(`Paid route: GET ${scenario.routePattern}`);
   const stop = () => handle.close().finally(() => process.exit(0));
   process.once("SIGINT", stop);
@@ -74,7 +74,7 @@ async function main() {
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   main().catch((error) => {
-    console.error(`REAPP fulfillment stopped safely: ${error instanceof Error ? error.message : String(error)}`);
+    console.error(`ACKRATE fulfillment stopped safely: ${error instanceof Error ? error.message : String(error)}`);
     process.exitCode = 1;
   });
 }

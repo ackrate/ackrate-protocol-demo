@@ -61,7 +61,7 @@ const TEST_GROUPS = [
     start: 1,
     tests: [
       "canonical JSON is independent of object key insertion order",
-      "binds the supported AP2 v0.1.0 intent to a 32-byte REAPP vc_hash",
+      "binds the supported AP2 v0.1.0 intent to a 32-byte ACKRATE vc_hash",
       "pins a canonical AP2 hash vector",
       "provided nonce makes the full binding reproducible across key order",
       "secure default nonces keep identical intents distinct",
@@ -80,7 +80,7 @@ const TEST_GROUPS = [
     lastNumber: 59,
     tests: [
       "valid signed AP2 mandate succeeds",
-      "returned mandate hash equals the recomputed REAPP id",
+      "returned mandate hash equals the recomputed ACKRATE id",
       "fixed seed and nonce produce a deterministic signature digest and signature",
       "exact signed maximum amount succeeds",
       "one-stroop positive amount succeeds",
@@ -100,7 +100,7 @@ const TEST_GROUPS = [
       "unsupported signature algorithm is rejected",
       "unsupported credential version is rejected",
       "unsupported AP2 version is rejected",
-      "unsupported REAPP binding version is rejected",
+      "unsupported ACKRATE binding version is rejected",
       "wrong AP2 data key is rejected",
       "envelope mandate hash mismatch is rejected",
       "unknown top-level credential field fails closed",
@@ -197,7 +197,7 @@ export default function Ap2Page() {
       <motion.header {...fade()} className="pt-6">
         <div className="inline-flex items-center gap-2 rounded-full glass px-3.5 py-1.5 text-[11px] font-semibold tracking-[0.18em] text-emerald-300/90">
           <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.9)]" />
-          AP2 V0.1 · SIGNED REAPP PROFILE · PUBLIC NPM RELEASE
+          AP2 V0.1 · SIGNED ACKRATE PROFILE · PUBLIC NPM RELEASE
         </div>
         <h1 className="mt-5 max-w-4xl text-4xl font-black leading-[1.03] tracking-tight sm:text-6xl">
           Validate the mandate{" "}
@@ -206,7 +206,7 @@ export default function Ap2Page() {
           </span>
         </h1>
         <p className="mt-5 max-w-3xl text-base leading-relaxed text-emerald-100/70 sm:text-lg">
-          Run the published <code className="rounded bg-black/30 px-1.5 py-0.5 font-mono text-sm text-emerald-100">@reapp-sdk/ap2</code>{" "}
+          Run the published <code className="rounded bg-black/30 px-1.5 py-0.5 font-mono text-sm text-emerald-100">@ackrate/ap2</code>{" "}
           validator against a fresh signed mandate. The server returns only public keys and hashes; ephemeral signing
           keys never leave the request.
         </p>
@@ -430,20 +430,20 @@ export default function Ap2Page() {
           <p className="mt-3 text-xs leading-relaxed text-emerald-100/50">Valid mandates, tampering, scope, amount, expiry, replay, and concurrency.</p>
         </div>
         <a
-          href="https://www.npmjs.com/package/@reapp-sdk/ap2/v/0.3.0"
+          href="https://www.npmjs.com/package/@ackrate/ap2/v/0.3.0"
           target="_blank"
           rel="noreferrer"
           className="glass sheen relative rounded-xl p-4 transition hover:border-emerald-300/25"
         >
           <div className="flex items-center justify-between gap-3">
-            <div className="font-mono text-sm text-emerald-100">@reapp-sdk/ap2</div>
+            <div className="font-mono text-sm text-emerald-100">@ackrate/ap2</div>
             <ExternalLink className="h-4 w-4 text-emerald-300/60" aria-hidden />
           </div>
           <div className="mt-1 text-xs uppercase tracking-[0.14em] text-emerald-300/55">public npm package · 0.3.0</div>
           <p className="mt-3 text-xs leading-relaxed text-emerald-100/50">Installable, typed, documented, and verified from a clean project.</p>
         </a>
         <a
-          href="https://github.com/reapp-protocol/reapp-protocol/tree/main/packages/ap2"
+          href="https://github.com/ackrate/ackrate-protocol/tree/main/packages/ap2"
           target="_blank"
           rel="noreferrer"
           className="glass sheen relative rounded-xl p-4 transition hover:border-emerald-300/25"

@@ -1,10 +1,10 @@
 /**
- * Server-side glue around the PUBLISHED @reapp-sdk/core. Runs only in API
+ * Server-side glue around the PUBLISHED @ackrate/core. Runs only in API
  * routes (Node). Ephemeral testnet keys, this is a demo, never mainnet.
  */
 import { Keypair } from "@stellar/stellar-sdk";
-import { reapp, type CreateIntentMandateInput } from "@reapp-sdk/core";
-import { TESTNET, token } from "@reapp-sdk/stellar";
+import { ackrate, type CreateIntentMandateInput } from "@ackrate/core";
+import { TESTNET, token } from "@ackrate/stellar";
 import { EXPLORER_BASE } from "./explorer";
 import { log } from "./log";
 import { journaledPay } from "./payment-journal";
@@ -65,16 +65,16 @@ export async function setup(args: {
     user: Keypair.fromSecret(args.userSecret).publicKey(),
     agent: args.agentPublic,
     merchant: args.merchantPublic,
-    asset: reapp.testnet.nativeSac,
+    asset: ackrate.testnet.nativeSac,
     maxAmount: BUDGET,
     expiry: Math.floor(Date.now() / 1000) + 3600,
     nonce: `${Date.now()}:${Math.random().toString(36).slice(2)}`,
   };
-  const mandate = reapp.createIntentMandate(inputs);
+  const mandate = ackrate.createIntentMandate(inputs);
   log.step("authorizing mandate", { budget: `${BUDGET} XLM`, merchant: short(args.merchantPublic), id: short(mandate.id) });
-  const registerTx = await reapp.registerMandate(mandate, { signer: args.userSecret });
+  const registerTx = await ackrate.registerMandate(mandate, { signer: args.userSecret });
   log.chain("register_mandate confirmed", { tx: short(registerTx) });
-  const approveTx = await reapp.approveBudget(mandate, { signer: args.userSecret });
+  const approveTx = await ackrate.approveBudget(mandate, { signer: args.userSecret });
   log.chain("approveBudget confirmed (SEP-41 allowance to contract)", { tx: short(approveTx) });
   return { inputs, mandateId: mandate.id, registerTx, approveTx };
 }
@@ -83,10 +83,10 @@ export async function setup(args: {
  *  rejects it (overspend, revoked, expired), which is the whole point. */
 export async function pay(args: { inputs: MandateInputs; agentSecret: string; amount?: string; expectedSeq: number }) {
   const amount = args.amount ?? UNLOCK_PRICE;
-  const mandate = reapp.createIntentMandate(args.inputs); // same nonce, same id
+  const mandate = ackrate.createIntentMandate(args.inputs); // same nonce, same id
   log.step("execute_payment (agent-signed)", { amount: `${amount} XLM`, mandate: short(mandate.id) });
   const hash = await journaledPay(
-    reapp.agent({ mandate, signer: args.agentSecret }),
+    ackrate.agent({ mandate, signer: args.agentSecret }),
     amount,
     `server:${mandate.id}:${args.expectedSeq}`,
     args.expectedSeq,
@@ -97,16 +97,16 @@ export async function pay(args: { inputs: MandateInputs; agentSecret: string; am
 
 /** User revokes the mandate. */
 export async function revoke(args: { inputs: MandateInputs; userSecret: string }) {
-  const mandate = reapp.createIntentMandate(args.inputs);
+  const mandate = ackrate.createIntentMandate(args.inputs);
   log.step("revoke_mandate (user-signed)", { mandate: short(mandate.id) });
-  const hash = await reapp.revokeMandate(mandate, { signer: args.userSecret });
+  const hash = await ackrate.revokeMandate(mandate, { signer: args.userSecret });
   log.chain("mandate revoked on-chain", { tx: short(hash) });
   return { hash };
 }
 
 /** Read XLM balances for the demo actors. */
 export async function balances(args: { userPublic: string; merchantPublic: string }) {
-  const asset = reapp.testnet.nativeSac;
+  const asset = ackrate.testnet.nativeSac;
   const [user, merchant] = await Promise.all([
     token.balance(TESTNET, asset, args.userPublic).catch(() => 0n),
     token.balance(TESTNET, asset, args.merchantPublic).catch(() => 0n),

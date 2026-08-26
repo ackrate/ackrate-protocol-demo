@@ -1,13 +1,13 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://reapp.live/schemas/hackathon-starter-catalog-v1.json",
-  "title": "REAPP hackathon starter catalog",
+  "title": "ACKRATE hackathon starter catalog",
   "type": "object",
   "additionalProperties": false,
   "required": ["schemaVersion", "catalogId", "constraints", "sources", "kits"],
   "properties": {
     "schemaVersion": { "const": 1 },
-    "catalogId": { "const": "reapp-hackathon-starters-v1" },
+    "catalogId": { "const": "ackrate-hackathon-starters-v1" },
     "constraints": {
       "type": "object",
       "additionalProperties": false,
@@ -18,7 +18,7 @@
         "proofPolicy": { "const": "bound-v2-only" },
         "runtime": { "const": "local-consumer-and-fulfillment" },
         "fixturePolicy": { "const": "deterministic-and-clearly-labeled" },
-        "compatibilityClaim": { "const": "reapp-bound-v2" }
+        "compatibilityClaim": { "const": "ackrate-bound-v2" }
       }
     },
     "sources": {

@@ -8,7 +8,7 @@ const DURATION = 4.6; // seconds end to end
 
 /**
  * Cinematic WebGL intro: a field of particles streams in from deep space,
- * converges into a glowing core while the REAPP wordmark resolves, then warps
+ * converges into a glowing core while the ACKRATE wordmark resolves, then warps
  * forward to reveal the site. Vanilla Three.js (no postprocessing) so it builds
  * clean and runs everywhere; loaded client-only via next/dynamic.
  */
@@ -210,7 +210,7 @@ export default function Intro({ onDone }: { onDone: () => void }) {
           className="text-6xl font-black tracking-tight sm:text-8xl"
         >
           <span className="bg-gradient-to-r from-emerald-300 via-teal-200 to-emerald-400 bg-clip-text text-transparent drop-shadow-[0_0_40px_rgba(52,211,153,0.5)]">
-            REAPP
+            ACKRATE
           </span>
         </motion.div>
         <motion.p

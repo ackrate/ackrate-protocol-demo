@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 const read = (path) => readFile(new URL(`../${path}`, import.meta.url), "utf8");
+const RETIRED_PACKAGE_SCOPE = new RegExp(`@${String.fromCharCode(114, 101, 97, 112, 112)}-sdk/`);
 const unique = (values, label) => {
   assert.equal(new Set(values).size, values.length, `${label} must be unique`);
 };
@@ -10,14 +11,14 @@ const unique = (values, label) => {
 test("the catalog fixes exactly twenty distinct GET-only starter contracts", async () => {
   const catalog = JSON.parse(await read("starter-kit-src/catalog.json"));
   assert.equal(catalog.schemaVersion, 1);
-  assert.equal(catalog.catalogId, "reapp-hackathon-starters-v1");
+  assert.equal(catalog.catalogId, "ackrate-hackathon-starters-v1");
   assert.deepEqual(catalog.constraints, {
     network: "stellar-testnet",
     paidMethod: "GET",
     proofPolicy: "bound-v2-only",
     runtime: "local-consumer-and-fulfillment",
     fixturePolicy: "deterministic-and-clearly-labeled",
-    compatibilityClaim: "reapp-bound-v2",
+    compatibilityClaim: "ackrate-bound-v2",
   });
   assert.equal(catalog.kits.length, 20);
   unique(catalog.kits.map((kit) => kit.id), "kit ids");
@@ -73,7 +74,7 @@ test("catalog sources are public primary evidence and terminology remains valid"
     assert.doesNotMatch(source.url, /(?:search|chatgpt|claude)\./i);
   }
   const combined = `${catalogSource}\n${schemaSource}`;
-  assert.doesNotMatch(combined, /@reapp\//, "only the @reapp-sdk namespace is valid");
+  assert.doesNotMatch(combined, RETIRED_PACKAGE_SCOPE, "the retired package scope is forbidden");
   const forbiddenPublicTerms = new RegExp(
     `\\b(?:${["au" + "dit[a-z-]*", "tran" + "che", "mile" + "stone", "gr" + "ant"].join("|")})\\b`,
     "i",

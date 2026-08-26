@@ -36,12 +36,14 @@ test("wallet transaction assembly uses authenticated same-origin Stellar relays"
   assert.match(account, /"\/api\/wallet\/account\/sequence"/);
   assert.match(rpc, /requireSession/);
   assert.match(rpc, /config\.network\.rpcUrl/);
+  assert.match(read("lib/wallet/mandate-client.ts"), /installMainnetRpcRetry\(config\.network\)/);
 });
 
 test("wallet RPC relay bounds, compacts, and fails over Mainnet responses", () => {
   const source = read("app/api/wallet/rpc/route.ts");
-  assert.match(source, /boundedResponseJson\(upstream, 8 \* 1024 \* 1024\)/);
-  assert.match(source, /compactWalletRpcResponse\(body\.method, upstream\.status, raw\)/);
+  assert.match(source, /postRpcWithRetryAndConsume/);
+  assert.match(source, /boundedResponseJson\(response, 8 \* 1024 \* 1024\)/);
+  assert.match(source, /compactWalletRpcResponse\(body\.method, upstream\.status, upstream\.raw\)/);
   assert.match(source, /MAINNET_RPC_FALLBACK/);
 });
 

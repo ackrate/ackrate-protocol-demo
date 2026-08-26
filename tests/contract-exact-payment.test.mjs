@@ -5,8 +5,8 @@ import { Keypair } from "@stellar/stellar-sdk";
 import {
   DeliveryPendingError,
   PaymentRejectedError,
-  reapp,
-} from "@reapp-sdk/core";
+  ackrate,
+} from "@ackrate/core";
 import {
   acknowledgeResolvedTerminalBoundJson,
   canonicalMandateSnapshot,
@@ -28,21 +28,21 @@ const PRICE = "1.00";
 function challengeBody(merchant, ttlSeconds = 900) {
   const now = Math.floor(Date.now() / 1_000);
   const networkId = createHash("sha256")
-    .update(reapp.testnet.networkPassphrase, "utf8")
+    .update(ackrate.testnet.networkPassphrase, "utf8")
     .digest("hex");
   const challenge = {
     proofVersion: 2,
     challengeId: randomBytes(32).toString("base64url"),
     audience: "http://127.0.0.1:4021",
-    scheme: "reapp-soroban-bound",
+    scheme: "ackrate-soroban-bound",
     method: "GET",
     resource: "/items/alpha",
     bodySha256: null,
     network: "stellar-testnet",
     networkId,
-    registryId: reapp.testnet.mandateRegistryId,
+    registryId: ackrate.testnet.mandateRegistryId,
     merchant,
-    asset: reapp.testnet.nativeSac,
+    asset: ackrate.testnet.nativeSac,
     amountStroops: "10000000",
     decimals: 7,
     issuedAt: now,
@@ -55,15 +55,15 @@ function challengeBody(merchant, ttlSeconds = 900) {
   return {
     x402Version: 1,
     accepts: [{
-      scheme: "reapp-soroban-bound",
+      scheme: "ackrate-soroban-bound",
       network: "stellar-testnet",
       maxAmountRequired: PRICE,
-      asset: reapp.testnet.nativeSac,
+      asset: ackrate.testnet.nativeSac,
       payTo: merchant,
       resource: "/items/alpha",
       extra: {
-        contract: reapp.testnet.mandateRegistryId,
-        reappProofVersion: 2,
+        contract: ackrate.testnet.mandateRegistryId,
+        ackrateProofVersion: 2,
         challenge,
       },
     }],
@@ -96,7 +96,7 @@ function testMandate(signer, merchant) {
     user: Keypair.random().publicKey(),
     agent: signer.publicKey(),
     merchant,
-    asset: reapp.testnet.nativeSac,
+    asset: ackrate.testnet.nativeSac,
     maxAmount: 30_000_000n,
     expiry: Math.floor(Date.now() / 1_000) + 3_600,
     decimals: 7,
@@ -161,13 +161,13 @@ function fakeConsumer(store, {
 
 function bindFakeConsumer(store, mandate, signer, options) {
   const fake = fakeConsumer(store, options);
-  const originalFactory = reapp.agent;
-  reapp.agent = () => fake;
+  const originalFactory = ackrate.agent;
+  ackrate.agent = () => fake;
   try {
     const consumer = createBoundTestnetConsumer({ mandate, agent: signer, receiptStore: store });
     return Object.freeze({ consumer, calls: fake.calls });
   } finally {
-    reapp.agent = originalFactory;
+    ackrate.agent = originalFactory;
   }
 }
 
@@ -181,7 +181,7 @@ test("canonical mandate snapshots cannot be changed through source or buffer mut
     user: Keypair.random().publicKey(),
     agent: signer.publicKey(),
     merchant,
-    asset: reapp.testnet.nativeSac,
+    asset: ackrate.testnet.nativeSac,
     maxAmount: 30_000_000n,
     expiry: Math.floor(Date.now() / 1_000) + 3_600,
     decimals: 7,
@@ -505,13 +505,13 @@ test("resolved terminal bytes are durably committed before receipt acknowledgmen
     user: Keypair.random().publicKey(),
     agent: signer.publicKey(),
     merchant,
-    asset: reapp.testnet.nativeSac,
+    asset: ackrate.testnet.nativeSac,
     maxAmount: 10_000_000n,
     expiry: Math.floor(Date.now() / 1_000) + 3_600,
     decimals: 7,
   });
-  const originalFactory = reapp.agent;
-  reapp.agent = () => rawConsumer;
+  const originalFactory = ackrate.agent;
+  ackrate.agent = () => rawConsumer;
   let consumer;
   try {
     consumer = createBoundTestnetConsumer({
@@ -520,7 +520,7 @@ test("resolved terminal bytes are durably committed before receipt acknowledgmen
       receiptStore: memoryReceiptStore(),
     });
   } finally {
-    reapp.agent = originalFactory;
+    ackrate.agent = originalFactory;
   }
   let committed;
   const evidence = await acknowledgeResolvedTerminalBoundJson({
@@ -544,8 +544,8 @@ test("resolved terminal bytes are durably committed before receipt acknowledgmen
             return new Response(JSON.stringify({ ok: true }), { status: 200 });
           },
         };
-        const savedFactory = reapp.agent;
-        reapp.agent = () => invalidRaw;
+        const savedFactory = ackrate.agent;
+        ackrate.agent = () => invalidRaw;
         try {
           return createBoundTestnetConsumer({
             mandate,
@@ -553,7 +553,7 @@ test("resolved terminal bytes are durably committed before receipt acknowledgmen
             receiptStore: memoryReceiptStore(),
           });
         } finally {
-          reapp.agent = savedFactory;
+          ackrate.agent = savedFactory;
         }
       })(),
       receipt,

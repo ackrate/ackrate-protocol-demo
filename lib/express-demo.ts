@@ -10,34 +10,34 @@ import { Keypair } from "@stellar/stellar-sdk";
 import {
   BOUND_PAYMENT_CAPABILITY,
   DeliveryPendingError,
-  REAPP_PAYMENT_CAPABILITIES_HEADER,
+  ACKRATE_PAYMENT_CAPABILITIES_HEADER,
   X_PAYMENT_HEADER,
   getSettlementReceipt,
-  reapp,
+  ackrate,
   type Agent,
   type IntentMandate,
   type SettlementReceipt,
   type SettlementReceiptStore,
-} from "@reapp-sdk/core";
+} from "@ackrate/core";
 import {
   InMemoryBoundRedemptionStore,
-  createBoundReappPaidJsonRoute,
+  createBoundAckratePaidJsonRoute,
   createStellarPaymentVerifier,
   type PaymentRequirement,
   type PaymentVerifier,
-} from "@reapp-sdk/express-middleware";
+} from "@ackrate/express-middleware";
 import {
   keypairSigner,
   registryClient,
   type Client as RegistryClient,
-} from "@reapp-sdk/stellar";
+} from "@ackrate/stellar";
 
 const BUDGET_XLM = "3.00" as const;
 const PRICE_XLM = "1.00" as const;
 const EXPLORER_TX = "https://stellar.expert/explorer/testnet/tx/";
 const FRIEND_BOT = "https://friendbot.stellar.org/";
 const HORIZON = "https://horizon-testnet.stellar.org";
-const ATTEMPT_HEADER = "x-reapp-demo-attempt";
+const ATTEMPT_HEADER = "x-ackrate-demo-attempt";
 const SESSION_TTL_MS = 30 * 60_000;
 const EXPIRED_TOMBSTONE_MS = 5 * 60_000;
 const MAX_ACTIVE_SESSIONS = 4;
@@ -46,7 +46,7 @@ const ACCOUNT_POLL_ATTEMPTS = 18;
 const PROCESS_CHALLENGE_SECRET = randomBytes(32);
 
 function configuredChallengeSecret(): string | Uint8Array {
-  const secret = process.env.REAPP_CHALLENGE_SECRET;
+  const secret = process.env.ACKRATE_CHALLENGE_SECRET;
   if (secret === undefined || secret.length === 0) return PROCESS_CHALLENGE_SECRET;
   if (new TextEncoder().encode(secret).byteLength < 32) {
     throw new ExpressDemoError(
@@ -501,7 +501,7 @@ async function startFulfillmentServer(
   app.disable("x-powered-by");
 
   const baseVerifier = createStellarPaymentVerifier({
-    networkConfig: reapp.testnet,
+    networkConfig: ackrate.testnet,
     sourceAccount: merchant,
     pollAttempts: 20,
     pollIntervalMs: 1_000,
@@ -540,7 +540,7 @@ async function startFulfillmentServer(
   // fulfillment must supply a durable, shared BoundRedemptionStore instead.
   const redemptionStore = new InMemoryBoundRedemptionStore();
   let runtimeOrigin = "";
-  const paidSource = createBoundReappPaidJsonRoute({
+  const paidSource = createBoundAckratePaidJsonRoute({
     merchant,
     sourceAccount: merchant,
     audience: () => hooks.mode === "external" ? publicOrigin : runtimeOrigin,
@@ -553,7 +553,7 @@ async function startFulfillmentServer(
         ? `/api/express/${sessionId}/source/${resource.id}`
         : request.originalUrl;
     },
-    networkConfig: reapp.testnet,
+    networkConfig: ackrate.testnet,
     verifier,
   }, ({ request, payment }) => {
     const resource = resourceFromPath(request.originalUrl);
@@ -764,12 +764,12 @@ export async function proxyExpressDemoResource(
       }
       headers.set(X_PAYMENT_HEADER, payment);
     }
-    const capability = request.headers.get(REAPP_PAYMENT_CAPABILITIES_HEADER);
+    const capability = request.headers.get(ACKRATE_PAYMENT_CAPABILITIES_HEADER);
     if (capability) {
       if (new TextEncoder().encode(capability).byteLength > 256) {
         throw new ExpressDemoError("invalid_request", 400, "Payment capability header is too large.");
       }
-      headers.set(REAPP_PAYMENT_CAPABILITIES_HEADER, capability);
+      headers.set(ACKRATE_PAYMENT_CAPABILITIES_HEADER, capability);
     }
     headers.set(ATTEMPT_HEADER, String(resourceIndex + 1));
 
@@ -901,7 +901,7 @@ export async function reportExpressDemoBudgetRejection(
     const exactLimit = 30_000_000n;
     if (
       mandate.merchant !== session.accounts.merchant
-      || mandate.asset !== reapp.testnet.nativeSac
+      || mandate.asset !== ackrate.testnet.nativeSac
       || mandate.max_amount !== exactLimit
       || mandate.spent !== exactLimit
       || mandate.seq !== 3
@@ -954,7 +954,7 @@ export async function createExpressDemoSession(
   let server: Server | undefined;
   emit({
     type: "run_start",
-    contractId: reapp.testnet.mandateRegistryId,
+    contractId: ackrate.testnet.mandateRegistryId,
     budgetXlm: BUDGET_XLM,
     priceXlm: PRICE_XLM,
   });
@@ -978,18 +978,18 @@ export async function createExpressDemoSession(
     await wait(2_000, signal);
     emit({ type: "funding", state: "ready", accounts });
 
-    const mandate = reapp.createIntentMandate({
+    const mandate = ackrate.createIntentMandate({
       user: accounts.user,
       agent: accounts.agent,
       merchant: accounts.merchant,
-      asset: reapp.testnet.nativeSac,
+      asset: ackrate.testnet.nativeSac,
       maxAmount: BUDGET_XLM,
       expiry: Math.floor(Date.now() / 1_000) + 3_600,
       nonce: randomUUID(),
     });
-    const registerTx = await reapp.registerMandate(mandate, { signer: user });
+    const registerTx = await ackrate.registerMandate(mandate, { signer: user });
     throwIfAborted(signal);
-    const approveTx = await reapp.approveBudget(mandate, { signer: user });
+    const approveTx = await ackrate.approveBudget(mandate, { signer: user });
     emit({
       type: "mandate_ready",
       mandateId: mandate.id,
@@ -1018,15 +1018,15 @@ export async function createExpressDemoSession(
       async clearPending(receiptId) { pendingReceipts.delete(receiptId); },
       async listPending() { return [...pendingReceipts.values()]; },
     };
-    const consumer = reapp.agent({
+    const consumer = ackrate.agent({
       mandate,
       signer: agentKeypair,
       proofPolicy: "bound-v2-only",
       receiptStore,
     });
     const registry = registryClient(
-      reapp.testnet,
-      keypairSigner(merchant, reapp.testnet.networkPassphrase),
+      ackrate.testnet,
+      keypairSigner(merchant, ackrate.testnet.networkPassphrase),
     );
     const settledByAttempt = new Map<number, string>();
     const paymentTransactions: string[] = [];
@@ -1092,7 +1092,7 @@ export async function createExpressDemoSession(
       sessionId: id,
       expiresAt: new Date(session.expiresAt).toISOString(),
       workspace: {
-        contractId: reapp.testnet.mandateRegistryId,
+        contractId: ackrate.testnet.mandateRegistryId,
         mandateId: mandate.id,
         user: accounts.user,
         agent: accounts.agent,
@@ -1133,7 +1133,7 @@ export async function challengeExpressDemoSession(
         {
           headers: {
             [ATTEMPT_HEADER]: String(attempt),
-            [REAPP_PAYMENT_CAPABILITIES_HEADER]: BOUND_PAYMENT_CAPABILITY,
+            [ACKRATE_PAYMENT_CAPABILITIES_HEADER]: BOUND_PAYMENT_CAPABILITY,
           },
         },
         signal,

@@ -3070,10 +3070,6 @@ var c = {
   red: (s) => wrap("38;5;203", s)
 };
 var link = (url, label) => `\x1B]8;;${url}\x07${label}\x1B]8;;\x07`;
-var explorer = {
-  tx: (hash3) => `https://stellar.expert/explorer/testnet/tx/${hash3}`,
-  account: (addr) => `https://stellar.expert/explorer/testnet/account/${addr}`
-};
 var TAGS = {
   INFO: c.cyan,
   OK: c.green,
@@ -3094,11 +3090,18 @@ var log = {
   err: (m, x) => line("ERR", m, x),
   step: (m, x) => line("STEP", m, x)
 };
-var ART = [[["\u2588\u2588\u2588\u2588\u2588\u2588\u2557 ", "cyan"], ["\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2557", "mint"], [" \u2588\u2588\u2588\u2588\u2588\u2557 ", "emerald"], ["\u2588\u2588\u2588\u2588\u2588\u2588\u2557 ", "teal"], ["\u2588\u2588\u2588\u2588\u2588\u2588\u2557 ", "green"]], [["\u2588\u2588\u2554\u2550\u2550\u2588\u2588\u2557", "cyan"], ["\u2588\u2588\u2554\u2550\u2550\u2550\u2550\u255D", "mint"], ["\u2588\u2588\u2554\u2550\u2550\u2588\u2588\u2557", "emerald"], ["\u2588\u2588\u2554\u2550\u2550\u2588\u2588\u2557", "teal"], ["\u2588\u2588\u2554\u2550\u2550\u2588\u2588\u2557", "green"]], [["\u2588\u2588\u2588\u2588\u2588\u2588\u2554\u255D", "cyan"], ["\u2588\u2588\u2588\u2588\u2588\u2557  ", "mint"], ["\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2551", "emerald"], ["\u2588\u2588\u2588\u2588\u2588\u2588\u2554\u255D", "teal"], ["\u2588\u2588\u2588\u2588\u2588\u2588\u2554\u255D", "green"]], [["\u2588\u2588\u2554\u2550\u2550\u2588\u2588\u2557", "cyan"], ["\u2588\u2588\u2554\u2550\u2550\u255D  ", "mint"], ["\u2588\u2588\u2554\u2550\u2550\u2588\u2588\u2551", "emerald"], ["\u2588\u2588\u2554\u2550\u2550\u2550\u255D ", "teal"], ["\u2588\u2588\u2554\u2550\u2550\u2550\u255D ", "green"]], [["\u2588\u2588\u2551  \u2588\u2588\u2551", "cyan"], ["\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2557", "mint"], ["\u2588\u2588\u2551  \u2588\u2588\u2551", "emerald"], ["\u2588\u2588\u2551     ", "teal"], ["\u2588\u2588\u2551     ", "green"]], [["\u255A\u2550\u255D  \u255A\u2550\u255D", "cyan"], ["\u255A\u2550\u2550\u2550\u2550\u2550\u2550\u255D", "mint"], ["\u255A\u2550\u255D  \u255A\u2550\u255D", "emerald"], ["\u255A\u2550\u255D     ", "teal"], ["\u255A\u2550\u255D     ", "green"]]];
-function banner() {
+var ART = [
+  [[" \u2588\u2588\u2588\u2588\u2588\u2557 ", "cyan"], [" \u2588\u2588\u2588\u2588\u2588\u2588\u2557", "mint"], ["\u2588\u2588\u2557  \u2588\u2588\u2557", "emerald"], ["\u2588\u2588\u2588\u2588\u2588\u2588\u2557 ", "teal"], [" \u2588\u2588\u2588\u2588\u2588\u2557 ", "green"], ["\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2557", "cyan"], ["\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2557", "mint"]],
+  [["\u2588\u2588\u2554\u2550\u2550\u2588\u2588\u2557", "cyan"], ["\u2588\u2588\u2554\u2550\u2550\u2550\u2550\u255D", "mint"], ["\u2588\u2588\u2551 \u2588\u2588\u2554\u255D", "emerald"], ["\u2588\u2588\u2554\u2550\u2550\u2588\u2588\u2557", "teal"], ["\u2588\u2588\u2554\u2550\u2550\u2588\u2588\u2557", "green"], ["\u255A\u2550\u2550\u2588\u2588\u2554\u2550\u2550\u255D", "cyan"], ["\u2588\u2588\u2554\u2550\u2550\u2550\u2550\u255D", "mint"]],
+  [["\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2551", "cyan"], ["\u2588\u2588\u2551     ", "mint"], ["\u2588\u2588\u2588\u2588\u2588\u2554\u255D ", "emerald"], ["\u2588\u2588\u2588\u2588\u2588\u2588\u2554\u255D", "teal"], ["\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2551", "green"], ["   \u2588\u2588\u2551   ", "cyan"], ["\u2588\u2588\u2588\u2588\u2588\u2557  ", "mint"]],
+  [["\u2588\u2588\u2554\u2550\u2550\u2588\u2588\u2551", "cyan"], ["\u2588\u2588\u2551     ", "mint"], ["\u2588\u2588\u2554\u2550\u2588\u2588\u2557 ", "emerald"], ["\u2588\u2588\u2554\u2550\u2550\u2588\u2588\u2557", "teal"], ["\u2588\u2588\u2554\u2550\u2550\u2588\u2588\u2551", "green"], ["   \u2588\u2588\u2551   ", "cyan"], ["\u2588\u2588\u2554\u2550\u2550\u255D  ", "mint"]],
+  [["\u2588\u2588\u2551  \u2588\u2588\u2551", "cyan"], ["\u255A\u2588\u2588\u2588\u2588\u2588\u2588\u2557", "mint"], ["\u2588\u2588\u2551  \u2588\u2588\u2557", "emerald"], ["\u2588\u2588\u2551  \u2588\u2588\u2551", "teal"], ["\u2588\u2588\u2551  \u2588\u2588\u2551", "green"], ["   \u2588\u2588\u2551   ", "cyan"], ["\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2557", "mint"]],
+  [["\u255A\u2550\u255D  \u255A\u2550\u255D", "cyan"], [" \u255A\u2550\u2550\u2550\u2550\u2550\u255D", "mint"], ["\u255A\u2550\u255D  \u255A\u2550\u255D", "emerald"], ["\u255A\u2550\u255D  \u255A\u2550\u255D", "teal"], ["\u255A\u2550\u255D  \u255A\u2550\u255D", "green"], ["   \u255A\u2550\u255D   ", "cyan"], ["\u255A\u2550\u2550\u2550\u2550\u2550\u2550\u255D", "mint"]]
+];
+function banner(environment = "stellar testnet") {
   const paint = (col, t) => c[col](t);
   const art = ART.map((row) => "  " + row.map(([t, col]) => paint(col, t)).join("")).join("\n");
-  const tag = "  " + c.dim("agent payments") + c.emerald(" \xB7 ") + c.dim("enforced on-chain") + c.emerald(" \xB7 ") + c.dim("stellar testnet");
+  const tag = "  " + c.dim("agent payments") + c.emerald(" \xB7 ") + c.dim("enforced on-chain") + c.emerald(" \xB7 ") + c.dim(environment);
   return art + "\n" + tag;
 }
 
@@ -3112,12 +3115,20 @@ __export(dist_exports, {
   Client: () => Client,
   DEPLOYMENTS: () => DEPLOYMENTS,
   Errors: () => Errors,
+  MAINNET_BUILD_PLATFORM: () => MAINNET_BUILD_PLATFORM,
+  MAINNET_MIN_TIMELOCK_DELAY_LEDGERS: () => MAINNET_MIN_TIMELOCK_DELAY_LEDGERS,
+  MAINNET_RUST_TOOLCHAIN_VERSION: () => MAINNET_RUST_TOOLCHAIN_VERSION,
+  MAINNET_STELLAR_CLI_VERSION: () => MAINNET_STELLAR_CLI_VERSION,
+  MAINNET_USDC: () => MAINNET_USDC,
   TESTNET: () => TESTNET,
   contract: () => contract,
+  isStellarSigner: () => isStellarSigner,
   keypairSigner: () => keypairSigner,
+  mainnetNetworkFromDeploymentManifest: () => mainnetNetworkFromDeploymentManifest,
   networks: () => networks,
   registryClient: () => registryClient,
   rpc: () => rpc,
+  stellarSigner: () => stellarSigner,
   token: () => token_exports
 });
 
@@ -3232,8 +3243,15 @@ var TESTNET = {
 };
 
 // packages/stellar/dist/signer.js
-import { Keypair } from "@stellar/stellar-sdk";
+import { Buffer as Buffer3 } from "buffer";
+import { Keypair, StrKey } from "@stellar/stellar-sdk";
 import { basicNodeSigner } from "@stellar/stellar-sdk/contract";
+function isStellarSigner(value) {
+  if (typeof value !== "object" || value === null)
+    return false;
+  const candidate = value;
+  return typeof candidate.publicKey === "string" && StrKey.isValidEd25519PublicKey(candidate.publicKey) && typeof candidate.signTransaction === "function" && (candidate.signAuthEntry === void 0 || typeof candidate.signAuthEntry === "function");
+}
 function keypairSigner(secretOrKeypair, networkPassphrase) {
   const keypair = typeof secretOrKeypair === "string" ? Keypair.fromSecret(secretOrKeypair) : secretOrKeypair;
   const node = basicNodeSigner(keypair, networkPassphrase);
@@ -3241,8 +3259,14 @@ function keypairSigner(secretOrKeypair, networkPassphrase) {
     publicKey: keypair.publicKey(),
     keypair,
     signTransaction: node.signTransaction,
-    signAuthEntry: node.signAuthEntry
+    signAuthEntry: node.signAuthEntry,
+    signPayload: async (payload) => keypair.sign(Buffer3.from(payload))
   };
+}
+function stellarSigner(input, networkPassphrase) {
+  if (isStellarSigner(input))
+    return input;
+  return keypairSigner(input, networkPassphrase);
 }
 
 // packages/stellar/dist/registry.js
@@ -3253,7 +3277,249 @@ function registryClient(net, signer) {
     networkPassphrase: net.networkPassphrase,
     publicKey: signer.publicKey,
     signTransaction: signer.signTransaction,
+    signAuthEntry: signer.signAuthEntry,
     allowHttp: net.rpcUrl.startsWith("http://")
+  });
+}
+
+// packages/stellar/dist/release-manifest.js
+import { Address, Asset, Networks, StrKey as StrKey2 } from "@stellar/stellar-sdk";
+var MAINNET_USDC = Object.freeze({
+  code: "USDC",
+  issuer: "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN",
+  contractId: "CCW67TSZV3SSS2HXMBQ5JFGCKJNXKZM7UQUWUZPUTHXSTZLEO7SJMI75"
+});
+var MAINNET_MIN_TIMELOCK_DELAY_LEDGERS = 17280;
+var MAINNET_BUILD_PLATFORM = "ubuntu-24.04-x86_64";
+var MAINNET_RUST_TOOLCHAIN_VERSION = "1.96.0";
+var MAINNET_STELLAR_CLI_VERSION = "26.1.0";
+function objectAt(parent, key) {
+  const value = parent[key];
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    throw new Error(`release manifest ${key} must be an object`);
+  }
+  return value;
+}
+function textAt(parent, key) {
+  const value = parent[key];
+  if (typeof value !== "string" || value.length === 0 || value.trim() !== value) {
+    throw new Error(`release manifest ${key} must be a non-empty string`);
+  }
+  return value;
+}
+function integerAt(parent, key) {
+  const value = parent[key];
+  if (!Number.isSafeInteger(value) || value <= 0) {
+    throw new Error(`release manifest ${key} must be a positive integer`);
+  }
+  return value;
+}
+function arrayAt(parent, key) {
+  const value = parent[key];
+  if (!Array.isArray(value))
+    throw new Error(`release manifest ${key} must be an array`);
+  return value;
+}
+function trueAt(parent, key) {
+  if (parent[key] !== true)
+    throw new Error(`release manifest verification.${key} must be true`);
+}
+function sha256At(parent, key) {
+  const value = textAt(parent, key).toLowerCase();
+  if (!/^[0-9a-f]{64}$/.test(value)) {
+    throw new Error(`release manifest ${key} must be a lowercase SHA-256`);
+  }
+  return value;
+}
+function transactionHashAt(parent, key) {
+  const value = textAt(parent, key).toLowerCase();
+  if (!/^[0-9a-f]{64}$/.test(value)) {
+    throw new Error(`release manifest ${key} must be a Stellar transaction hash`);
+  }
+  return value;
+}
+function addressAt(parent, key, contractOnly = false) {
+  const value = textAt(parent, key);
+  try {
+    Address.fromString(value);
+  } catch {
+    throw new Error(`release manifest ${key} must be a Stellar address`);
+  }
+  if (contractOnly && !StrKey2.isValidContract(value)) {
+    throw new Error(`release manifest ${key} must be a Stellar contract address`);
+  }
+  return value;
+}
+function accountAt(parent, key) {
+  const value = addressAt(parent, key);
+  if (!StrKey2.isValidEd25519PublicKey(value)) {
+    throw new Error(`release manifest ${key} must be a Stellar G-account`);
+  }
+  return value;
+}
+function exactDateAt(parent, key) {
+  const value = textAt(parent, key);
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime()) || date.toISOString() !== value) {
+    throw new Error(`release manifest ${key} must be a canonical ISO timestamp`);
+  }
+  return value;
+}
+function mainnetNetworkFromDeploymentManifest(input) {
+  if (typeof input !== "object" || input === null || Array.isArray(input)) {
+    throw new Error("release manifest must be an object");
+  }
+  const manifest = input;
+  if (manifest.schema_version !== 1)
+    throw new Error("unsupported release manifest schema_version");
+  const network = objectAt(manifest, "network");
+  if (textAt(network, "name") !== "mainnet")
+    throw new Error("release manifest network must be mainnet");
+  if (textAt(network, "passphrase") !== Networks.PUBLIC) {
+    throw new Error("release manifest has the wrong mainnet passphrase");
+  }
+  const rpcUrl = textAt(network, "rpc_url");
+  const parsedRpc = new URL(rpcUrl);
+  if (parsedRpc.protocol !== "https:" || parsedRpc.username || parsedRpc.password) {
+    throw new Error("release manifest rpc_url must be credential-free HTTPS");
+  }
+  const source = objectAt(manifest, "source");
+  if (textAt(source, "repository") !== "https://github.com/ackrate/ackrate-protocol-contracts") {
+    throw new Error("release manifest source repository is not the canonical contracts repository");
+  }
+  const sourceCommit = textAt(source, "commit").toLowerCase();
+  if (!/^[0-9a-f]{40}$/.test(sourceCommit))
+    throw new Error("release manifest source commit is invalid");
+  if (textAt(source, "branch") !== "main")
+    throw new Error("release manifest source branch must be main");
+  if (textAt(source, "build_platform") !== MAINNET_BUILD_PLATFORM) {
+    throw new Error(`release manifest build platform must be ${MAINNET_BUILD_PLATFORM}`);
+  }
+  if (textAt(source, "rust_toolchain_version") !== MAINNET_RUST_TOOLCHAIN_VERSION) {
+    throw new Error(`release manifest Rust toolchain version must be ${MAINNET_RUST_TOOLCHAIN_VERSION}`);
+  }
+  if (textAt(source, "stellar_cli_version") !== MAINNET_STELLAR_CLI_VERSION) {
+    throw new Error(`release manifest Stellar CLI version must be ${MAINNET_STELLAR_CLI_VERSION}`);
+  }
+  if (source.dirty !== false)
+    throw new Error("release manifest source must be clean");
+  const artifacts = objectAt(manifest, "artifacts");
+  const timelockArtifact = objectAt(artifacts, "timelock_controller");
+  const registryArtifact = objectAt(artifacts, "mandate_registry");
+  const timelockWasmSha256 = sha256At(timelockArtifact, "sha256");
+  const registryWasmSha256 = sha256At(registryArtifact, "sha256");
+  integerAt(timelockArtifact, "size_bytes");
+  integerAt(registryArtifact, "size_bytes");
+  const publicConfiguration = objectAt(manifest, "public_configuration");
+  if (textAt(publicConfiguration, "usdc_asset_code") !== MAINNET_USDC.code) {
+    throw new Error("release manifest asset code must be USDC");
+  }
+  if (textAt(publicConfiguration, "usdc_issuer") !== MAINNET_USDC.issuer) {
+    throw new Error("release manifest USDC issuer is not Circle's published Stellar mainnet issuer");
+  }
+  const authorityAccount = accountAt(publicConfiguration, "authority_2_of_3_account");
+  const emergencyPauser = accountAt(publicConfiguration, "emergency_pauser");
+  accountAt(publicConfiguration, "deployment_source_account");
+  if (authorityAccount === emergencyPauser) {
+    throw new Error("release manifest emergency pauser must be separate from the 2-of-3 authority");
+  }
+  const usdcContractId = addressAt(publicConfiguration, "usdc_sac", true);
+  if (usdcContractId !== MAINNET_USDC.contractId) {
+    throw new Error("release manifest USDC SAC is not the canonical Stellar mainnet asset contract");
+  }
+  textAt(publicConfiguration, "usdc_derivation_evidence");
+  textAt(publicConfiguration, "usdc_independent_verifier");
+  const timelockDelay = integerAt(publicConfiguration, "timelock_min_delay_ledgers");
+  if (timelockDelay < MAINNET_MIN_TIMELOCK_DELAY_LEDGERS || timelockDelay > 4294967295) {
+    throw new Error("release manifest timelock delay must be at least 17280 ledgers and fit u32");
+  }
+  const deployment = objectAt(manifest, "deployment");
+  textAt(deployment, "authorized_by");
+  const authorizedAt = exactDateAt(deployment, "authorized_at");
+  const deployedAt = exactDateAt(deployment, "deployed_at");
+  if (Date.parse(deployedAt) < Date.parse(authorizedAt)) {
+    throw new Error("release manifest deployment predates authorization");
+  }
+  const deploymentLedger = integerAt(deployment, "ledger");
+  transactionHashAt(deployment, "timelock_transaction_hash");
+  transactionHashAt(deployment, "registry_transaction_hash");
+  const timelockContractId = addressAt(deployment, "timelock_contract_id", true);
+  const mandateRegistryId = addressAt(deployment, "registry_contract_id", true);
+  if (sha256At(deployment, "timelock_observed_wasm_hash") !== timelockWasmSha256) {
+    throw new Error("release manifest timelock artifact and observed WASM hashes differ");
+  }
+  if (sha256At(deployment, "registry_observed_wasm_hash") !== registryWasmSha256) {
+    throw new Error("release manifest registry artifact and observed WASM hashes differ");
+  }
+  if ((/* @__PURE__ */ new Set([timelockContractId, mandateRegistryId, usdcContractId])).size !== 3) {
+    throw new Error("release manifest contract identities must be distinct");
+  }
+  const constructorArguments = objectAt(manifest, "constructor_arguments");
+  const timelockArguments = objectAt(constructorArguments, "timelock");
+  const proposers = arrayAt(timelockArguments, "proposers");
+  if (proposers.length !== 1 || proposers[0] !== authorityAccount) {
+    throw new Error("release manifest timelock proposer must be the 2-of-3 authority");
+  }
+  if (arrayAt(timelockArguments, "executors").length !== 0) {
+    throw new Error("release manifest timelock executors must be empty for permissionless execution");
+  }
+  if (timelockArguments.admin !== null) {
+    throw new Error("release manifest timelock admin must be null for self-administration");
+  }
+  const registryArguments = objectAt(constructorArguments, "mandate_registry");
+  for (const key of ["admin", "asset_policy", "upgrader"]) {
+    if (addressAt(registryArguments, key, true) !== timelockContractId) {
+      throw new Error(`release manifest registry ${key} must be the timelock`);
+    }
+  }
+  if (accountAt(registryArguments, "unpauser") !== authorityAccount) {
+    throw new Error("release manifest registry unpauser must be the 2-of-3 authority");
+  }
+  if (accountAt(registryArguments, "pauser") !== emergencyPauser) {
+    throw new Error("release manifest registry pauser must be the emergency key");
+  }
+  if (addressAt(registryArguments, "initial_asset", true) !== usdcContractId) {
+    throw new Error("release manifest registry initial asset must be the canonical USDC SAC");
+  }
+  const verification = objectAt(manifest, "verification");
+  for (const key of [
+    "artifact_hashes_match",
+    "constructor_arguments_match",
+    "timelock_self_administered",
+    "authority_is_proposer_and_canceller",
+    "executor_is_permissionless_after_delay",
+    "registry_admin_is_timelock",
+    "registry_asset_policy_is_timelock",
+    "registry_upgrader_is_timelock",
+    "registry_unpauser_is_2_of_3",
+    "registry_pauser_is_emergency_key",
+    "registry_initially_unpaused",
+    "registry_usdc_asset_allowed"
+  ])
+    trueAt(verification, key);
+  textAt(verification, "independent_read_only_verifier");
+  const verifiedAt = exactDateAt(verification, "verified_at");
+  if (Date.parse(verifiedAt) < Date.parse(deployedAt)) {
+    throw new Error("release manifest verification predates deployment");
+  }
+  return Object.freeze({
+    rpcUrl,
+    networkPassphrase: Networks.PUBLIC,
+    mandateRegistryId,
+    nativeSac: Asset.native().contractId(Networks.PUBLIC),
+    settlementAsset: Object.freeze({
+      code: MAINNET_USDC.code,
+      issuer: MAINNET_USDC.issuer,
+      contractId: usdcContractId,
+      decimals: 7
+    }),
+    release: Object.freeze({
+      sourceCommit,
+      deploymentLedger,
+      registryWasmSha256,
+      timelockContractId,
+      timelockWasmSha256
+    })
   });
 }
 
@@ -3261,9 +3527,10 @@ function registryClient(net, signer) {
 var token_exports = {};
 __export(token_exports, {
   approve: () => approve,
-  balance: () => balance
+  balance: () => balance,
+  decimals: () => decimals
 });
-import { Address, Contract, TransactionBuilder, nativeToScVal, scValToNative, rpc as rpc2 } from "@stellar/stellar-sdk";
+import { Address as Address2, Contract, TransactionBuilder, nativeToScVal, scValToNative, rpc as rpc2 } from "@stellar/stellar-sdk";
 var INCLUSION_FEE = "100000";
 var sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 async function settle(server, hash3) {
@@ -3277,17 +3544,27 @@ async function settle(server, hash3) {
   }
 }
 async function approve(net, tokenId, owner, spender, amount, expirationLedger) {
+  const signer = stellarSigner(owner, net.networkPassphrase);
   const server = new rpc2.Server(net.rpcUrl, { allowHttp: net.rpcUrl.startsWith("http://") });
-  const source = await server.getAccount(owner.publicKey());
+  const source = await server.getAccount(signer.publicKey);
   const exp = expirationLedger ?? (await server.getLatestLedger()).sequence + 17280;
-  const op = new Contract(tokenId).call("approve", new Address(owner.publicKey()).toScVal(), new Address(spender).toScVal(), nativeToScVal(amount, { type: "i128" }), nativeToScVal(exp, { type: "u32" }));
+  const op = new Contract(tokenId).call("approve", new Address2(signer.publicKey).toScVal(), new Address2(spender).toScVal(), nativeToScVal(amount, { type: "i128" }), nativeToScVal(exp, { type: "u32" }));
   const built = new TransactionBuilder(source, {
     fee: INCLUSION_FEE,
     networkPassphrase: net.networkPassphrase
   }).addOperation(op).setTimeout(60).build();
   const prepared = await server.prepareTransaction(built);
-  prepared.sign(owner);
-  const sent = await server.sendTransaction(prepared);
+  const signed = await signer.signTransaction(prepared.toXDR(), {
+    address: signer.publicKey,
+    networkPassphrase: net.networkPassphrase
+  });
+  if (signed.error)
+    throw new Error(`approve signing failed: ${signed.error.message}`);
+  if (signed.signerAddress && signed.signerAddress !== signer.publicKey) {
+    throw new Error("approve signing failed: wallet returned a different signer address");
+  }
+  const signedTransaction = TransactionBuilder.fromXDR(signed.signedTxXdr, net.networkPassphrase);
+  const sent = await server.sendTransaction(signedTransaction);
   if (sent.errorResult)
     throw new Error(`approve submit failed: ${sent.status}`);
   await settle(server, sent.hash);
@@ -3297,7 +3574,7 @@ async function balance(net, tokenId, who) {
   const server = new rpc2.Server(net.rpcUrl, { allowHttp: net.rpcUrl.startsWith("http://") });
   const source = await server.getAccount(who).catch(() => null);
   const acct = source ?? await server.getAccount(who);
-  const op = new Contract(tokenId).call("balance", new Address(who).toScVal());
+  const op = new Contract(tokenId).call("balance", new Address2(who).toScVal());
   const tx = new TransactionBuilder(acct, {
     fee: INCLUSION_FEE,
     networkPassphrase: net.networkPassphrase
@@ -3307,9 +3584,25 @@ async function balance(net, tokenId, who) {
     throw new Error(`balance sim failed: ${sim.error}`);
   return scValToNative(sim.result.retval);
 }
+async function decimals(net, tokenId, sourceAccount) {
+  const server = new rpc2.Server(net.rpcUrl, { allowHttp: net.rpcUrl.startsWith("http://") });
+  const source = await server.getAccount(sourceAccount);
+  const tx = new TransactionBuilder(source, {
+    fee: INCLUSION_FEE,
+    networkPassphrase: net.networkPassphrase
+  }).addOperation(new Contract(tokenId).call("decimals")).setTimeout(60).build();
+  const sim = await server.simulateTransaction(tx);
+  if (rpc2.Api.isSimulationError(sim))
+    throw new Error(`decimals sim failed: ${sim.error}`);
+  const value = scValToNative(sim.result.retval);
+  if (!Number.isInteger(value) || value < 0 || value > 18) {
+    throw new Error("token decimals response is invalid");
+  }
+  return value;
+}
 
 // packages/cli/src/config.ts
-var CONFIG_FILE = "reapp.config.json";
+var CONFIG_FILE = "ackrate.config.json";
 function defaultConfig() {
   return {
     network: "testnet",
@@ -3350,7 +3643,7 @@ function runInit(opts = {}) {
   log.ok(`wrote ${CONFIG_FILE}`, { path });
   log.info("config", { network: config.network, contract: config.contractId });
   console.log(
-    "\n" + c.bold("Next steps") + "\n" + c.gray("  1. ") + c.white("reapp setup") + c.gray("   configure keys + fund testnet accounts") + "\n" + c.gray("  2. ") + c.white("reapp mandate create") + c.gray("   register an AP2 mandate on-chain") + "\n" + c.gray("  3. ") + c.white("reapp pay") + c.gray("   make an agent-signed payment") + "\n"
+    "\n" + c.bold("Next steps") + "\n" + c.gray("  1. ") + c.white("ackrate setup") + c.gray("   configure keys + fund testnet accounts") + "\n" + c.gray("  2. ") + c.white("ackrate mandate create") + c.gray("   register an AP2 mandate on-chain") + "\n" + c.gray("  3. ") + c.white("ackrate pay") + c.gray("   make an agent-signed payment") + "\n"
   );
 }
 
@@ -3361,11 +3654,11 @@ import { Keypair as Keypair2, rpc as rpc3 } from "@stellar/stellar-sdk";
 import { readFileSync as readFileSync2, writeFileSync as writeFileSync2, existsSync as existsSync2, mkdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-function reappHome() {
-  return process.env.REAPP_HOME ?? join(homedir(), ".reapp");
+function ackrateHome() {
+  return process.env.ACKRATE_HOME ?? join(homedir(), ".ackrate");
 }
 function credentialsPath() {
-  return join(reappHome(), "credentials.json");
+  return join(ackrateHome(), "credentials.json");
 }
 function credentialsExist() {
   return existsSync2(credentialsPath());
@@ -3374,7 +3667,7 @@ function loadCredentials() {
   return JSON.parse(readFileSync2(credentialsPath(), "utf8"));
 }
 function saveCredentials(creds) {
-  const home = reappHome();
+  const home = ackrateHome();
   mkdirSync(home, { recursive: true, mode: 448 });
   const path = credentialsPath();
   writeFileSync2(path, JSON.stringify(creds, null, 2) + "\n", { mode: 384 });
@@ -3400,7 +3693,7 @@ async function fund(pub, server) {
 }
 async function runSetup(opts = {}) {
   if (!configExists()) {
-    log.warn("no reapp.config.json here \u2014 run `reapp init` first");
+    log.warn("no ackrate.config.json here \u2014 run `ackrate init` first");
     return;
   }
   if (credentialsExist() && !opts.force) {
@@ -3437,22 +3730,22 @@ async function runSetup(opts = {}) {
   console.log(
     "\n" + c.bold("Accounts") + "\n" + c.gray("  user     ") + c.white(user.publicKey()) + c.dim("  " + accountUrl(user.publicKey())) + "\n" + c.gray("  agent    ") + c.white(agent.publicKey()) + c.dim("  " + accountUrl(agent.publicKey())) + "\n" + c.gray("  merchant ") + c.white(merchant.publicKey()) + c.dim("  " + accountUrl(merchant.publicKey())) + "\n"
   );
-  log.info("next", { run: "reapp mandate create" });
+  log.info("next", { run: "ackrate mandate create" });
 }
 
 // packages/sdk/dist/index.js
-import { Buffer as Buffer4 } from "buffer";
-import { Keypair as Keypair4, hash as hash2, rpc as rpc4 } from "@stellar/stellar-sdk";
+import { Buffer as Buffer5 } from "buffer";
+import { hash as hash2, rpc as rpc4 } from "@stellar/stellar-sdk";
 
 // packages/sdk/dist/x402.js
-import { Buffer as Buffer3 } from "buffer";
+import { Buffer as Buffer4 } from "buffer";
 import { Keypair as Keypair3, hash } from "@stellar/stellar-sdk";
 var X_PAYMENT_HEADER = "x-payment";
-var REAPP_PAYMENT_CAPABILITIES_HEADER = "reapp-payment-capabilities";
-var BOUND_PAYMENT_CAPABILITY = "reapp-bound-v2";
-var BOUND_PAYMENT_SCHEME = "reapp-soroban-bound";
-var CHALLENGE_DOMAIN = Buffer3.from("REAPP\0X402\0CHALLENGE\0V2\0", "utf8");
-var PROOF_DOMAIN = Buffer3.from("REAPP\0X402\0BOUND-PROOF\0V2\0", "utf8");
+var ACKRATE_PAYMENT_CAPABILITIES_HEADER = "ackrate-payment-capabilities";
+var BOUND_PAYMENT_CAPABILITY = "ackrate-bound-v2";
+var BOUND_PAYMENT_SCHEME = "ackrate-soroban-bound";
+var CHALLENGE_DOMAIN = Buffer4.from("ACKRATE\0X402\0CHALLENGE\0V2\0", "utf8");
+var PROOF_DOMAIN = Buffer4.from("ACKRATE\0X402\0BOUND-PROOF\0V2\0", "utf8");
 var HEX_32 = /^[0-9a-f]{64}$/;
 function exactKeys(value, expected, label) {
   const actual = Object.keys(value).sort();
@@ -3496,7 +3789,7 @@ function canonicalBase64(value, decodedLength, label) {
   if (!/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(encoded)) {
     throw new Error(`x402: ${label} must be canonical base64`);
   }
-  const decoded = Buffer3.from(encoded, "base64");
+  const decoded = Buffer4.from(encoded, "base64");
   if (decoded.length !== decodedLength || decoded.toString("base64") !== encoded) {
     throw new Error(`x402: ${label} has the wrong decoded length or encoding`);
   }
@@ -3507,7 +3800,7 @@ function canonicalBase64Url32(value, label) {
   if (!/^[A-Za-z0-9_-]{43}$/.test(encoded)) {
     throw new Error(`x402: ${label} must be canonical unpadded base64url`);
   }
-  const decoded = Buffer3.from(encoded, "base64url");
+  const decoded = Buffer4.from(encoded, "base64url");
   if (decoded.length !== 32 || decoded.toString("base64url") !== encoded) {
     throw new Error(`x402: ${label} must encode exactly 32 bytes`);
   }
@@ -3550,8 +3843,8 @@ function parseBoundPaymentChallenge(value) {
   const amountStroops = text(challenge.amountStroops, "amountStroops");
   if (!/^[1-9]\d*$/.test(amountStroops))
     throw new Error("x402: amountStroops must be a positive canonical integer");
-  const decimals = safeInteger(challenge.decimals, "challenge decimals");
-  if (decimals < 0 || decimals > 38)
+  const decimals2 = safeInteger(challenge.decimals, "challenge decimals");
+  if (decimals2 < 0 || decimals2 > 38)
     throw new Error("x402: challenge decimals are out of range");
   const issuedAt = safeInteger(challenge.issuedAt, "challenge issuedAt");
   const expiresAt = safeInteger(challenge.expiresAt, "challenge expiresAt");
@@ -3575,7 +3868,7 @@ function parseBoundPaymentChallenge(value) {
     merchant: text(challenge.merchant, "challenge merchant"),
     asset: text(challenge.asset, "challenge asset"),
     amountStroops,
-    decimals,
+    decimals: decimals2,
     issuedAt,
     expiresAt,
     authorization: {
@@ -3603,7 +3896,7 @@ function boundChallengeAuthorizationBytes(challenge) {
     issuedAt: challenge.issuedAt,
     expiresAt: challenge.expiresAt
   });
-  return Buffer3.concat([CHALLENGE_DOMAIN, Buffer3.from(canonical, "utf8")]);
+  return Buffer4.concat([CHALLENGE_DOMAIN, Buffer4.from(canonical, "utf8")]);
 }
 function hashBoundPaymentChallenge(challenge) {
   return hash(boundChallengeAuthorizationBytes(challenge)).toString("hex");
@@ -3627,18 +3920,22 @@ function boundProofDigest(input) {
     txHash,
     mandateId
   });
-  return hash(Buffer3.concat([PROOF_DOMAIN, Buffer3.from(canonical, "utf8")]));
+  return hash(Buffer4.concat([PROOF_DOMAIN, Buffer4.from(canonical, "utf8")]));
 }
-function createBoundPaymentProof(input) {
+async function createBoundPaymentProofWithSigner(input) {
   const challenge = parseBoundPaymentChallenge(input.challenge);
   Object.freeze(challenge.authorization);
   Object.freeze(challenge);
   const txHash = input.txHash.toLowerCase();
   const mandateId = input.mandateId.toLowerCase();
-  const signature = input.signer.sign(boundProofDigest({ challenge, txHash, mandateId })).toString("base64");
+  const digest = boundProofDigest({ challenge, txHash, mandateId });
+  const signed = Buffer4.from(await input.signer.signPayload(digest));
+  if (signed.length !== 64 || !Keypair3.fromPublicKey(input.signer.publicKey).verify(digest, signed)) {
+    throw new Error("x402: external signer returned an invalid bound-proof signature");
+  }
   const authorization = Object.freeze({
     algorithm: "stellar-ed25519-sha256",
-    signature
+    signature: signed.toString("base64")
   });
   return Object.freeze({
     proofVersion: 2,
@@ -3669,13 +3966,13 @@ async function parse402(response) {
   if (!payTo)
     throw new Error("x402: the payment requirement is missing `payTo` (the merchant)");
   const extra = object(accepted.extra ?? {}, "payment requirement extra");
-  if ("reappProofVersion" in extra && extra.reappProofVersion !== 2) {
-    throw new Error("x402: unsupported REAPP payment proof version");
+  if ("ackrateProofVersion" in extra && extra.ackrateProofVersion !== 2) {
+    throw new Error("x402: unsupported Ackrate payment proof version");
   }
-  const proofVersion = extra.reappProofVersion === 2 ? 2 : 1;
+  const proofVersion = extra.ackrateProofVersion === 2 ? 2 : 1;
   const challenge = proofVersion === 2 ? parseBoundPaymentChallenge(extra.challenge) : void 0;
   return {
-    scheme: String(accepted.scheme ?? "reapp-soroban"),
+    scheme: String(accepted.scheme ?? "ackrate-soroban"),
     network: String(accepted.network ?? "stellar-testnet"),
     amount,
     asset: String(accepted.asset ?? ""),
@@ -3686,7 +3983,7 @@ async function parse402(response) {
   };
 }
 function encodePaymentProof(proof) {
-  return Buffer3.from(JSON.stringify(proof), "utf8").toString("base64");
+  return Buffer4.from(JSON.stringify(proof), "utf8").toString("base64");
 }
 function isBoundPaymentProof(proof) {
   return "proofVersion" in proof && proof.proofVersion === 2;
@@ -3725,8 +4022,8 @@ function resolveExpectedPaymentSequence(currentSequence, requestedSequence) {
 
 // packages/sdk/dist/index.js
 function createSettlementReceiptId(receipt) {
-  return hash2(Buffer4.from(JSON.stringify([
-    "reapp-settlement-receipt-v2",
+  return hash2(Buffer5.from(JSON.stringify([
+    "ackrate-settlement-receipt-v2",
     receipt.proofVersion,
     receipt.url,
     receipt.method,
@@ -3798,7 +4095,7 @@ var FINALIZED_CONTRACT_ERROR_CODES = /* @__PURE__ */ new Set([
   30,
   31
 ]);
-function toStroops(human, decimals = DEFAULT_DECIMALS) {
+function toStroops(human, decimals2 = DEFAULT_DECIMALS) {
   const s = String(human).trim();
   if (!/^\d+(\.\d+)?$/.test(s)) {
     throw new Error(`Invalid amount ${JSON.stringify(human)}: expected a non-negative decimal like "5.00".`);
@@ -3806,30 +4103,36 @@ function toStroops(human, decimals = DEFAULT_DECIMALS) {
   const dot = s.indexOf(".");
   const whole = dot === -1 ? s : s.slice(0, dot);
   const frac = dot === -1 ? "" : s.slice(dot + 1);
-  if (frac.length > decimals) {
-    throw new Error(`Amount ${JSON.stringify(human)} has more than ${decimals} decimal places.`);
+  if (frac.length > decimals2) {
+    throw new Error(`Amount ${JSON.stringify(human)} has more than ${decimals2} decimal places.`);
   }
-  const fracPadded = (frac + "0".repeat(decimals)).slice(0, decimals);
-  const stroops = BigInt(whole) * 10n ** BigInt(decimals) + BigInt(fracPadded || "0");
+  const fracPadded = (frac + "0".repeat(decimals2)).slice(0, decimals2);
+  const stroops = BigInt(whole) * 10n ** BigInt(decimals2) + BigInt(fracPadded || "0");
   if (stroops > I128_MAX) {
     throw new Error(`Amount ${JSON.stringify(human)} is too large to fit the contract's i128 amount field.`);
   }
   return stroops;
 }
-var asKeypair = (s) => typeof s === "string" ? Keypair4.fromSecret(s) : s;
+var mandateUserSigner = (mandate2, input, net) => {
+  const signer = stellarSigner(input, net.networkPassphrase);
+  if (signer.publicKey !== mandate2.user) {
+    throw new Error("the transaction signer must match the mandate user");
+  }
+  return signer;
+};
 var Agent = class {
   net;
   mandate;
-  agentKeypair;
+  agentSigner;
   proofPolicy;
   receiptStore;
   pendingSettlement;
-  paymentClaimOwner = /* @__PURE__ */ Symbol("reapp-payment-claim");
+  paymentClaimOwner = /* @__PURE__ */ Symbol("ackrate-payment-claim");
   paymentClaimKey;
-  constructor(net, mandate2, agentKeypair, proofPolicy = "legacy-compatible", receiptStore) {
+  constructor(net, mandate2, agentSigner, proofPolicy = "legacy-compatible", receiptStore) {
     this.net = net;
     this.mandate = mandate2;
-    this.agentKeypair = agentKeypair;
+    this.agentSigner = agentSigner;
     this.proofPolicy = proofPolicy;
     this.receiptStore = receiptStore;
   }
@@ -3907,8 +4210,7 @@ ${this.mandate.id}`;
         retainClaim = true;
         throw new SettlementUncertainError(this.pendingSettlement, new Error("a prior prepared payment has not been reconciled or delivered"));
       }
-      const signer = keypairSigner(this.agentKeypair, this.net.networkPassphrase);
-      const client = registryClient(this.net, signer);
+      const client = registryClient(this.net, this.agentSigner);
       const current = (await client.get_mandate({ mandate_id: this.mandate.idBuffer })).result.unwrap();
       const expectedSeq = resolveExpectedPaymentSequence(current.seq, lifecycle.expectedSeq);
       const at = await client.execute_payment({
@@ -4099,7 +4401,7 @@ ${this.mandate.id}`;
     const headers = new Headers(init?.headers);
     headers.set(X_PAYMENT_HEADER, encodePaymentProof(proof));
     if (receipt.proofVersion === 2) {
-      headers.set(REAPP_PAYMENT_CAPABILITIES_HEADER, BOUND_PAYMENT_CAPABILITY);
+      headers.set(ACKRATE_PAYMENT_CAPABILITIES_HEADER, BOUND_PAYMENT_CAPABILITY);
     }
     let delivered;
     try {
@@ -4179,7 +4481,7 @@ ${this.mandate.id}`;
       throw new SettlementUncertainError(this.pendingSettlement, new Error("reconcile or recover the prior payment before starting another fetch"));
     }
     const firstHeaders = new Headers(init?.headers);
-    firstHeaders.set(REAPP_PAYMENT_CAPABILITIES_HEADER, BOUND_PAYMENT_CAPABILITY);
+    firstHeaders.set(ACKRATE_PAYMENT_CAPABILITIES_HEADER, BOUND_PAYMENT_CAPABILITY);
     const first = await fetch(url, {
       ...init,
       // Refuse automatic redirects before payment so a challenge cannot move
@@ -4207,11 +4509,14 @@ ${this.mandate.id}`;
       throw new Error("x402: bound-v2-only agent refused a legacy payment challenge before paying");
     }
     if (required.challenge) {
+      if (!this.agentSigner.signPayload) {
+        throw new Error("x402: the external agent signer cannot sign a bound payment proof");
+      }
       const method = (init?.method ?? "GET").toUpperCase();
       const target = new URL(url);
       const resource = `${target.pathname}${target.search}`;
       const now = Math.floor(Date.now() / 1e3);
-      const expectedNetworkId = hash2(Buffer4.from(this.net.networkPassphrase, "utf8")).toString("hex");
+      const expectedNetworkId = hash2(Buffer5.from(this.net.networkPassphrase, "utf8")).toString("hex");
       if (required.scheme !== BOUND_PAYMENT_SCHEME || required.challenge.scheme !== BOUND_PAYMENT_SCHEME) {
         throw new Error("x402: bound challenge uses an unsupported payment scheme");
       }
@@ -4232,15 +4537,18 @@ ${this.mandate.id}`;
       }
     }
     let receipt;
-    const makeReceipt = (txHash2, timing = {
+    const makeReceipt = async (txHash2, timing = {
       submittedAt: Math.floor(Date.now() / 1e3),
       validUntil: Math.floor(Date.now() / 1e3) + PAYMENT_TIMEOUT_SECONDS
     }) => {
-      const proof = Object.freeze(required.challenge ? createBoundPaymentProof({
+      const proof = Object.freeze(required.challenge ? await createBoundPaymentProofWithSigner({
         challenge: required.challenge,
         txHash: txHash2,
         mandateId: this.mandate.id,
-        signer: this.agentKeypair
+        signer: {
+          publicKey: this.agentSigner.publicKey,
+          signPayload: this.agentSigner.signPayload
+        }
       }) : {
         scheme: required.scheme,
         network: required.network,
@@ -4269,7 +4577,7 @@ ${this.mandate.id}`;
       txHash = await this.pay(required.amount, {
         holdUntilDelivery: true,
         onPrepared: async (prepared) => {
-          receipt = makeReceipt(prepared.txHash, prepared);
+          receipt = await makeReceipt(prepared.txHash, prepared);
           await receiptStore.savePending(receipt);
           return receipt.receiptId;
         }
@@ -4277,7 +4585,7 @@ ${this.mandate.id}`;
     } catch (cause) {
       if (cause instanceof SettlementUncertainError) {
         this.pendingSettlement ??= cause.settlement;
-        receipt ??= makeReceipt(cause.settlement.txHash, cause.settlement);
+        receipt ??= await makeReceipt(cause.settlement.txHash, cause.settlement);
         throw new DeliveryPendingError(receipt, cause);
       }
       if (receipt) {
@@ -4285,7 +4593,7 @@ ${this.mandate.id}`;
       }
       throw cause;
     }
-    receipt ??= makeReceipt(txHash);
+    receipt ??= await makeReceipt(txHash);
     if (!this.pendingSettlement) {
       this.pendingSettlement = Object.freeze({
         txHash,
@@ -4305,7 +4613,7 @@ ${this.mandate.id}`;
     return this.retryDelivery(receipt, init);
   }
 };
-var reapp = {
+var ackrate = {
   testnet: TESTNET,
   /** Build an AP2-style IntentMandate and its canonical id (no chain calls). */
   createIntentMandate(input, net = TESTNET) {
@@ -4313,7 +4621,7 @@ var reapp = {
     if (!Number.isInteger(input.expiry) || input.expiry <= 0 || input.expiry > MAX_EXPIRY) {
       throw new Error(`expiry must be a positive integer of Unix seconds (got ${input.expiry}).`);
     }
-    const decimals = input.decimals ?? DEFAULT_DECIMALS;
+    const decimals2 = input.decimals ?? DEFAULT_DECIMALS;
     const nonce = input.nonce ?? `${Date.now()}:${Math.random().toString(36).slice(2)}`;
     const maxAmount = String(input.maxAmount).trim();
     const canonical = JSON.stringify({
@@ -4325,7 +4633,7 @@ var reapp = {
       expiry: input.expiry,
       nonce
     });
-    const idBuffer = hash2(Buffer4.from(canonical, "utf8"));
+    const idBuffer = hash2(Buffer5.from(canonical, "utf8"));
     return {
       id: idBuffer.toString("hex"),
       idBuffer,
@@ -4333,14 +4641,14 @@ var reapp = {
       agent: input.agent,
       merchant: input.merchant,
       asset: input.asset,
-      maxAmount: toStroops(maxAmount, decimals),
+      maxAmount: toStroops(maxAmount, decimals2),
       expiry: input.expiry,
-      decimals
+      decimals: decimals2
     };
   },
   /** Register the mandate on-chain (user-signed). */
   async registerMandate(mandate2, opts, net = TESTNET) {
-    const signer = keypairSigner(asKeypair(opts.signer), net.networkPassphrase);
+    const signer = mandateUserSigner(mandate2, opts.signer, net);
     const client = registryClient(net, signer);
     const at = await client.register_mandate({
       user: mandate2.user,
@@ -4357,11 +4665,11 @@ var reapp = {
   },
   /** Approve the contract for a SEP-41 allowance up to the mandate budget (user-signed). */
   async approveBudget(mandate2, opts, net = TESTNET) {
-    return token_exports.approve(net, mandate2.asset, asKeypair(opts.signer), net.mandateRegistryId, mandate2.maxAmount);
+    return token_exports.approve(net, mandate2.asset, mandateUserSigner(mandate2, opts.signer, net), net.mandateRegistryId, mandate2.maxAmount);
   },
   /** Revoke the mandate (user-signed). After this, `pay` is rejected on-chain. */
   async revokeMandate(mandate2, opts, net = TESTNET) {
-    const signer = keypairSigner(asKeypair(opts.signer), net.networkPassphrase);
+    const signer = mandateUserSigner(mandate2, opts.signer, net);
     const client = registryClient(net, signer);
     const at = await client.revoke_mandate({ mandate_id: mandate2.idBuffer });
     const sent = await at.signAndSend();
@@ -4370,7 +4678,11 @@ var reapp = {
   },
   /** Bind an agent to a registered mandate. */
   agent(opts, net = TESTNET) {
-    return new Agent(net, opts.mandate, asKeypair(opts.signer), opts.proofPolicy, opts.receiptStore);
+    const signer = stellarSigner(opts.signer, net.networkPassphrase);
+    if (signer.publicKey !== opts.mandate.agent) {
+      throw new Error("the transaction signer must match the mandate agent");
+    }
+    return new Agent(net, opts.mandate, signer, opts.proofPolicy, opts.receiptStore);
   }
 };
 
@@ -4378,7 +4690,7 @@ var reapp = {
 import { readFileSync as readFileSync3, writeFileSync as writeFileSync3, existsSync as existsSync3 } from "node:fs";
 import { join as join2 } from "node:path";
 function mandatePath() {
-  return join2(reappHome(), "mandate.json");
+  return join2(ackrateHome(), "mandate.json");
 }
 function mandateExists() {
   return existsSync3(mandatePath());
@@ -4396,11 +4708,11 @@ function saveMandate(m) {
 var short2 = (s) => s ? `${s.slice(0, 6)}\u2026${s.slice(-4)}` : "";
 async function runMandateCreate(opts = {}) {
   if (!configExists()) {
-    log.warn("no reapp.config.json here \u2014 run `reapp init` first");
+    log.warn("no ackrate.config.json here \u2014 run `ackrate init` first");
     return;
   }
   if (!credentialsExist()) {
-    log.warn("no credentials \u2014 run `reapp setup` first");
+    log.warn("no credentials \u2014 run `ackrate setup` first");
     return;
   }
   if (mandateExists() && !opts.force) {
@@ -4421,20 +4733,20 @@ async function runMandateCreate(opts = {}) {
     user: creds.userPublic,
     agent: creds.agentPublic,
     merchant: creds.merchantPublic,
-    asset: reapp.testnet.nativeSac,
+    asset: ackrate.testnet.nativeSac,
     maxAmount: budget,
     expiry: Math.floor(Date.now() / 1e3) + expirySecs,
     nonce: `${Date.now()}:${Math.random().toString(36).slice(2)}`
   };
-  const mandate2 = reapp.createIntentMandate(inputs);
+  const mandate2 = ackrate.createIntentMandate(inputs);
   log.step("authorizing mandate", {
     budget: `${budget} XLM`,
     merchant: short2(creds.merchantPublic),
     id: short2(mandate2.id)
   });
-  const registerTx = await reapp.registerMandate(mandate2, { signer: creds.userSecret }, net);
+  const registerTx = await ackrate.registerMandate(mandate2, { signer: creds.userSecret }, net);
   log.chain("register_mandate confirmed", { tx: short2(registerTx) });
-  const approveTx = await reapp.approveBudget(mandate2, { signer: creds.userSecret }, net);
+  const approveTx = await ackrate.approveBudget(mandate2, { signer: creds.userSecret }, net);
   log.chain("approveBudget confirmed (SEP-41 allowance to contract)", { tx: short2(approveTx) });
   const stored = { inputs, id: mandate2.id, registerTx, approveTx };
   const path = saveMandate(stored);
@@ -4442,7 +4754,7 @@ async function runMandateCreate(opts = {}) {
   console.log(
     "\n" + c.bold("Mandate") + "\n" + c.gray("  id        ") + c.white(mandate2.id) + "\n" + c.gray("  budget    ") + c.white(`${budget} XLM`) + "\n" + c.gray("  register  ") + c.dim(txUrl(registerTx)) + "\n" + c.gray("  approve   ") + c.dim(txUrl(approveTx)) + "\n"
   );
-  log.info("next", { run: "reapp pay" });
+  log.info("next", { run: "ackrate pay" });
 }
 
 // packages/cli/src/settlement-store.ts
@@ -4460,7 +4772,7 @@ import { join as join3 } from "node:path";
 var DIRECTORY = "pending-settlement";
 var STATE = "state.json";
 function settlementDirectory() {
-  return join3(reappHome(), DIRECTORY);
+  return join3(ackrateHome(), DIRECTORY);
 }
 function statePath() {
   return join3(settlementDirectory(), STATE);
@@ -4486,9 +4798,16 @@ function validateRecord(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     throw new Error("settlement journal is not an object");
   }
-  const record = value;
-  const expectedKeys = record.state === "completed" ? ["version", "state", "source", "network", "contractId", "pending", "completedAt"] : ["version", "state", "source", "network", "contractId", "pending"];
-  if (!exactKeys2(record, expectedKeys) || record.version !== 2 || record.state !== "pending" && record.state !== "completed" || record.source !== "pay" && record.source !== "demo" || record.network !== "testnet" || typeof record.contractId !== "string" || !/^C[A-Z2-7]{55}$/.test(record.contractId)) {
+  const raw = value;
+  const legacy = raw.version === 2 && raw.network === "testnet";
+  const record = legacy ? { ...raw, version: 3, rpcUrl: TESTNET.rpcUrl } : raw;
+  const expectedKeys = record.state === "completed" ? ["version", "state", "source", "network", "rpcUrl", "contractId", "pending", "completedAt"] : ["version", "state", "source", "network", "rpcUrl", "contractId", "pending"];
+  let rpc7;
+  try {
+    rpc7 = new URL(record.rpcUrl);
+  } catch {
+  }
+  if (!exactKeys2(record, expectedKeys) || record.version !== 3 || record.state !== "pending" && record.state !== "completed" || record.source !== "pay" && record.source !== "demo" || record.network !== "testnet" && record.network !== "mainnet" || !rpc7 || rpc7.protocol !== "https:" || Boolean(rpc7.username || rpc7.password) || typeof record.contractId !== "string" || !/^C[A-Z2-7]{55}$/.test(record.contractId)) {
     throw new Error("settlement journal schema is invalid");
   }
   const pending = validatePending(record.pending);
@@ -4516,7 +4835,7 @@ async function assertNoPendingSettlement() {
     if (error.code === "ENOENT") return;
     throw error;
   }
-  throw new Error("a payment is unresolved or unacknowledged; run `reapp settlement reconcile` before another payment");
+  throw new Error("a payment is unresolved or unacknowledged; run `ackrate settlement reconcile` before another payment");
 }
 async function writeState(record) {
   const directory = settlementDirectory();
@@ -4542,8 +4861,11 @@ async function writeState(record) {
     await rm(temporary, { force: true }).catch(() => void 0);
   }
 }
-async function claimPendingSettlement(source, contractId, pending) {
-  const home = reappHome();
+async function claimPendingSettlement(source, contractId, pending, context = {
+  network: "testnet",
+  rpcUrl: TESTNET.rpcUrl
+}) {
+  const home = ackrateHome();
   await mkdir(home, { recursive: true, mode: 448 });
   await chmod(home, 448);
   const directory = settlementDirectory();
@@ -4551,16 +4873,17 @@ async function claimPendingSettlement(source, contractId, pending) {
     await mkdir(directory, { mode: 448 });
   } catch (error) {
     if (error.code === "EEXIST") {
-      throw new Error("another prepared payment is unresolved; run `reapp settlement reconcile`");
+      throw new Error("another prepared payment is unresolved; run `ackrate settlement reconcile`");
     }
     throw error;
   }
   try {
     const record = validateRecord({
-      version: 2,
+      version: 3,
       state: "pending",
       source,
-      network: "testnet",
+      network: context.network,
+      rpcUrl: context.rpcUrl,
       contractId,
       pending
     });
@@ -4681,15 +5004,15 @@ async function runPay(amountArg) {
     return;
   }
   if (!configExists()) {
-    log.warn("no reapp.config.json here \u2014 run `reapp init` first");
+    log.warn("no ackrate.config.json here \u2014 run `ackrate init` first");
     return;
   }
   if (!credentialsExist()) {
-    log.warn("no credentials \u2014 run `reapp setup` first");
+    log.warn("no credentials \u2014 run `ackrate setup` first");
     return;
   }
   if (!mandateExists()) {
-    log.warn("no mandate \u2014 run `reapp mandate create` first");
+    log.warn("no mandate \u2014 run `ackrate mandate create` first");
     return;
   }
   const config = loadConfig();
@@ -4698,12 +5021,12 @@ async function runPay(amountArg) {
   const stored = loadMandate();
   const txUrl = (hash4) => `${config.explorer}/tx/${hash4}`;
   const amount = amountArg ?? config.unlockPrice;
-  const mandate2 = reapp.createIntentMandate(stored.inputs);
+  const mandate2 = ackrate.createIntentMandate(stored.inputs);
   log.step("execute_payment (agent-signed)", { amount: `${amount} XLM`, mandate: short3(mandate2.id) });
   let preparedHash;
   let hash3;
   try {
-    hash3 = await reapp.agent({ mandate: mandate2, signer: creds.agentSecret }, net).pay(amount, {
+    hash3 = await ackrate.agent({ mandate: mandate2, signer: creds.agentSecret }, net).pay(amount, {
       onPrepared: async (pending) => {
         await claimPendingSettlement("pay", net.mandateRegistryId, pending);
         preparedHash = pending.txHash;
@@ -4712,7 +5035,7 @@ async function runPay(amountArg) {
   } catch (err) {
     if (err instanceof SettlementUncertainError) {
       log.err("payment result is uncertain; durable journal retained", { tx: short3(err.settlement.txHash) });
-      log.info("run `reapp settlement reconcile`; do not run pay again");
+      log.info("run `ackrate settlement reconcile`; do not run pay again");
       console.log(c.dim(`  ${txUrl(err.settlement.txHash)}`));
       process.exitCode = 1;
       return;
@@ -4734,7 +5057,7 @@ async function runPay(amountArg) {
       log.info("budget, expiry, and replay are enforced on-chain \u2014 the CLI cannot override them");
     } else if (preparedHash) {
       log.err("payment result is uncertain; durable journal retained", { tx: short3(preparedHash) });
-      log.info("run `reapp settlement reconcile`; do not run pay again");
+      log.info("run `ackrate settlement reconcile`; do not run pay again");
     } else {
       log.err("payment failed before a transaction hash was durably prepared", {
         reason: reason.split("\n")[0]
@@ -4750,7 +5073,7 @@ async function runPay(amountArg) {
       tx: short3(hash3),
       reason: error instanceof Error ? error.message : String(error)
     });
-    log.info("run `reapp settlement reconcile`; do not run pay again");
+    log.info("run `ackrate settlement reconcile`; do not run pay again");
     process.exitCode = 1;
     return;
   }
@@ -4758,11 +5081,73 @@ async function runPay(amountArg) {
   console.log(
     "\n" + c.bold("Payment") + "\n" + c.gray("  amount  ") + c.white(`${amount} XLM`) + "\n" + c.gray("  tx      ") + c.dim(txUrl(hash3)) + "\n"
   );
-  log.info(`after you durably accept this result, run \`reapp settlement acknowledge ${hash3}\``);
+  log.info(`after you durably accept this result, run \`ackrate settlement acknowledge ${hash3}\``);
 }
 
 // packages/cli/src/commands/demo.ts
-import { Keypair as Keypair5, rpc as rpc5 } from "@stellar/stellar-sdk";
+import { readFileSync as readFileSync4 } from "node:fs";
+import { Keypair as Keypair4, Networks as Networks2, StrKey as StrKey4, rpc as rpc5 } from "@stellar/stellar-sdk";
+
+// packages/cli/src/stellar-cli-signer.ts
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+import { StrKey as StrKey3 } from "@stellar/stellar-sdk";
+var execute = promisify(execFile);
+function identityName(value) {
+  const normalized = value.trim();
+  if (!normalized || normalized.length > 128 || /[\r\n\0]/.test(normalized)) {
+    throw new Error("Stellar signer identity must be a non-empty local identity name");
+  }
+  return normalized;
+}
+async function stellar(args) {
+  try {
+    const { stdout } = await execute("stellar", args, {
+      encoding: "utf8",
+      maxBuffer: 2 * 1024 * 1024,
+      timeout: 18e4
+    });
+    return stdout.trim();
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    throw new Error(`Stellar CLI signer failed: ${detail}`);
+  }
+}
+async function stellarCliSigner(identityInput, net) {
+  const identity = identityName(identityInput);
+  const publicKey = await stellar(["keys", "public-key", identity, "--quiet"]);
+  if (!StrKey3.isValidEd25519PublicKey(publicKey)) {
+    throw new Error(`Stellar identity ${JSON.stringify(identity)} did not resolve to a G-account`);
+  }
+  const signTransaction = async (xdr, options) => {
+    if (options?.networkPassphrase && options.networkPassphrase !== net.networkPassphrase) {
+      throw new Error("external signer refused a conflicting network passphrase");
+    }
+    if (options?.address && options.address !== publicKey) {
+      throw new Error("external signer refused a transaction for another account");
+    }
+    const signedTxXdr = await stellar([
+      "tx",
+      "sign",
+      xdr,
+      "--sign-with-key",
+      identity,
+      "--network-passphrase",
+      net.networkPassphrase,
+      "--rpc-url",
+      net.rpcUrl,
+      "--quiet"
+    ]);
+    if (!signedTxXdr) throw new Error("Stellar CLI signer returned an empty transaction envelope");
+    return { signedTxXdr, signerAddress: publicKey };
+  };
+  return Object.freeze({
+    publicKey,
+    signTransaction
+  });
+}
+
+// packages/cli/src/commands/demo.ts
 var SOURCES = [
   { name: "Market Data API", icon: "\u{1F4C8}" },
   { name: "Academic Papers", icon: "\u{1F4DA}" },
@@ -4798,14 +5183,17 @@ async function waitForSeq(client, idBuffer, target, tries = 20) {
     }
     await sleep3(1e3);
   }
-  throw new Error(`mandate sequence did not reach ${target} before the testnet read deadline`);
+  throw new Error(`mandate sequence did not reach ${target} before the RPC read deadline`);
 }
-async function attemptPurchase(agent) {
+async function attemptPurchase(agent, runtime) {
   let preparedHash;
   try {
-    const hash3 = await agent.pay(SOURCE_PRICE, {
+    const hash3 = await agent.pay(runtime.price, {
       onPrepared: async (pending) => {
-        await claimPendingSettlement("demo", TESTNET.mandateRegistryId, pending);
+        await claimPendingSettlement("demo", runtime.net.mandateRegistryId, pending, {
+          network: runtime.network,
+          rpcUrl: runtime.net.rpcUrl
+        });
         preparedHash = pending.txHash;
       }
     });
@@ -4815,7 +5203,7 @@ async function attemptPurchase(agent) {
     if (e instanceof SettlementUncertainError) {
       return {
         kind: "uncertain",
-        msg: `transaction ${e.settlement.txHash} is unresolved; run reapp settlement reconcile`
+        msg: `transaction ${e.settlement.txHash} is unresolved; run ackrate settlement reconcile`
       };
     }
     if (isFinalPaymentRejection(e) && preparedHash) {
@@ -4831,7 +5219,7 @@ async function attemptPurchase(agent) {
     if (preparedHash && !isFinalPaymentRejection(e)) {
       return {
         kind: "uncertain",
-        msg: `transaction ${preparedHash} has an unknown post-prepare result; run reapp settlement reconcile`
+        msg: `transaction ${preparedHash} has an unknown post-prepare result; run ackrate settlement reconcile`
       };
     }
     const msg = e instanceof Error ? e.message : String(e);
@@ -4844,19 +5232,209 @@ async function attemptPurchase(agent) {
 var DEMOS = [
   {
     id: "research-agent",
-    summary: "An agent buys research sources on-chain, one real payment each; the 3 XLM mandate budget covers three and the contract rejects the fourth."
+    summary: "An agent buys research sources on-chain; testnet uses XLM, while explicit manifest-gated mainnet mode uses real USDC."
   }
 ];
 function listDemos() {
   console.log("\n" + banner() + "\n");
   log.info("available demos");
   for (const d of DEMOS) {
-    log.step(d.id, { run: `reapp demo ${d.id}` });
+    log.step(d.id, { run: `ackrate demo ${d.id} --network testnet` });
     console.log("  " + c.gray(d.summary));
   }
   console.log();
 }
-async function runDemo(target) {
+var explorerTx = (network, hash3) => `https://stellar.expert/explorer/${network === "mainnet" ? "public" : "testnet"}/tx/${hash3}`;
+function amountText(value, decimals2) {
+  const unit = 10n ** BigInt(decimals2);
+  const whole = value / unit;
+  const fraction = (value % unit).toString().padStart(decimals2, "0").replace(/0+$/, "");
+  return fraction ? `${whole}.${fraction}` : whole.toString();
+}
+async function testnetRuntime() {
+  const user = Keypair4.random();
+  const agent = Keypair4.random();
+  const merchant = Keypair4.random();
+  log.step("funding 3 ephemeral testnet accounts via friendbot");
+  await Promise.all([fund2(user.publicKey()), fund2(agent.publicKey()), fund2(merchant.publicKey())]);
+  log.chain("accounts funded", {
+    user: short4(user.publicKey()),
+    agent: short4(agent.publicKey()),
+    merchant: short4(merchant.publicKey())
+  });
+  return Object.freeze({
+    network: "testnet",
+    net: TESTNET,
+    userSigner: keypairSigner(user, TESTNET.networkPassphrase),
+    agentSigner: keypairSigner(agent, TESTNET.networkPassphrase),
+    merchant: merchant.publicKey(),
+    asset: TESTNET.nativeSac,
+    symbol: "XLM",
+    budget: BUDGET,
+    price: SOURCE_PRICE,
+    decimals: 7
+  });
+}
+function requireMainnetText(value, flag) {
+  const normalized = value?.trim();
+  if (!normalized) throw new Error(`mainnet demo requires ${flag}`);
+  return normalized;
+}
+async function mainnetRuntime(options) {
+  if (!options.confirmRealUsdc) {
+    throw new Error("mainnet demo requires --confirm-real-usdc to acknowledge an irreversible real-USDC payment");
+  }
+  const manifestPath = requireMainnetText(options.manifest, "--manifest <path>");
+  let manifest;
+  try {
+    manifest = JSON.parse(readFileSync4(manifestPath, "utf8"));
+  } catch (error) {
+    throw new Error(`could not read the mainnet deployment manifest: ${error instanceof Error ? error.message : String(error)}`);
+  }
+  const net = mainnetNetworkFromDeploymentManifest(manifest);
+  const merchant = requireMainnetText(options.merchant, "--merchant <G...>");
+  if (!StrKey4.isValidEd25519PublicKey(merchant)) {
+    throw new Error("--merchant must be a Stellar G-account");
+  }
+  const budget = requireMainnetText(options.budget, "--budget <usdc>");
+  const price = requireMainnetText(options.price, "--price <usdc>");
+  const budgetUnits = toStroops(budget, net.settlementAsset.decimals);
+  const priceUnits = toStroops(price, net.settlementAsset.decimals);
+  if (priceUnits <= 0n || budgetUnits < priceUnits * 3n || budgetUnits >= priceUnits * 4n) {
+    throw new Error("mainnet demo budget must cover exactly three prices and reject the fourth");
+  }
+  const [userSigner, agentSigner] = await Promise.all([
+    stellarCliSigner(requireMainnetText(options.userSigner, "--user-signer <stellar-identity>"), net),
+    stellarCliSigner(requireMainnetText(options.agentSigner, "--agent-signer <stellar-identity>"), net)
+  ]);
+  if ((/* @__PURE__ */ new Set([userSigner.publicKey, agentSigner.publicKey, merchant])).size !== 3) {
+    throw new Error("mainnet user, agent, and merchant accounts must be distinct");
+  }
+  const server = new rpc5.Server(net.rpcUrl);
+  const identity = await server.getNetwork();
+  if (identity.passphrase !== Networks2.PUBLIC || net.networkPassphrase !== Networks2.PUBLIC) {
+    throw new Error("mainnet RPC identity does not match the public Stellar network");
+  }
+  await Promise.all([
+    server.getAccount(userSigner.publicKey),
+    server.getAccount(agentSigner.publicKey),
+    server.getAccount(merchant)
+  ]);
+  const [chainDecimals, userUsdc, userXlm, agentXlm] = await Promise.all([
+    token_exports.decimals(net, net.settlementAsset.contractId, userSigner.publicKey),
+    token_exports.balance(net, net.settlementAsset.contractId, userSigner.publicKey),
+    token_exports.balance(net, net.nativeSac, userSigner.publicKey),
+    token_exports.balance(net, net.nativeSac, agentSigner.publicKey)
+  ]);
+  if (chainDecimals !== net.settlementAsset.decimals) {
+    throw new Error(`USDC decimals conflict: manifest=${net.settlementAsset.decimals}, chain=${chainDecimals}`);
+  }
+  if (userUsdc < budgetUnits) {
+    throw new Error(`user USDC balance ${amountText(userUsdc, chainDecimals)} is below budget ${budget}`);
+  }
+  const feeReserve = toStroops("0.50", 7);
+  if (userXlm < feeReserve || agentXlm < feeReserve) {
+    throw new Error("mainnet user and agent must each retain at least 0.50 XLM for fees and reserve headroom");
+  }
+  const reader = registryClient(net, agentSigner);
+  if ((await reader.is_paused()).result) {
+    throw new Error("mainnet MandateRegistry is paused");
+  }
+  log.warn("real-value mode confirmed", {
+    network: "Stellar mainnet",
+    asset: "USDC",
+    budget,
+    price
+  });
+  log.chain("mainnet preflight passed", {
+    contract: short4(net.mandateRegistryId),
+    user: short4(userSigner.publicKey),
+    agent: short4(agentSigner.publicKey),
+    merchant: short4(merchant)
+  });
+  return Object.freeze({
+    network: "mainnet",
+    net,
+    userSigner,
+    agentSigner,
+    merchant,
+    asset: net.settlementAsset.contractId,
+    symbol: "USDC",
+    budget,
+    price,
+    decimals: chainDecimals
+  });
+}
+async function executeDemo(runtime) {
+  const merchantBefore = await token_exports.balance(runtime.net, runtime.asset, runtime.merchant);
+  const inputs = {
+    user: runtime.userSigner.publicKey,
+    agent: runtime.agentSigner.publicKey,
+    merchant: runtime.merchant,
+    asset: runtime.asset,
+    maxAmount: runtime.budget,
+    expiry: Math.floor(Date.now() / 1e3) + 3600,
+    decimals: runtime.decimals,
+    nonce: `${Date.now()}:${Math.random().toString(36).slice(2)}`
+  };
+  const mandate2 = ackrate.createIntentMandate(inputs, runtime.net);
+  const registerTx = await ackrate.registerMandate(mandate2, { signer: runtime.userSigner }, runtime.net);
+  const approveTx = await ackrate.approveBudget(mandate2, { signer: runtime.userSigner }, runtime.net);
+  log.chain("mandate registered + allowance approved for contract", {
+    budget: `${runtime.budget} ${runtime.symbol}`,
+    id: short4(mandate2.id),
+    register: short4(registerTx),
+    approve: short4(approveTx)
+  });
+  const rclient = registryClient(runtime.net, runtime.agentSigner);
+  const paymentAgent = ackrate.agent({ mandate: mandate2, signer: runtime.agentSigner }, runtime.net);
+  let purchased = 0;
+  let seq = 0;
+  let budgetBlocked = false;
+  outer: for (const source of SOURCES) {
+    log.step(`agent buys ${source.icon} ${source.name}`, { price: `${runtime.price} ${runtime.symbol}` });
+    for (let attempt = 0; attempt < 4; attempt += 1) {
+      const result = await attemptPurchase(paymentAgent, runtime);
+      if (result.kind === "ok") {
+        seq += 1;
+        await waitForSeq(rclient, mandate2.idBuffer, seq);
+        purchased += 1;
+        log.ok("purchased on-chain", {
+          tx: link(explorerTx(runtime.network, result.hash), short4(result.hash))
+        });
+        await acknowledgeCompletedSettlement(result.hash);
+        break;
+      }
+      if (result.kind === "blocked") {
+        budgetBlocked = true;
+        log.warn(`contract blocked the purchase \u2014 ${runtime.budget} ${runtime.symbol} budget exhausted`);
+        break outer;
+      }
+      if (result.kind === "retry") {
+        await waitForSeq(rclient, mandate2.idBuffer, seq);
+        continue;
+      }
+      if (result.kind === "uncertain") {
+        throw new Error(`${result.msg}. Do not restart the demo until reconciliation completes.`);
+      }
+      throw new Error(`purchase failed: ${result.msg}`);
+    }
+  }
+  const finalMandate = (await rclient.get_mandate({ mandate_id: mandate2.idBuffer })).result.unwrap();
+  const merchantAfter = await token_exports.balance(runtime.net, runtime.asset, runtime.merchant);
+  const transferred = merchantAfter - merchantBefore;
+  const expected = toStroops(runtime.price, runtime.decimals) * 3n;
+  const passed = purchased === 3 && budgetBlocked && finalMandate.spent === expected && Number(finalMandate.seq) === 3 && transferred === expected;
+  console.log(
+    "\n" + c.bold("Result") + "\n" + c.gray("  network    ") + c.white(runtime.network === "mainnet" ? "Stellar mainnet" : "Stellar testnet") + "\n" + c.gray("  purchased  ") + c.white(`${purchased} sources`) + c.gray(" for ") + c.white(`${amountText(expected, runtime.decimals)} ${runtime.symbol}`) + c.gray(" settled on-chain") + "\n" + c.gray("  enforced   ") + c.white(`${runtime.budget} ${runtime.symbol}`) + c.gray(` budget cap \u2014 ${budgetBlocked ? "the contract rejected purchase four" : "expected rejection was not observed"}`) + "\n" + c.gray("  verified   ") + c.white(`${Number(finalMandate.seq)} payments`) + c.gray(` \xB7 ${amountText(transferred, runtime.decimals)} ${runtime.symbol} merchant delta`) + "\n"
+  );
+  if (!passed) {
+    throw new Error(
+      `demo evidence mismatch: purchased=${purchased}, blocked=${budgetBlocked}, seq=${Number(finalMandate.seq)}, spent=${finalMandate.spent}, transferred=${transferred}`
+    );
+  }
+}
+async function runDemo(target, options = {}) {
   if (!target) {
     listDemos();
     return;
@@ -4873,87 +5451,23 @@ async function runDemo(target) {
     log.err("demo blocked by unresolved payment journal", {
       reason: error instanceof Error ? error.message : String(error)
     });
-    log.info("run `reapp settlement reconcile` before starting another demo");
+    log.info("run `ackrate settlement reconcile` before starting another demo");
     process.exitCode = 1;
     return;
   }
-  console.log("\n" + banner() + "\n");
-  log.info("research agent demo \u2014 the agent pays on-chain per source; the contract caps the budget");
-  const user = Keypair5.random();
-  const agent = Keypair5.random();
-  const merchant = Keypair5.random();
-  log.step("funding 3 ephemeral testnet accounts via friendbot");
-  await Promise.all([fund2(user.publicKey()), fund2(agent.publicKey()), fund2(merchant.publicKey())]);
-  log.chain("accounts funded", {
-    user: short4(user.publicKey()),
-    agent: short4(agent.publicKey()),
-    merchant: short4(merchant.publicKey())
-  });
-  const merchantBefore = await token_exports.balance(TESTNET, TESTNET.nativeSac, merchant.publicKey());
-  const inputs = {
-    user: user.publicKey(),
-    agent: agent.publicKey(),
-    merchant: merchant.publicKey(),
-    asset: reapp.testnet.nativeSac,
-    maxAmount: BUDGET,
-    expiry: Math.floor(Date.now() / 1e3) + 3600,
-    nonce: `${Date.now()}:${Math.random().toString(36).slice(2)}`
-  };
-  const mandate2 = reapp.createIntentMandate(inputs);
-  await reapp.registerMandate(mandate2, { signer: user.secret() });
-  await reapp.approveBudget(mandate2, { signer: user.secret() });
-  log.chain("mandate registered + allowance approved for contract", { budget: `${BUDGET} XLM`, id: short4(mandate2.id) });
-  const rclient = registryClient(TESTNET, keypairSigner(agent, TESTNET.networkPassphrase));
-  const paymentAgent = reapp.agent({ mandate: mandate2, signer: agent });
-  let purchased = 0;
-  let seq = 0;
-  let budgetBlocked = false;
-  outer: for (const s of SOURCES) {
-    log.step(`agent buys ${s.icon} ${s.name}`, { price: `${SOURCE_PRICE} XLM` });
-    for (let attempt = 0; attempt < 4; attempt += 1) {
-      const r = await attemptPurchase(paymentAgent);
-      if (r.kind === "ok") {
-        seq += 1;
-        await waitForSeq(rclient, mandate2.idBuffer, seq);
-        purchased += 1;
-        log.ok("purchased on-chain", { tx: link(explorer.tx(r.hash), short4(r.hash)) });
-        await acknowledgeCompletedSettlement(r.hash);
-        break;
-      }
-      if (r.kind === "blocked") {
-        budgetBlocked = true;
-        log.warn(`contract blocked the purchase \u2014 ${BUDGET} XLM budget exhausted`);
-        break outer;
-      }
-      if (r.kind === "retry") {
-        await waitForSeq(rclient, mandate2.idBuffer, seq);
-        continue;
-      }
-      if (r.kind === "uncertain") {
-        throw new Error(`${r.msg}. Do not restart the demo until reconciliation completes.`);
-      }
-      log.err("purchase failed", { reason: r.msg });
-      break outer;
-    }
+  if (options.network !== void 0 && options.network !== "testnet" && options.network !== "mainnet") {
+    throw new Error("--network must be testnet or mainnet");
   }
-  const finalMandate = (await rclient.get_mandate({ mandate_id: mandate2.idBuffer })).result.unwrap();
-  const merchantAfter = await token_exports.balance(TESTNET, TESTNET.nativeSac, merchant.publicKey());
-  const transferred = merchantAfter - merchantBefore;
-  const passed = purchased === 3 && budgetBlocked && finalMandate.spent === 30000000n && Number(finalMandate.seq) === 3 && transferred === 30000000n;
-  console.log(
-    "\n" + c.bold("Result") + "\n" + c.gray("  purchased  ") + c.white(`${purchased} sources`) + c.gray("  for ") + c.white(`${purchased}.00 XLM`) + c.gray(" settled on-chain") + "\n" + c.gray("  enforced   ") + c.white(`${BUDGET} XLM`) + c.gray(` budget cap \u2014 ${budgetBlocked ? "the contract rejected purchase four" : "expected rejection was not observed"}`) + "\n" + c.gray("  verified   ") + c.white(`${Number(finalMandate.seq)} payments`) + c.gray(` \xB7 ${(Number(transferred) / 1e7).toFixed(2)} XLM merchant delta`) + "\n" + c.gray("  the agent answers from what it could afford; a compromised agent or SDK cannot exceed the mandate.") + "\n"
-  );
-  if (!passed) {
-    throw new Error(
-      `demo evidence mismatch: purchased=${purchased}, blocked=${budgetBlocked}, seq=${Number(finalMandate.seq)}, spent=${finalMandate.spent}, transferred=${transferred}`
-    );
-  }
+  const network = options.network ?? "testnet";
+  console.log("\n" + banner(network === "mainnet" ? "stellar mainnet \xB7 real USDC" : "stellar testnet \xB7 XLM") + "\n");
+  log.info(`research agent demo \u2014 ${network === "mainnet" ? "real USDC on Stellar mainnet" : "testnet XLM"}; the contract caps the budget`);
+  await executeDemo(network === "mainnet" ? await mainnetRuntime(options) : await testnetRuntime());
 }
 
 // packages/cli/src/commands/reconcile.ts
-import { rpc as rpc6 } from "@stellar/stellar-sdk";
+import { Networks as Networks3, rpc as rpc6 } from "@stellar/stellar-sdk";
 var short5 = (value) => `${value.slice(0, 8)}\u2026${value.slice(-6)}`;
-var explorer2 = (hash3) => `https://stellar.expert/explorer/testnet/tx/${hash3}`;
+var explorer = (network, hash3) => `https://stellar.expert/explorer/${network === "mainnet" ? "public" : "testnet"}/tx/${hash3}`;
 async function runSettlementReconcile() {
   const loaded = await loadPendingSettlement();
   if (loaded.kind === "none") {
@@ -4968,19 +5482,24 @@ async function runSettlementReconcile() {
   if (loaded.kind === "completed") {
     const hash3 = loaded.record.pending.txHash;
     log.chain("prepared payment succeeded and remains durably locked", { tx: short5(hash3) });
-    console.log(c.dim(`  ${explorer2(hash3)}`));
-    log.info(`after you durably accept this result, run \`reapp settlement acknowledge ${hash3}\``);
+    console.log(c.dim(`  ${explorer(loaded.record.network, hash3)}`));
+    log.info(`after you durably accept this result, run \`ackrate settlement acknowledge ${hash3}\``);
     return;
   }
-  const { pending, source, contractId } = loaded.record;
+  const { pending, source, contractId, network, rpcUrl } = loaded.record;
   log.step("reconciling exact prepared transaction", {
     tx: short5(pending.txHash),
     source,
     contract: `${contractId.slice(0, 6)}\u2026${contractId.slice(-4)}`
   });
-  const server = new rpc6.Server(TESTNET.rpcUrl);
+  const server = new rpc6.Server(rpcUrl);
   let response;
   try {
+    const identity = await server.getNetwork();
+    const expectedPassphrase = network === "mainnet" ? Networks3.PUBLIC : Networks3.TESTNET;
+    if (identity.passphrase !== expectedPassphrase) {
+      throw new Error("RPC network identity does not match the durable settlement journal");
+    }
     response = await server.getTransaction(pending.txHash);
   } catch (error) {
     log.err("RPC reconciliation failed; pending state retained", {
@@ -4992,14 +5511,14 @@ async function runSettlementReconcile() {
   if (response.status === rpc6.Api.GetTransactionStatus.SUCCESS) {
     await markSettlementCompleted(pending.txHash);
     log.chain("prepared payment succeeded; durable acknowledgment is required", { tx: short5(pending.txHash) });
-    console.log(c.dim(`  ${explorer2(pending.txHash)}`));
-    log.info(`after you durably accept this result, run \`reapp settlement acknowledge ${pending.txHash}\``);
+    console.log(c.dim(`  ${explorer(network, pending.txHash)}`));
+    log.info(`after you durably accept this result, run \`ackrate settlement acknowledge ${pending.txHash}\``);
     return;
   }
   if (response.status === rpc6.Api.GetTransactionStatus.FAILED) {
     await clearPendingSettlement(pending.txHash);
     log.warn("prepared payment finalized as failed; journal cleared");
-    console.log(c.dim(`  ${explorer2(pending.txHash)}`));
+    console.log(c.dim(`  ${explorer(network, pending.txHash)}`));
     return;
   }
   const decision = classifyMissingSettlement(pending, response);
@@ -5031,20 +5550,289 @@ async function runSettlementAcknowledge(txHash) {
 }
 
 // packages/cli/src/version.ts
-var CLI_VERSION = "0.1.7";
+var CLI_VERSION = "0.1.9";
+
+// packages/cli/src/commands/ops.ts
+import { readFile as readFile2, writeFile } from "node:fs/promises";
+
+// packages/cli/src/ops-signing-request.ts
+import { createHash } from "node:crypto";
+import {
+  Address as Address3,
+  FeeBumpTransaction,
+  Keypair as Keypair5,
+  Networks as Networks4,
+  Transaction,
+  TransactionBuilder as TransactionBuilder2
+} from "@stellar/stellar-sdk";
+var REQUEST_KEYS = [
+  "version",
+  "requestId",
+  "network",
+  "networkPassphrase",
+  "authorityAccount",
+  "requiredSignatures",
+  "signers",
+  "transaction"
+];
+var TRANSACTION_KEYS = [
+  "unsignedEnvelopeXdr",
+  "hash",
+  "source",
+  "sequence",
+  "fee",
+  "timeBounds",
+  "ledgerBounds",
+  "effect"
+];
+var EFFECT_KEYS = ["target", "function", "argsXdr", "argsSha256"];
+var SIGNER_KEYS = ["label", "publicKey"];
+function sha256(value) {
+  return createHash("sha256").update(value).digest("hex");
+}
+function stable(value) {
+  if (value === null || typeof value !== "object") return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map(stable).join(",")}]`;
+  const object2 = value;
+  return `{${Object.keys(object2).sort().map((key) => `${JSON.stringify(key)}:${stable(object2[key])}`).join(",")}}`;
+}
+function hasExactKeys(value, expected) {
+  const actual = Object.keys(value).sort();
+  const wanted = [...expected].sort();
+  return actual.length === wanted.length && actual.every((key, index) => key === wanted[index]);
+}
+function passphraseFor(network) {
+  return network === "mainnet" ? Networks4.PUBLIC : Networks4.TESTNET;
+}
+function parseTransaction(envelopeXdr, networkPassphrase) {
+  const parsed = TransactionBuilder2.fromXDR(envelopeXdr, networkPassphrase);
+  if (parsed instanceof FeeBumpTransaction || !(parsed instanceof Transaction)) {
+    throw new Error("fee-bump envelopes are not accepted for authority requests");
+  }
+  if (parsed.operations.length !== 1) {
+    throw new Error("authority request must contain exactly one operation");
+  }
+  return parsed;
+}
+function extractEffect(transaction) {
+  const operation = transaction.operations[0];
+  if (operation.type !== "invokeHostFunction") {
+    throw new Error("authority request must be one invokeHostFunction operation");
+  }
+  if (operation.func.switch().name !== "hostFunctionTypeInvokeContract") {
+    throw new Error("authority request must invoke an existing contract");
+  }
+  const invocation = operation.func.invokeContract();
+  const argsXdr = invocation.args().map((arg) => arg.toXDR("base64"));
+  return {
+    target: Address3.fromScAddress(invocation.contractAddress()).toString(),
+    function: invocation.functionName().toString(),
+    argsXdr,
+    argsSha256: sha256(stable(argsXdr))
+  };
+}
+function normalizeManifest(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error("authority manifest must be an object");
+  }
+  const manifest = value;
+  if (!hasExactKeys(manifest, [
+    "version",
+    "network",
+    "authorityAccount",
+    "requiredSignatures",
+    "signers"
+  ]) || manifest.version !== 1 || !["testnet", "mainnet"].includes(manifest.network) || manifest.requiredSignatures !== 2 || !Array.isArray(manifest.signers) || manifest.signers.length !== 3) {
+    throw new Error("authority manifest schema is invalid");
+  }
+  Keypair5.fromPublicKey(manifest.authorityAccount);
+  const labels = /* @__PURE__ */ new Set();
+  const publicKeys = /* @__PURE__ */ new Set();
+  for (const signer of manifest.signers) {
+    if (!signer || typeof signer !== "object" || Array.isArray(signer) || !hasExactKeys(signer, SIGNER_KEYS) || !["A", "B", "C"].includes(signer.label)) {
+      throw new Error("authority signer schema is invalid");
+    }
+    Keypair5.fromPublicKey(signer.publicKey);
+    labels.add(signer.label);
+    publicKeys.add(signer.publicKey);
+  }
+  if (labels.size !== 3 || publicKeys.size !== 3) {
+    throw new Error("authority signers and labels must be unique");
+  }
+  if (!publicKeys.has(manifest.authorityAccount)) {
+    throw new Error("authority account master key must be one of A/B/C");
+  }
+  return structuredClone(manifest);
+}
+function requestPayload(request) {
+  const { requestId: _requestId, ...payload } = request;
+  return payload;
+}
+function createSigningRequest(unsignedEnvelopeXdr, manifestValue) {
+  const manifest = normalizeManifest(manifestValue);
+  const networkPassphrase = passphraseFor(manifest.network);
+  const transaction = parseTransaction(unsignedEnvelopeXdr, networkPassphrase);
+  if (transaction.signatures.length !== 0) {
+    throw new Error("signing request input must contain zero signatures");
+  }
+  if (transaction.source !== manifest.authorityAccount) {
+    throw new Error("transaction source does not match the authority account");
+  }
+  const normalizedXdr = transaction.toXDR();
+  const request = {
+    version: 1,
+    requestId: "",
+    network: manifest.network,
+    networkPassphrase,
+    authorityAccount: manifest.authorityAccount,
+    requiredSignatures: 2,
+    signers: manifest.signers,
+    transaction: {
+      unsignedEnvelopeXdr: normalizedXdr,
+      hash: transaction.hash().toString("hex"),
+      source: transaction.source,
+      sequence: transaction.sequence,
+      fee: transaction.fee,
+      timeBounds: transaction.timeBounds ?? null,
+      ledgerBounds: transaction.ledgerBounds ?? null,
+      effect: extractEffect(transaction)
+    }
+  };
+  request.requestId = sha256(stable(requestPayload(request)));
+  return request;
+}
+function verifySigningRequest(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error("signing request must be an object");
+  }
+  const request = value;
+  if (!hasExactKeys(request, REQUEST_KEYS) || !request.transaction || typeof request.transaction !== "object" || Array.isArray(request.transaction) || !hasExactKeys(request.transaction, TRANSACTION_KEYS) || !request.transaction.effect || typeof request.transaction.effect !== "object" || Array.isArray(request.transaction.effect) || !hasExactKeys(request.transaction.effect, EFFECT_KEYS) || !/^[0-9a-f]{64}$/.test(request.requestId)) {
+    throw new Error("signing request schema is invalid");
+  }
+  const manifest = normalizeManifest({
+    version: request.version,
+    network: request.network,
+    authorityAccount: request.authorityAccount,
+    requiredSignatures: request.requiredSignatures,
+    signers: request.signers
+  });
+  if (request.networkPassphrase !== passphraseFor(manifest.network)) {
+    throw new Error("network passphrase does not match the named network");
+  }
+  const rebuilt = createSigningRequest(
+    request.transaction.unsignedEnvelopeXdr,
+    manifest
+  );
+  if (stable(rebuilt) !== stable(request)) {
+    throw new Error("signing request content or requestId does not match its XDR");
+  }
+  return structuredClone(request);
+}
+function identifySigner(request, transactionHash, signature) {
+  const bytes = signature.signature();
+  const matches = request.signers.filter((signer) => {
+    const keypair = Keypair5.fromPublicKey(signer.publicKey);
+    return keypair.signatureHint().equals(signature.hint()) && keypair.verify(transactionHash, bytes);
+  });
+  if (matches.length !== 1) {
+    throw new Error("signature is unknown or invalid for this request");
+  }
+  return matches[0].publicKey;
+}
+function combineSignedEnvelopes(requestValue, signedEnvelopeXdrs) {
+  const request = verifySigningRequest(requestValue);
+  if (signedEnvelopeXdrs.length !== request.requiredSignatures) {
+    throw new Error("exactly two independently signed envelopes are required");
+  }
+  const hash3 = Buffer.from(request.transaction.hash, "hex");
+  const signatures = [];
+  const signerPublicKeys = [];
+  for (const envelopeXdr of signedEnvelopeXdrs) {
+    const transaction = parseTransaction(envelopeXdr, request.networkPassphrase);
+    if (transaction.hash().toString("hex") !== request.transaction.hash) {
+      throw new Error("signed envelope belongs to a different request");
+    }
+    if (transaction.signatures.length !== 1) {
+      throw new Error("each signer must return exactly one signature");
+    }
+    const signature = transaction.signatures[0];
+    const publicKey = identifySigner(request, hash3, signature);
+    if (signerPublicKeys.includes(publicKey)) {
+      throw new Error("duplicate signer cannot satisfy the threshold");
+    }
+    signerPublicKeys.push(publicKey);
+    signatures.push(signature);
+  }
+  const ready = parseTransaction(
+    request.transaction.unsignedEnvelopeXdr,
+    request.networkPassphrase
+  );
+  signatures.forEach((signature) => ready.addDecoratedSignature(signature));
+  return {
+    requestId: request.requestId,
+    transactionHash: request.transaction.hash,
+    signerPublicKeys,
+    signedEnvelopeXdr: ready.toXDR()
+  };
+}
+
+// packages/cli/src/commands/ops.ts
+async function readJson(path) {
+  return JSON.parse(await readFile2(path, "utf8"));
+}
+async function runOpsCreate(xdrPath, manifestPath, outPath) {
+  const xdr = (await readFile2(xdrPath, "utf8")).trim();
+  const request = createSigningRequest(xdr, await readJson(manifestPath));
+  await writeFile(outPath, `${JSON.stringify(request, null, 2)}
+`, {
+    encoding: "utf8",
+    mode: 384,
+    flag: "wx"
+  });
+  console.log(`created immutable request ${request.requestId}`);
+  console.log(`transaction ${request.transaction.hash}`);
+  console.log(`effect ${request.transaction.effect.target} ${request.transaction.effect.function}`);
+}
+async function runOpsVerify(requestPath) {
+  const request = verifySigningRequest(await readJson(requestPath));
+  console.log(`verified request ${request.requestId}`);
+  console.log(`transaction ${request.transaction.hash}`);
+  console.log(`source ${request.transaction.source}`);
+  console.log(`effect ${request.transaction.effect.target} ${request.transaction.effect.function}`);
+}
+async function runOpsCombine(requestPath, signedPaths, outPath) {
+  const request = await readJson(requestPath);
+  const signed = await Promise.all(
+    signedPaths.map(async (path) => (await readFile2(path, "utf8")).trim())
+  );
+  const combined = combineSignedEnvelopes(request, signed);
+  await writeFile(outPath, `${combined.signedEnvelopeXdr}
+`, {
+    encoding: "utf8",
+    mode: 384,
+    flag: "wx"
+  });
+  console.log(`assembled request ${combined.requestId}`);
+  console.log(`transaction ${combined.transactionHash}`);
+  console.log(`signers ${combined.signerPublicKeys.join(",")}`);
+}
 
 // packages/cli/src/index.ts
 var program2 = new Command();
-program2.name("reapp").description("Agent payments on Stellar, enforced on-chain by the REAPP MandateRegistry.").version(CLI_VERSION);
-program2.command("init").description("scaffold a project in the current directory (writes reapp.config.json)").option("-f, --force", "overwrite an existing reapp.config.json").action((opts) => runInit(opts));
+program2.name("ackrate").description("Agent payments on Stellar, enforced on-chain by the Ackrate MandateRegistry.").version(CLI_VERSION);
+program2.command("init").description("scaffold a project in the current directory (writes ackrate.config.json)").option("-f, --force", "overwrite an existing ackrate.config.json").action((opts) => runInit(opts));
 program2.command("setup").description("generate testnet burner keys and fund them via friendbot").option("-f, --force", "regenerate fresh keys, overwriting existing credentials").action((opts) => runSetup(opts));
 var mandate = program2.command("mandate").description("manage AP2 mandates");
-mandate.command("create").description("register an AP2 mandate on-chain and approve the SEP-41 allowance").option("-b, --budget <xlm>", "mandate cap in XLM (default: from reapp.config.json)").option("-e, --expiry <seconds>", "seconds until the mandate expires", "3600").option("-f, --force", "replace an existing stored mandate").action((opts) => runMandateCreate(opts));
-program2.command("pay").description("make an agent-signed payment against the active mandate (budget enforced on-chain)").argument("[amount]", "XLM amount to pay (default: unlockPrice from reapp.config.json)").action((amount) => runPay(amount));
+mandate.command("create").description("register an AP2 mandate on-chain and approve the SEP-41 allowance").option("-b, --budget <xlm>", "mandate cap in XLM (default: from ackrate.config.json)").option("-e, --expiry <seconds>", "seconds until the mandate expires", "3600").option("-f, --force", "replace an existing stored mandate").action((opts) => runMandateCreate(opts));
+program2.command("pay").description("make an agent-signed payment against the active mandate (budget enforced on-chain)").argument("[amount]", "XLM amount to pay (default: unlockPrice from ackrate.config.json)").action((amount) => runPay(amount));
 var settlement = program2.command("settlement").description("inspect crash-safe payment state");
 settlement.command("reconcile").description("query the exact prepared transaction hash before allowing another payment").action(() => runSettlementReconcile());
 settlement.command("acknowledge").description("acknowledge one exact durably recorded successful payment").argument("<tx-hash>", "the exact 64-character lowercase transaction hash").action((txHash) => runSettlementAcknowledge(txHash));
-program2.command("demo").description("list or run a self-contained on-chain demo (ephemeral accounts, no setup needed)").argument("[target]", "which demo to run; omit to list available demos").action((target) => runDemo(target));
+var ops = program2.command("ops").description("coordinate exact 2-of-3 authority requests without handling secrets");
+ops.command("create").description("bind one unsigned transaction XDR to an immutable signing request").requiredOption("--xdr <path>", "file containing unsigned transaction-envelope XDR").requiredOption("--manifest <path>", "public 2-of-3 authority manifest").requiredOption("--out <path>", "new request JSON file; refuses to overwrite").action((options) => runOpsCreate(options.xdr, options.manifest, options.out));
+ops.command("verify").description("independently verify a request ID, XDR, source, network, and effect").requiredOption("--request <path>", "immutable request JSON file").action((options) => runOpsVerify(options.request));
+ops.command("combine").description("verify and combine exactly two independently signed envelopes").requiredOption("--request <path>", "immutable request JSON file").requiredOption("--signed <path...>", "exactly two single-signature XDR files").requiredOption("--out <path>", "new two-signature XDR file; refuses to overwrite").action((options) => runOpsCombine(options.request, options.signed, options.out));
+program2.command("demo").description("run the reference research-agent payment flow on testnet or explicitly configured mainnet").argument("[target]", "which demo to run; omit to list available demos").option("--network <network>", "testnet or mainnet", "testnet").option("--manifest <path>", "verified mainnet deployment manifest JSON").option("--user-signer <identity>", "Stellar CLI identity for the mandate user").option("--agent-signer <identity>", "Stellar CLI identity for the payment agent").option("--merchant <address>", "mainnet merchant G-account").option("--budget <usdc>", "explicit real-USDC mandate budget").option("--price <usdc>", "explicit real-USDC price per source").option("--confirm-real-usdc", "acknowledge that mainnet payments are irreversible and spend real USDC").action((target, options) => runDemo(target, options));
 program2.parseAsync(process.argv).catch((err) => {
   console.error(err instanceof Error ? err.message : err);
   process.exit(1);

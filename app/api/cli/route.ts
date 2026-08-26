@@ -7,9 +7,9 @@ import { log } from "@/lib/log";
 export const runtime = "nodejs";
 export const maxDuration = 300;
 
-const BUNDLE = join(process.cwd(), "vendor", "reapp-cli.mjs");
+const BUNDLE = join(process.cwd(), "vendor", "ackrate-cli.mjs");
 
-// Only the reapp-protocol-cli subcommands. spawn uses an arg array (no shell), and
+// Only the @ackrate/cli subcommands. spawn uses an arg array (no shell), and
 // every token must be a plain identifier/flag — no shell metacharacters.
 const ALLOWED_FIRST = new Set(["init", "setup", "mandate", "pay", "settlement", "demo", "--help", "--version"]);
 const TOKEN = /^[A-Za-z0-9._:/-]+$/;
@@ -28,7 +28,7 @@ export async function POST(req: Request) {
 
   // Per-session working dir so init/setup/mandate/pay share state across calls.
   const sessionId = typeof body.sessionId === "string" && /^[A-Za-z0-9-]{6,40}$/.test(body.sessionId) ? body.sessionId : "anon";
-  const home = join(tmpdir(), "reapp-protocol-cli", sessionId);
+  const home = join(tmpdir(), "ackrate-cli", sessionId);
   mkdirSync(home, { recursive: true });
 
   log.info("POST /api/cli", { cmd: args.join(" "), session: sessionId.slice(0, 8) });
@@ -49,12 +49,12 @@ export async function POST(req: Request) {
       };
       const child = spawn(process.execPath, [BUNDLE, ...args], {
         cwd: home,
-        env: { ...process.env, REAPP_HOME: home, FORCE_COLOR: "1" },
+        env: { ...process.env, ACKRATE_HOME: home, FORCE_COLOR: "1" },
       });
       child.stdout.on("data", (d: Buffer) => controller.enqueue(enc.encode(d.toString())));
       child.stderr.on("data", (d: Buffer) => controller.enqueue(enc.encode(d.toString())));
       child.on("close", (code) => {
-        controller.enqueue(enc.encode(`\r\n\x1b[2m[reapp exited ${code}]\x1b[0m\r\n`));
+        controller.enqueue(enc.encode(`\r\n\x1b[2m[ackrate exited ${code}]\x1b[0m\r\n`));
         safeClose();
       });
       child.on("error", (e) => {

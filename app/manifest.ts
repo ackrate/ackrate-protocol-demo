@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "REAPP — Agentic Payments SDK",
-    short_name: "REAPP",
+    name: "ACKRATE — Agentic Payments SDK",
+    short_name: "ACKRATE",
     description: "Live agentic payments SDK documentation and Stellar testnet demonstrations.",
     start_url: "/",
     display: "standalone",

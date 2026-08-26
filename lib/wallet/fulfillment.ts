@@ -1,14 +1,14 @@
 import { once } from "node:events";
 import type { Server } from "node:http";
 import express, { type NextFunction, type Request, type Response } from "express";
-import { createBoundReappPaidJsonRoute } from "@reapp-sdk/express-middleware";
+import { createBoundAckratePaidJsonRoute } from "@ackrate/express-middleware";
 import { requireReadyConfig, type AppConfig } from "./app-config";
 import { PostgresBoundRedemptionStore } from "./redemption-store";
 import { installMainnetAccountFallback } from "./rpc-account-fallback";
 import { installMainnetRpcRetry } from "./rpc-retry";
 
 type Runtime = { server: Server; origin: string; fingerprint: string };
-const globalRuntime = globalThis as typeof globalThis & { __reappMainnetFulfillment?: Promise<Runtime> };
+const globalRuntime = globalThis as typeof globalThis & { __ackrateMainnetFulfillment?: Promise<Runtime> };
 
 function fingerprint(config: AppConfig): string {
   return [
@@ -33,7 +33,7 @@ async function startRuntime(config: AppConfig): Promise<Runtime> {
   const store = new PostgresBoundRedemptionStore(config.databaseUrl);
   const app = express();
   app.disable("x-powered-by");
-  const paidSource = createBoundReappPaidJsonRoute({
+  const paidSource = createBoundAckratePaidJsonRoute({
     merchant: config.public.merchant.address,
     sourceAccount: config.public.merchant.address,
     audience: config.appOrigin,
@@ -91,11 +91,11 @@ async function startRuntime(config: AppConfig): Promise<Runtime> {
 async function runtime(): Promise<Runtime> {
   const config = requireReadyConfig();
   const expected = fingerprint(config);
-  const current = globalRuntime.__reappMainnetFulfillment && await globalRuntime.__reappMainnetFulfillment;
+  const current = globalRuntime.__ackrateMainnetFulfillment && await globalRuntime.__ackrateMainnetFulfillment;
   if (current?.fingerprint === expected && current.server.listening) return current;
   if (current?.server.listening) await new Promise<void>((resolve) => current.server.close(() => resolve()));
-  globalRuntime.__reappMainnetFulfillment = startRuntime(config);
-  return globalRuntime.__reappMainnetFulfillment;
+  globalRuntime.__ackrateMainnetFulfillment = startRuntime(config);
+  return globalRuntime.__ackrateMainnetFulfillment;
 }
 
 export async function proxyPaidSource(request: globalThis.Request): Promise<globalThis.Response> {

@@ -14,7 +14,7 @@ import {
   createSettlementReceiptId,
   decodePaymentProof,
   encodePaymentProof,
-} from "@reapp-sdk/core";
+} from "@ackrate/core";
 import { toJsonSafeObject } from "./evidence.mjs";
 
 const MAX_FILE_BYTES = 4 * 1024 * 1024;
@@ -63,7 +63,7 @@ async function readJson(path, fallback) {
   try {
     const info = await stat(path);
     if (!info.isFile() || info.size > MAX_FILE_BYTES) {
-      throw new Error(`${path} is not a safe REAPP state file`);
+      throw new Error(`${path} is not a safe ACKRATE state file`);
     }
     return JSON.parse(await readFile(path, "utf8"));
   } catch (error) {
@@ -79,12 +79,12 @@ function serializedJson(path, value) {
     if (json === undefined) throw new Error("state root is not JSON-serializable");
     contents = `${json}\n`;
   } catch (error) {
-    throw new Error(`${path} could not be serialized as REAPP state`, { cause: error });
+    throw new Error(`${path} could not be serialized as ACKRATE state`, { cause: error });
   }
   const bytes = Buffer.byteLength(contents, "utf8");
   if (bytes > MAX_FILE_BYTES) {
     throw new Error(
-      `${path} would exceed the safe REAPP state limit of ${MAX_FILE_BYTES} bytes`,
+      `${path} would exceed the safe ACKRATE state limit of ${MAX_FILE_BYTES} bytes`,
     );
   }
   return contents;
@@ -412,7 +412,7 @@ export class FileRunResultStore {
       const file = await this.#load();
       const run = file.runs.find((candidate) => candidate.runId === runId);
       if (!run || run.status !== "running") {
-        throw new Error("cannot append to a missing or finished REAPP run");
+        throw new Error("cannot append to a missing or finished ACKRATE run");
       }
       run.events.push(Object.freeze({ ...checkedEvent, at: new Date().toISOString() }));
       await writeJson(this.filePath, validateRunResultFile(file));
@@ -425,7 +425,7 @@ export class FileRunResultStore {
       const file = await this.#load();
       const run = file.runs.find((candidate) => candidate.runId === runId);
       if (!run || run.status !== "running") {
-        throw new Error("cannot commit delivery to a missing or finished REAPP run");
+        throw new Error("cannot commit delivery to a missing or finished ACKRATE run");
       }
       const existing = run.events.find(
         (candidate) => candidate.type === "delivery_accepted"
@@ -460,7 +460,7 @@ export class FileRunResultStore {
       const file = await this.#load();
       const run = file.runs.find((candidate) => candidate.runId === runId);
       if (!run || run.status !== "running") {
-        throw new Error("cannot finish a missing or finished REAPP run");
+        throw new Error("cannot finish a missing or finished ACKRATE run");
       }
       run.status = status;
       run.finishedAt = new Date().toISOString();

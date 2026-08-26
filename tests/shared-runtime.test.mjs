@@ -9,14 +9,14 @@ import test from "node:test";
 import { Keypair } from "@stellar/stellar-sdk";
 import {
   BOUND_PAYMENT_CAPABILITY,
-  REAPP_PAYMENT_CAPABILITIES_HEADER,
+  ACKRATE_PAYMENT_CAPABILITIES_HEADER,
   X_PAYMENT_HEADER,
   createBoundPaymentProof,
   createSettlementReceiptId,
   encodePaymentProof,
   parse402,
-  reapp,
-} from "@reapp-sdk/core";
+  ackrate,
+} from "@ackrate/core";
 import {
   parseNamedArgs,
   validateExactOrigin,
@@ -140,7 +140,7 @@ async function temporaryDirectory(t, prefix) {
 
 function legacyReceipt({ tx = "a".repeat(64), mandate = "b".repeat(64) } = {}) {
   const proof = Object.freeze({
-    scheme: "reapp-soroban",
+    scheme: "ackrate-soroban",
     network: "stellar-testnet",
     txHash: tx,
     mandateId: mandate,
@@ -179,7 +179,7 @@ function redemptionRecord({
       merchant: Keypair.random().publicKey(),
       asset: "native-test-asset",
       registryId: "registry",
-      scheme: "reapp-soroban-bound",
+      scheme: "ackrate-soroban-bound",
       network: "stellar-testnet",
       agent: Keypair.random().publicKey(),
       user: Keypair.random().publicKey(),
@@ -257,7 +257,7 @@ test("expiry waiting is pinned to observed testnet ledger time", async () => {
 });
 
 test("fulfillment preflight rejects without billing and paid routes remain GET-only", async (t) => {
-  const stateRoot = await temporaryDirectory(t, "reapp-shared-http-");
+  const stateRoot = await temporaryDirectory(t, "ackrate-shared-http-");
   let verifierCalls = 0;
   let fulfillmentCalls = 0;
   let preflightCalls = 0;
@@ -312,10 +312,10 @@ test("fulfillment preflight rejects without billing and paid routes remain GET-o
 
   const challenge = await requestApp(app, {
     path: "/items/known",
-    headers: { "reapp-payment-capabilities": "reapp-bound-v2" },
+    headers: { "ackrate-payment-capabilities": "ackrate-bound-v2" },
   });
   assert.equal(challenge.status, 402);
-  assert.equal(JSON.parse(challenge.body).accepts[0].extra.reappProofVersion, 2);
+  assert.equal(JSON.parse(challenge.body).accepts[0].extra.ackrateProofVersion, 2);
   assert.equal(verifierCalls, 0);
   assert.throws(() => createFulfillmentApp({
     merchant: Keypair.random().publicKey(),
@@ -331,7 +331,7 @@ test("fulfillment preflight rejects without billing and paid routes remain GET-o
 });
 
 test("bound proof executes once, recovers exact bytes, and rejects both rebinding forms", async (t) => {
-  const stateRoot = await temporaryDirectory(t, "reapp-shared-bound-proof-");
+  const stateRoot = await temporaryDirectory(t, "ackrate-shared-bound-proof-");
   const redemptionPath = resolve(stateRoot, "fulfillment-redemptions.json");
   const redemptionStore = new FileBoundRedemptionStore(redemptionPath);
   const merchant = Keypair.random().publicKey();
@@ -391,7 +391,7 @@ test("bound proof executes once, recovers exact bytes, and rejects both rebindin
   });
 
   const capabilityHeaders = {
-    [REAPP_PAYMENT_CAPABILITIES_HEADER]: BOUND_PAYMENT_CAPABILITY,
+    [ACKRATE_PAYMENT_CAPABILITIES_HEADER]: BOUND_PAYMENT_CAPABILITY,
   };
   const alphaChallengeResponse = await requestApp(app, {
     path: "/items/alpha",
@@ -486,7 +486,7 @@ test("server closer is idempotent across concurrent and repeated calls", async (
 });
 
 test("durable result commits are idempotent and conflicting receipt reuse fails", async (t) => {
-  const directory = await temporaryDirectory(t, "reapp-shared-results-");
+  const directory = await temporaryDirectory(t, "ackrate-shared-results-");
   const path = resolve(directory, "results.json");
   const store = new FileRunResultStore(path);
   const runId = await store.begin({ scenario: "fixture" });
@@ -511,7 +511,7 @@ test("durable result commits are idempotent and conflicting receipt reuse fails"
 });
 
 test("settlement receipt storage detects envelope tampering", async (t) => {
-  const directory = await temporaryDirectory(t, "reapp-shared-receipts-");
+  const directory = await temporaryDirectory(t, "ackrate-shared-receipts-");
   const path = resolve(directory, "pending.json");
   const store = new FileSettlementReceiptStore(path);
   const receipt = legacyReceipt();
@@ -524,7 +524,7 @@ test("settlement receipt storage detects envelope tampering", async (t) => {
 });
 
 test("redemption storage preserves one execution and exact completed bytes", async (t) => {
-  const directory = await temporaryDirectory(t, "reapp-shared-redemptions-");
+  const directory = await temporaryDirectory(t, "ackrate-shared-redemptions-");
   const store = new FileBoundRedemptionStore(resolve(directory, "redemptions.json"));
   const record = redemptionRecord();
   const claimed = await store.claim(record, "execution-1", 1_700_000_000);
@@ -545,7 +545,7 @@ test("redemption storage preserves one execution and exact completed bytes", asy
 });
 
 test("safe reset refuses unresolved receipts and executing fulfillment", async (t) => {
-  const directory = await temporaryDirectory(t, "reapp-shared-reset-refuse-");
+  const directory = await temporaryDirectory(t, "ackrate-shared-reset-refuse-");
   const stateRoot = resolve(directory, "state");
   const archiveRoot = resolve(directory, "archive");
   const receipts = new FileSettlementReceiptStore(resolve(stateRoot, "pending-receipts.json"));
@@ -574,7 +574,7 @@ test("safe reset refuses unresolved receipts and executing fulfillment", async (
 });
 
 test("safe reset clears only durably accepted receipts and archives instead of deleting", async (t) => {
-  const directory = await temporaryDirectory(t, "reapp-shared-reset-archive-");
+  const directory = await temporaryDirectory(t, "ackrate-shared-reset-archive-");
   const stateRoot = resolve(directory, "state");
   const archiveRoot = resolve(directory, "archive");
   const receipt = legacyReceipt();
@@ -634,7 +634,7 @@ test("testnet mandate state helper returns JSON-safe state and detects deltas vi
     user: Keypair.random().publicKey(),
     agent: Keypair.random().publicKey(),
     merchant: Keypair.random().publicKey(),
-    asset: reapp.testnet.nativeSac,
+    asset: ackrate.testnet.nativeSac,
     maxAmount: 30_000_000n,
     expiry: Math.floor(Date.now() / 1_000) + 3_600,
     decimals: 7,

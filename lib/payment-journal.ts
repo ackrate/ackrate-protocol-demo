@@ -5,9 +5,9 @@ import { join } from "node:path";
 import {
   SettlementUncertainError,
   type Agent,
-} from "@reapp-sdk/core";
+} from "@ackrate/core";
 
-const ROOT = join(tmpdir(), "reapp-site-payment-journals");
+const ROOT = join(tmpdir(), "ackrate-site-payment-journals");
 
 function journalDirectory(key: string): string {
   const digest = createHash("sha256").update(key, "utf8").digest("hex");

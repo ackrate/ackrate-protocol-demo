@@ -15,23 +15,23 @@ import {
 } from "lucide-react";
 import "@xterm/xterm/css/xterm.css";
 
-const PACKAGE = "reapp-protocol-cli";
-const VERSION = "0.1.7";
-const COMMAND = "reapp";
+const PACKAGE = "@ackrate/cli";
+const VERSION = "0.1.9";
+const COMMAND = "ackrate";
 const CONTRACT = "CCHQ5G4Y4YBMY6D3TYYJSVJVCKUM22Q6TMKCCHVAHY4X7K6QELQACZRM";
 
-const INSTALL = `npx reapp-protocol-cli@0.1.7 demo research-agent
+const INSTALL = `npx @ackrate/cli@0.1.9 demo research-agent
 
-npm install -g reapp-protocol-cli@0.1.7
-reapp --help`;
+npm install -g @ackrate/cli@0.1.9
+ackrate --help`;
 
-const PROJECT_FLOW = `reapp init
-reapp setup
-reapp mandate create
-reapp pay
-reapp settlement reconcile
-reapp settlement acknowledge <TX_HASH>
-reapp pay 10.00`;
+const PROJECT_FLOW = `ackrate init
+ackrate setup
+ackrate mandate create
+ackrate pay
+ackrate settlement reconcile
+ackrate settlement acknowledge <TX_HASH>
+ackrate pay 10.00`;
 
 const QUICK = [
   { label: "demo research-agent", cmd: "demo research-agent" },
@@ -43,7 +43,7 @@ const QUICK = [
 ];
 
 const COMMANDS = [
-  { name: "init", desc: "Writes a committable reapp.config.json with the live testnet contract id.", Icon: Package },
+  { name: "init", desc: "Writes a committable ackrate.config.json with the live testnet contract id.", Icon: Package },
   { name: "setup", desc: "Creates user, agent, and merchant testnet accounts, then funds them.", Icon: CheckCircle2 },
   { name: "mandate create", desc: "Registers a scoped mandate and approves the allowance to the contract.", Icon: ShieldCheck },
   { name: "pay", desc: "Makes an agent-signed payment through MandateRegistry.execute_payment.", Icon: Terminal },
@@ -187,7 +187,7 @@ export default function CliPage() {
               Run demo
             </button>
             <a
-              href="https://www.npmjs.com/package/reapp-protocol-cli"
+              href="https://www.npmjs.com/package/@ackrate/cli"
               target="_blank"
               rel="noreferrer"
               className="inline-flex items-center gap-2 rounded-xl border border-white/15 px-4 py-2.5 text-sm font-semibold text-emerald-100/80 transition hover:border-emerald-400/40 hover:text-emerald-100"
@@ -273,7 +273,7 @@ export default function CliPage() {
               <span className="h-3 w-3 rounded-full bg-red-400/70" />
               <span className="h-3 w-3 rounded-full bg-amber-400/70" />
               <span className="h-3 w-3 rounded-full bg-emerald-400/70" />
-              <span className="ml-2">reapp-protocol-cli · testnet</span>
+              <span className="ml-2">@ackrate/cli · testnet</span>
             </div>
             <div ref={hostRef} className="h-[520px] w-full px-3 py-2" />
           </div>
@@ -306,7 +306,7 @@ export default function CliPage() {
               <div key={name} className="rounded-lg border border-white/10 bg-black/30 p-3">
                 <div className="flex items-center gap-2">
                   <Icon className="h-4 w-4 text-emerald-300" aria-hidden />
-                  <code className="text-xs text-emerald-300">reapp {name}</code>
+                  <code className="text-xs text-emerald-300">ackrate {name}</code>
                 </div>
                 <p className="mt-2 text-xs leading-relaxed text-emerald-100/60">{desc}</p>
               </div>

@@ -5,7 +5,7 @@ import type { NetworkName } from "./types";
 type RpcGetAccount = (address: string) => Promise<Account>;
 
 const runtime = globalThis as typeof globalThis & {
-  __reappMainnetAccountFallbackInstalled?: boolean;
+  __ackrateMainnetAccountFallbackInstalled?: boolean;
 };
 
 function missingAccount(error: unknown, address: string): boolean {
@@ -34,12 +34,12 @@ export async function accountWithHorizonFallback(
  * contract remains the authority for every payment.
  */
 export function installMainnetAccountFallback(network: NetworkName): void {
-  if (network !== "mainnet" || runtime.__reappMainnetAccountFallbackInstalled) return;
+  if (network !== "mainnet" || runtime.__ackrateMainnetAccountFallbackInstalled) return;
 
   const prototype = rpc.Server.prototype as typeof rpc.Server.prototype & { getAccount: RpcGetAccount };
   const upstream = prototype.getAccount;
   prototype.getAccount = async function getAccountWithHorizon(address: string): Promise<Account> {
     return accountWithHorizonFallback(address, () => upstream.call(this, address));
   };
-  runtime.__reappMainnetAccountFallbackInstalled = true;
+  runtime.__ackrateMainnetAccountFallbackInstalled = true;
 }

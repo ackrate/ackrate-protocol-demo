@@ -8,12 +8,12 @@ import test from "node:test";
 import { Keypair } from "@stellar/stellar-sdk";
 import {
   BOUND_PAYMENT_CAPABILITY,
-  REAPP_PAYMENT_CAPABILITIES_HEADER,
+  ACKRATE_PAYMENT_CAPABILITIES_HEADER,
   X_PAYMENT_HEADER,
   createBoundPaymentProof,
   encodePaymentProof,
   parse402,
-} from "@reapp-sdk/core";
+} from "@ackrate/core";
 import {
   createFulfillmentApp,
   createFulfillmentMetrics,
@@ -78,7 +78,7 @@ async function temporaryDirectory(t, prefix) {
 }
 
 const CAPABILITY_HEADERS = Object.freeze({
-  [REAPP_PAYMENT_CAPABILITIES_HEADER]: BOUND_PAYMENT_CAPABILITY,
+  [ACKRATE_PAYMENT_CAPABILITIES_HEADER]: BOUND_PAYMENT_CAPABILITY,
 });
 
 async function challenge(app, path) {
@@ -131,7 +131,7 @@ function storedJson(body) {
 }
 
 test("scenario callbacks receive only a frozen sanitized request view", async (t) => {
-  const stateRoot = await temporaryDirectory(t, "reapp-fulfillment-sanitized-");
+  const stateRoot = await temporaryDirectory(t, "ackrate-fulfillment-sanitized-");
   const merchant = Keypair.random().publicKey();
   const user = Keypair.random().publicKey();
   const agent = Keypair.random();
@@ -212,7 +212,7 @@ test("scenario callbacks receive only a frozen sanitized request view", async (t
 });
 
 test("fresh apps recover exact completed bytes before missing, stale, or changed preflight", async (t) => {
-  const stateRoot = await temporaryDirectory(t, "reapp-fulfillment-restart-");
+  const stateRoot = await temporaryDirectory(t, "ackrate-fulfillment-restart-");
   const redemptionStore = new FileBoundRedemptionStore(
     resolve(stateRoot, "fulfillment-redemptions.json"),
   );
@@ -358,7 +358,7 @@ test("fresh apps recover exact completed bytes before missing, stale, or changed
 });
 
 test("preflight price is mandatory and must equal the exact challenge amount", async (t) => {
-  const stateRoot = await temporaryDirectory(t, "reapp-fulfillment-price-");
+  const stateRoot = await temporaryDirectory(t, "ackrate-fulfillment-price-");
   for (const preflight of [
     () => ({ id: "alpha" }),
     () => ({ id: "alpha", priceXlm: "1.0" }),
@@ -397,7 +397,7 @@ test("an authenticated quote survives first-delivery price and availability chan
   const challengeSecret = "q".repeat(32);
 
   {
-    const stateRoot = await temporaryDirectory(t, "reapp-first-delivery-price-");
+    const stateRoot = await temporaryDirectory(t, "ackrate-first-delivery-price-");
     const txHash = "c".repeat(64);
     const mandateId = "d".repeat(64);
     let price = "1.00";
@@ -443,7 +443,7 @@ test("an authenticated quote survives first-delivery price and availability chan
   }
 
   {
-    const stateRoot = await temporaryDirectory(t, "reapp-first-delivery-missing-");
+    const stateRoot = await temporaryDirectory(t, "ackrate-first-delivery-missing-");
     const txHash = "e".repeat(64);
     const mandateId = "f".repeat(64);
     let available = true;
@@ -498,7 +498,7 @@ test("an authenticated quote survives first-delivery price and availability chan
 });
 
 test("an expired proof recovers a payment time-bound to its authenticated quote", async (t) => {
-  const stateRoot = await temporaryDirectory(t, "reapp-expired-proof-recovery-");
+  const stateRoot = await temporaryDirectory(t, "ackrate-expired-proof-recovery-");
   const merchant = Keypair.random().publicKey();
   const user = Keypair.random().publicKey();
   const agent = Keypair.random();
@@ -563,7 +563,7 @@ test("an expired proof recovers a payment time-bound to its authenticated quote"
 });
 
 test("late recovery rejects a transaction window that outlives its quote", async (t) => {
-  const stateRoot = await temporaryDirectory(t, "reapp-expired-proof-window-");
+  const stateRoot = await temporaryDirectory(t, "ackrate-expired-proof-window-");
   const merchant = Keypair.random().publicKey();
   const agent = Keypair.random();
   const txHash = "8".repeat(64);
@@ -610,7 +610,7 @@ test("late recovery rejects a transaction window that outlives its quote", async
 });
 
 test("late recovery rejects a payment confirmed before its authenticated quote", async (t) => {
-  const stateRoot = await temporaryDirectory(t, "reapp-expired-proof-old-payment-");
+  const stateRoot = await temporaryDirectory(t, "ackrate-expired-proof-old-payment-");
   const merchant = Keypair.random().publicKey();
   const agent = Keypair.random();
   const txHash = "a".repeat(64);
@@ -764,7 +764,7 @@ test("late recovery fails closed on corrupted claim and completion records", asy
 
 test("paid route patterns cannot be shadowed by the free health endpoint", async (t) => {
   for (const routePattern of ["/health", "/:id"]) {
-    const stateRoot = await temporaryDirectory(t, "reapp-health-collision-");
+    const stateRoot = await temporaryDirectory(t, "ackrate-health-collision-");
     let preflightCalls = 0;
     const app = createFulfillmentApp({
       merchant: Keypair.random().publicKey(),
@@ -801,7 +801,7 @@ test("paid route patterns cannot be shadowed by the free health endpoint", async
     challengeSecret: "i".repeat(32),
     routePattern: "/items/:id",
     amount: "1.00",
-    stateRoot: await temporaryDirectory(t, "reapp-health-ordinary-"),
+    stateRoot: await temporaryDirectory(t, "ackrate-health-ordinary-"),
     preflight: (request) => ({ id: request.params.id, priceXlm: "1.00" }),
     fulfill: () => ({ body: { ok: true } }),
     testVerifier: { async verify() { throw new Error("not expected"); } },
@@ -813,7 +813,7 @@ test("paid route patterns cannot be shadowed by the free health endpoint", async
 
 test("paid fulfillment never emits 201 or 204 and recovers its terminal JSON", async (t) => {
   for (const rejectedStatus of [201, 204]) {
-    const stateRoot = await temporaryDirectory(t, `reapp-fulfillment-${rejectedStatus}-`);
+    const stateRoot = await temporaryDirectory(t, `ackrate-fulfillment-${rejectedStatus}-`);
     const merchant = Keypair.random().publicKey();
     const user = Keypair.random().publicKey();
     const agent = Keypair.random();
@@ -870,7 +870,7 @@ test("verifier and redemption-store outages fail closed without fulfillment", as
   const mandateId = "9".repeat(64);
 
   {
-    const stateRoot = await temporaryDirectory(t, "reapp-verifier-outage-");
+    const stateRoot = await temporaryDirectory(t, "ackrate-verifier-outage-");
     const txHash = "a".repeat(64);
     let fulfillmentCalls = 0;
     const app = createFulfillmentApp({

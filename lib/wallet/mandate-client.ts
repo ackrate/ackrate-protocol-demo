@@ -9,11 +9,12 @@ import {
   nativeToScVal,
   rpc,
 } from "@stellar/stellar-sdk";
-import { Client, type NetworkConfig } from "@reapp-sdk/stellar";
-import { reapp, type IntentMandate } from "@reapp-sdk/core";
+import { Client, type NetworkConfig } from "@ackrate/stellar";
+import { ackrate, type IntentMandate } from "@ackrate/core";
 import type { SafeAppConfig } from "./types";
 import { freighterSigner } from "./freighter";
 import { loadAccountSequence } from "./horizon-account";
+import { installMainnetRpcRetry } from "./rpc-retry";
 
 if (typeof window !== "undefined" && !window.Buffer) window.Buffer = Buffer;
 
@@ -38,7 +39,7 @@ export function buildMandate(config: SafeAppConfig, user: string, form: CreateMa
   if (!config.agentAddress || !config.merchant.address) {
     throw new Error("agent and merchant configuration is incomplete");
   }
-  return reapp.createIntentMandate({
+  return ackrate.createIntentMandate({
     user,
     agent: config.agentAddress,
     merchant: config.merchant.address,
@@ -64,6 +65,7 @@ function walletClient(config: SafeAppConfig, address: string): Client {
 }
 
 export function walletRpcServer(config: SafeAppConfig): rpc.Server {
+  installMainnetRpcRetry(config.network);
   const server = new rpc.Server(config.rpcUrl, { allowHttp: config.rpcUrl.startsWith("http://") });
   server.getAccount = async (address: string) => new Account(
     address,

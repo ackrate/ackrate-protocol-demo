@@ -17,7 +17,7 @@ export const starter = Object.freeze({
 });
 
 function printHelp() {
-  console.log(`REAPP starter: ${starter.title}
+  console.log(`ACKRATE starter: ${starter.title}
 
 Usage:
   npm run check  # deterministic offline business vectors
@@ -25,12 +25,12 @@ Usage:
 
 The demo explains each 402, contract payment, 200 response, and safety check in
 plain English. It creates temporary testnet keys, stores private recovery data
-under .reapp/, and never requests a wallet or mainnet secret.
+under .ackrate/, and never requests a wallet or mainnet secret.
 
-Advanced: REAPP_VERBOSE=1 npm run demo also shows developer event names.`);
+Advanced: ACKRATE_VERBOSE=1 npm run demo also shows developer event names.`);
 }
 
-export async function runDemo({ stateRoot = resolve(".reapp"), onEvent } = {}) {
+export async function runDemo({ stateRoot = resolve(".ackrate"), onEvent } = {}) {
   return runLocalTestnetDemo({ scenario, stateRoot, onEvent });
 }
 
@@ -50,7 +50,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
   main().catch((error) => {
     console.error("\nThe demo stopped safely before it could finish.");
     console.error(`Reason: ${error instanceof Error ? error.message : String(error)}`);
-    console.error("Your recovery evidence is still in .reapp/. Read README.md before resetting it.");
+    console.error("Your recovery evidence is still in .ackrate/. Read README.md before resetting it.");
     process.exitCode = 1;
   });
 }

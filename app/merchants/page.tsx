@@ -289,7 +289,7 @@ export default function MerchantsPage() {
       <motion.section {...fade(0.28)} className="mt-12 overflow-hidden rounded-3xl border border-emerald-300/15 bg-[radial-gradient(circle_at_20%_0%,rgba(52,211,153,.14),transparent_38%),rgba(255,255,255,.02)] p-7 sm:p-10">
         <div className="grid gap-8 lg:grid-cols-[1fr_auto] lg:items-center">
           <div><div className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.17em] text-emerald-300/75"><Store className="h-4 w-4" /> Merchant integration</div><h2 className="mt-3 text-3xl font-black tracking-tight text-white sm:text-4xl">Ship the paid endpoint. Keep the proof trail.</h2><p className="mt-4 max-w-2xl text-sm leading-relaxed text-white/50">Express middleware verifies the authenticated quote, Mainnet transaction, registry event, token transfer, and one-time redemption before your protected handler returns value.</p></div>
-          <a href="https://www.npmjs.com/package/@reapp-sdk/express-middleware" target="_blank" rel="noreferrer" className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-400 px-5 py-3 text-sm font-bold text-[#052117] transition hover:bg-emerald-300">Open merchant SDK <ArrowUpRight className="h-4 w-4" /></a>
+          <a href="https://www.npmjs.com/package/@ackrate/express-middleware" target="_blank" rel="noreferrer" className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-400 px-5 py-3 text-sm font-bold text-[#052117] transition hover:bg-emerald-300">Open merchant SDK <ArrowUpRight className="h-4 w-4" /></a>
         </div>
       </motion.section>
     </main>

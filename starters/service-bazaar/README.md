@@ -109,7 +109,7 @@ The one-command demo starts both sides automatically. To inspect or modify the s
 
 ```bash
 cp .env.example .env
-# Put a funded Stellar testnet public G-address in REAPP_MERCHANT.
+# Put a funded Stellar testnet public G-address in ACKRATE_MERCHANT.
 npm run fulfillment
 ```
 
@@ -120,6 +120,6 @@ Keep the challenge secret private and stable. The reference file store is for on
 - Paid work is GET-only and bound to the exact origin, method, resource, merchant, asset, amount, registry, and short-lived challenge.
 - Delivery evidence is committed before the client acknowledges and clears a settlement receipt.
 - Exact same-proof replay returns byte-identical recovery; an old proof on a new resource is rejected, and a freshly rebound proof reusing an old transaction conflicts.
-- State under `.reapp/` is private and ignored by Git. Run `npm run reset` only after all payment and fulfillment evidence is resolved.
+- State under `.ackrate/` is private and ignored by Git. Run `npm run reset` only after all payment and fulfillment evidence is resolved.
 
 Catalog identity: `service-bazaar` · fixture policy: `deterministic-and-clearly-labeled`.

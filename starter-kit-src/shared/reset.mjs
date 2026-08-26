@@ -35,7 +35,7 @@ export class SafeResetRefusedError extends Error {
   }
 }
 
-export async function inspectResetSafety({ stateRoot = resolve(".reapp") } = {}) {
+export async function inspectResetSafety({ stateRoot = resolve(".ackrate") } = {}) {
   const root = resolve(stateRoot);
   const stores = createResetStores(root);
   const accepted = new Map(
@@ -72,8 +72,8 @@ export async function inspectResetSafety({ stateRoot = resolve(".reapp") } = {})
 }
 
 export async function runSafeReset({
-  stateRoot = resolve(".reapp"),
-  archiveRoot = resolve(".reapp-archive"),
+  stateRoot = resolve(".ackrate"),
+  archiveRoot = resolve(".ackrate-archive"),
   now = () => new Date(),
 } = {}) {
   const source = resolve(stateRoot);

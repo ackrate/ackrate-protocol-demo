@@ -2,9 +2,9 @@
 // Run the generator after changing the catalog.
 
 export const HACKATHON_STARTER_CATALOG = {
-  "catalogId": "reapp-hackathon-starters-v1",
+  "catalogId": "ackrate-hackathon-starters-v1",
   "constraints": {
-    "compatibilityClaim": "reapp-bound-v2",
+    "compatibilityClaim": "ackrate-bound-v2",
     "fixturePolicy": "deterministic-and-clearly-labeled",
     "network": "stellar-testnet",
     "paidMethod": "GET",
@@ -584,10 +584,10 @@ export const HACKATHON_STARTER_CATALOG = {
 } as const;
 
 export const HACKATHON_STARTER_DEPENDENCIES = {
-  "@reapp-sdk/ap2": "0.3.0",
-  "@reapp-sdk/core": "0.3.1",
-  "@reapp-sdk/express-middleware": "0.2.2",
-  "@reapp-sdk/stellar": "0.2.2",
+  "@ackrate/ap2": "0.3.0",
+  "@ackrate/core": "0.3.1",
+  "@ackrate/express-middleware": "0.2.2",
+  "@ackrate/stellar": "0.2.2",
   "@stellar/stellar-sdk": "14.6.1",
   "express": "5.2.1"
 } as const;

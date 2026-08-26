@@ -10,7 +10,7 @@ export default function DiagnosticsPage() {
   } catch (error) {
     return (
       <main className="wallet-preview shell diagnostic-page">
-        <Link href="/" className="brand"><span>R</span> REAPP</Link>
+        <Link href="/" className="brand"><span>R</span> ACKRATE</Link>
         <section className="glass diagnostic-card">
           <p className="eyebrow danger">CONFIGURATION REJECTED</p>
           <h1>Release diagnostics</h1>
@@ -31,7 +31,7 @@ export default function DiagnosticsPage() {
   ];
   return (
     <main className="wallet-preview shell diagnostic-page">
-      <Link href="/" className="brand"><span>R</span> REAPP</Link>
+      <Link href="/" className="brand"><span>R</span> ACKRATE</Link>
       <section className="glass diagnostic-card">
         <div className="diagnostic-head">
           <div>

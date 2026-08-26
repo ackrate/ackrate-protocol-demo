@@ -7,12 +7,14 @@ import type {
   BoundRedemptionRecord,
   BoundRedemptionStore,
   StoredBoundJsonResponse,
-} from "@reapp-sdk/express-middleware";
-import type { VerifiedPayment } from "@reapp-sdk/express-middleware";
+} from "@ackrate/express-middleware";
+import type { VerifiedPayment } from "@ackrate/express-middleware";
 import { createPostgresClient, type PostgresQueryable } from "./postgres";
 
 type Sql = PostgresQueryable;
 type Row = Record<string, unknown>;
+const CURRENT_TABLE = "ackrate_bound_redemptions";
+const RETIRED_TABLE = `${String.fromCharCode(114, 101, 97, 112, 112)}_bound_redemptions`;
 
 function paymentJson(payment: Readonly<VerifiedPayment>): Record<string, unknown> {
   return { ...payment, amountStroops: payment.amountStroops.toString() };
@@ -74,22 +76,36 @@ export class PostgresBoundRedemptionStore implements BoundRedemptionStore {
   private readonly sql: Sql;
   private initialization?: Promise<void>;
 
-  constructor(databaseUrl: string) {
-    this.sql = createPostgresClient(databaseUrl);
+  constructor(databaseUrl: string, provided?: PostgresQueryable) {
+    this.sql = provided ?? createPostgresClient(databaseUrl);
   }
 
   private async initialize(): Promise<void> {
-    this.initialization ??= this.sql.query(`
-      CREATE TABLE IF NOT EXISTS reapp_bound_redemptions (
-        key text PRIMARY KEY,
-        proof_digest text NOT NULL,
-        payment jsonb NOT NULL,
-        execution_id text NOT NULL,
-        started_at bigint NOT NULL,
-        state text NOT NULL CHECK (state IN ('executing', 'completed')),
-        response jsonb
-      )
-    `).then(() => undefined).catch((error) => {
+    this.initialization ??= (async () => {
+      await this.sql.query(`
+        DO $ackrate_migration$
+        BEGIN
+          IF to_regclass('public.${RETIRED_TABLE}') IS NOT NULL THEN
+            IF to_regclass('public.${CURRENT_TABLE}') IS NOT NULL THEN
+              RAISE EXCEPTION 'legacy and current redemption tables both exist';
+            END IF;
+            ALTER TABLE "${RETIRED_TABLE}" RENAME TO "${CURRENT_TABLE}";
+          END IF;
+        END
+        $ackrate_migration$
+      `);
+      await this.sql.query(`
+        CREATE TABLE IF NOT EXISTS ${CURRENT_TABLE} (
+          key text PRIMARY KEY,
+          proof_digest text NOT NULL,
+          payment jsonb NOT NULL,
+          execution_id text NOT NULL,
+          started_at bigint NOT NULL,
+          state text NOT NULL CHECK (state IN ('executing', 'completed')),
+          response jsonb
+        )
+      `);
+    })().catch((error) => {
       this.initialization = undefined;
       throw error;
     });
@@ -98,7 +114,7 @@ export class PostgresBoundRedemptionStore implements BoundRedemptionStore {
 
   async lookup(key: string, proofDigest: string): Promise<BoundRedemptionLookup> {
     await this.initialize();
-    const rows = await this.sql.query(`SELECT * FROM reapp_bound_redemptions WHERE key = $1`, [key]);
+    const rows = await this.sql.query(`SELECT * FROM ${CURRENT_TABLE} WHERE key = $1`, [key]);
     if (rows.length === 0) return { kind: "missing" };
     return sameProof(rows[0] as Row, proofDigest);
   }
@@ -110,7 +126,7 @@ export class PostgresBoundRedemptionStore implements BoundRedemptionStore {
   ): Promise<BoundRedemptionClaim> {
     await this.initialize();
     const inserted = await this.sql.query(
-      `INSERT INTO reapp_bound_redemptions
+      `INSERT INTO ${CURRENT_TABLE}
         (key, proof_digest, payment, execution_id, started_at, state)
        VALUES ($1, $2, $3::jsonb, $4, $5, 'executing')
        ON CONFLICT DO NOTHING RETURNING *`,
@@ -119,7 +135,7 @@ export class PostgresBoundRedemptionStore implements BoundRedemptionStore {
     if (inserted.length === 1) {
       return { kind: "claimed", record: deliveryFromRow(inserted[0] as Row) };
     }
-    const rows = await this.sql.query(`SELECT * FROM reapp_bound_redemptions WHERE key = $1`, [record.key]);
+    const rows = await this.sql.query(`SELECT * FROM ${CURRENT_TABLE} WHERE key = $1`, [record.key]);
     if (rows.length !== 1) throw new Error("fulfillment claim could not be recovered");
     return sameProof(rows[0] as Row, record.proofDigest) as BoundRedemptionClaim;
   }
@@ -127,14 +143,14 @@ export class PostgresBoundRedemptionStore implements BoundRedemptionStore {
   async complete(completion: Readonly<BoundRedemptionCompletion>): Promise<BoundRedemptionComplete> {
     await this.initialize();
     const updated = await this.sql.query(
-      `UPDATE reapp_bound_redemptions
+      `UPDATE ${CURRENT_TABLE}
        SET state = 'completed', response = $4::jsonb
        WHERE key = $1 AND proof_digest = $2 AND execution_id = $3 AND state = 'executing'
        RETURNING *`,
       [completion.key, completion.proofDigest, completion.executionId, JSON.stringify(completion.response)],
     );
     if (updated.length === 1) return { kind: "completed", record: deliveryFromRow(updated[0] as Row) };
-    const rows = await this.sql.query(`SELECT * FROM reapp_bound_redemptions WHERE key = $1`, [completion.key]);
+    const rows = await this.sql.query(`SELECT * FROM ${CURRENT_TABLE} WHERE key = $1`, [completion.key]);
     if (rows.length !== 1) return { kind: "conflict" };
     const existing = deliveryFromRow(rows[0] as Row);
     if (

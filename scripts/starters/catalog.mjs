@@ -15,14 +15,14 @@ const EXPECTED_CONSTRAINTS = Object.freeze({
   proofPolicy: "bound-v2-only",
   runtime: "local-consumer-and-fulfillment",
   fixturePolicy: "deterministic-and-clearly-labeled",
-  compatibilityClaim: "reapp-bound-v2",
+  compatibilityClaim: "ackrate-bound-v2",
 });
 
 const EXPECTED_DEPENDENCIES = Object.freeze({
-  "@reapp-sdk/ap2": "0.3.0",
-  "@reapp-sdk/core": "0.3.1",
-  "@reapp-sdk/express-middleware": "0.2.2",
-  "@reapp-sdk/stellar": "0.2.2",
+  "@ackrate/ap2": "0.3.0",
+  "@ackrate/core": "0.3.1",
+  "@ackrate/express-middleware": "0.2.2",
+  "@ackrate/stellar": "0.2.2",
   "@stellar/stellar-sdk": "14.6.1",
   express: "5.2.1",
 });
@@ -56,7 +56,7 @@ const FORBIDDEN_PUBLIC_TERMS = new RegExp(
   `\\b(?:${["au" + "dit[a-z-]*", "tran" + "che", "mile" + "stone", "gr" + "ant"].join("|")})\\b`,
   "i",
 );
-const INVALID_PACKAGE_SCOPE = /@reapp\//;
+const INVALID_PACKAGE_SCOPE = new RegExp(`@${String.fromCharCode(114, 101, 97, 112, 112)}-sdk/`);
 
 function fail(message) {
   throw new Error(message);
@@ -138,7 +138,7 @@ async function readJson(relativePath, label) {
 export function validateDependencyPolicy(policy) {
   requireExactKeys(policy, ["schemaVersion", "policyId", "packageManager", "installCommand", "nodeEngine", "dependencies", "rules"], "dependency policy");
   requireCondition(policy.schemaVersion === 1, "dependency policy schemaVersion must be 1");
-  requireCondition(policy.policyId === "reapp-hackathon-starter-dependencies-v1", "dependency policy id is not supported");
+  requireCondition(policy.policyId === "ackrate-hackathon-starter-dependencies-v1", "dependency policy id is not supported");
   requireCondition(policy.packageManager === "npm", "dependency policy packageManager must be npm");
   requireCondition(policy.installCommand === "npm ci", "dependency policy install command must be npm ci");
   requireCondition(policy.nodeEngine === ">=20", "dependency policy Node engine must be >=20");
@@ -154,7 +154,7 @@ export function validateDependencyPolicy(policy) {
 export function validateCatalog(catalog) {
   requireExactKeys(catalog, ["schemaVersion", "catalogId", "constraints", "sources", "kits"], "catalog");
   requireCondition(catalog.schemaVersion === 1, "catalog schemaVersion must be 1");
-  requireCondition(catalog.catalogId === "reapp-hackathon-starters-v1", "catalog id is not supported");
+  requireCondition(catalog.catalogId === "ackrate-hackathon-starters-v1", "catalog id is not supported");
   requireExactObject(catalog.constraints, EXPECTED_CONSTRAINTS, "catalog constraints");
   requirePlainObject(catalog.sources, "catalog sources");
   requireCondition(Object.keys(catalog.sources).length > 0, "catalog must cite at least one source");

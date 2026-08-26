@@ -10,7 +10,7 @@ export async function registerNodeInstrumentation() {
   const budget = "3.00";
 
   try {
-    const stellar = await import("@reapp-sdk/stellar");
+    const stellar = await import("@ackrate/stellar");
     contract = stellar.TESTNET.mandateRegistryId;
     rpc = stellar.TESTNET.rpcUrl;
   } catch {

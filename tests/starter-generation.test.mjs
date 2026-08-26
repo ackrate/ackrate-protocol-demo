@@ -6,6 +6,8 @@ import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import test from "node:test";
 
+const RETIRED_PACKAGE_SCOPE = new RegExp(`@${String.fromCharCode(114, 101, 97, 112, 112)}-sdk/`);
+
 import {
   GENERATED_METADATA_RELATIVE_PATH,
   REPOSITORY_ROOT,
@@ -45,7 +47,7 @@ test("generation is deterministic and preserves all twenty public catalog entrie
   assert.equal(buildPublicCatalog(catalog).kits.length, 20);
   assert.deepEqual(buildPublicCatalog(catalog), JSON.parse(stableStringify(catalog)));
   assert.equal(first.match(/^\s+"slug":/gm)?.length, 20);
-  assert.doesNotMatch(first, /@reapp\//);
+  assert.doesNotMatch(first, RETIRED_PACKAGE_SCOPE);
   const forbiddenPublicTerms = new RegExp(
     `\\b(?:${["au" + "dit[a-z-]*", "tran" + "che", "mile" + "stone", "gr" + "ant"].join("|")})\\b`,
     "i",
@@ -81,7 +83,7 @@ test("dependency policy uses only exact approved package versions", async () => 
     symlinksAllowed: false,
   });
   for (const [name, version] of Object.entries(dependencyPolicy.dependencies)) {
-    assert.doesNotMatch(name, /^@reapp\//);
+    assert.doesNotMatch(name, RETIRED_PACKAGE_SCOPE);
     assert.match(version, /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/);
   }
 });
@@ -175,7 +177,7 @@ test("all twenty generated packages are self-contained and use one exact canonic
     for (const [path, contents] of files) {
       assert.doesNotMatch(path, /(?:^|\/)\.env$/);
       if (path.endsWith(".mjs") || path.endsWith(".md") || path.endsWith(".json") || path.startsWith(".")) {
-        assert.doesNotMatch(contents.toString("utf8"), /@reapp\//, `${kit.id}/${path}`);
+        assert.doesNotMatch(contents.toString("utf8"), RETIRED_PACKAGE_SCOPE, `${kit.id}/${path}`);
       }
     }
   }
@@ -183,7 +185,7 @@ test("all twenty generated packages are self-contained and use one exact canonic
 
 test("STORE-mode archives are deterministic and extract byte-for-byte to their package trees", async (context) => {
   const artifacts = await buildStarterArtifacts();
-  const temporary = await mkdtemp(resolve(tmpdir(), "reapp-starters-"));
+  const temporary = await mkdtemp(resolve(tmpdir(), "ackrate-starters-"));
   context.after(() => rm(temporary, { recursive: true, force: true }));
 
   for (const { kit, files, archive, sha256 } of artifacts.kits) {

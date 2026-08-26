@@ -1,15 +1,15 @@
 export const dynamic = "force-static";
 
 export function GET() {
-  const text = `# REAPP
+  const text = `# ACKRATE
 
 > Open-source agentic payments infrastructure: bounded mandates, TypeScript SDKs, Express verification, AP2 bridging, and live Stellar testnet demonstrations.
 
-REAPP separates adaptive agent planning from deterministic financial authority. A principal grants a scoped mandate; the contract and verification layers enforce merchant, asset, budget, expiry, sequence, and resource constraints. The live site demonstrates both permitted payments and contract-enforced rejection paths.
+ACKRATE separates adaptive agent planning from deterministic financial authority. A principal grants a scoped mandate; the contract and verification layers enforce merchant, asset, budget, expiry, sequence, and resource constraints. The live site demonstrates both permitted payments and contract-enforced rejection paths.
 
 ## Start here
 
-- [REAPP SDK documentation](https://reapp.live/): Install the published packages and understand the end-to-end consumer and merchant flow.
+- [ACKRATE SDK documentation](https://reapp.live/): Install the published packages and understand the end-to-end consumer and merchant flow.
 - [Consumer product preview](https://reapp.live/consumer): Give an AI agent a task while retaining explicit control over its budget, approved services, deadline, and exceptions.
 - [Express payment flow](https://reapp.live/express): Pay-per-use API fulfillment with settlement and one-time redemption verification.
 - [Merchant assurance](https://reapp.live/merchants): Inspect Mainnet contract tests, deployment evidence, trust boundaries, and merchant verification controls.
@@ -26,18 +26,18 @@ REAPP separates adaptive agent planning from deterministic financial authority. 
 
 ## Packages and source
 
-- [@reapp-sdk/core](https://www.npmjs.com/package/@reapp-sdk/core/v/0.3.1): Mandates, contract-enforced payments, and agent.fetch().
-- [@reapp-sdk/stellar](https://www.npmjs.com/package/@reapp-sdk/stellar/v/0.2.2): Typed Stellar contract client, signers, and network configuration.
-- [@reapp-sdk/ap2](https://www.npmjs.com/package/@reapp-sdk/ap2/v/0.3.0): Version-pinned AP2 mandate bridge.
-- [@reapp-sdk/express-middleware](https://www.npmjs.com/package/@reapp-sdk/express-middleware/v/0.2.2): Express settlement and redemption verification.
-- [reapp-protocol-cli](https://www.npmjs.com/package/reapp-protocol-cli/v/0.1.7): Terminal workflows and testnet demos.
-- [Protocol repository](https://github.com/reapp-protocol/reapp-protocol): Contracts, SDK packages, tests, and examples.
+- [@ackrate/core](https://www.npmjs.com/package/@ackrate/core/v/0.3.1): Mandates, contract-enforced payments, and agent.fetch().
+- [@ackrate/stellar](https://www.npmjs.com/package/@ackrate/stellar/v/0.2.2): Typed Stellar contract client, signers, and network configuration.
+- [@ackrate/ap2](https://www.npmjs.com/package/@ackrate/ap2/v/0.3.0): Version-pinned AP2 mandate bridge.
+- [@ackrate/express-middleware](https://www.npmjs.com/package/@ackrate/express-middleware/v/0.2.2): Express settlement and redemption verification.
+- [@ackrate/cli](https://www.npmjs.com/package/@ackrate/cli/v/0.1.9): Terminal workflows and testnet demos.
+- [Protocol repository](https://github.com/ackrate/ackrate-protocol): Contracts, SDK packages, tests, and examples.
 - [Full implementation context](https://reapp.live/llms-full.txt): One plain-text technical brief for assistants working with the protocol.
 
 ## Research companion
 
-- [REAPP NETWORK](https://reapp.network/): Independent research and architecture field guide for agentic payments.
-- [Agentic payments field guide](https://reapp.network/agentic-payments): Definitions, lifecycle, protocols, controls, and implementation model.
+- [ACKRATE NETWORK](https://ackrate.network/): Independent research and architecture field guide for agentic payments.
+- [Agentic payments field guide](https://ackrate.network/agentic-payments): Definitions, lifecycle, protocols, controls, and implementation model.
 
 The live site uses Stellar testnet and ephemeral demonstration actors. Never use production secrets or mainnet credentials in these demos. Verify current package versions, contract identifiers, and network configuration against the visible page and source repository.
 `;

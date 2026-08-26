@@ -6,19 +6,19 @@ import { Package, Play, Terminal } from "lucide-react";
 
 const CONTRACT_ID = "CCHQ5G4Y4YBMY6D3TYYJSVJVCKUM22Q6TMKCCHVAHY4X7K6QELQACZRM";
 
-const INSTALL = `npm install @reapp-sdk/core@0.3.1 @reapp-sdk/stellar@0.2.2 \\
-  @reapp-sdk/ap2@0.3.0 @reapp-sdk/express-middleware@0.2.2 \\
+const INSTALL = `npm install @ackrate/core@0.3.1 @ackrate/stellar@0.2.2 \\
+  @ackrate/ap2@0.3.0 @ackrate/express-middleware@0.2.2 \\
   @stellar/stellar-sdk express
-npm install --global reapp-protocol-cli@0.1.7`;
+npm install --global @ackrate/cli@0.1.9`;
 
-const CLEAN_CLONE = `git clone https://github.com/reapp-protocol/reapp-protocol.git
-cd reapp-protocol
+const CLEAN_CLONE = `git clone https://github.com/ackrate/ackrate-protocol.git
+cd ackrate-protocol
 npm ci
 npm run agents:testnet`;
 
-const CONSUMER = `import { getSettlementReceipt, reapp } from "@reapp-sdk/core";
+const CONSUMER = `import { getSettlementReceipt, ackrate } from "@ackrate/core";
 
-const agent = reapp.agent({
+const agent = ackrate.agent({
   mandate,
   signer: agentSecret,
   proofPolicy: "bound-v2-only",
@@ -33,17 +33,17 @@ await agent.acknowledgeDelivery(receipt);`;
 const FULFILLMENT = `import express from "express";
 import {
   InMemoryBoundRedemptionStore,
-  createBoundReappPaidJsonRoute,
-} from "@reapp-sdk/express-middleware";
+  createBoundAckratePaidJsonRoute,
+} from "@ackrate/express-middleware";
 
 const app = express();
 // Demo only. Use a durable, shared BoundRedemptionStore in production.
 const redemptionStore = new InMemoryBoundRedemptionStore();
-const paidSource = createBoundReappPaidJsonRoute({
-  merchant: process.env.REAPP_MERCHANT_ADDRESS!,
-  sourceAccount: process.env.REAPP_READ_SOURCE_ADDRESS!,
+const paidSource = createBoundAckratePaidJsonRoute({
+  merchant: process.env.ACKRATE_MERCHANT_ADDRESS!,
+  sourceAccount: process.env.ACKRATE_READ_SOURCE_ADDRESS!,
   audience: "https://api.example",
-  challengeSecret: process.env.REAPP_CHALLENGE_SECRET!,
+  challengeSecret: process.env.ACKRATE_CHALLENGE_SECRET!,
   redemptionStore,
   amount: "1.00",
   resource: (request) => request.originalUrl,
@@ -59,11 +59,11 @@ const paidSource = createBoundReappPaidJsonRoute({
 app.get("/source/:id", paidSource);`;
 
 const PACKAGES: [string, string][] = [
-  ["@reapp-sdk/core 0.3.1", "Mandates, contract-enforced payments, and bound-v2 agent.fetch()"],
-  ["@reapp-sdk/stellar 0.2.2", "Typed contract client, testnet config, signers, and token helpers"],
-  ["@reapp-sdk/ap2 0.3.0", "Signed, version-pinned AP2 IntentMandate validation"],
-  ["@reapp-sdk/express-middleware 0.2.2", "Exact-request proof verification and safe same-resource recovery"],
-  ["reapp-protocol-cli 0.1.7", "Terminal setup, mandate, payment, reconciliation, and demo commands"],
+  ["@ackrate/core 0.3.1", "Mandates, contract-enforced payments, and bound-v2 agent.fetch()"],
+  ["@ackrate/stellar 0.2.2", "Typed contract client, testnet config, signers, and token helpers"],
+  ["@ackrate/ap2 0.3.0", "Signed, version-pinned AP2 IntentMandate validation"],
+  ["@ackrate/express-middleware 0.2.2", "Exact-request proof verification and safe same-resource recovery"],
+  ["@ackrate/cli 0.1.9", "Terminal setup, mandate, payment, reconciliation, and demo commands"],
 ];
 
 const RESULT: [string, string][] = [
@@ -86,7 +86,7 @@ export default function Docs() {
       <motion.div {...fade()}>
         <div className="inline-flex items-center gap-2 rounded-full glass px-3.5 py-1.5 text-[11px] font-semibold tracking-[0.18em] text-emerald-300/90">
           <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.9)]" />
-          @reapp-sdk/core 0.3.1 · DOCS
+          @ackrate/core 0.3.1 · DOCS
         </div>
         <h1 className="mt-5 text-4xl font-black tracking-tight sm:text-6xl">
           Agent payments,{" "}
@@ -101,9 +101,9 @@ export default function Docs() {
             <Play className="h-4 w-4" aria-hidden />
             Run the Express flow
           </Link>
-          <a href="https://www.npmjs.com/package/@reapp-sdk/core" target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-xl border border-white/15 px-4 py-2.5 text-sm font-semibold text-emerald-100/80 transition hover:border-emerald-400/40 hover:text-emerald-100">
+          <a href="https://www.npmjs.com/package/@ackrate/core" target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-xl border border-white/15 px-4 py-2.5 text-sm font-semibold text-emerald-100/80 transition hover:border-emerald-400/40 hover:text-emerald-100">
             <Package className="h-4 w-4" aria-hidden />
-            @reapp-sdk/core 0.3.1
+            @ackrate/core 0.3.1
           </a>
         </div>
       </motion.div>
@@ -227,7 +227,7 @@ export default function Docs() {
       <motion.div {...fade(0.32)} className="mt-10 flex flex-wrap gap-3">
         <Link href="/express" className="rounded-xl bg-emerald-400 px-4 py-2.5 text-sm font-semibold text-[#06241a] hover:bg-emerald-300">Open the Express guide →</Link>
         <a href={`https://stellar.expert/explorer/testnet/contract/${CONTRACT_ID}`} target="_blank" rel="noreferrer" className="rounded-xl border border-white/15 px-4 py-2.5 text-sm font-semibold text-emerald-100/80 hover:border-emerald-400/40">View contract ↗</a>
-        <a href="https://github.com/reapp-protocol/reapp-protocol" target="_blank" rel="noreferrer" className="rounded-xl border border-white/15 px-4 py-2.5 text-sm font-semibold text-emerald-100/80 hover:border-emerald-400/40">Protocol repository ↗</a>
+        <a href="https://github.com/ackrate/ackrate-protocol" target="_blank" rel="noreferrer" className="rounded-xl border border-white/15 px-4 py-2.5 text-sm font-semibold text-emerald-100/80 hover:border-emerald-400/40">Protocol repository ↗</a>
       </motion.div>
     </main>
   );
