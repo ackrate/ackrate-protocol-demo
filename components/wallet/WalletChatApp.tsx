@@ -108,6 +108,7 @@ export function WalletChatApp() {
   const [phase, setPhase] = useState<Phase>("idle");
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [nowSeconds, setNowSeconds] = useState(() => Math.floor(Date.now() / 1_000));
 
   const refreshMandate = useCallback(async (candidate?: StoredMandate | null) => {
     const current = candidate ?? stored;
@@ -117,8 +118,13 @@ export function WalletChatApp() {
       body: JSON.stringify({ mandateId: current.id }),
     });
     setMandate(body.mandate);
-    setPhase(body.mandate.status === "Active" ? "active" : "idle");
+    setPhase(body.mandate.status === "Active" && body.mandate.expiry > Math.floor(Date.now() / 1_000) ? "active" : "idle");
   }, [stored]);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNowSeconds(Math.floor(Date.now() / 1_000)), 10_000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     Promise.all([
@@ -284,13 +290,16 @@ export function WalletChatApp() {
     setNotice(null);
   };
 
-  const progress = phase === "active" ? 3 : stored?.registrationTx && stored?.allowanceTx ? 3 : stored?.registrationTx ? 2 : session.authenticated ? 1 : 0;
-  const remaining = mandate && config ? formatUnits(mandate.remaining, config.asset.decimals) : budget;
-  const spent = mandate && config ? formatUnits(mandate.spent, config.asset.decimals) : "0";
-  const usedPercent = mandate && BigInt(mandate.maxAmount) > 0n
-    ? Number((BigInt(mandate.spent) * 10_000n) / BigInt(mandate.maxAmount)) / 100
+  const mandateOnline = Boolean(mandate?.status === "Active" && mandate.expiry > nowSeconds);
+  const storedFresh = Boolean(stored && stored.expiry > nowSeconds);
+  const currentMandate = mandateOnline ? mandate : null;
+  const progress = mandateOnline ? 3 : storedFresh && stored?.registrationTx ? 2 : session.authenticated ? 1 : 0;
+  const remaining = currentMandate && config ? formatUnits(currentMandate.remaining, config.asset.decimals) : budget;
+  const spent = currentMandate && config ? formatUnits(currentMandate.spent, config.asset.decimals) : "0";
+  const usedPercent = currentMandate && BigInt(currentMandate.maxAmount) > 0n
+    ? Number((BigInt(currentMandate.spent) * 10_000n) / BigInt(currentMandate.maxAmount)) / 100
     : 0;
-  const expires = mandate?.expiry ?? stored?.expiry;
+  const expires = currentMandate?.expiry ?? (storedFresh ? stored?.expiry : undefined);
   const explorer = config ? `https://stellar.expert/explorer/${config.explorerNetwork}` : "#";
 
   return (
@@ -363,11 +372,11 @@ export function WalletChatApp() {
           </div>
 
           <div className={`panel glass mandate-panel ${!session.authenticated ? "muted" : ""}`}>
-            <div className="panel-heading"><div><p className="eyebrow">02 · MANDATE</p><h2>Set the boundary</h2></div><div className={`icon-tile ${mandate?.status === "Active" ? "live" : ""}`}><Fingerprint size={19} /></div></div>
-            {!mandate || mandate.status !== "Active" ? (
+            <div className="panel-heading"><div><p className="eyebrow">02 · MANDATE</p><h2>Set the boundary</h2></div><div className={`icon-tile ${mandateOnline ? "live" : ""}`}><Fingerprint size={19} /></div></div>
+            {!currentMandate ? (
               <>
-                <label>Maximum spend<div className="money-input"><span>{config?.asset.code ?? "ASSET"}</span><input value={budget} onChange={(event) => setBudget(event.target.value)} inputMode="decimal" disabled={!session.authenticated || Boolean(stored?.registrationTx)} /></div></label>
-                <label>Expires after<select value={duration} onChange={(event) => setDuration(event.target.value)} disabled={!session.authenticated || Boolean(stored?.registrationTx)}><option value="30">30 minutes</option><option value="60">1 hour</option><option value="360">6 hours</option><option value="1440">24 hours</option></select></label>
+                <label>Maximum spend<div className="money-input"><span>{config?.asset.code ?? "ASSET"}</span><input value={budget} onChange={(event) => setBudget(event.target.value)} inputMode="decimal" disabled={!session.authenticated || Boolean(storedFresh && stored?.registrationTx)} /></div></label>
+                <label>Expires after<select value={duration} onChange={(event) => setDuration(event.target.value)} disabled={!session.authenticated || Boolean(storedFresh && stored?.registrationTx)}><option value="30">30 minutes</option><option value="60">1 hour</option><option value="360">6 hours</option><option value="1440">24 hours</option></select></label>
                 <div className="scope-box"><div><span>Agent</span><code>{short(config?.agentAddress, 6)}</code></div><div><span>Merchant</span><code>{config?.merchant.name ?? "Not configured"}</code></div><div><span>Asset</span><code>{config?.asset.code ?? "—"}</code></div></div>
                 {stored?.registrationTx && !stored.allowanceTx ? (
                   <button className="primary-button" onClick={retryAllowance} disabled={phase === "approving"}><RefreshCw size={16} /> {phase === "approving" ? "Waiting for Freighter…" : "Finish allowance approval"}</button>
@@ -379,7 +388,7 @@ export function WalletChatApp() {
             ) : (
               <div className="mandate-active">
                 <div className="active-banner"><span><Check size={15} /></span><div><small>On-chain status</small><strong>Active mandate</strong></div></div>
-                <div className="mandate-id"><span>Mandate ID</span><code>{short(mandate.id, 9)}</code></div>
+                <div className="mandate-id"><span>Mandate ID</span><code>{short(currentMandate.id, 9)}</code></div>
                 <button className="danger-button" onClick={revoke} disabled={phase === "revoking"}><X size={15} /> {phase === "revoking" ? "Waiting for Freighter…" : "Revoke authority"}</button>
               </div>
             )}
@@ -389,9 +398,9 @@ export function WalletChatApp() {
         <section className="panel glass chat-panel">
           <div className="chat-head">
             <div className="agent-title"><div className="agent-orb"><Bot size={21} /></div><div><p className="eyebrow">03 · CONSUMER AGENT</p><h2>Research console</h2></div></div>
-            <div className={`agent-status ${mandate?.status === "Active" ? "online" : ""}`}><span /> {mandate?.status === "Active" ? "MANDATE ONLINE" : "AWAITING MANDATE"}</div>
+            <div className={`agent-status ${mandateOnline ? "online" : ""}`}><span /> {mandateOnline ? "MANDATE ONLINE" : "AWAITING MANDATE"}</div>
           </div>
-          {mandate?.status === "Active" && config ? (
+          {mandateOnline && mandate && config ? (
             <AssistantThread mandateId={mandate.id} asset={config.asset.code} explorerNetwork={config.explorerNetwork} />
           ) : (
             <div className="chat-locked">
@@ -408,10 +417,10 @@ export function WalletChatApp() {
             <div className="panel-heading"><div><p className="eyebrow">LIVE AUTHORITY</p><h2>Spending envelope</h2></div><CircleDollarSign size={20} /></div>
             <div className="remaining"><span>Remaining</span><strong>{remaining} <small>{config?.asset.code ?? ""}</small></strong></div>
             <div className="meter"><span style={{ width: `${Math.min(100, usedPercent)}%` }} /></div>
-            <div className="budget-row"><div><span>Spent</span><strong>{spent}</strong></div><div><span>Budget</span><strong>{mandate && config ? formatUnits(mandate.maxAmount, config.asset.decimals) : budget}</strong></div></div>
+            <div className="budget-row"><div><span>Spent</span><strong>{spent}</strong></div><div><span>Budget</span><strong>{currentMandate && config ? formatUnits(currentMandate.maxAmount, config.asset.decimals) : budget}</strong></div></div>
             <div className="authority-list">
               <div><Clock3 size={14} /><span>Expires</span><strong>{expires ? new Date(expires * 1_000).toLocaleString() : "Not signed"}</strong></div>
-              <div><Fingerprint size={14} /><span>Sequence</span><strong>{mandate?.seq ?? 0}</strong></div>
+              <div><Fingerprint size={14} /><span>Sequence</span><strong>{currentMandate?.seq ?? 0}</strong></div>
               <div><Database size={14} /><span>State</span><strong>{config?.durableState ? "Durable" : "Local preview"}</strong></div>
             </div>
           </div>

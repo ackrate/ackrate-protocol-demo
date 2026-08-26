@@ -48,3 +48,12 @@ test("wallet exposes a deterministic real-payment control without an LLM depende
   assert.match(purchase, /requireSession/);
   assert.doesNotMatch(purchase, /openai|anthropic|streamText/i);
 });
+
+test("wallet closes an expired mandate locally and offers a fresh boundary", () => {
+  const app = read("components/wallet/WalletChatApp.tsx");
+
+  assert.match(app, /mandate\.expiry > nowSeconds/);
+  assert.match(app, /setInterval\(\(\) => setNowSeconds/);
+  assert.match(app, /!currentMandate/);
+  assert.match(app, /Sign & activate mandate/);
+});
