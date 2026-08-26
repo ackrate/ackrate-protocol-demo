@@ -114,8 +114,12 @@ export function mainnetNetworkFromDeploymentManifest(input: unknown): ReleaseNet
   }
 
   const source = objectAt(manifest, "source");
-  if (textAt(source, "repository") !== "https://github.com/reapp-protocol/reapp-protocol-contracts") {
-    throw new Error("release manifest source repository is not the canonical contracts repository");
+  const repository = textAt(source, "repository");
+  if (![
+    "https://github.com/ackrate/ackrate-protocol-contracts",
+    "https://github.com/reapp-protocol/reapp-protocol-contracts",
+  ].includes(repository)) {
+    throw new Error("release manifest source repository is not an approved contracts repository");
   }
   const sourceCommit = textAt(source, "commit").toLowerCase();
   if (!/^[0-9a-f]{40}$/.test(sourceCommit)) throw new Error("release manifest source commit is invalid");

@@ -23,7 +23,22 @@ import {
 import { contractUrl, txUrl } from "@/lib/explorer";
 
 const SETUP = `npm run agents:testnet`;
-const INSTALL_CONSUMER = `npm install @reapp-sdk/core@0.3.1 @stellar/stellar-sdk`;
+const INSTALL_CONSUMER = `npm install @reapp-sdk/core@0.3.2 @stellar/stellar-sdk`;
+const MAINNET_REGISTRY = "CDBTG5ZKASFA7LOYUPBOTGKAVX5MJIM4U24BYGX7VX23IHYDAHLQPAGS";
+const MAINNET_PAYMENT_KEY = "reapp:mainnet:last-payment";
+
+type MainnetPayment = { txHash: string; amount: string; asset: string; recordedAt: string };
+
+function readMainnetPayment(): MainnetPayment | null {
+  try {
+    const value = JSON.parse(localStorage.getItem(MAINNET_PAYMENT_KEY) ?? "null") as Partial<MainnetPayment> | null;
+    if (!value || !/^[0-9a-f]{64}$/.test(value.txHash ?? "")) return null;
+    if (typeof value.amount !== "string" || value.asset !== "USDC" || typeof value.recordedAt !== "string") return null;
+    return value as MainnetPayment;
+  } catch {
+    return null;
+  }
+}
 
 const consumerExample = (endpointBase = "https://your-endpoint.example/api/express/session/source", merchant = "G...MERCHANT") => `import { DeliveryPendingError, getSettlementReceipt, reapp } from "@reapp-sdk/core";
 import { Keypair } from "@stellar/stellar-sdk";
@@ -467,6 +482,7 @@ function eventLabel(event: Record<string, unknown>): Omit<TrailEvent, "id"> | nu
 }
 
 export default function ExpressPage() {
+  const [mainnetPayment, setMainnetPayment] = useState<MainnetPayment | null>(null);
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [sessionId, setSessionId] = useState("");
   const [expiresAt, setExpiresAt] = useState<string | number | null>(null);
@@ -507,6 +523,18 @@ export default function ExpressPage() {
   useEffect(() => () => {
     controller.current?.abort();
     if (copyTimer.current) clearTimeout(copyTimer.current);
+  }, []);
+  useEffect(() => {
+    const refresh = () => setMainnetPayment(readMainnetPayment());
+    refresh();
+    window.addEventListener("storage", refresh);
+    window.addEventListener("focus", refresh);
+    window.addEventListener("reapp-mainnet-payment", refresh);
+    return () => {
+      window.removeEventListener("storage", refresh);
+      window.removeEventListener("focus", refresh);
+      window.removeEventListener("reapp-mainnet-payment", refresh);
+    };
   }, []);
   useEffect(() => {
     trailEnd.current?.scrollIntoView({ block: "nearest" });
@@ -939,10 +967,37 @@ export default function ExpressPage() {
     <main className="relative mx-auto w-full max-w-6xl px-4 py-10 sm:px-6 sm:py-14">
       <div className="glow" aria-hidden />
 
+      <motion.section {...fade()} className="mx-auto mb-10 max-w-4xl overflow-hidden rounded-3xl border border-emerald-300/20 bg-[#06100d]/90 text-left shadow-[0_24px_90px_-32px_rgba(16,185,129,0.5)]">
+        <div className="grid gap-6 p-5 sm:p-7 lg:grid-cols-[1fr_auto] lg:items-center">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/[0.06] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-emerald-300">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> Mainnet · Circle USDC
+            </div>
+            <h1 className="mt-4 text-3xl font-black tracking-tight text-emerald-50 sm:text-4xl">Run the $0.01 USDC agent demo.</h1>
+            <p className="mt-3 max-w-2xl text-sm leading-relaxed text-emerald-100/60">Freighter authorizes a 0.03 USDC mandate. The consumer calls the reference Express fulfillment path at 0.01 USDC per purchase, and MandateRegistry rejects purchase four.</p>
+            <div className="mt-4 flex flex-wrap gap-2 text-xs">
+              <a href={`https://stellar.expert/explorer/public/contract/${MAINNET_REGISTRY}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/20 bg-black/25 px-3 py-1.5 text-emerald-200 hover:border-emerald-400/40">
+                Mainnet contract · {short(MAINNET_REGISTRY)} <ExternalLink className="h-3 w-3" />
+              </a>
+              {mainnetPayment ? (
+                <a href={`https://stellar.expert/explorer/public/tx/${mainnetPayment.txHash}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/30 bg-emerald-400/[0.08] px-3 py-1.5 text-emerald-200 hover:border-emerald-400/50">
+                  Sent {mainnetPayment.amount} {mainnetPayment.asset} · {short(mainnetPayment.txHash)} <ExternalLink className="h-3 w-3" />
+                </a>
+              ) : (
+                <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1.5 text-emerald-100/35">Settlement link appears here after payment</span>
+              )}
+            </div>
+          </div>
+          <Link href="/wallet" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-400 to-teal-300 px-6 py-3 text-sm font-black text-[#06241a] shadow-[0_10px_36px_-8px_rgba(52,211,153,0.7)] transition hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-200">
+            <WalletCards className="h-4 w-4" /> Run mainnet demo <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
+      </motion.section>
+
       <motion.header {...fade()} className="mx-auto max-w-4xl text-center">
         <div className="inline-flex items-center gap-2 rounded-full glass px-3.5 py-1.5 text-[11px] font-semibold tracking-[0.18em] text-emerald-300/90">
           <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.9)]" />
-          LIVE EXPRESS WORKBENCH · STELLAR TESTNET
+          TESTNET DEVELOPER SANDBOX
         </div>
         <h1 className="mt-5 text-4xl font-black tracking-tight sm:text-6xl">
           See the <span className="bg-gradient-to-r from-emerald-300 via-teal-200 to-emerald-400 bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(52,211,153,0.25)]">402 become a 200</span>.

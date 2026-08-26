@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { Asset, Keypair, Networks, StrKey } from "@stellar/stellar-sdk";
 import { TESTNET, type NetworkConfig } from "@reapp-sdk/stellar";
 import { mainnetNetworkFromDeploymentManifest } from "./release-manifest";
+import mainnetReleaseManifest from "./mainnet-release.json";
 import type { CatalogItem, NetworkName, SafeAppConfig } from "./types";
 
 export const MAINNET_CONFIRMATION = "ACTIVATE_VERIFIED_REAPP_MAINNET";
@@ -11,8 +12,8 @@ const DEFAULT_CATALOG: CatalogItem[] = [
     id: "market-brief",
     title: "Market signal brief",
     description: "A compact, payment-gated research signal from the configured merchant.",
-    path: "/source/market-brief",
-    price: "1.00",
+    path: "/api/wallet/source/market-brief",
+    price: "0.01",
   },
 ];
 
@@ -21,6 +22,8 @@ export interface AppConfig {
   network: NetworkConfig;
   agentSecret: string | null;
   merchantUrl: string | null;
+  appOrigin: string | null;
+  challengeSecret: string | null;
   sessionSecret: string | null;
   openAiKey: string | null;
   openAiModel: string;
@@ -80,7 +83,7 @@ function safeMerchantUrl(raw: string | null): string | null {
 }
 
 export function loadAppConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
-  const requested = present(env.REAPP_WALLET_NETWORK) ?? "testnet";
+  const requested = present(env.REAPP_WALLET_NETWORK) ?? "mainnet";
   if (requested !== "testnet" && requested !== "mainnet") {
     throw new Error("REAPP_WALLET_NETWORK must be testnet or mainnet");
   }
@@ -101,7 +104,8 @@ export function loadAppConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     if (env.REAPP_ENABLE_MAINNET !== MAINNET_CONFIRMATION) {
       blockers.push(`REAPP_ENABLE_MAINNET must equal ${MAINNET_CONFIRMATION}`);
     }
-    const manifestJson = present(env.REAPP_MAINNET_DEPLOYMENT_MANIFEST_JSON);
+    const manifestJson = present(env.REAPP_MAINNET_DEPLOYMENT_MANIFEST_JSON)
+      ?? JSON.stringify(mainnetReleaseManifest);
     if (!manifestJson) {
       blockers.push("completed mainnet deployment manifest is missing");
     } else {
@@ -142,8 +146,23 @@ export function loadAppConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   }
 
   let merchantUrl: string | null = null;
+  let appOrigin: string | null = null;
+  const rawAppOrigin = present(env.REAPP_APP_ORIGIN);
+  if (rawAppOrigin) {
+    try {
+      const parsed = new URL(rawAppOrigin);
+      if (parsed.protocol !== "https:" || parsed.origin !== rawAppOrigin || parsed.username || parsed.password) {
+        throw new Error();
+      }
+      appOrigin = rawAppOrigin;
+    } catch {
+      blockers.push("REAPP_APP_ORIGIN must be an exact credential-free HTTPS origin");
+    }
+  } else if (networkName === "mainnet") {
+    blockers.push("exact hosted application origin is required on mainnet");
+  }
   try {
-    merchantUrl = safeMerchantUrl(present(env.REAPP_CHAT_MERCHANT_URL));
+    merchantUrl = safeMerchantUrl(present(env.REAPP_CHAT_MERCHANT_URL) ?? appOrigin);
   } catch (error) {
     blockers.push(error instanceof Error ? error.message : String(error));
   }
@@ -152,6 +171,10 @@ export function loadAppConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   const sessionSecret = present(env.REAPP_SESSION_SECRET);
   if (!sessionSecret || Buffer.byteLength(sessionSecret, "utf8") < 32) {
     blockers.push("session secret must contain at least 32 bytes");
+  }
+  const challengeSecret = present(env.REAPP_CHALLENGE_SECRET);
+  if (!challengeSecret || Buffer.byteLength(challengeSecret, "utf8") < 32) {
+    blockers.push("fulfillment challenge secret must contain at least 32 bytes");
   }
   const openAiKey = present(env.OPENAI_API_KEY);
   if (!openAiKey) blockers.push("OpenAI API key is missing");
@@ -169,20 +192,6 @@ export function loadAppConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   if (networkName === "mainnet" && (!sourceCommit || !/^[0-9a-f]{40}$/.test(sourceCommit))) {
     blockers.push("exact 40-character application source commit is required on mainnet");
   }
-  const appOrigin = present(env.REAPP_APP_ORIGIN);
-  if (appOrigin) {
-    try {
-      const parsed = new URL(appOrigin);
-      if (parsed.protocol !== "https:" || parsed.origin !== appOrigin || parsed.username || parsed.password) {
-        throw new Error();
-      }
-    } catch {
-      blockers.push("REAPP_APP_ORIGIN must be an exact credential-free HTTPS origin");
-    }
-  } else if (networkName === "mainnet") {
-    blockers.push("exact hosted application origin is required on mainnet");
-  }
-
   const ready = blockers.length === 0;
   const publicConfig: SafeAppConfig = {
     network: networkName,
@@ -205,7 +214,7 @@ export function loadAppConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     releaseFingerprint,
     durableState: Boolean(databaseUrl),
     wallet: {
-      name: "LOBSTR",
+      name: "Freighter",
       signingMode: "G-account transaction signing",
       authEntrySigning: false,
     },
@@ -216,6 +225,8 @@ export function loadAppConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     network,
     agentSecret,
     merchantUrl,
+    appOrigin,
+    challengeSecret,
     sessionSecret,
     openAiKey,
     openAiModel: present(env.OPENAI_MODEL) ?? "gpt-5-mini",

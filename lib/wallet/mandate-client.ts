@@ -11,7 +11,7 @@ import {
 import { Client, type NetworkConfig } from "@reapp-sdk/stellar";
 import { reapp, type IntentMandate } from "@reapp-sdk/core";
 import type { SafeAppConfig } from "./types";
-import { lobstrSigner } from "./lobstr";
+import { freighterSigner } from "./freighter";
 
 if (typeof window !== "undefined" && !window.Buffer) window.Buffer = Buffer;
 
@@ -48,7 +48,7 @@ export function buildMandate(config: SafeAppConfig, user: string, form: CreateMa
 }
 
 function walletClient(config: SafeAppConfig, address: string): Client {
-  const signer = lobstrSigner(address, config.networkPassphrase);
+  const signer = freighterSigner(address, config.networkPassphrase);
   return new Client({
     contractId: config.mandateRegistryId,
     rpcUrl: config.rpcUrl,
@@ -67,7 +67,7 @@ function transactionHash(sent: { sendTransactionResponse?: { hash?: string } }):
   return hash;
 }
 
-export async function registerWithLobstr(config: SafeAppConfig, mandate: IntentMandate): Promise<string> {
+export async function registerWithFreighter(config: SafeAppConfig, mandate: IntentMandate): Promise<string> {
   const client = walletClient(config, mandate.user);
   const assembled = await client.register_mandate({
     user: mandate.user,
@@ -94,8 +94,8 @@ async function settle(server: rpc.Server, hash: string): Promise<void> {
   }
 }
 
-export async function approveWithLobstr(config: SafeAppConfig, mandate: IntentMandate): Promise<string> {
-  const signer = lobstrSigner(mandate.user, config.networkPassphrase);
+export async function approveWithFreighter(config: SafeAppConfig, mandate: IntentMandate): Promise<string> {
+  const signer = freighterSigner(mandate.user, config.networkPassphrase);
   const server = new rpc.Server(config.rpcUrl, { allowHttp: config.rpcUrl.startsWith("http://") });
   const source = await server.getAccount(mandate.user);
   const expirationLedger = (await server.getLatestLedger()).sequence + 17_280;
@@ -120,7 +120,7 @@ export async function approveWithLobstr(config: SafeAppConfig, mandate: IntentMa
   });
   if (signed.error) throw new Error(`allowance signing failed: ${signed.error.message}`);
   if (signed.signerAddress && signed.signerAddress !== mandate.user) {
-    throw new Error("allowance signing failed: LOBSTR returned a different signer address");
+    throw new Error("allowance signing failed: Freighter returned a different signer address");
   }
   const signedTransaction = TransactionBuilder.fromXDR(signed.signedTxXdr, config.networkPassphrase);
   const submitted = await server.sendTransaction(signedTransaction);
@@ -129,7 +129,7 @@ export async function approveWithLobstr(config: SafeAppConfig, mandate: IntentMa
   return submitted.hash;
 }
 
-export async function revokeWithLobstr(config: SafeAppConfig, mandate: IntentMandate): Promise<string> {
+export async function revokeWithFreighter(config: SafeAppConfig, mandate: IntentMandate): Promise<string> {
   const client = walletClient(config, mandate.user);
   const assembled = await client.revoke_mandate({ mandate_id: mandate.idBuffer });
   const sent = await assembled.signAndSend();

@@ -43,7 +43,7 @@ export async function POST(request: Request) {
       ok: true,
       transactionXdr: transaction.toXDR(),
       expiresAt: challenge.payload.exp,
-      statement: "Sign this non-broadcast transaction in LOBSTR to authenticate this browser session.",
+      statement: "Sign this non-broadcast transaction in Freighter to authenticate this browser session.",
     }, { headers: NO_STORE_HEADERS });
     response.cookies.set(challengeCookieName(), challenge.token, cookieOptions(CHALLENGE_TTL_SECONDS));
     return response;

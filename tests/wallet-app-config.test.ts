@@ -13,6 +13,7 @@ function validEnv(): NodeJS.ProcessEnv {
     REAPP_CHAT_MERCHANT_PUBLIC_KEY: Keypair.random().publicKey(),
     REAPP_CHAT_MERCHANT_URL: "https://merchant.example",
     REAPP_SESSION_SECRET: "s".repeat(48),
+    REAPP_CHALLENGE_SECRET: "c".repeat(48),
     OPENAI_API_KEY: "test-only-key",
   };
 }
@@ -21,7 +22,7 @@ test("testnet becomes ready only with complete matching configuration", () => {
   const config = loadAppConfig(validEnv());
   assert.equal(config.public.ready, true);
   assert.equal(config.public.releaseState, "testnet-ready");
-  assert.equal(config.public.wallet.name, "LOBSTR");
+  assert.equal(config.public.wallet.name, "Freighter");
   assert.equal(config.public.wallet.authEntrySigning, false);
 });
 
@@ -34,14 +35,15 @@ test("agent secret mismatch fails closed without exposing the secret", () => {
   assert.equal(JSON.stringify(config.public).includes(env.REAPP_CHAT_AGENT_SECRET), false);
 });
 
-test("mainnet has no default or testnet fallback", () => {
+test("mainnet loads only the verified USDC release and never falls back to testnet", () => {
   const config = loadAppConfig({ ...validEnv(), REAPP_WALLET_NETWORK: "mainnet" });
   assert.equal(config.public.ready, false);
   assert(config.public.blockers.some((item) => item.includes(MAINNET_CONFIRMATION)));
-  assert(config.public.blockers.includes("completed mainnet deployment manifest is missing"));
   assert(config.public.blockers.includes("durable DATABASE_URL is required on mainnet"));
-  assert.equal(config.public.mandateRegistryId, "");
-  assert.equal(config.public.asset.contractId, "");
+  assert.equal(config.public.mandateRegistryId, "CDBTG5ZKASFA7LOYUPBOTGKAVX5MJIM4U24BYGX7VX23IHYDAHLQPAGS");
+  assert.equal(config.public.asset.code, "USDC");
+  assert.equal(config.public.asset.contractId, "CCW67TSZV3SSS2HXMBQ5JFGCKJNXKZM7UQUWUZPUTHXSTZLEO7SJMI75");
+  assert.equal(config.public.catalog[0]?.price, "0.01");
   assert.equal(config.public.networkPassphrase, Networks.PUBLIC);
 });
 

@@ -6,7 +6,9 @@ Project guidance for agents working in `reapp-protocol-live`.
 
 A Next.js 15 (App Router) demo of [`@reapp-sdk/core`](https://www.npmjs.com/package/@reapp-sdk/core).
 An AI agent makes pay-per-use payments that are enforced on-chain by the REAPP
-MandateRegistry Soroban contract on Stellar testnet. The SDK runs server-side in
+MandateRegistry Soroban contract. Public demos run on Stellar testnet; the
+unlisted `/wallet` canary uses the manifest-pinned mainnet contract and Circle
+USDC with Freighter authorization. The SDK runs server-side in
 Next.js API routes — the contract enforces the budget on-chain, so the SDK can't exceed the mandate.
 
 ## Run

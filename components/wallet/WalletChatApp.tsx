@@ -24,12 +24,12 @@ import {
   Zap,
 } from "lucide-react";
 import type { IntentMandate } from "@reapp-sdk/core";
-import { approveWithLobstr, buildMandate, registerWithLobstr, revokeWithLobstr } from "@/lib/wallet/mandate-client";
+import { approveWithFreighter, buildMandate, registerWithFreighter, revokeWithFreighter } from "@/lib/wallet/mandate-client";
 import type { MandateView, SafeAppConfig, SessionView } from "@/lib/wallet/types";
-import { connectLobstr, signLobstrTransaction } from "@/lib/wallet/lobstr";
+import { addTokenToFreighter, connectFreighter, signFreighterTransaction } from "@/lib/wallet/freighter";
 import { AssistantThread } from "./AssistantThread";
 
-type Phase = "idle" | "authenticating" | "registering" | "approving" | "active" | "revoking";
+type Phase = "idle" | "authenticating" | "adding-asset" | "registering" | "approving" | "active" | "revoking";
 
 interface StoredMandate {
   id: string;
@@ -82,7 +82,7 @@ export function WalletChatApp() {
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [stored, setStored] = useState<StoredMandate | null>(null);
   const [mandate, setMandate] = useState<MandateView | null>(null);
-  const [budget, setBudget] = useState("3.00");
+  const [budget, setBudget] = useState("0.03");
   const [duration, setDuration] = useState("60");
   const [phase, setPhase] = useState<Phase>("idle");
   const [notice, setNotice] = useState<string | null>(null);
@@ -134,23 +134,27 @@ export function WalletChatApp() {
   const connect = async () => {
     if (!config) return;
     setError(null);
-    setNotice("Open LOBSTR and approve the connection request.");
+    setNotice("Open Freighter and approve the connection request.");
     setPhase("authenticating");
     try {
-      const address = await connectLobstr();
+      const address = await connectFreighter(config.networkPassphrase);
       setWalletAddress(address);
       const challenge = await api<{ transactionXdr: string }>("/api/wallet/auth/challenge", {
         method: "POST",
         body: JSON.stringify({ address }),
       });
-      setNotice("Approve the non-broadcast authentication transaction in LOBSTR.");
-      const signedTransactionXdr = await signLobstrTransaction(challenge.transactionXdr);
+      setNotice("Approve the non-broadcast authentication transaction in Freighter.");
+      const signedTransactionXdr = await signFreighterTransaction(
+        challenge.transactionXdr,
+        address,
+        config.networkPassphrase,
+      );
       const verified = await api<{ session: SessionView }>("/api/wallet/auth/verify", {
         method: "POST",
         body: JSON.stringify({ signedTransactionXdr }),
       });
       setSession(verified.session);
-      setNotice("LOBSTR verified. Your session is bound to this wallet and network.");
+      setNotice("Freighter verified. Your session is bound to this wallet and network.");
       setPhase("idle");
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause));
@@ -177,13 +181,13 @@ export function WalletChatApp() {
       };
       saveStored(next);
       setPhase("registering");
-      setNotice("Review and approve the mandate registration in LOBSTR.");
-      const registrationTx = await registerWithLobstr(config, intent);
+      setNotice("Review and approve the mandate registration in Freighter.");
+      const registrationTx = await registerWithFreighter(config, intent);
       next = { ...next, registrationTx };
       saveStored(next);
       setPhase("approving");
-      setNotice("One final LOBSTR approval: allowance goes to MandateRegistry, never the agent.");
-      const allowanceTx = await approveWithLobstr(config, intent);
+      setNotice("One final Freighter approval: allowance goes to MandateRegistry, never the agent.");
+      const allowanceTx = await approveWithFreighter(config, intent);
       next = { ...next, allowanceTx };
       saveStored(next);
       await refreshMandate(next);
@@ -195,12 +199,28 @@ export function WalletChatApp() {
     }
   };
 
+  const addUsdc = async () => {
+    if (!config || config.network !== "mainnet") return;
+    setError(null);
+    setPhase("adding-asset");
+    setNotice("Approve adding Circle USDC in Freighter.");
+    try {
+      await addTokenToFreighter(config.asset.contractId, config.networkPassphrase);
+      setNotice("USDC is available in Freighter. Swap a small amount of XLM to USDC, then return here.");
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : String(cause));
+      setNotice(null);
+    } finally {
+      setPhase("idle");
+    }
+  };
+
   const retryAllowance = async () => {
     if (!config || !stored) return;
     setError(null);
     setPhase("approving");
     try {
-      const allowanceTx = await approveWithLobstr(config, storedToIntent(stored));
+      const allowanceTx = await approveWithFreighter(config, storedToIntent(stored));
       const next = { ...stored, allowanceTx };
       saveStored(next);
       await refreshMandate(next);
@@ -216,7 +236,7 @@ export function WalletChatApp() {
     setError(null);
     setPhase("revoking");
     try {
-      const revokeTx = await revokeWithLobstr(config, storedToIntent(stored));
+      const revokeTx = await revokeWithFreighter(config, storedToIntent(stored));
       const next = { ...stored, revokeTx };
       saveStored(next);
       await refreshMandate(next);
@@ -257,7 +277,7 @@ export function WalletChatApp() {
           {session.authenticated ? (
             <button className="wallet-pill" onClick={disconnect}><span className="wallet-led" /> {short(session.address, 5)} <Power size={13} /></button>
           ) : (
-            <button className="wallet-pill" onClick={connect} disabled={!config || phase === "authenticating"}><WalletCards size={14} /> Connect LOBSTR</button>
+            <button className="wallet-pill" onClick={connect} disabled={!config || phase === "authenticating"}><WalletCards size={14} /> Connect Freighter</button>
           )}
         </div>
       </header>
@@ -266,7 +286,7 @@ export function WalletChatApp() {
         <div>
           <div className="status-chip"><Sparkles size={13} /> CONTRACT-ENFORCED AGENT PAYMENTS</div>
           <h1>Give the agent a budget.<br /><span>Keep the authority.</span></h1>
-          <p>Sign once with LOBSTR. MandateRegistry re-checks the agent, merchant, asset, expiry, and remaining budget every time value moves.</p>
+          <p>Sign with Freighter. MandateRegistry re-checks the agent, merchant, asset, expiry, and remaining budget every time value moves.</p>
         </div>
         <div className="network-card glass">
           <div className="network-card-top">
@@ -275,13 +295,13 @@ export function WalletChatApp() {
           </div>
           <strong>{config?.networkLabel ?? "Loading network…"}</strong>
           <code>{short(config?.mandateRegistryId, 9)}</code>
-          <div className="network-meta"><ShieldCheck size={14} /> Manifest-bound configuration</div>
+          <div className="network-meta"><ShieldCheck size={14} /> {config?.asset.code ?? "Asset"} · $0.01 per purchase</div>
         </div>
       </section>
 
       <section className="steps shell" aria-label="Activation progress">
         {[
-          [1, "Wallet", "Authenticate with LOBSTR"],
+          [1, "Wallet", "Authenticate with Freighter"],
           [2, "Mandate", "Register + approve"],
           [3, "Agent", "Chat + settle"],
         ].map(([number, title, caption], index) => (
@@ -296,16 +316,21 @@ export function WalletChatApp() {
       <section className="workspace shell">
         <aside className="control-column">
           <div className="panel glass wallet-panel">
-            <div className="panel-heading"><div><p className="eyebrow">01 · WALLET</p><h2>LOBSTR authority</h2></div><div className={`icon-tile ${session.authenticated ? "live" : ""}`}><WalletCards size={19} /></div></div>
+            <div className="panel-heading"><div><p className="eyebrow">01 · WALLET</p><h2>Freighter authority</h2></div><div className={`icon-tile ${session.authenticated ? "live" : ""}`}><WalletCards size={19} /></div></div>
             {session.authenticated ? (
               <div className="connected-state">
                 <div className="identity-line"><span className="wallet-led" /><div><small>Authenticated account</small><code>{short(session.address, 9)}</code></div><ShieldCheck size={18} /></div>
                 <p><LockKeyhole size={13} /> Session verified by a signed, non-broadcast Stellar transaction.</p>
+                {config?.network === "mainnet" && (
+                  <button className="secondary-button" onClick={addUsdc} disabled={phase === "adding-asset"}>
+                    <CircleDollarSign size={15} /> {phase === "adding-asset" ? "Waiting for Freighter…" : "Add Circle USDC"}
+                  </button>
+                )}
               </div>
             ) : (
               <>
-                <p className="panel-copy">Connect the LOBSTR Signer Extension. Signing stays inside LOBSTR; this app never receives your secret key.</p>
-                <button className="primary-button" onClick={connect} disabled={!config || phase === "authenticating"}><WalletCards size={16} /> {phase === "authenticating" ? "Waiting for LOBSTR…" : "Connect LOBSTR"}</button>
+                <p className="panel-copy">Connect Freighter on Mainnet. Signing stays inside Freighter; this app never receives your recovery phrase or secret key.</p>
+                <button className="primary-button" onClick={connect} disabled={!config || phase === "authenticating"}><WalletCards size={16} /> {phase === "authenticating" ? "Waiting for Freighter…" : "Connect Freighter"}</button>
               </>
             )}
           </div>
@@ -318,7 +343,7 @@ export function WalletChatApp() {
                 <label>Expires after<select value={duration} onChange={(event) => setDuration(event.target.value)} disabled={!session.authenticated || Boolean(stored?.registrationTx)}><option value="30">30 minutes</option><option value="60">1 hour</option><option value="360">6 hours</option><option value="1440">24 hours</option></select></label>
                 <div className="scope-box"><div><span>Agent</span><code>{short(config?.agentAddress, 6)}</code></div><div><span>Merchant</span><code>{config?.merchant.name ?? "Not configured"}</code></div><div><span>Asset</span><code>{config?.asset.code ?? "—"}</code></div></div>
                 {stored?.registrationTx && !stored.allowanceTx ? (
-                  <button className="primary-button" onClick={retryAllowance} disabled={phase === "approving"}><RefreshCw size={16} /> {phase === "approving" ? "Waiting for LOBSTR…" : "Finish allowance approval"}</button>
+                  <button className="primary-button" onClick={retryAllowance} disabled={phase === "approving"}><RefreshCw size={16} /> {phase === "approving" ? "Waiting for Freighter…" : "Finish allowance approval"}</button>
                 ) : (
                   <button className="primary-button" onClick={activate} disabled={!session.authenticated || !config?.ready || phase === "registering" || phase === "approving"}><Zap size={16} /> {phase === "registering" ? "Registering mandate…" : phase === "approving" ? "Approving allowance…" : "Sign & activate mandate"}</button>
                 )}
@@ -328,7 +353,7 @@ export function WalletChatApp() {
               <div className="mandate-active">
                 <div className="active-banner"><span><Check size={15} /></span><div><small>On-chain status</small><strong>Active mandate</strong></div></div>
                 <div className="mandate-id"><span>Mandate ID</span><code>{short(mandate.id, 9)}</code></div>
-                <button className="danger-button" onClick={revoke} disabled={phase === "revoking"}><X size={15} /> {phase === "revoking" ? "Waiting for LOBSTR…" : "Revoke authority"}</button>
+                <button className="danger-button" onClick={revoke} disabled={phase === "revoking"}><X size={15} /> {phase === "revoking" ? "Waiting for Freighter…" : "Revoke authority"}</button>
               </div>
             )}
           </div>
@@ -346,7 +371,7 @@ export function WalletChatApp() {
               <div className="lock-rings"><LockKeyhole size={27} /></div>
               <p className="eyebrow">AGENT LOCKED</p>
               <h3>Authority comes first.</h3>
-              <p>Connect LOBSTR, register the mandate, and approve the contract allowance. Chat unlocks only after the on-chain state reads Active.</p>
+              <p>Connect Freighter, register the mandate, and approve the contract allowance. Chat unlocks only after the on-chain state reads Active.</p>
             </div>
           )}
         </section>

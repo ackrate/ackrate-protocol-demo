@@ -33,7 +33,7 @@ export interface SafeAppConfig {
   releaseFingerprint: string | null;
   durableState: boolean;
   wallet: {
-    name: "LOBSTR";
+    name: "Freighter";
     signingMode: "G-account transaction signing";
     authEntrySigning: false;
   };

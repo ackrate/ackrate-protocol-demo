@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useMemo } from "react";
+import { createContext, useContext, useEffect, useMemo } from "react";
 import {
   AssistantRuntimeProvider,
   ComposerPrimitive,
@@ -97,6 +97,21 @@ function PurchaseTool({ result, isError, args }: ToolCallMessagePartProps<{ sour
   if (!isPurchaseResult(result)) {
     return <div className="tool-card"><LoaderCircle className="spin" size={15} /><div><strong>Checking mandate + settlement</strong><p>{args.sourceId ? `Preparing ${args.sourceId}` : "Preparing allowlisted source"}</p></div></div>;
   }
+  return <CompletedPurchase result={result} explorerNetwork={explorerNetwork} />;
+}
+
+function CompletedPurchase({ result, explorerNetwork }: { result: PurchaseResult; explorerNetwork: "testnet" | "public" }) {
+  useEffect(() => {
+    if (explorerNetwork !== "public") return;
+    localStorage.setItem("reapp:mainnet:last-payment", JSON.stringify({
+      txHash: result.payment.txHash,
+      amount: result.payment.amount,
+      asset: result.payment.asset,
+      recordedAt: new Date().toISOString(),
+    }));
+    window.dispatchEvent(new Event("reapp-mainnet-payment"));
+  }, [explorerNetwork, result.payment.amount, result.payment.asset, result.payment.txHash]);
+
   return (
     <div className="tool-card tool-success">
       <span className="tool-check"><Check size={14} /></span>
