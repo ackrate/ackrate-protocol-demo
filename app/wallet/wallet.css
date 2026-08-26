@@ -134,6 +134,18 @@
 .wallet-preview .primary-button { width: 100%; min-height: 41px; border: 0; background: var(--emerald); color: #052117; font-size: 11px; box-shadow: 0 0 24px rgba(52,211,153,.13); }
 .wallet-preview .primary-button:hover:not(:disabled) { background: #58ebb1; transform: translateY(-1px); box-shadow: 0 8px 30px rgba(52,211,153,.18); }
 .wallet-preview .primary-button:disabled { opacity: .35; cursor: not-allowed; }
+.wallet-preview .primary-button.busy { position: relative; overflow: hidden; opacity: .78; cursor: wait; background: linear-gradient(90deg, #32d399, #67e8d1, #32d399); background-size: 220% 100%; animation: activation-shimmer 2.2s ease-in-out infinite; }
+.wallet-preview .activation-spinner { animation: activation-spin .9s linear infinite; }
+.wallet-preview .activation-progress { display: grid; grid-template-columns: 34px 1fr; align-items: center; gap: 10px; margin-top: 10px; padding: 10px; border: 1px solid rgba(52,211,153,.15); border-radius: 11px; color: #8da49a; background: rgba(52,211,153,.035); }
+.wallet-preview .activation-progress > span:last-child { display: grid; gap: 3px; }
+.wallet-preview .activation-progress strong { color: #bdf5dc; font-size: 9px; }
+.wallet-preview .activation-progress small { color: #71867d; font-size: 8px; line-height: 1.45; }
+.wallet-preview .activation-orbit { position: relative; display: block; width: 28px; height: 28px; }
+.wallet-preview .activation-orbit i { position: absolute; inset: 0; border: 1px solid rgba(52,211,153,.18); border-top-color: #5ee7b2; border-radius: 50%; animation: activation-spin 1.15s linear infinite; }
+.wallet-preview .activation-orbit i:nth-child(2) { inset: 5px; border-top-color: #67e8d1; animation-duration: .85s; animation-direction: reverse; }
+.wallet-preview .activation-orbit i:nth-child(3) { inset: 11px; border: 0; background: #5ee7b2; box-shadow: 0 0 10px rgba(94,231,178,.7); }
+@keyframes activation-spin { to { transform: rotate(360deg); } }
+@keyframes activation-shimmer { 0%,100% { background-position: 0 50%; } 50% { background-position: 100% 50%; } }
 .wallet-preview .secondary-button { min-height: 36px; padding: 0 13px; border: 1px solid var(--line); background: rgba(255,255,255,.035); font-size: 11px; color: #b2c1bb; }
 .wallet-preview .danger-button { width: 100%; min-height: 38px; border: 1px solid rgba(251,113,133,.18); background: rgba(251,113,133,.055); color: #fda4b3; font-size: 10px; }
 .wallet-preview .danger-button:hover:not(:disabled) { background: rgba(251,113,133,.1); border-color: rgba(251,113,133,.32); }

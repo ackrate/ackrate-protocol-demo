@@ -57,3 +57,13 @@ test("wallet closes an expired mandate locally and offers a fresh boundary", () 
   assert.match(app, /!currentMandate/);
   assert.match(app, /Sign & activate mandate/);
 });
+
+test("wallet shows clear progress while Mainnet approval is prepared", () => {
+  const app = read("components/wallet/WalletChatApp.tsx");
+  const styles = read("app/wallet/wallet.css");
+
+  assert.match(app, /Securing your mandate/);
+  assert.match(app, /Preparing Mainnet approval/);
+  assert.match(styles, /activation-orbit/);
+  assert.match(styles, /activation-shimmer/);
+});

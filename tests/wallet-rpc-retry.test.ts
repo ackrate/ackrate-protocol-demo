@@ -17,7 +17,7 @@ test("RPC fetch retries the same endpoint after HTTP 429", async () => {
 
   assert.equal(response.status, 200);
   assert.deepEqual(calls, ["https://rpc.example", "https://rpc.example", "https://rpc.example"]);
-  assert.deepEqual(waits, [250, 750]);
+  assert.deepEqual(waits, [2_000, 4_000]);
 });
 
 test("SDK RPC operation retries only explicit HTTP 429", async () => {
@@ -33,4 +33,23 @@ test("SDK RPC operation retries only explicit HTTP 429", async () => {
   await assert.rejects(
     retryRateLimited(async () => { throw { response: { status: 500 } }; }, async () => undefined),
   );
+});
+
+test("RPC retry honors a bounded Retry-After response", async () => {
+  const waits: number[] = [];
+  let calls = 0;
+  const response = await postRpcWithRetry(
+    "https://rpc.example",
+    { jsonrpc: "2.0", id: 1, method: "getLatestLedger" },
+    async () => {
+      calls += 1;
+      return calls === 1
+        ? new Response("busy", { status: 429, headers: { "Retry-After": "5" } })
+        : Response.json({ result: { sequence: 1 } });
+    },
+    async (milliseconds) => { waits.push(milliseconds); },
+  );
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(waits, [5_000]);
 });

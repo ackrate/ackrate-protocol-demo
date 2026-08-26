@@ -15,6 +15,7 @@ import {
   ExternalLink,
   Fingerprint,
   LockKeyhole,
+  LoaderCircle,
   Power,
   RefreshCw,
   ShieldCheck,
@@ -301,6 +302,7 @@ export function WalletChatApp() {
     : 0;
   const expires = currentMandate?.expiry ?? (storedFresh ? stored?.expiry : undefined);
   const explorer = config ? `https://stellar.expert/explorer/${config.explorerNetwork}` : "#";
+  const mandateBusy = phase === "registering" || phase === "approving";
 
   return (
     <main className="wallet-preview app-frame">
@@ -381,7 +383,16 @@ export function WalletChatApp() {
                 {stored?.registrationTx && !stored.allowanceTx ? (
                   <button className="primary-button" onClick={retryAllowance} disabled={phase === "approving"}><RefreshCw size={16} /> {phase === "approving" ? "Waiting for Freighter…" : "Finish allowance approval"}</button>
                 ) : (
-                  <button className="primary-button" onClick={activate} disabled={!session.authenticated || !config?.ready || phase === "registering" || phase === "approving"}><Zap size={16} /> {phase === "registering" ? "Registering mandate…" : phase === "approving" ? "Approving allowance…" : "Sign & activate mandate"}</button>
+                  <button className={`primary-button ${mandateBusy ? "busy" : ""}`} onClick={activate} disabled={!session.authenticated || !config?.ready || mandateBusy}>
+                    {mandateBusy ? <LoaderCircle className="activation-spinner" size={17} /> : <Zap size={16} />}
+                    {phase === "registering" ? "Securing your mandate…" : phase === "approving" ? "Finalizing your allowance…" : "Sign & activate mandate"}
+                  </button>
+                )}
+                {mandateBusy && (
+                  <div className="activation-progress" role="status" aria-live="polite">
+                    <span className="activation-orbit" aria-hidden><i /><i /><i /></span>
+                    <span><strong>Preparing Mainnet approval</strong><small>Keep this window open. Freighter appears when the transaction is ready.</small></span>
+                  </div>
                 )}
                 <p className="fine-print"><ShieldCheck size={12} /> Allowance is granted only to MandateRegistry—not the agent or this app.</p>
               </>

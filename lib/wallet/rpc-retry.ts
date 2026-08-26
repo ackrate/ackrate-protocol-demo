@@ -1,7 +1,8 @@
 import { rpc } from "@stellar/stellar-sdk";
 import type { NetworkName } from "./types";
 
-const RETRY_DELAYS_MS = Object.freeze([250, 750, 1_500]);
+const RETRY_DELAYS_MS = Object.freeze([2_000, 4_000, 8_000, 12_000, 18_000]);
+const MAX_RETRY_AFTER_MS = 30_000;
 const runtime = globalThis as typeof globalThis & { __reappMainnetRpcRetryInstalled?: boolean };
 
 const sleep = (milliseconds: number) => new Promise<void>((resolve) => setTimeout(resolve, milliseconds));
@@ -14,6 +15,21 @@ function statusOf(error: unknown): number | null {
   return typeof status === "number" ? status : null;
 }
 
+function retryAfterMs(value: unknown): number | null {
+  if (typeof value !== "string" || !/^\d+$/.test(value)) return null;
+  return Math.min(Number(value) * 1_000, MAX_RETRY_AFTER_MS);
+}
+
+function retryAfterFromError(error: unknown): number | null {
+  if (typeof error !== "object" || error === null) return null;
+  const response = (error as { response?: unknown }).response;
+  if (typeof response !== "object" || response === null) return null;
+  const headers = (response as { headers?: unknown }).headers;
+  if (typeof headers !== "object" || headers === null) return null;
+  const candidate = headers as { get?: (name: string) => unknown; [key: string]: unknown };
+  return retryAfterMs(candidate.get?.("retry-after") ?? candidate["retry-after"]);
+}
+
 export async function retryRateLimited<T>(
   operation: () => Promise<T>,
   wait: (milliseconds: number) => Promise<void> = sleep,
@@ -24,7 +40,7 @@ export async function retryRateLimited<T>(
     } catch (error) {
       const delay = RETRY_DELAYS_MS[attempt];
       if (statusOf(error) !== 429 || delay === undefined) throw error;
-      await wait(delay);
+      await wait(Math.max(delay, retryAfterFromError(error) ?? 0));
     }
   }
 }
@@ -44,8 +60,9 @@ export async function postRpcWithRetry(
     });
     const delay = RETRY_DELAYS_MS[attempt];
     if (response.status !== 429 || delay === undefined) return response;
+    const retryAfter = retryAfterMs(response.headers.get("retry-after"));
     await response.body?.cancel().catch(() => undefined);
-    await wait(delay);
+    await wait(Math.max(delay, retryAfter ?? 0));
   }
 }
 
