@@ -38,6 +38,11 @@ test("wallet transaction assembly uses authenticated same-origin Stellar relays"
   assert.match(rpc, /config\.network\.rpcUrl/);
 });
 
+test("wallet RPC relay accepts the bounded Stellar Gateway ledger response", () => {
+  const source = read("app/api/wallet/rpc/route.ts");
+  assert.match(source, /boundedResponseJson\(upstream, 4 \* 1024 \* 1024\)/);
+});
+
 test("wallet exposes a deterministic real-payment control without an LLM dependency", () => {
   const thread = read("components/wallet/AssistantThread.tsx");
   const purchase = read("app/api/wallet/purchase/route.ts");

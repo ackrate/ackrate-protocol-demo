@@ -20,7 +20,7 @@ export async function POST(request: Request) {
     await requireSession(config.sessionSecret, config.public.network);
     const body = RpcRequest.parse(await boundedJson(request, 512 * 1024));
     const upstream = await postRpcWithRetry(config.network.rpcUrl, body);
-    const result = await boundedResponseJson(upstream, 2 * 1024 * 1024);
+    const result = await boundedResponseJson(upstream, 4 * 1024 * 1024);
     return NextResponse.json(result, { status: upstream.status, headers: NO_STORE_HEADERS });
   } catch (error) {
     return jsonError(error, 400);
