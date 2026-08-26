@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo } from "react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import {
   AssistantRuntimeProvider,
   ComposerPrimitive,
@@ -9,7 +9,7 @@ import {
   type ToolCallMessagePartProps,
 } from "@assistant-ui/react";
 import { AssistantChatTransport, useChatRuntime } from "@assistant-ui/react-ai-sdk";
-import { ArrowUp, ArrowUpRight, Bot, Check, CircleDollarSign, LoaderCircle, TriangleAlert, UserRound } from "lucide-react";
+import { ArrowUp, ArrowUpRight, Bot, Check, CircleDollarSign, Copy, LoaderCircle, TriangleAlert, UserRound } from "lucide-react";
 
 const ExplorerContext = createContext<"testnet" | "public">("testnet");
 
@@ -101,6 +101,7 @@ function PurchaseTool({ result, isError, args }: ToolCallMessagePartProps<{ sour
 }
 
 function CompletedPurchase({ result, explorerNetwork }: { result: PurchaseResult; explorerNetwork: "testnet" | "public" }) {
+  const [copied, setCopied] = useState(false);
   useEffect(() => {
     if (explorerNetwork !== "public") return;
     localStorage.setItem("reapp:mainnet:last-payment", JSON.stringify({
@@ -118,9 +119,19 @@ function CompletedPurchase({ result, explorerNetwork }: { result: PurchaseResult
       <div className="tool-body">
         <strong>{result.source.title}</strong>
         <p>{result.payment.amount} {result.payment.asset} settled through MandateRegistry</p>
-        <a href={`https://stellar.expert/explorer/${explorerNetwork}/tx/${result.payment.txHash}`} target="_blank" rel="noreferrer">
-          View transaction · {result.payment.txHash.slice(0, 8)}…{result.payment.txHash.slice(-8)} <ArrowUpRight size={12} />
-        </a>
+        <code className="tool-hash">{result.payment.txHash.slice(0, 8)}…{result.payment.txHash.slice(-8)}</code>
+        <div className="tool-actions">
+          <button type="button" onClick={async () => {
+            await navigator.clipboard.writeText(result.payment.txHash);
+            setCopied(true);
+            window.setTimeout(() => setCopied(false), 1_500);
+          }} aria-label="Copy settlement transaction hash">
+            {copied ? <Check size={12} /> : <Copy size={12} />} {copied ? "Copied" : "Copy hash"}
+          </button>
+          <a href={`https://stellar.expert/explorer/${explorerNetwork}/tx/${result.payment.txHash}`} target="_blank" rel="noreferrer" aria-label="Open settlement transaction in Stellar Explorer">
+            <ArrowUpRight size={12} /> Explorer
+          </a>
+        </div>
       </div>
     </div>
   );

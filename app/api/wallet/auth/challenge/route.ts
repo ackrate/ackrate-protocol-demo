@@ -1,6 +1,7 @@
-import { Account, Operation, StrKey, TransactionBuilder, rpc } from "@stellar/stellar-sdk";
+import { Account, Operation, StrKey, TransactionBuilder } from "@stellar/stellar-sdk";
 import { z } from "zod";
 import { loadAppConfig } from "@/lib/wallet/app-config";
+import { loadAccountSequence } from "@/lib/wallet/horizon-account";
 import { boundedJson, jsonError, NO_STORE_HEADERS } from "@/lib/wallet/http";
 import {
   CHALLENGE_TTL_SECONDS,
@@ -19,10 +20,9 @@ export async function POST(request: Request) {
     const config = loadAppConfig();
     if (!config.sessionSecret) throw new Error("wallet authentication is not configured");
     const { address } = Body.parse(await boundedJson(request, 4_096));
-    const server = new rpc.Server(config.network.rpcUrl, { allowHttp: config.network.rpcUrl.startsWith("http://") });
-    const source = await server.getAccount(address);
+    const sequence = await loadAccountSequence(address, config.public.network);
     const now = Math.floor(Date.now() / 1_000);
-    const transaction = new TransactionBuilder(new Account(address, source.sequenceNumber()), {
+    const transaction = new TransactionBuilder(new Account(address, sequence), {
       fee: "100",
       networkPassphrase: config.network.networkPassphrase,
     })

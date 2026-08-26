@@ -2,6 +2,7 @@
 
 import { Buffer } from "buffer";
 import {
+  Account,
   Address,
   Contract,
   TransactionBuilder,
@@ -12,6 +13,7 @@ import { Client, type NetworkConfig } from "@reapp-sdk/stellar";
 import { reapp, type IntentMandate } from "@reapp-sdk/core";
 import type { SafeAppConfig } from "./types";
 import { freighterSigner } from "./freighter";
+import { loadAccountSequence } from "./horizon-account";
 
 if (typeof window !== "undefined" && !window.Buffer) window.Buffer = Buffer;
 
@@ -49,6 +51,7 @@ export function buildMandate(config: SafeAppConfig, user: string, form: CreateMa
 
 function walletClient(config: SafeAppConfig, address: string): Client {
   const signer = freighterSigner(address, config.networkPassphrase);
+  const server = walletRpcServer(config);
   return new Client({
     contractId: config.mandateRegistryId,
     rpcUrl: config.rpcUrl,
@@ -56,7 +59,17 @@ function walletClient(config: SafeAppConfig, address: string): Client {
     publicKey: address,
     signTransaction: signer.signTransaction,
     allowHttp: config.rpcUrl.startsWith("http://"),
+    server,
   });
+}
+
+export function walletRpcServer(config: SafeAppConfig): rpc.Server {
+  const server = new rpc.Server(config.rpcUrl, { allowHttp: config.rpcUrl.startsWith("http://") });
+  server.getAccount = async (address: string) => new Account(
+    address,
+    await loadAccountSequence(address, config.network),
+  );
+  return server;
 }
 
 function transactionHash(sent: { sendTransactionResponse?: { hash?: string } }): string {
@@ -96,7 +109,7 @@ async function settle(server: rpc.Server, hash: string): Promise<void> {
 
 export async function approveWithFreighter(config: SafeAppConfig, mandate: IntentMandate): Promise<string> {
   const signer = freighterSigner(mandate.user, config.networkPassphrase);
-  const server = new rpc.Server(config.rpcUrl, { allowHttp: config.rpcUrl.startsWith("http://") });
+  const server = walletRpcServer(config);
   const source = await server.getAccount(mandate.user);
   const expirationLedger = (await server.getLatestLedger()).sequence + 17_280;
   const operation = new Contract(mandate.asset).call(

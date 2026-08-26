@@ -10,6 +10,7 @@ import {
   ChevronRight,
   CircleDollarSign,
   Clock3,
+  Copy,
   Database,
   ExternalLink,
   Fingerprint,
@@ -59,6 +60,26 @@ async function api<T>(url: string, init?: RequestInit): Promise<T> {
 }
 
 const short = (value: string | null | undefined, size = 7) => value ? `${value.slice(0, size)}…${value.slice(-size)}` : "Not configured";
+
+function TransactionEvidence({ label, hash, explorer }: { label: string; hash: string; explorer: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <div className="proof-evidence">
+      <span>{label}</span>
+      <code>{short(hash, 6)}</code>
+      <button type="button" onClick={async () => {
+        await navigator.clipboard.writeText(hash);
+        setCopied(true);
+        window.setTimeout(() => setCopied(false), 1_500);
+      }} aria-label={`Copy ${label.toLowerCase()} transaction hash`} title="Copy transaction hash">
+        {copied ? <Check size={13} /> : <Copy size={13} />}
+      </button>
+      <a href={`${explorer}/tx/${hash}`} target="_blank" rel="noreferrer" aria-label={`Open ${label.toLowerCase()} transaction in Stellar Explorer`} title="Open in Stellar Explorer">
+        <ArrowUpRight size={14} />
+      </a>
+    </div>
+  );
+}
 
 function formatUnits(value: string, decimals: number): string {
   const raw = BigInt(value);
@@ -392,9 +413,9 @@ export function WalletChatApp() {
           <div className="panel glass proof-card">
             <div className="panel-heading"><div><p className="eyebrow">CHAIN EVIDENCE</p><h2>Verifiable by default</h2></div><ExternalLink size={18} /></div>
             <a href={config?.mandateRegistryId ? `${explorer}/contract/${config.mandateRegistryId}` : "#"} target="_blank" rel="noreferrer"><span>MandateRegistry</span><code>{short(config?.mandateRegistryId, 6)}</code><ArrowUpRight size={14} /></a>
-            {stored?.registrationTx && <a href={`${explorer}/tx/${stored.registrationTx}`} target="_blank" rel="noreferrer"><span>Registration</span><code>{short(stored.registrationTx, 6)}</code><ArrowUpRight size={14} /></a>}
-            {stored?.allowanceTx && <a href={`${explorer}/tx/${stored.allowanceTx}`} target="_blank" rel="noreferrer"><span>Allowance</span><code>{short(stored.allowanceTx, 6)}</code><ArrowUpRight size={14} /></a>}
-            {stored?.revokeTx && <a href={`${explorer}/tx/${stored.revokeTx}`} target="_blank" rel="noreferrer"><span>Revocation</span><code>{short(stored.revokeTx, 6)}</code><ArrowUpRight size={14} /></a>}
+            {stored?.registrationTx && <TransactionEvidence label="Registration" hash={stored.registrationTx} explorer={explorer} />}
+            {stored?.allowanceTx && <TransactionEvidence label="Allowance" hash={stored.allowanceTx} explorer={explorer} />}
+            {stored?.revokeTx && <TransactionEvidence label="Revocation" hash={stored.revokeTx} explorer={explorer} />}
           </div>
 
           {config && !config.ready && (

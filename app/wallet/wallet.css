@@ -206,7 +206,10 @@
 .wallet-preview .tool-card.tool-error > svg { color: var(--danger); }
 .wallet-preview .tool-check { display: grid; place-items: center; flex: 0 0 auto; width: 24px; height: 24px; border-radius: 50%; color: #062219; background: var(--emerald); }
 .wallet-preview .tool-body { min-width: 0; }
-.wallet-preview .tool-body a { display: flex; align-items: center; gap: 4px; margin-top: 8px; color: #6ad9ae; font-family: "SFMono-Regular", Consolas, monospace; font-size: 8px; overflow-wrap: anywhere; }
+.wallet-preview .tool-hash { display: block; margin-top: 7px; color: #82978e; font-size: 8px; }
+.wallet-preview .tool-actions { display: flex; gap: 7px; margin-top: 8px; }
+.wallet-preview .tool-actions button, .wallet-preview .tool-actions a { display: inline-flex; align-items: center; gap: 4px; min-height: 27px; padding: 0 8px; border: 1px solid rgba(52,211,153,.15); border-radius: 8px; color: #6ad9ae; background: rgba(52,211,153,.045); font-family: "SFMono-Regular", Consolas, monospace; font-size: 8px; cursor: pointer; }
+.wallet-preview .tool-actions button:hover, .wallet-preview .tool-actions a:hover { border-color: rgba(52,211,153,.32); color: #a7f3d0; }
 .wallet-preview .spin { animation: tool-spin 1s linear infinite; }
 @keyframes tool-spin { to { transform: rotate(360deg); } }
 
@@ -228,6 +231,10 @@
 .wallet-preview .proof-card a { display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 8px; padding: 10px 0; border-top: 1px solid rgba(255,255,255,.05); color: #64766f; font-size: 8px; transition: color .2s; }
 .wallet-preview .proof-card a:hover { color: #a6c5b8; }
 .wallet-preview .proof-card a code { color: #82978e; font-size: 8px; }
+.wallet-preview .proof-evidence { display: grid; grid-template-columns: 1fr auto auto auto; align-items: center; gap: 8px; padding: 10px 0; border-top: 1px solid rgba(255,255,255,.05); color: #64766f; font-size: 8px; }
+.wallet-preview .proof-evidence code { color: #82978e; font-size: 8px; }
+.wallet-preview .proof-evidence button, .wallet-preview .proof-evidence a { display: grid; place-items: center; width: 27px; height: 27px; padding: 0; border: 1px solid rgba(52,211,153,.12); border-radius: 8px; color: #72a893; background: rgba(52,211,153,.035); cursor: pointer; transition: color .2s, border-color .2s; }
+.wallet-preview .proof-evidence button:hover, .wallet-preview .proof-evidence a:hover { border-color: rgba(52,211,153,.3); color: #a7f3d0; }
 .wallet-preview .gate-card { display: flex; align-items: flex-start; gap: 10px; border: 1px solid rgba(251,113,133,.16); background: rgba(251,113,133,.045); }
 .wallet-preview .gate-card > svg { flex: 0 0 auto; color: var(--danger); }
 .wallet-preview .gate-card strong { color: #f6a0af; font-size: 10px; }
