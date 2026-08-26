@@ -36,6 +36,7 @@ test("navigation hides Consumer and exposes Solutions without deleting the direc
   assert.match(nav, /href: "\/solutions", label: "Solutions"/);
   assert.doesNotMatch(nav, /href: "\/video", label: "Video"/);
   assert.match(nav, /href: "\/express", label: "Express"/);
+  assert.match(nav, /href: "\/merchants", label: "Merchants"/);
   assert.match(consumer, /Preview only · no funds move/);
   assert.match(consumer, /No wallet was created and no transaction was signed/);
   assert.match(consumer, /Give AI a job/);
@@ -43,6 +44,33 @@ test("navigation hides Consumer and exposes Solutions without deleting the direc
   assert.match(consumer, /Try the spending controls/);
   assert.match(consumer, /Watch a budgeted agent buy three resources/);
   assert.ok(video.length > 100);
+});
+
+test("the Merchants page links every security claim to public Mainnet evidence", async () => {
+  const [page, layout, sitemap, llms] = await Promise.all([
+    read("app/merchants/page.tsx"),
+    read("app/merchants/layout.tsx"),
+    read("app/sitemap.ts"),
+    read("app/llms.txt/route.ts"),
+  ]);
+  for (const required of [
+    "Unauthorized caller",
+    "Expired mandate",
+    "Overspend attempt",
+    "Replay attempt",
+    "Unauthorized upgrade",
+    "Re-entrant payment",
+    "22",
+    "Mainnet contract tests",
+    "gatecheck-contracts.sh",
+    "mainnet-canary-deployment.md",
+    "deployment-manifest.json",
+    "CDBTG5ZKASFA7LOYUPBOTGKAVX5MJIM4U24BYGX7VX23IHYDAHLQPAGS",
+    "CD3KRQRNCW52CZHKG2GPQAEOU6UCL426YFNHYUZ7IWUUKAOTKUQX6UUX",
+  ]) assert.match(page, new RegExp(required.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")), required);
+  assert.match(layout, /path: "\/merchants"/);
+  assert.match(sitemap, /"\/merchants"/);
+  assert.match(llms, /Merchant assurance/);
 });
 
 test("the Solutions page keeps the established responsive pattern and complete guide", async () => {

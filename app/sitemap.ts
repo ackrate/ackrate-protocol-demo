@@ -10,6 +10,7 @@ const routes = [
   "/composites",
   "/consumer",
   "/express",
+  "/merchants",
   "/solutions",
   "/research",
   "/toolkit",
