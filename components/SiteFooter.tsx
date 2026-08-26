@@ -18,8 +18,8 @@ export default function SiteFooter() {
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-300">REAPP · live protocol</p>
           <p className="mt-3 max-w-xl text-sm leading-relaxed text-emerald-50/60">
-            Open-source agentic payments infrastructure with bounded mandates, live Stellar testnet execution, and
-            inspectable settlement evidence. The independent field guide and ecosystem map live at{" "}
+            Open-source agent payment infrastructure with bounded mandates, Circle USDC settlement on Stellar Mainnet,
+            and transaction evidence anyone can inspect. The independent field guide and ecosystem map live at{" "}
             <a className="text-emerald-300 underline decoration-emerald-400/40 underline-offset-4 hover:text-emerald-200" href="https://reapp.network/">
               reapp.network
             </a>.
@@ -38,7 +38,7 @@ export default function SiteFooter() {
         </nav>
       </div>
       <div className="border-t border-white/[0.07] px-5 py-5 text-center text-[11px] uppercase tracking-[0.16em] text-white/30">
-        REAPP Protocol · Stellar testnet · Agent authority stays bounded
+        REAPP Protocol · Stellar Mainnet · Circle USDC · Agent authority stays bounded
       </div>
     </footer>
   );

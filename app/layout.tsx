@@ -7,9 +7,9 @@ import SiteFooter from "@/components/SiteFooter";
 
 const SITE = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://reapp.live").replace(/\/$/, "");
 
-const title = "REAPP — Agentic Payments SDK & Live Testnet Demos";
+const title = "REAPP — Mainnet Agent Payments in Circle USDC";
 const description =
-  "Build and test agentic payments with bounded on-chain mandates, scoped authority, live Stellar testnet settlement, and the REAPP TypeScript SDK.";
+  "Build agent payments with wallet-approved mandates, contract-enforced limits, and Circle USDC settlement on Stellar Mainnet.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE),
