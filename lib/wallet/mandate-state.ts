@@ -1,7 +1,10 @@
 import { Buffer } from "buffer";
 import { Client, type Mandate } from "@reapp-sdk/stellar";
 import type { NetworkConfig } from "@reapp-sdk/stellar";
+import { Networks } from "@stellar/stellar-sdk";
 import type { MandateView } from "./types";
+import { installMainnetAccountFallback } from "./rpc-account-fallback";
+import { installMainnetRpcRetry } from "./rpc-retry";
 
 export function assertMandateId(id: string): Buffer {
   if (!/^[0-9a-f]{64}$/.test(id)) throw new Error("mandate id must be 64 lowercase hexadecimal characters");
@@ -33,6 +36,9 @@ export function mandateView(id: string, mandate: Mandate): MandateView {
 }
 
 export async function readMandate(network: NetworkConfig, source: string, id: string): Promise<MandateView> {
+  const networkName = network.networkPassphrase === Networks.PUBLIC ? "mainnet" : "testnet";
+  installMainnetRpcRetry(networkName);
+  installMainnetAccountFallback(networkName);
   const client = new Client({
     contractId: network.mandateRegistryId,
     rpcUrl: network.rpcUrl,

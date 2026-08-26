@@ -4,6 +4,8 @@ import express, { type NextFunction, type Request, type Response } from "express
 import { createBoundReappPaidJsonRoute } from "@reapp-sdk/express-middleware";
 import { requireReadyConfig, type AppConfig } from "./app-config";
 import { PostgresBoundRedemptionStore } from "./redemption-store";
+import { installMainnetAccountFallback } from "./rpc-account-fallback";
+import { installMainnetRpcRetry } from "./rpc-retry";
 
 type Runtime = { server: Server; origin: string; fingerprint: string };
 const globalRuntime = globalThis as typeof globalThis & { __reappMainnetFulfillment?: Promise<Runtime> };
@@ -18,6 +20,8 @@ function fingerprint(config: AppConfig): string {
 }
 
 async function startRuntime(config: AppConfig): Promise<Runtime> {
+  installMainnetRpcRetry(config.public.network);
+  installMainnetAccountFallback(config.public.network);
   if (
     !config.databaseUrl
     || !config.challengeSecret

@@ -10,6 +10,7 @@ import { boundedResponseJson } from "./http";
 import { completeToolCall, DurableReceiptStore, reserveToolCall } from "./journal";
 import { assertMandateBindings, readMandate } from "./mandate-state";
 import { installMainnetAccountFallback } from "./rpc-account-fallback";
+import { installMainnetRpcRetry } from "./rpc-retry";
 
 export interface PurchaseInput {
   config: AppConfig;
@@ -22,6 +23,7 @@ export interface PurchaseInput {
 
 export async function purchaseCatalogItem(input: PurchaseInput): Promise<unknown> {
   const { config } = input;
+  installMainnetRpcRetry(config.public.network);
   installMainnetAccountFallback(config.public.network);
   if (!config.agentSecret || !config.merchantUrl || !config.public.agentAddress || !config.public.merchant.address) {
     throw new Error("payment execution is not configured");
