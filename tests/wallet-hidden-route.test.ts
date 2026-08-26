@@ -37,3 +37,14 @@ test("wallet transaction assembly uses authenticated same-origin Stellar relays"
   assert.match(rpc, /requireSession/);
   assert.match(rpc, /config\.network\.rpcUrl/);
 });
+
+test("wallet exposes a deterministic real-payment control without an LLM dependency", () => {
+  const thread = read("components/wallet/AssistantThread.tsx");
+  const purchase = read("app/api/wallet/purchase/route.ts");
+
+  assert.match(thread, /Pay \$0\.01 USDC/);
+  assert.match(thread, /"\/api\/wallet\/purchase"/);
+  assert.match(purchase, /purchaseCatalogItem/);
+  assert.match(purchase, /requireSession/);
+  assert.doesNotMatch(purchase, /openai|anthropic|streamText/i);
+});

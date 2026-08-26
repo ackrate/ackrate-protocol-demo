@@ -25,13 +25,14 @@ export function AssistantThread({ mandateId, asset, explorerNetwork }: { mandate
       <ExplorerContext.Provider value={explorerNetwork}>
       <ThreadPrimitive.Root className="thread-root">
         <ThreadPrimitive.Viewport className="thread-viewport">
+          <QuickPurchase mandateId={mandateId} explorerNetwork={explorerNetwork} />
           <ThreadPrimitive.Empty>
             <div className="chat-empty">
               <div className="agent-orb"><Bot size={22} /></div>
               <p className="eyebrow success">MANDATE ONLINE</p>
               <h3>Your agent has boundaries.</h3>
               <p>Ask for a listed source. Every payment is re-checked and consumed atomically by MandateRegistry.</p>
-              <div className="chat-prompt">Try: “Buy the market signal brief and summarize it.”</div>
+              <div className="chat-prompt">Use the verified purchase control above. Natural-language requests remain available below.</div>
             </div>
           </ThreadPrimitive.Empty>
           <ThreadPrimitive.Messages
@@ -54,6 +55,56 @@ export function AssistantThread({ mandateId, asset, explorerNetwork }: { mandate
       </ThreadPrimitive.Root>
       </ExplorerContext.Provider>
     </AssistantRuntimeProvider>
+  );
+}
+
+function QuickPurchase({ mandateId, explorerNetwork }: { mandateId: string; explorerNetwork: "testnet" | "public" }) {
+  const [state, setState] = useState<"idle" | "running" | "success" | "error">("idle");
+  const [result, setResult] = useState<PurchaseResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const purchase = async () => {
+    setState("running");
+    setResult(null);
+    setError(null);
+    try {
+      const response = await fetch("/api/wallet/purchase", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mandateId, sourceId: "market-brief" }),
+      });
+      const body = await response.json() as { ok: boolean; result?: unknown; error?: string };
+      if (!response.ok || !body.ok || !isPurchaseResult(body.result)) {
+        throw new Error(body.error ?? `Purchase returned HTTP ${response.status}`);
+      }
+      setResult(body.result);
+      setState("success");
+      window.dispatchEvent(new Event("reapp-mandate-updated"));
+    } catch (cause) {
+      const message = cause instanceof Error ? cause.message : String(cause);
+      const budgetReached = /Contract,\s*#6|BudgetExceeded|budget.*(?:exceed|remaining|enough)/i.test(message);
+      setError(budgetReached
+        ? "Mandate budget reached. MandateRegistry rejected this purchase before settlement."
+        : message);
+      setState("error");
+    }
+  };
+
+  return (
+    <div className="quick-purchase">
+      <div>
+        <p className="eyebrow success">VERIFIED PAYMENT PATH</p>
+        <strong>Buy the market signal brief</strong>
+        <span>Consumer agent → HTTP 402 → Mainnet USDC → HTTP 200</span>
+      </div>
+      <button type="button" onClick={purchase} disabled={state === "running"}>
+        {state === "running" ? <LoaderCircle className="spin" size={15} /> : <CircleDollarSign size={15} />}
+        {state === "running" ? "Settling…" : "Pay $0.01 USDC"}
+      </button>
+      {result && <CompletedPurchase result={result} explorerNetwork={explorerNetwork} />}
+      {error && <div className="quick-purchase-error"><TriangleAlert size={14} /><span>{error}</span></div>}
+    </div>
   );
 }
 

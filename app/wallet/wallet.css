@@ -181,6 +181,15 @@
 .wallet-preview .chat-locked > p:last-child, .wallet-preview .chat-empty > p { max-width: 390px; margin: 0; color: #6e8179; font-size: 11px; line-height: 1.7; }
 .wallet-preview .thread-root { height: 576px; }
 .wallet-preview .thread-viewport { position: relative; height: 100%; overflow-y: auto; display: flex; flex-direction: column; padding: 0 18px 106px; }
+.wallet-preview .quick-purchase { margin: 18px 0 4px; padding: 14px; border: 1px solid rgba(52,211,153,.18); border-radius: 14px; background: linear-gradient(135deg, rgba(52,211,153,.075), rgba(255,255,255,.018)); }
+.wallet-preview .quick-purchase > div:first-child { display: grid; gap: 4px; }
+.wallet-preview .quick-purchase > div:first-child strong { color: #d9eee5; font-size: 12px; }
+.wallet-preview .quick-purchase > div:first-child span { color: #71877d; font-size: 9px; }
+.wallet-preview .quick-purchase > button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; width: 100%; min-height: 38px; margin-top: 12px; border: 0; border-radius: 10px; color: #052117; background: linear-gradient(90deg, var(--emerald), #5eead4); font-size: 10px; font-weight: 800; cursor: pointer; }
+.wallet-preview .quick-purchase > button:disabled { opacity: .6; cursor: wait; }
+.wallet-preview .quick-purchase .tool-card { margin-bottom: 0; }
+.wallet-preview .quick-purchase-error { display: flex; align-items: flex-start; gap: 8px; margin-top: 10px; padding: 10px; border: 1px solid rgba(251,113,133,.18); border-radius: 10px; color: #f3a2b0; background: rgba(251,113,133,.045); font-size: 9px; line-height: 1.5; }
+.wallet-preview .quick-purchase-error svg { flex: 0 0 auto; }
 .wallet-preview .chat-empty { min-height: 440px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
 .wallet-preview .chat-empty .agent-orb { margin-bottom: 15px; }
 .wallet-preview .chat-prompt { margin-top: 17px; padding: 10px 13px; border: 1px solid var(--line); border-radius: 10px; color: #91a49c; background: rgba(255,255,255,.02); font-size: 10px; }

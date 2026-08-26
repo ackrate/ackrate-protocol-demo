@@ -146,6 +146,12 @@ export function WalletChatApp() {
     }
   }, [config, session, refreshMandate]);
 
+  useEffect(() => {
+    const refresh = () => void refreshMandate();
+    window.addEventListener("reapp-mandate-updated", refresh);
+    return () => window.removeEventListener("reapp-mandate-updated", refresh);
+  }, [refreshMandate]);
+
   const saveStored = useCallback((value: StoredMandate) => {
     if (!config) return;
     localStorage.setItem(`reapp:mandate:${config.network}:${value.user}`, JSON.stringify(value));
