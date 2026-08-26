@@ -2,6 +2,7 @@ import { z } from "zod";
 import { loadAppConfig } from "@/lib/wallet/app-config";
 import { boundedJson, boundedResponseJson, jsonError, NO_STORE_HEADERS } from "@/lib/wallet/http";
 import { postRpcWithRetry } from "@/lib/wallet/rpc-retry";
+import { compactWalletRpcResponse } from "@/lib/wallet/rpc-response";
 import { requireSameOrigin, requireSession } from "@/lib/wallet/security";
 import { NextResponse } from "next/server";
 
@@ -20,7 +21,8 @@ export async function POST(request: Request) {
     await requireSession(config.sessionSecret, config.public.network);
     const body = RpcRequest.parse(await boundedJson(request, 512 * 1024));
     const upstream = await postRpcWithRetry(config.network.rpcUrl, body);
-    const result = await boundedResponseJson(upstream, 4 * 1024 * 1024);
+    const raw = await boundedResponseJson(upstream, 8 * 1024 * 1024);
+    const result = compactWalletRpcResponse(body.method, upstream.status, raw);
     return NextResponse.json(result, { status: upstream.status, headers: NO_STORE_HEADERS });
   } catch (error) {
     return jsonError(error, 400);
