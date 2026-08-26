@@ -1,4 +1,3 @@
-import { neon, type NeonQueryFunction } from "@neondatabase/serverless";
 import type {
   BoundDeliveryRecord,
   BoundRedemptionClaim,
@@ -10,8 +9,9 @@ import type {
   StoredBoundJsonResponse,
 } from "@reapp-sdk/express-middleware";
 import type { VerifiedPayment } from "@reapp-sdk/express-middleware";
+import { createPostgresClient, type PostgresQueryable } from "./postgres";
 
-type Sql = NeonQueryFunction<false, false>;
+type Sql = PostgresQueryable;
 type Row = Record<string, unknown>;
 
 function paymentJson(payment: Readonly<VerifiedPayment>): Record<string, unknown> {
@@ -70,12 +70,12 @@ function sameProof(row: Row, proofDigest: string): BoundRedemptionLookup {
   return { kind: record.state, record };
 }
 
-export class NeonBoundRedemptionStore implements BoundRedemptionStore {
+export class PostgresBoundRedemptionStore implements BoundRedemptionStore {
   private readonly sql: Sql;
   private initialization?: Promise<void>;
 
   constructor(databaseUrl: string) {
-    this.sql = neon(databaseUrl);
+    this.sql = createPostgresClient(databaseUrl);
   }
 
   private async initialize(): Promise<void> {
@@ -89,7 +89,10 @@ export class NeonBoundRedemptionStore implements BoundRedemptionStore {
         state text NOT NULL CHECK (state IN ('executing', 'completed')),
         response jsonb
       )
-    `).then(() => undefined);
+    `).then(() => undefined).catch((error) => {
+      this.initialization = undefined;
+      throw error;
+    });
     await this.initialization;
   }
 

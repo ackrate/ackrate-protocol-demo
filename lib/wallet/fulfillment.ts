@@ -3,7 +3,7 @@ import type { Server } from "node:http";
 import express, { type NextFunction, type Request, type Response } from "express";
 import { createBoundReappPaidJsonRoute } from "@reapp-sdk/express-middleware";
 import { requireReadyConfig, type AppConfig } from "./app-config";
-import { NeonBoundRedemptionStore } from "./redemption-store";
+import { PostgresBoundRedemptionStore } from "./redemption-store";
 
 type Runtime = { server: Server; origin: string; fingerprint: string };
 const globalRuntime = globalThis as typeof globalThis & { __reappMainnetFulfillment?: Promise<Runtime> };
@@ -26,7 +26,7 @@ async function startRuntime(config: AppConfig): Promise<Runtime> {
   ) throw new Error("mainnet fulfillment configuration is incomplete");
 
   const catalog = new Map(config.public.catalog.map((item) => [item.path, item]));
-  const store = new NeonBoundRedemptionStore(config.databaseUrl);
+  const store = new PostgresBoundRedemptionStore(config.databaseUrl);
   const app = express();
   app.disable("x-powered-by");
   const paidSource = createBoundReappPaidJsonRoute({

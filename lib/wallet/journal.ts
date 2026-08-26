@@ -1,7 +1,7 @@
-import { neon, type NeonQueryFunction } from "@neondatabase/serverless";
 import type { SettlementReceipt, SettlementReceiptStore } from "@reapp-sdk/core";
+import { createPostgresClient, type PostgresQueryable } from "./postgres";
 
-type Sql = NeonQueryFunction<false, false>;
+type Sql = PostgresQueryable;
 
 const memory = globalThis as typeof globalThis & {
   __reappChallenges?: Set<string>;
@@ -18,7 +18,7 @@ let initialization: Promise<void> | undefined;
 
 function sql(): Sql | null {
   if (sqlClient !== undefined) return sqlClient;
-  sqlClient = process.env.DATABASE_URL ? neon(process.env.DATABASE_URL) : null;
+  sqlClient = process.env.DATABASE_URL ? createPostgresClient(process.env.DATABASE_URL) : null;
   return sqlClient;
 }
 
@@ -55,7 +55,10 @@ async function initialize(): Promise<Sql | null> {
         created_at bigint NOT NULL
       )
     `);
-  })();
+  })().catch((error) => {
+    initialization = undefined;
+    throw error;
+  });
   await initialization;
   return client;
 }
