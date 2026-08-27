@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
 
-export const alt = "ACKRATE — agentic payments, bounded by code";
+export const alt = "ACKRATE — Give AI a job. Keep the final say.";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -50,10 +50,10 @@ export default function OpengraphImage() {
           </div>
         </div>
         <div style={{ marginTop: 46, fontSize: 48, fontWeight: 700, color: "#eef2ff" }}>
-          Agentic payments, bounded by code.
+          Give AI a job. Keep the final say.
         </div>
         <div style={{ marginTop: 20, fontSize: 28, color: "#9aa6c0" }}>
-          Live testnet · MandateRegistry · TypeScript SDK
+          Useful agents · Small permissions
         </div>
       </div>
     ),

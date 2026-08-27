@@ -108,6 +108,17 @@ export default function Docs() {
         </div>
       </motion.div>
 
+      <motion.section {...fade(0.04)} className="mt-10 rounded-2xl border border-emerald-300/15 bg-emerald-400/[0.045] p-5 sm:p-6">
+        <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-emerald-300/65">What Ackrate is building</p>
+        <div className="mt-4 space-y-4 text-sm leading-7 text-emerald-100/65 sm:text-base">
+          <p>Ackrate is building the <strong className="font-bold text-emerald-100">delegation and enforcement layer for</strong> autonomous <strong className="font-bold text-emerald-100">agents</strong>.</p>
+          <p><strong className="font-bold text-emerald-100">AI agents are becoming capable of spending money</strong>, buying services, calling paid APIs, and coordinating with other agents.</p>
+          <p>But <strong className="font-bold text-emerald-100">today, giving an agent the ability to act often means giving it access to credentials</strong>, wallets, or payment methods that are far more powerful than the task actually requires.</p>
+          <p><strong className="font-bold text-emerald-100">Ackrate lets a person, organization, or parent agent delegate a specific set of permissions to an subagent</strong>: how much it can spend, where it can spend it, what resources it can access, how long the authority lasts, and whether it can delegate part of that authority further.</p>
+          <p>Those constraints are enforced independently of the agent itself.</p>
+        </div>
+      </motion.section>
+
       <motion.section {...fade(0.06)} className="mt-10 rounded-2xl border border-emerald-300/15 bg-black/30 p-5 shadow-[0_0_48px_rgba(16,185,129,0.12)]">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex gap-3">

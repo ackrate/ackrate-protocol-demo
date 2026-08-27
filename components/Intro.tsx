@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { motion } from "framer-motion";
 
-const DURATION = 4.6; // seconds end to end
+const DURATION = 2.3; // seconds end to end
 
 /**
  * Cinematic WebGL intro: a field of particles streams in from deep space,
@@ -25,7 +25,7 @@ export default function Intro({ onDone }: { onDone: () => void }) {
       if (doneRef.current) return;
       doneRef.current = true;
       setPhase(3);
-      window.setTimeout(onDone, 650); // let the overlay fade before unmount
+      window.setTimeout(onDone, 325); // let the overlay fade before unmount
     };
 
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
@@ -133,14 +133,14 @@ export default function Intro({ onDone }: { onDone: () => void }) {
       renderer.setSize(W(), H());
     };
     window.addEventListener("resize", onResize);
-    const tWord = window.setTimeout(() => setPhase(1), 1450);
-    const tTag = window.setTimeout(() => setPhase(2), 2650);
+    const tWord = window.setTimeout(() => setPhase(1), 725);
+    const tTag = window.setTimeout(() => setPhase(2), 1325);
 
     const render = () => {
       timer.update();
       const e = timer.getElapsed();
-      const conv = easeOut(Math.min(1, e / 2.4));
-      const warp = easeIn(e > 3.8 ? Math.min(1, (e - 3.8) / 0.8) : 0);
+      const conv = easeOut(Math.min(1, e / 1.2));
+      const warp = easeIn(e > 1.9 ? Math.min(1, (e - 1.9) / 0.4) : 0);
       for (let i = 0; i < COUNT; i++) {
         const ix = i * 3;
         let x = start[ix] + (target[ix] - start[ix]) * conv;
@@ -165,7 +165,7 @@ export default function Intro({ onDone }: { onDone: () => void }) {
       core.scale.set(cs, cs, 1);
       coreMat.opacity = Math.max(0, conv * 0.85 * (1 - warp));
 
-      camera.position.z = 16 - easeOut(Math.min(1, e / 3)) * 6 - warp * 9;
+      camera.position.z = 16 - easeOut(Math.min(1, e / 1.5)) * 6 - warp * 9;
       mat.opacity = 0.95 * (1 - warp * 0.85);
 
       renderer.render(scene, camera);
@@ -209,7 +209,7 @@ export default function Intro({ onDone }: { onDone: () => void }) {
             y: wordVisible ? 0 : 14,
             filter: wordVisible ? "blur(0px)" : "blur(8px)",
           }}
-          transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
+          transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
           className="text-6xl font-black tracking-tight sm:text-8xl"
         >
           <span className="bg-gradient-to-r from-emerald-300 via-teal-200 to-emerald-400 bg-clip-text text-transparent drop-shadow-[0_0_40px_rgba(52,211,153,0.5)]">
@@ -219,7 +219,7 @@ export default function Intro({ onDone }: { onDone: () => void }) {
         <motion.p
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: tagVisible ? 1 : 0, y: tagVisible ? 0 : 10 }}
-          transition={{ duration: 0.8, ease: "easeOut" }}
+          transition={{ duration: 0.4, ease: "easeOut" }}
           className="mt-4 text-[11px] font-medium tracking-[0.34em] text-emerald-100/70 sm:text-sm"
         >
           AGENT PAYMENTS, ENFORCED ON-CHAIN
@@ -228,7 +228,7 @@ export default function Intro({ onDone }: { onDone: () => void }) {
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: phase < 3 ? 1 : 0 }}
-        transition={{ delay: 1.3, duration: 0.6 }}
+        transition={{ delay: 0.65, duration: 0.3 }}
         className="pointer-events-none absolute inset-x-0 bottom-7 text-center text-[10px] tracking-[0.25em] text-emerald-100/35"
       >
         CLICK OR PRESS ANY KEY TO SKIP

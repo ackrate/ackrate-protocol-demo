@@ -28,12 +28,25 @@ test("the verified Express runtime remains byte-for-byte unchanged", async () =>
   }
 });
 
-test("the Express experience is the landing page and preserves the approved elevator pitch", async () => {
-  const [home, express] = await Promise.all([
+test("the landing page leads with a human outcome and keeps technical depth on later pages", async () => {
+  const [home, docs, express] = await Promise.all([
     read("app/page.tsx"),
+    read("app/docs/page.tsx"),
     read("app/express/page.tsx"),
   ]);
-  assert.match(home, /import ExpressPage from "\.\/express\/page"/);
+  for (const line of [
+    "Give an AI a job.",
+    "Keep the final say.",
+    "Your passwords and payment methods stay yours.",
+    "Maya's gift is on its way.",
+    "Anything outside these rules stays out of reach.",
+    "Set the edges. Let it work.",
+  ]) assert.ok(home.includes(line), line);
+  assert.match(home, /role="tablist"/);
+  assert.match(home, /href="\/express"/);
+  assert.match(home, /href="\/docs"/);
+  assert.doesNotMatch(home, /MandateRegistry|Circle USDC|Stellar Mainnet|agent\.fetch|MAINNET_REGISTRY/);
+  assert.match(express, /From HTTP 402 to paid delivery/);
   for (const sentence of [
     "Ackrate is building the",
     "delegation and enforcement layer for",
@@ -46,7 +59,24 @@ test("the Express experience is the landing page and preserves the approved elev
     "Ackrate lets a person, organization, or parent agent delegate a specific set of permissions to an subagent",
     "how much it can spend, where it can spend it, what resources it can access, how long the authority lasts, and whether it can delegate part of that authority further.",
     "Those constraints are enforced independently of the agent itself.",
-  ]) assert.ok(express.includes(sentence), sentence);
+  ]) assert.ok(docs.includes(sentence), sentence);
+});
+
+test("the intro plays at double speed and remembers completion across pages", async () => {
+  const [gate, intro] = await Promise.all([
+    read("components/IntroGate.tsx"),
+    read("components/Intro.tsx"),
+  ]);
+  assert.match(gate, /localStorage\.getItem\(SEEN_KEY\)/);
+  assert.match(gate, /localStorage\.setItem\(SEEN_KEY, "1"\)/);
+  assert.match(gate, /document\.cookie/);
+  assert.match(gate, /Max-Age=\$\{COOKIE_MAX_AGE\}/);
+  assert.match(gate, /Path=\/; SameSite=Lax/);
+  assert.doesNotMatch(gate, /usePathname|path\.startsWith/);
+  assert.match(intro, /const DURATION = 2\.3/);
+  assert.match(intro, /setPhase\(1\), 725/);
+  assert.match(intro, /setPhase\(2\), 1325/);
+  assert.match(intro, /e > 1\.9/);
 });
 
 test("navigation exposes Security and Solutions without deleting direct product routes", async () => {

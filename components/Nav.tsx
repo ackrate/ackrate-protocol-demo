@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import { ArrowUpRight } from "lucide-react";
 
-const links = [
+const technicalLinks = [
   { href: "/", label: "Home" },
   { href: "/docs", label: "Docs" },
   { href: "/cli", label: "CLI" },
@@ -16,9 +16,16 @@ const links = [
   { href: "/solutions", label: "Solutions" },
 ];
 
+const homeLinks = [
+  { href: "#how-it-works", label: "How it works" },
+  { href: "/express", label: "Live demo" },
+];
+
 export default function Nav() {
   const path = usePathname();
   if (path.startsWith("/wallet")) return null;
+  const isHome = path === "/";
+  const links = isHome ? homeLinks : technicalLinks;
   return (
     <motion.nav
       initial={{ y: -16, opacity: 0 }}
@@ -40,7 +47,7 @@ export default function Nav() {
         {/* Links */}
         <div className="no-scrollbar flex min-w-0 items-center gap-1 overflow-x-auto whitespace-nowrap rounded-full border border-white/10 bg-white/[0.03] p-1">
           {links.map((l) => {
-            const active = path === l.href;
+            const active = !l.href.startsWith("#") && path === l.href;
             return (
               <Link
                 key={l.href}
@@ -65,15 +72,25 @@ export default function Nav() {
         </div>
 
         {/* CTA */}
-        <a
-          href="https://www.npmjs.com/package/@ackrate/cli"
-          target="_blank"
-          rel="noreferrer"
-          className="inline-flex shrink-0 items-center gap-1 rounded-full border border-emerald-300/25 bg-emerald-400/10 px-3.5 py-1.5 text-[13px] font-semibold text-emerald-200 transition hover:border-emerald-300/40 hover:bg-emerald-400/20 hover:text-emerald-100"
-        >
-          npm
-          <ArrowUpRight className="h-3.5 w-3.5" aria-hidden />
-        </a>
+        {isHome ? (
+          <Link
+            href="/docs"
+            className="inline-flex shrink-0 items-center gap-1 rounded-full border border-emerald-300/25 bg-emerald-400/10 px-3.5 py-1.5 text-[13px] font-semibold text-emerald-200 transition hover:border-emerald-300/40 hover:bg-emerald-400/20 hover:text-emerald-100"
+          >
+            For builders
+            <ArrowUpRight className="h-3.5 w-3.5" aria-hidden />
+          </Link>
+        ) : (
+          <a
+            href="https://www.npmjs.com/package/@ackrate/cli"
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex shrink-0 items-center gap-1 rounded-full border border-emerald-300/25 bg-emerald-400/10 px-3.5 py-1.5 text-[13px] font-semibold text-emerald-200 transition hover:border-emerald-300/40 hover:bg-emerald-400/20 hover:text-emerald-100"
+          >
+            npm
+            <ArrowUpRight className="h-3.5 w-3.5" aria-hidden />
+          </a>
+        )}
       </div>
     </motion.nav>
   );

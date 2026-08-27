@@ -7,9 +7,9 @@ import SiteFooter from "@/components/SiteFooter";
 
 const SITE = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://staging.ackrate.com").replace(/\/$/, "");
 
-const title = "Ackrate — Delegation and Enforcement for Autonomous Agents";
+const title = "Ackrate | Give AI a job. Keep the final say.";
 const description =
-  "Ackrate lets people, organizations, and parent agents delegate specific permissions to subagents, enforced independently of the agent itself.";
+  "Set a budget, choose where an AI agent can act, and let it work. Ackrate keeps it inside the permission you gave.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE),
