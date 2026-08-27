@@ -5,6 +5,7 @@ import {
   completeToolCall,
   consumeChallenge,
   DurableReceiptStore,
+  latestSucceededToolCall,
   reserveToolCall,
 } from "../lib/wallet/journal";
 
@@ -12,6 +13,16 @@ test("authentication challenge can be consumed only once", async () => {
   const jti = crypto.randomUUID().replaceAll("-", "");
   assert.equal(await consumeChallenge(jti, Math.floor(Date.now() / 1_000) + 60), true);
   assert.equal(await consumeChallenge(jti, Math.floor(Date.now() / 1_000) + 60), false);
+});
+
+test("a completed delivery remains recoverable after its receipt is acknowledged", async () => {
+  const sessionId = crypto.randomUUID();
+  const mandateId = "9".repeat(64);
+  const toolCallId = crypto.randomUUID();
+  await reserveToolCall({ sessionId, toolCallId, mandateId, sourceId: "market-brief" });
+  const result = { payment: { txHash: "8".repeat(64) } };
+  await completeToolCall({ sessionId, toolCallId, status: "succeeded", result });
+  assert.deepEqual((await latestSucceededToolCall({ sessionId, mandateId }))?.result, result);
 });
 
 test("tool-call reservation is idempotent and returns the durable result", async () => {

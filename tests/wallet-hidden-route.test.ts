@@ -172,6 +172,20 @@ test("every wallet transaction has a visible explorer link", () => {
   assert.match(thread, /View transaction/);
 });
 
+test("a paid report renders below its receipt with findings and sources", () => {
+  const thread = read("components/wallet/AssistantThread.tsx");
+  const fulfillment = read("lib/wallet/fulfillment.ts");
+  const brief = read("lib/wallet/market-brief.ts");
+
+  assert.match(thread, /className="research-brief"/);
+  assert.match(thread, /THE TAKEAWAY/);
+  assert.match(thread, /Research sources/);
+  assert.ok(thread.indexOf("payment-receipt") < thread.indexOf("research-brief"));
+  assert.match(fulfillment, /brief: item\.id === "market-brief" \? MARKET_SIGNAL_BRIEF/);
+  assert.match(brief, /github\.com\/futurehelp\/query402-api/);
+  assert.match(brief, /developers\.stellar\.org\/docs\/tokens\/stellar-asset-contract/);
+});
+
 test("wallet journey uses plain action language", () => {
   const app = read("components/wallet/WalletChatApp.tsx");
   const thread = read("components/wallet/AssistantThread.tsx");

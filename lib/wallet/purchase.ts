@@ -7,7 +7,8 @@ import {
 } from "@ackrate/core";
 import type { AppConfig } from "./app-config";
 import { boundedResponseJson } from "./http";
-import { completePendingToolCalls, completeToolCall, DurableReceiptStore, reserveToolCall } from "./journal";
+import { completePendingToolCalls, completeToolCall, DurableReceiptStore, latestSucceededToolCall, reserveToolCall } from "./journal";
+import { attachMarketBriefToPurchaseResult } from "./market-brief";
 import { assertMandateBindings, readMandate } from "./mandate-state";
 import { installMainnetAccountFallback } from "./rpc-account-fallback";
 import { installMainnetRpcRetry } from "./rpc-retry";
@@ -89,7 +90,7 @@ async function completedResult(
 ) {
   if (!response.ok) throw new Error(`merchant delivery failed with HTTP ${response.status}`);
   const delivered = await boundedResponseJson(response);
-  return {
+  return attachMarketBriefToPurchaseResult({
     source: { id: item.id, title: item.title },
     payment: {
       status: "settled",
@@ -99,6 +100,20 @@ async function completedResult(
       mandateId: receipt.mandateId,
     },
     delivered,
+  });
+}
+
+function completedRecoveryEvidence(value: unknown): PendingPurchaseRecovery | null {
+  if (typeof value !== "object" || value === null) return null;
+  const result = value as { source?: { id?: unknown; title?: unknown }; payment?: { txHash?: unknown; amount?: unknown; asset?: unknown } };
+  if (typeof result.payment?.txHash !== "string" || !/^[0-9a-f]{64}$/i.test(result.payment.txHash)) return null;
+  return {
+    pending: true,
+    txHash: result.payment.txHash,
+    amount: typeof result.payment.amount === "string" ? result.payment.amount : undefined,
+    asset: typeof result.payment.asset === "string" ? result.payment.asset : undefined,
+    sourceId: typeof result.source?.id === "string" ? result.source.id : undefined,
+    sourceTitle: typeof result.source?.title === "string" ? result.source.title : undefined,
   };
 }
 
@@ -106,7 +121,10 @@ export async function getPendingCatalogRecovery(input: Omit<PurchaseInput, "tool
   const context = await createPurchaseContext(input.config, input.sessionAddress, input.mandateId);
   const receiptStore = new DurableReceiptStore(input.sessionId, input.mandateId);
   const receipts = await receiptStore.listPending();
-  if (receipts.length === 0) return { pending: false };
+  if (receipts.length === 0) {
+    const completed = await latestSucceededToolCall(input);
+    return completedRecoveryEvidence(completed?.result) ?? { pending: false };
+  }
   if (receipts.length !== 1) throw new Error("multiple retained settlements require operator review");
   const receipt = receipts[0]!;
   if (receipt.mandateId !== context.mandate.id) throw new Error("retained settlement mandate mismatch");
@@ -125,7 +143,11 @@ export async function recoverPendingCatalogPurchase(input: Omit<PurchaseInput, "
   const context = await createPurchaseContext(input.config, input.sessionAddress, input.mandateId);
   const receiptStore = new DurableReceiptStore(input.sessionId, input.mandateId);
   const receipts = await receiptStore.listPending();
-  if (receipts.length === 0) throw new Error("no retained delivery is waiting for recovery");
+  if (receipts.length === 0) {
+    const completed = await latestSucceededToolCall(input);
+    if (completed) return attachMarketBriefToPurchaseResult(completed.result);
+    throw new Error("no retained delivery is waiting for recovery");
+  }
   if (receipts.length !== 1) throw new Error("multiple retained settlements require operator review");
   const receipt = receipts[0]!;
   if (receipt.mandateId !== context.mandate.id) throw new Error("retained settlement mandate mismatch");

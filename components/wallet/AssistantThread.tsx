@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import {
   AssistantRuntimeProvider,
   ComposerPrimitive,
@@ -10,6 +10,7 @@ import {
 } from "@assistant-ui/react";
 import { AssistantChatTransport, useChatRuntime } from "@assistant-ui/react-ai-sdk";
 import { ArrowUp, ArrowUpRight, Bot, Check, CircleDollarSign, Copy, LoaderCircle, TriangleAlert, UserRound } from "lucide-react";
+import type { MarketBrief } from "@/lib/wallet/market-brief";
 
 const ExplorerContext = createContext<"testnet" | "public">("testnet");
 
@@ -165,7 +166,6 @@ function QuickPurchase({ mandateId, explorerNetwork }: { mandateId: string; expl
         {state === "running" || state === "recovering" ? <LoaderCircle className="spin" size={15} /> : <CircleDollarSign size={15} />}
         {state === "running" ? "Paying…" : state === "recovering" ? "Opening your report…" : state === "checking" ? "Checking your last payment…" : state === "check_failed" ? "Check payment" : state === "recovery" ? "Get my report — no new charge" : "Pay $0.01 and get the report"}
       </button>
-      {result && <CompletedPurchase result={result} explorerNetwork={explorerNetwork} />}
       {error && (
         <div className={state === "recovery" ? "quick-purchase-notice" : "quick-purchase-error"}>
           {state === "recovery" ? <Check size={14} /> : <TriangleAlert size={14} />}
@@ -180,6 +180,7 @@ function QuickPurchase({ mandateId, explorerNetwork }: { mandateId: string; expl
           </a>
         </div>
       )}
+      {result && <CompletedPurchase result={result} explorerNetwork={explorerNetwork} />}
     </div>
   );
 }
@@ -237,6 +238,32 @@ function isPurchaseResult(value: unknown): value is PurchaseResult {
   return typeof payment === "object" && payment !== null && typeof (payment as { txHash?: unknown }).txHash === "string";
 }
 
+function parseBrief(value: unknown): MarketBrief | null {
+  if (typeof value !== "object" || value === null) return null;
+  const delivered = value as { brief?: unknown };
+  if (typeof delivered.brief !== "object" || delivered.brief === null) return null;
+  const brief = delivered.brief as Partial<MarketBrief>;
+  if (
+    typeof brief.kicker !== "string"
+    || typeof brief.title !== "string"
+    || typeof brief.subtitle !== "string"
+    || typeof brief.opening !== "string"
+    || typeof brief.takeaway !== "string"
+    || !Array.isArray(brief.findings)
+    || !Array.isArray(brief.sources)
+    || brief.findings.length === 0
+    || brief.sources.length === 0
+  ) return null;
+  const findingsValid = brief.findings.every((finding) => (
+    typeof finding?.number === "string" && typeof finding.title === "string" && typeof finding.body === "string"
+  ));
+  const sourcesValid = brief.sources.every((source) => {
+    if (typeof source?.publisher !== "string" || typeof source.title !== "string" || typeof source.url !== "string") return false;
+    try { return new URL(source.url).protocol === "https:"; } catch { return false; }
+  });
+  return findingsValid && sourcesValid ? brief as MarketBrief : null;
+}
+
 function PurchaseTool({ result, isError, args }: ToolCallMessagePartProps<{ sourceId?: string }, unknown>) {
   const explorerNetwork = useContext(ExplorerContext);
   if (isError) {
@@ -250,6 +277,8 @@ function PurchaseTool({ result, isError, args }: ToolCallMessagePartProps<{ sour
 
 function CompletedPurchase({ result, explorerNetwork }: { result: PurchaseResult; explorerNetwork: "testnet" | "public" }) {
   const [copied, setCopied] = useState(false);
+  const brief = parseBrief(result.delivered);
+  const briefRef = useRef<HTMLElement>(null);
   useEffect(() => {
     if (explorerNetwork !== "public") return;
     localStorage.setItem("ackrate:mainnet:last-payment", JSON.stringify({
@@ -261,26 +290,66 @@ function CompletedPurchase({ result, explorerNetwork }: { result: PurchaseResult
     window.dispatchEvent(new Event("ackrate-mainnet-payment"));
   }, [explorerNetwork, result.payment.amount, result.payment.asset, result.payment.txHash]);
 
+  useEffect(() => {
+    briefRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [result.payment.txHash]);
+
   return (
-    <div className="tool-card tool-success">
-      <span className="tool-check"><Check size={14} /></span>
-      <div className="tool-body">
-        <strong>{result.source.title}</strong>
-        <p>Paid {result.payment.amount} {result.payment.asset}. Your report is ready.</p>
-        <code className="tool-hash">{result.payment.txHash.slice(0, 8)}…{result.payment.txHash.slice(-8)}</code>
-        <div className="tool-actions">
-          <button type="button" onClick={async () => {
-            await navigator.clipboard.writeText(result.payment.txHash);
-            setCopied(true);
-            window.setTimeout(() => setCopied(false), 1_500);
-          }} aria-label="Copy payment transaction ID">
-            {copied ? <Check size={12} /> : <Copy size={12} />} {copied ? "Copied" : "Copy transaction"}
-          </button>
-          <a href={`https://stellar.expert/explorer/${explorerNetwork}/tx/${result.payment.txHash}`} target="_blank" rel="noreferrer" aria-label="Open payment in Stellar Explorer">
-            <ArrowUpRight size={12} /> View transaction
-          </a>
+    <div className="completed-purchase">
+      <div className="tool-card tool-success payment-receipt">
+        <span className="tool-check"><Check size={14} /></span>
+        <div className="tool-body">
+          <strong>Payment complete</strong>
+          <p>Paid {result.payment.amount} {result.payment.asset}. Your report is below.</p>
+          <code className="tool-hash">{result.payment.txHash.slice(0, 8)}…{result.payment.txHash.slice(-8)}</code>
+          <div className="tool-actions">
+            <button type="button" onClick={async () => {
+              await navigator.clipboard.writeText(result.payment.txHash);
+              setCopied(true);
+              window.setTimeout(() => setCopied(false), 1_500);
+            }} aria-label="Copy payment transaction ID">
+              {copied ? <Check size={12} /> : <Copy size={12} />} {copied ? "Copied" : "Copy transaction"}
+            </button>
+            <a href={`https://stellar.expert/explorer/${explorerNetwork}/tx/${result.payment.txHash}`} target="_blank" rel="noreferrer" aria-label="Open payment in Stellar Explorer">
+              <ArrowUpRight size={12} /> View transaction
+            </a>
+          </div>
         </div>
       </div>
+      {brief && (
+        <article className="research-brief" ref={briefRef} aria-labelledby="research-brief-title">
+          <header className="brief-header">
+            <div className="brief-kicker"><span />{brief.kicker}</div>
+            <h2 id="research-brief-title">{brief.title}</h2>
+            <p>{brief.subtitle}</p>
+            <div className="brief-meta"><span>ACKRATE RESEARCH</span><span>PAID WITH {result.payment.asset}</span><span>VERIFIED ON STELLAR</span></div>
+          </header>
+          <div className="brief-body">
+            <p className="brief-opening">{brief.opening}</p>
+            <div className="brief-findings">
+              {brief.findings.map((finding) => (
+                <section className="brief-finding" key={finding.number}>
+                  <span>{finding.number}</span>
+                  <div><h3>{finding.title}</h3><p>{finding.body}</p></div>
+                </section>
+              ))}
+            </div>
+            <aside className="brief-takeaway"><span>THE TAKEAWAY</span><p>{brief.takeaway}</p></aside>
+            <section className="brief-sources" aria-label="Research sources">
+              <div><span>SOURCES</span><small>Open the original evidence</small></div>
+              <ol>
+                {brief.sources.map((source, index) => (
+                  <li key={source.url}>
+                    <span>{String(index + 1).padStart(2, "0")}</span>
+                    <a href={source.url} target="_blank" rel="noreferrer"><b>{source.publisher}</b><small>{source.title}</small></a>
+                    <ArrowUpRight size={14} />
+                  </li>
+                ))}
+              </ol>
+            </section>
+          </div>
+        </article>
+      )}
     </div>
   );
 }

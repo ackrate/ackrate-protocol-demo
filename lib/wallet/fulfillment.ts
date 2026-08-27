@@ -6,6 +6,7 @@ import { requireReadyConfig, type AppConfig } from "./app-config";
 import { PostgresBoundRedemptionStore } from "./redemption-store";
 import { installMainnetAccountFallback } from "./rpc-account-fallback";
 import { installMainnetRpcRetry } from "./rpc-retry";
+import { MARKET_SIGNAL_BRIEF } from "./market-brief";
 
 type Runtime = { server: Server; origin: string; fingerprint: string };
 const globalRuntime = globalThis as typeof globalThis & { __ackrateMainnetFulfillment?: Promise<Runtime> };
@@ -54,6 +55,7 @@ async function startRuntime(config: AppConfig): Promise<Runtime> {
         source: item.id,
         title: item.title,
         data: item.description,
+        brief: item.id === "market-brief" ? MARKET_SIGNAL_BRIEF : undefined,
         settledTx: payment.txHash,
         mandateId: payment.mandateId,
         settledAmount: payment.amount,

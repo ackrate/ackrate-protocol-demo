@@ -170,6 +170,37 @@ export async function completePendingToolCalls(input: {
   );
 }
 
+export async function latestSucceededToolCall(input: {
+  sessionId: string;
+  mandateId: string;
+}): Promise<ToolCallRecord | null> {
+  const client = await initialize();
+  if (!client) {
+    const matches = [...memory.__ackrateToolCalls!.values()].filter((record) => (
+      record.sessionId === input.sessionId
+      && record.mandateId === input.mandateId
+      && record.status === "succeeded"
+    ));
+    return matches.at(-1) ?? null;
+  }
+  const rows = await client.query(
+    `SELECT * FROM ackrate_tool_calls
+     WHERE session_id = $1 AND mandate_id = $2 AND status = 'succeeded'
+     ORDER BY updated_at DESC LIMIT 1`,
+    [input.sessionId, input.mandateId],
+  );
+  if (!rows[0]) return null;
+  const row = rows[0] as Record<string, unknown>;
+  return {
+    sessionId: String(row.session_id),
+    toolCallId: String(row.tool_call_id),
+    mandateId: String(row.mandate_id),
+    sourceId: String(row.source_id),
+    status: "succeeded",
+    result: row.result ?? null,
+  };
+}
+
 export class DurableReceiptStore implements SettlementReceiptStore {
   constructor(private readonly sessionId: string, private readonly mandateId: string) {}
 
