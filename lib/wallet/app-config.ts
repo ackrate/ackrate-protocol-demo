@@ -188,7 +188,7 @@ export function loadAppConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     blockers.push(error instanceof Error ? error.message : String(error));
   }
 
-  const sourceCommit = present(env.ACKRATE_APP_SOURCE_COMMIT);
+  const sourceCommit = present(env.RAILWAY_GIT_COMMIT_SHA) ?? present(env.ACKRATE_APP_SOURCE_COMMIT);
   if (networkName === "mainnet" && (!sourceCommit || !/^[0-9a-f]{40}$/.test(sourceCommit))) {
     blockers.push("exact 40-character application source commit is required on mainnet");
   }

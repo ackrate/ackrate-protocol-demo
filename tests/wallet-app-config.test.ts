@@ -49,6 +49,17 @@ test("mainnet loads only the verified USDC release and never falls back to testn
   assert.equal(config.network.rpcUrl, "https://mainnet.sorobanrpc.com");
 });
 
+test("production diagnostics prefer Railway's deployed commit over a stale manual pin", () => {
+  const deployed = "a".repeat(40);
+  const stale = "b".repeat(40);
+  const config = loadAppConfig({
+    ...validEnv(),
+    ACKRATE_APP_SOURCE_COMMIT: stale,
+    RAILWAY_GIT_COMMIT_SHA: deployed,
+  });
+  assert.equal(config.public.sourceCommit, deployed);
+});
+
 test("merchant URL and catalog cannot redirect payments off the allowlisted origin", () => {
   const badUrl = loadAppConfig({ ...validEnv(), ACKRATE_CHAT_MERCHANT_URL: "https://user:pass@merchant.example/path" });
   assert.equal(badUrl.public.ready, false);
