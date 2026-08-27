@@ -32,9 +32,9 @@ function printHelp() {
   console.log(`ACKRATE hosted hackathon companion
 
 Usage:
-  npm run hosted -- --endpoint="https://reapp.live/api/express/WORKSPACE/source" --merchant="G..."
+  npm run hosted -- --endpoint="https://staging.ackrate.com/api/express/WORKSPACE/source" --merchant="G..."
 
-The endpoint and merchant come from https://reapp.live/solutions. The command
+The endpoint and merchant come from https://staging.ackrate.com/solutions. The command
 uses disposable Stellar testnet signers and never requests a wallet secret.`);
 }
 

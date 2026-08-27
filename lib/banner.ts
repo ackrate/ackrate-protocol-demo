@@ -8,7 +8,14 @@
 import { c } from "./log";
 
 export function banner(): string {
-  const word = c.cyan("R") + c.mint("E") + c.emerald("A") + c.teal("P") + c.green("P");
+  const word =
+    c.cyan("A") +
+    c.mint("C") +
+    c.emerald("K") +
+    c.teal("R") +
+    c.green("A") +
+    c.mint("T") +
+    c.cyan("E");
   return (
     c.bold(word) +
     c.dim("  ·  ") +

@@ -9,21 +9,21 @@ ACKRATE separates adaptive agent planning from deterministic financial authority
 
 ## Start here
 
-- [ACKRATE SDK documentation](https://reapp.live/): Install the published packages and understand the end-to-end consumer and merchant flow.
-- [Consumer product preview](https://reapp.live/consumer): Give an AI agent a task while retaining explicit control over its budget, approved services, deadline, and exceptions.
-- [Express payment flow](https://reapp.live/express): Pay-per-use API fulfillment with settlement and one-time redemption verification.
-- [Merchant assurance](https://reapp.live/merchants): Inspect Mainnet contract tests, deployment evidence, trust boundaries, and merchant verification controls.
-- [Contract Security Suite](https://reapp.live/security): Reproduce 23 Mainnet contract tests, inspect trust boundaries and dependency results, and follow every claim to source and chain evidence.
-- [Solutions and starter kits](https://reapp.live/solutions): Start from an empty folder, run a local consumer against hosted fulfillment, and inspect matching testnet evidence.
-- [AP2 mandate bridge](https://reapp.live/ap2): Canonical intent and transaction mandate checks, signatures, scope, expiry, and replay protection.
-- [CLI](https://reapp.live/cli): Initialize actors, create a mandate, pay, inspect evidence, and exercise rejection paths.
+- [ACKRATE SDK documentation](https://staging.ackrate.com/): Install the published packages and understand the end-to-end consumer and merchant flow.
+- [Consumer product preview](https://staging.ackrate.com/consumer): Give an AI agent a task while retaining explicit control over its budget, approved services, deadline, and exceptions.
+- [Express payment flow](https://staging.ackrate.com/express): Pay-per-use API fulfillment with settlement and one-time redemption verification.
+- [Merchant assurance](https://staging.ackrate.com/merchants): Inspect Mainnet contract tests, deployment evidence, trust boundaries, and merchant verification controls.
+- [Contract Security Suite](https://staging.ackrate.com/security): Reproduce 23 Mainnet contract tests, inspect trust boundaries and dependency results, and follow every claim to source and chain evidence.
+- [Solutions and starter kits](https://staging.ackrate.com/solutions): Start from an empty folder, run a local consumer against hosted fulfillment, and inspect matching testnet evidence.
+- [AP2 mandate bridge](https://staging.ackrate.com/ap2): Canonical intent and transaction mandate checks, signatures, scope, expiry, and replay protection.
+- [CLI](https://staging.ackrate.com/cli): Initialize actors, create a mandate, pay, inspect evidence, and exercise rejection paths.
 
 ## Live demonstrations
 
-- [Research agent](https://reapp.live/research): An AI agent buys paid sources until the on-chain budget is exhausted.
-- [Video paywall](https://reapp.live/video): Three permitted pay-per-use unlocks followed by a rejected fourth payment.
-- [Composite mandates](https://reapp.live/composites): Multiple agents coordinate a group buy and atomic clearing result.
-- [Toolkit preview](https://reapp.live/toolkit): Guided access to the CLI runner and composite-payment demonstrations.
+- [Research agent](https://staging.ackrate.com/research): An AI agent buys paid sources until the on-chain budget is exhausted.
+- [Video paywall](https://staging.ackrate.com/video): Three permitted pay-per-use unlocks followed by a rejected fourth payment.
+- [Composite mandates](https://staging.ackrate.com/composites): Multiple agents coordinate a group buy and atomic clearing result.
+- [Toolkit preview](https://staging.ackrate.com/toolkit): Guided access to the CLI runner and composite-payment demonstrations.
 
 ## Packages and source
 
@@ -33,7 +33,7 @@ ACKRATE separates adaptive agent planning from deterministic financial authority
 - [@ackrate/express-middleware](https://www.npmjs.com/package/@ackrate/express-middleware/v/0.2.2): Express settlement and redemption verification.
 - [@ackrate/cli](https://www.npmjs.com/package/@ackrate/cli/v/0.1.9): Terminal workflows and testnet demos.
 - [Protocol repository](https://github.com/ackrate/ackrate-protocol): Contracts, SDK packages, tests, and examples.
-- [Full implementation context](https://reapp.live/llms-full.txt): One plain-text technical brief for assistants working with the protocol.
+- [Full implementation context](https://staging.ackrate.com/llms-full.txt): One plain-text technical brief for assistants working with the protocol.
 
 ## Research companion
 

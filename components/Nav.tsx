@@ -6,7 +6,8 @@ import { motion } from "framer-motion";
 import { ArrowUpRight } from "lucide-react";
 
 const links = [
-  { href: "/", label: "Docs" },
+  { href: "/", label: "Home" },
+  { href: "/docs", label: "Docs" },
   { href: "/cli", label: "CLI" },
   { href: "/express", label: "Express" },
   { href: "/security", label: "Security" },
@@ -29,7 +30,7 @@ export default function Nav() {
         {/* Brand */}
         <Link href="/" className="group flex shrink-0 items-center gap-2.5">
           <span className="grid h-8 w-8 place-items-center rounded-lg bg-emerald-400 text-sm font-bold text-[#06241a] shadow-[0_0_16px_rgba(52,211,153,0.25)] transition-colors group-hover:bg-emerald-300">
-            R
+            A
           </span>
           <span className="text-[15px] font-semibold tracking-tight text-white">
             ACKRATE

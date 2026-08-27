@@ -150,12 +150,21 @@ export default function ExpressPage() {
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.9)]" />
               Live on Stellar Mainnet · Circle USDC
             </div>
-            <h1 className="mt-6 max-w-3xl text-4xl font-black tracking-[-0.045em] text-emerald-50 sm:text-6xl lg:text-7xl">
-              Agent payments with limits that hold.
+            <h1 className="mt-6 max-w-4xl text-4xl font-black tracking-[-0.045em] text-emerald-50 sm:text-5xl lg:text-6xl">
+              Ackrate is building the <span className="text-emerald-300">delegation and enforcement layer for</span> autonomous <span className="text-emerald-300">agents</span>.
             </h1>
-            <p className="mt-6 max-w-2xl text-base leading-8 text-emerald-100/65 sm:text-lg">
-              Give an agent permission to buy what it needs—not access to your wallet. ACKRATE binds every payment to a wallet-approved budget, merchant, and expiry, then enforces those terms on Stellar Mainnet before Circle USDC moves.
-            </p>
+            <div className="mt-6 max-w-3xl space-y-4 text-base leading-7 text-emerald-100/65 sm:text-lg sm:leading-8">
+              <p>
+                <strong className="font-bold text-emerald-100">AI agents are becoming capable of spending money</strong>, buying services, calling paid APIs, and coordinating with other agents.
+              </p>
+              <p>
+                But <strong className="font-bold text-emerald-100">today, giving an agent the ability to act often means giving it access to credentials</strong>, wallets, or payment methods that are far more powerful than the task actually requires.
+              </p>
+              <p>
+                <strong className="font-bold text-emerald-100">Ackrate lets a person, organization, or parent agent delegate a specific set of permissions to an subagent</strong>: how much it can spend, where it can spend it, what resources it can access, how long the authority lasts, and whether it can delegate part of that authority further.
+              </p>
+              <p>Those constraints are enforced independently of the agent itself.</p>
+            </div>
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
               <Link

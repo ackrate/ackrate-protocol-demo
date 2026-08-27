@@ -5,11 +5,11 @@ import Nav from "@/components/Nav";
 import IntroGate from "@/components/IntroGate";
 import SiteFooter from "@/components/SiteFooter";
 
-const SITE = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://reapp.live").replace(/\/$/, "");
+const SITE = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://staging.ackrate.com").replace(/\/$/, "");
 
-const title = "ACKRATE — Mainnet Agent Payments in Circle USDC";
+const title = "Ackrate — Delegation and Enforcement for Autonomous Agents";
 const description =
-  "Build agent payments with wallet-approved mandates, contract-enforced limits, and Circle USDC settlement on Stellar Mainnet.";
+  "Ackrate lets people, organizations, and parent agents delegate specific permissions to subagents, enforced independently of the agent itself.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE),
@@ -62,7 +62,7 @@ const structuredData = {
       "@type": "WebSite",
       "@id": `${SITE}/#website`,
       name: "ACKRATE",
-      alternateName: ["ACKRATE Protocol", "reapp.live"],
+      alternateName: ["ACKRATE Protocol", "Ackrate"],
       url: SITE,
       description,
       inLanguage: "en",

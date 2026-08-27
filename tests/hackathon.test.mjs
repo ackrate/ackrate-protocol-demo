@@ -10,12 +10,12 @@ const run = promisify(execFile);
 const PERMANENT_SIMPLE_CONTRACT =
   "CCHQ5G4Y4YBMY6D3TYYJSVJVCKUM22Q6TMKCCHVAHY4X7K6QELQACZRM";
 const RETIRED_PACKAGE_SCOPE = new RegExp(`@${String.fromCharCode(114, 101, 97, 112, 112)}-sdk/`);
-const TEMPORARY_HOSTNAME = `${String.fromCharCode(114, 101, 97, 112, 112)}.live`;
+const ACKRATE_HOSTNAME = "staging.ackrate.com";
 
 const protectedHashes = {
-  "app/express/page.tsx": "a7d87431ae35ec88f0f28f73878f98a98f6651605a802f91801c712502a2e84a",
+  "app/express/page.tsx": "cf9d2a35c5373b88ce33c71ecfb2941dccf58d622a545887614da213d19cdc1b",
   "app/express/layout.tsx": "7fb5a1ee24023ddd61ee8092c0c2e3047d51d5a0c4273fb1f4ba6f7374f8b40d",
-  "app/api/express/route.ts": "645a2a92788b61f42537ee0d9f4980c7324a0f76fadd68239939da17b0854141",
+  "app/api/express/route.ts": "a0448c94faa3e4cb2bc7491f8ae2a88be052ff37ce7817ede9c3743040921937",
   "app/api/express/[sessionId]/source/[resource]/route.ts": "022c94e6c368357692c1981f08f52aea41c28ef39eadde56ca501280a6e552a5",
   "lib/express-demo.ts": "1a7ac7d6a2a76349ea067283d2bf15ebec80b0976574ea5bc97978f6fe474e40",
 };
@@ -26,6 +26,27 @@ test("the verified Express runtime remains byte-for-byte unchanged", async () =>
     const actual = createHash("sha256").update(source).digest("hex");
     assert.equal(actual, expected, path);
   }
+});
+
+test("the Express experience is the landing page and preserves the approved elevator pitch", async () => {
+  const [home, express] = await Promise.all([
+    read("app/page.tsx"),
+    read("app/express/page.tsx"),
+  ]);
+  assert.match(home, /import ExpressPage from "\.\/express\/page"/);
+  for (const sentence of [
+    "Ackrate is building the",
+    "delegation and enforcement layer for",
+    "autonomous",
+    "agents",
+    "AI agents are becoming capable of spending money",
+    "buying services, calling paid APIs, and coordinating with other agents.",
+    "today, giving an agent the ability to act often means giving it access to credentials",
+    "wallets, or payment methods that are far more powerful than the task actually requires.",
+    "Ackrate lets a person, organization, or parent agent delegate a specific set of permissions to an subagent",
+    "how much it can spend, where it can spend it, what resources it can access, how long the authority lasts, and whether it can delegate part of that authority further.",
+    "Those constraints are enforced independently of the agent itself.",
+  ]) assert.ok(express.includes(sentence), sentence);
 });
 
 test("navigation exposes Security and Solutions without deleting direct product routes", async () => {
@@ -140,7 +161,7 @@ test("the Solutions page keeps the established responsive pattern and complete g
   assert.match(page, /installer verifies the download before extracting any file/);
   const starterSetup = [...installer.matchAll(/return `([^`]+)`;/g)].at(-1)?.[1];
   assert.ok(starterSetup, "starter setup helper is missing");
-  assert.ok(starterSetup.includes(`https://${TEMPORARY_HOSTNAME}\${installer.path}`));
+  assert.ok(starterSetup.includes(`https://${ACKRATE_HOSTNAME}\${installer.path}`));
   assert.match(starterSetup, /^\/bin\/sh -c "\$\(curl -fsSL /);
   assert.doesNotMatch(starterSetup, /unzip -q|npm ci/);
   assert.doesNotMatch(starterSetup, /npm run/);
@@ -243,7 +264,7 @@ test("the vendored CLI and public pages use the released CLI and permanent contr
   for (const path of [
     "app/toolkit/cli/page.tsx",
     "app/cli/page.tsx",
-    "app/page.tsx",
+    "app/docs/page.tsx",
     "app/llms.txt/route.ts",
     "app/llms-full.txt/route.ts",
   ]) {
@@ -257,13 +278,13 @@ test("the vendored CLI and public pages use the released CLI and permanent contr
   }
 
   const [home, cli, terminal, bundleSource] = await Promise.all([
-    read("app/page.tsx"),
+    read("app/docs/page.tsx"),
     read("app/cli/page.tsx"),
     read("app/toolkit/cli/page.tsx"),
     read("vendor/ackrate-cli.mjs"),
   ]);
   for (const [path, source] of [
-    ["app/page.tsx", home],
+    ["app/docs/page.tsx", home],
     ["app/cli/page.tsx", cli],
     ["app/toolkit/cli/page.tsx", terminal],
     ["vendor/ackrate-cli.mjs", bundleSource],

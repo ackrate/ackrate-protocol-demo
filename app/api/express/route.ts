@@ -19,7 +19,7 @@ export const dynamic = "force-dynamic";
 const MAX_CONCURRENT_CREATES = 2;
 const MAX_ACTIVE_SESSIONS = 4;
 const CREATE_COOLDOWN_MS = 60_000;
-const CANONICAL_ORIGIN = "https://reapp.live";
+const CANONICAL_ORIGIN = "https://staging.ackrate.com";
 const recentCreates = new Map<string, number>();
 let activeCreates = 0;
 
@@ -58,7 +58,7 @@ function publicOrigin(request: Request): string | undefined {
   if (forwardedHost && /^[a-z0-9.:-]+$/i.test(forwardedHost)) {
     try {
       const candidate = new URL(`${forwardedProto === "http" ? "http" : "https"}://${forwardedHost}`);
-      if (candidate.hostname === "reapp.live" || candidate.hostname === "www.reapp.live") {
+      if (candidate.hostname === "staging.ackrate.com") {
         return CANONICAL_ORIGIN;
       }
       if (candidate.hostname.endsWith(".up.railway.app")) return candidate.origin;
@@ -73,7 +73,7 @@ function publicOrigin(request: Request): string | undefined {
     }
   }
 
-  if (requestUrl.hostname === "reapp.live" || requestUrl.hostname === "www.reapp.live") {
+  if (requestUrl.hostname === "staging.ackrate.com") {
     return CANONICAL_ORIGIN;
   }
   if (requestUrl.hostname.endsWith(".up.railway.app")) return requestUrl.origin;

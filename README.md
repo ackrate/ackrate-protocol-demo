@@ -6,32 +6,32 @@
 
 ## Choose from 20 starter packs
 
-Share the full catalog with your team at **[reapp.live/solutions](https://reapp.live/solutions)**. Each starter name below opens a standalone README you can share directly; each ZIP link downloads that exact starter.
+Share the full catalog with your team at **[staging.ackrate.com/solutions](https://staging.ackrate.com/solutions)**. Each starter name below opens a standalone README you can share directly; each ZIP link downloads that exact starter.
 
-Every pack contains editable consumer and Express fulfillment source, deterministic fixtures, exact package versions, an offline gate check, a named rejection path, and a downloadable ZIP recorded in the [public SHA-256 manifest](https://reapp.live/starters/v1/manifest.json).
+Every pack contains editable consumer and Express fulfillment source, deterministic fixtures, exact package versions, an offline gate check, a named rejection path, and a downloadable ZIP recorded in the [public SHA-256 manifest](https://staging.ackrate.com/starters/v1/manifest.json).
 
 | # | Starter | Category | Level | Download |
 |---:|---|---|---|---|
-| 01 | [**Research Source Scout**](https://github.com/ackrate/ackrate-protocol-demo/blob/main/starters/research-source-scout/README.md) | Data APIs | Beginner | [ZIP](https://reapp.live/starters/v1/research-source-scout.zip) |
-| 02 | [**Page Snapshot Meter**](https://github.com/ackrate/ackrate-protocol-demo/blob/main/starters/page-snapshot-meter/README.md) | Content infrastructure | Intermediate | [ZIP](https://reapp.live/starters/v1/page-snapshot-meter.zip) |
-| 03 | [**Existing API Tollgate**](https://github.com/ackrate/ackrate-protocol-demo/blob/main/starters/api-tollgate/README.md) | Infrastructure | Beginner | [ZIP](https://reapp.live/starters/v1/api-tollgate.zip) |
-| 04 | [**Paid Tool Gateway**](https://github.com/ackrate/ackrate-protocol-demo/blob/main/starters/paid-tool-gateway/README.md) | Agent tooling | Intermediate | [ZIP](https://reapp.live/starters/v1/paid-tool-gateway.zip) |
-| 05 | [**Coding Agent Purchase Hook**](https://github.com/ackrate/ackrate-protocol-demo/blob/main/starters/coding-agent-purchase-hook/README.md) | Developer tooling | Intermediate | [ZIP](https://reapp.live/starters/v1/coding-agent-purchase-hook.zip) |
-| 06 | [**Discoverable Service Bazaar**](https://github.com/ackrate/ackrate-protocol-demo/blob/main/starters/service-bazaar/README.md) | Discovery | Advanced | [ZIP](https://reapp.live/starters/v1/service-bazaar.zip) |
-| 07 | [**Agent Reputation Snapshot**](https://github.com/ackrate/ackrate-protocol-demo/blob/main/starters/agent-reputation-snapshot/README.md) | Identity | Advanced | [ZIP](https://reapp.live/starters/v1/agent-reputation-snapshot.zip) |
-| 08 | [**Multi-Agent Workflow Router**](https://github.com/ackrate/ackrate-protocol-demo/blob/main/starters/multi-agent-workflow/README.md) | Orchestration | Advanced | [ZIP](https://reapp.live/starters/v1/multi-agent-workflow.zip) |
-| 09 | [**Verifiable Compute Broker**](https://github.com/ackrate/ackrate-protocol-demo/blob/main/starters/compute-broker/README.md) | Compute | Intermediate | [ZIP](https://reapp.live/starters/v1/compute-broker.zip) |
-| 10 | [**Private Test Runner**](https://github.com/ackrate/ackrate-protocol-demo/blob/main/starters/private-test-runner/README.md) | Developer tooling | Intermediate | [ZIP](https://reapp.live/starters/v1/private-test-runner.zip) |
-| 11 | [**Build Notary**](https://github.com/ackrate/ackrate-protocol-demo/blob/main/starters/build-notary/README.md) | Software supply chain | Advanced | [ZIP](https://reapp.live/starters/v1/build-notary.zip) |
-| 12 | [**Model Route Bazaar**](https://github.com/ackrate/ackrate-protocol-demo/blob/main/starters/model-route-bazaar/README.md) | AI infrastructure | Advanced | [ZIP](https://reapp.live/starters/v1/model-route-bazaar.zip) |
-| 13 | [**Rights Receipt**](https://github.com/ackrate/ackrate-protocol-demo/blob/main/starters/rights-receipt/README.md) | Creative commerce | Beginner | [ZIP](https://reapp.live/starters/v1/rights-receipt.zip) |
-| 14 | [**Data Owner Gateway**](https://github.com/ackrate/ackrate-protocol-demo/blob/main/starters/data-owner-gateway/README.md) | Data commerce | Intermediate | [ZIP](https://reapp.live/starters/v1/data-owner-gateway.zip) |
-| 15 | [**Human Review Outbox**](https://github.com/ackrate/ackrate-protocol-demo/blob/main/starters/human-review-outbox/README.md) | Operations | Advanced | [ZIP](https://reapp.live/starters/v1/human-review-outbox.zip) |
-| 16 | [**Cold-Chain Passport**](https://github.com/ackrate/ackrate-protocol-demo/blob/main/starters/cold-chain-passport/README.md) | Supply chain | Intermediate | [ZIP](https://reapp.live/starters/v1/cold-chain-passport.zip) |
-| 17 | [**Carbon-Aware Run Window**](https://github.com/ackrate/ackrate-protocol-demo/blob/main/starters/carbon-aware-run-window/README.md) | Sustainability | Intermediate | [ZIP](https://reapp.live/starters/v1/carbon-aware-run-window.zip) |
-| 18 | [**Fleet Corridor Authority**](https://github.com/ackrate/ackrate-protocol-demo/blob/main/starters/fleet-corridor-authority/README.md) | Operations | Intermediate | [ZIP](https://reapp.live/starters/v1/fleet-corridor-authority.zip) |
-| 19 | [**Payment Receipt Firewall**](https://github.com/ackrate/ackrate-protocol-demo/blob/main/starters/payment-receipt-firewall/README.md) | Security | Advanced | [ZIP](https://reapp.live/starters/v1/payment-receipt-firewall.zip) |
-| 20 | [**Procurement Guard**](https://github.com/ackrate/ackrate-protocol-demo/blob/main/starters/procurement-guard/README.md) | Small-business automation | Beginner | [ZIP](https://reapp.live/starters/v1/procurement-guard.zip) |
+| 01 | [**Research Source Scout**](https://github.com/ackrate/ackrate-protocol-demo/blob/main/starters/research-source-scout/README.md) | Data APIs | Beginner | [ZIP](https://staging.ackrate.com/starters/v1/research-source-scout.zip) |
+| 02 | [**Page Snapshot Meter**](https://github.com/ackrate/ackrate-protocol-demo/blob/main/starters/page-snapshot-meter/README.md) | Content infrastructure | Intermediate | [ZIP](https://staging.ackrate.com/starters/v1/page-snapshot-meter.zip) |
+| 03 | [**Existing API Tollgate**](https://github.com/ackrate/ackrate-protocol-demo/blob/main/starters/api-tollgate/README.md) | Infrastructure | Beginner | [ZIP](https://staging.ackrate.com/starters/v1/api-tollgate.zip) |
+| 04 | [**Paid Tool Gateway**](https://github.com/ackrate/ackrate-protocol-demo/blob/main/starters/paid-tool-gateway/README.md) | Agent tooling | Intermediate | [ZIP](https://staging.ackrate.com/starters/v1/paid-tool-gateway.zip) |
+| 05 | [**Coding Agent Purchase Hook**](https://github.com/ackrate/ackrate-protocol-demo/blob/main/starters/coding-agent-purchase-hook/README.md) | Developer tooling | Intermediate | [ZIP](https://staging.ackrate.com/starters/v1/coding-agent-purchase-hook.zip) |
+| 06 | [**Discoverable Service Bazaar**](https://github.com/ackrate/ackrate-protocol-demo/blob/main/starters/service-bazaar/README.md) | Discovery | Advanced | [ZIP](https://staging.ackrate.com/starters/v1/service-bazaar.zip) |
+| 07 | [**Agent Reputation Snapshot**](https://github.com/ackrate/ackrate-protocol-demo/blob/main/starters/agent-reputation-snapshot/README.md) | Identity | Advanced | [ZIP](https://staging.ackrate.com/starters/v1/agent-reputation-snapshot.zip) |
+| 08 | [**Multi-Agent Workflow Router**](https://github.com/ackrate/ackrate-protocol-demo/blob/main/starters/multi-agent-workflow/README.md) | Orchestration | Advanced | [ZIP](https://staging.ackrate.com/starters/v1/multi-agent-workflow.zip) |
+| 09 | [**Verifiable Compute Broker**](https://github.com/ackrate/ackrate-protocol-demo/blob/main/starters/compute-broker/README.md) | Compute | Intermediate | [ZIP](https://staging.ackrate.com/starters/v1/compute-broker.zip) |
+| 10 | [**Private Test Runner**](https://github.com/ackrate/ackrate-protocol-demo/blob/main/starters/private-test-runner/README.md) | Developer tooling | Intermediate | [ZIP](https://staging.ackrate.com/starters/v1/private-test-runner.zip) |
+| 11 | [**Build Notary**](https://github.com/ackrate/ackrate-protocol-demo/blob/main/starters/build-notary/README.md) | Software supply chain | Advanced | [ZIP](https://staging.ackrate.com/starters/v1/build-notary.zip) |
+| 12 | [**Model Route Bazaar**](https://github.com/ackrate/ackrate-protocol-demo/blob/main/starters/model-route-bazaar/README.md) | AI infrastructure | Advanced | [ZIP](https://staging.ackrate.com/starters/v1/model-route-bazaar.zip) |
+| 13 | [**Rights Receipt**](https://github.com/ackrate/ackrate-protocol-demo/blob/main/starters/rights-receipt/README.md) | Creative commerce | Beginner | [ZIP](https://staging.ackrate.com/starters/v1/rights-receipt.zip) |
+| 14 | [**Data Owner Gateway**](https://github.com/ackrate/ackrate-protocol-demo/blob/main/starters/data-owner-gateway/README.md) | Data commerce | Intermediate | [ZIP](https://staging.ackrate.com/starters/v1/data-owner-gateway.zip) |
+| 15 | [**Human Review Outbox**](https://github.com/ackrate/ackrate-protocol-demo/blob/main/starters/human-review-outbox/README.md) | Operations | Advanced | [ZIP](https://staging.ackrate.com/starters/v1/human-review-outbox.zip) |
+| 16 | [**Cold-Chain Passport**](https://github.com/ackrate/ackrate-protocol-demo/blob/main/starters/cold-chain-passport/README.md) | Supply chain | Intermediate | [ZIP](https://staging.ackrate.com/starters/v1/cold-chain-passport.zip) |
+| 17 | [**Carbon-Aware Run Window**](https://github.com/ackrate/ackrate-protocol-demo/blob/main/starters/carbon-aware-run-window/README.md) | Sustainability | Intermediate | [ZIP](https://staging.ackrate.com/starters/v1/carbon-aware-run-window.zip) |
+| 18 | [**Fleet Corridor Authority**](https://github.com/ackrate/ackrate-protocol-demo/blob/main/starters/fleet-corridor-authority/README.md) | Operations | Intermediate | [ZIP](https://staging.ackrate.com/starters/v1/fleet-corridor-authority.zip) |
+| 19 | [**Payment Receipt Firewall**](https://github.com/ackrate/ackrate-protocol-demo/blob/main/starters/payment-receipt-firewall/README.md) | Security | Advanced | [ZIP](https://staging.ackrate.com/starters/v1/payment-receipt-firewall.zip) |
+| 20 | [**Procurement Guard**](https://github.com/ackrate/ackrate-protocol-demo/blob/main/starters/procurement-guard/README.md) | Small-business automation | Beginner | [ZIP](https://staging.ackrate.com/starters/v1/procurement-guard.zip) |
 
 ### Make any starter yours
 
@@ -47,7 +47,7 @@ Start with three files; the payment and recovery machinery can stay untouched un
 
 ## Start here: empty folder to a working testnet demo
 
-Go to **[reapp.live/solutions](https://reapp.live/solutions)** and follow five steps:
+Go to **[staging.ackrate.com/solutions](https://staging.ackrate.com/solutions)** and follow five steps:
 
 1. **Choose one** of the 20 starter packs.
 2. **Open an empty folder** in VS Code, then select **Terminal → New Terminal**.
@@ -127,21 +127,21 @@ The SDK and Express middleware are untrusted clients of the contract. Merchant s
 
 ## Live protocol surfaces
 
-This repository powers the implementation guide and inspectable demonstrations at [reapp.live](https://reapp.live):
+This repository powers the implementation guide and inspectable demonstrations at [staging.ackrate.com](https://staging.ackrate.com):
 
 | Surface | What it demonstrates |
 |---|---|
-| [**Docs**](https://reapp.live/) | SDK installation, consumer flow, Express verification, testnet execution, and safety boundary. |
-| [**CLI**](https://reapp.live/cli) | Actor setup, mandate creation, payment, and terminal rejection paths. |
-| [**Consumer**](https://reapp.live/consumer) | Give an AI agent a task, budget, approved services, and deadline without granting open-ended payment authority. |
-| [**Express**](https://reapp.live/express) | `402` challenge, contract settlement, one-time redemption, and `200` fulfillment. |
-| [**Solutions**](https://reapp.live/solutions) | Twenty blank-folder starters plus the optional hosted Research Source Scout walkthrough. |
-| [**AP2**](https://reapp.live/ap2) | Intent and transaction mandate binding, canonical signatures, scope, expiry, and replay checks. |
-| [**Composite mandates**](https://reapp.live/composites) | Multiple buyer agents coordinating an atomic group purchase. |
-| [**Research agent**](https://reapp.live/research) | Paid-source selection constrained by an on-chain budget. |
-| [**Video paywall**](https://reapp.live/video) | Three permitted unlocks followed by a contract-rejected fourth payment. |
+| [**Docs**](https://staging.ackrate.com/) | SDK installation, consumer flow, Express verification, testnet execution, and safety boundary. |
+| [**CLI**](https://staging.ackrate.com/cli) | Actor setup, mandate creation, payment, and terminal rejection paths. |
+| [**Consumer**](https://staging.ackrate.com/consumer) | Give an AI agent a task, budget, approved services, and deadline without granting open-ended payment authority. |
+| [**Express**](https://staging.ackrate.com/express) | `402` challenge, contract settlement, one-time redemption, and `200` fulfillment. |
+| [**Solutions**](https://staging.ackrate.com/solutions) | Twenty blank-folder starters plus the optional hosted Research Source Scout walkthrough. |
+| [**AP2**](https://staging.ackrate.com/ap2) | Intent and transaction mandate binding, canonical signatures, scope, expiry, and replay checks. |
+| [**Composite mandates**](https://staging.ackrate.com/composites) | Multiple buyer agents coordinating an atomic group purchase. |
+| [**Research agent**](https://staging.ackrate.com/research) | Paid-source selection constrained by an on-chain budget. |
+| [**Video paywall**](https://staging.ackrate.com/video) | Three permitted unlocks followed by a contract-rejected fourth payment. |
 
-Machine-readable maps are available at [`/llms.txt`](https://reapp.live/llms.txt), [`/llms-full.txt`](https://reapp.live/llms-full.txt), [`/sitemap.xml`](https://reapp.live/sitemap.xml), and [`/robots.txt`](https://reapp.live/robots.txt).
+Machine-readable maps are available at [`/llms.txt`](https://staging.ackrate.com/llms.txt), [`/llms-full.txt`](https://staging.ackrate.com/llms-full.txt), [`/sitemap.xml`](https://staging.ackrate.com/sitemap.xml), and [`/robots.txt`](https://staging.ackrate.com/robots.txt).
 
 ACKRATE is the live implementation companion to [ACKRATE NETWORK](https://ackrate.network), the source-linked research and architecture field guide for agentic payments.
 

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://reapp.live/schemas/hackathon-starter-catalog-v1.json",
+  "$id": "https://staging.ackrate.com/schemas/hackathon-starter-catalog-v1.json",
   "title": "ACKRATE hackathon starter catalog",
   "type": "object",
   "additionalProperties": false,

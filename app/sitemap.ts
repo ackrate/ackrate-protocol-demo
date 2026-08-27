@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 
-const BASE_URL = "https://reapp.live";
+const BASE_URL = "https://staging.ackrate.com";
 const LAST_MODIFIED = new Date("2026-07-18T00:00:00Z");
 
 const routes = [

@@ -36,7 +36,7 @@ test("agent secret mismatch fails closed without exposing the secret", () => {
 });
 
 test("mainnet loads only the verified USDC release and never falls back to testnet", () => {
-  const config = loadAppConfig({ ...validEnv(), ACKRATE_WALLET_NETWORK: "mainnet", ACKRATE_APP_ORIGIN: "https://reapp.live" });
+  const config = loadAppConfig({ ...validEnv(), ACKRATE_WALLET_NETWORK: "mainnet", ACKRATE_APP_ORIGIN: "https://staging.ackrate.com" });
   assert.equal(config.public.ready, false);
   assert(config.public.blockers.some((item) => item.includes(MAINNET_CONFIRMATION)));
   assert(config.public.blockers.includes("durable DATABASE_URL is required on mainnet"));
@@ -45,7 +45,7 @@ test("mainnet loads only the verified USDC release and never falls back to testn
   assert.equal(config.public.asset.contractId, "CCW67TSZV3SSS2HXMBQ5JFGCKJNXKZM7UQUWUZPUTHXSTZLEO7SJMI75");
   assert.equal(config.public.catalog[0]?.price, "0.01");
   assert.equal(config.public.networkPassphrase, Networks.PUBLIC);
-  assert.equal(config.public.rpcUrl, "https://reapp.live/api/wallet/rpc");
+  assert.equal(config.public.rpcUrl, "https://staging.ackrate.com/api/wallet/rpc");
   assert.equal(config.network.rpcUrl, "https://mainnet.sorobanrpc.com");
 });
 

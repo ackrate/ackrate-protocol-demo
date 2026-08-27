@@ -5,7 +5,7 @@ export function GET() {
 
 > Technical context for building, testing, and explaining bounded agentic payments with ACKRATE.
 
-Canonical site: https://reapp.live/
+Canonical site: https://staging.ackrate.com/
 Source: https://github.com/ackrate/ackrate-protocol
 Research companion: https://ackrate.network/
 Environment: Stellar testnet demonstrations; do not use production or mainnet secrets.
@@ -37,51 +37,51 @@ The fourth payment in a three-payment budget is not a UI simulation. The contrac
 - @ackrate/express-middleware 0.2.2: HTTP payment challenge, settlement verification, protected-route integration, and one-time redemption controls for Express 4 and 5.
 - @ackrate/cli 0.1.9: terminal setup, mandate, payment, inspection, and demonstration commands.
 
-Confirm versions at https://reapp.live/ and the npm registry before copying an installation command.
+Confirm versions at https://staging.ackrate.com/ and the npm registry before copying an installation command.
 
 ## Public routes
 
-### Documentation — https://reapp.live/
+### Documentation — https://staging.ackrate.com/
 
 The documentation page shows a clean-clone testnet run, published package installation, the agent.fetch() consumer flow, Express verification middleware, current testnet contract reference, and the verification boundary. It is the canonical implementation entry point.
 
-### CLI — https://reapp.live/cli
+### CLI — https://staging.ackrate.com/cli
 
 The CLI surface demonstrates actor setup, mandate creation, payment submission, inspection, and rejection paths from the terminal. CLI output should be treated as an interface over contract and rail evidence, not as the source of truth for settlement.
 
-### Consumer — https://reapp.live/consumer
+### Consumer — https://staging.ackrate.com/consumer
 
 The Consumer page previews a person-facing task flow for giving an AI agent a job without giving it a blank check. A person chooses the outcome, hard budget limit, approved services, deadline, and exception rule. The interactive spending controls translate those choices into a plain-language plan; the preview does not create a wallet, sign a transaction, or move funds.
 
-### Express — https://reapp.live/express
+### Express — https://staging.ackrate.com/express
 
 The Express flow demonstrates pay-per-use API fulfillment. A 402 response describes a scoped requirement; the consumer checks it against the mandate, settles, and retries with proof. The middleware verifies the ACKRATE event and token transfer before the route handler can return the protected value. Production deployments need a shared durable redemption store across workers.
 
-### Merchant assurance — https://reapp.live/merchants
+### Merchant assurance — https://staging.ackrate.com/merchants
 
 The Merchants page maps unauthorized caller, expiry, overspend, replay, unauthorized upgrade, and reentrancy cases to the exact governed Mainnet Rust tests. It links the live MandateRegistry and TimelockController, completed deployment record, release manifest, continuous contract gate, artifact provenance, and one-command local reproduction path. The page presents repository evidence; the contract remains the payment authority.
 
-### Contract Security Suite — https://reapp.live/security
+### Contract Security Suite — https://staging.ackrate.com/security
 
 The Contract Security Suite is the public release-gate evidence surface for Ackrate's Mainnet contracts. It maps negative paths to exact Rust tests, documents the registry enforcement boundary and atomic USDC data flow, publishes dependency and remediation results, links the live governed contracts, and provides a reproducible local gate command. The recorded Mainnet suites contain 15 MandateRegistry tests and 8 TimelockController tests, with zero known vulnerabilities and zero yanked dependencies in the deployed WASM graphs.
 
-### Solutions and starter kits — https://reapp.live/solutions
+### Solutions and starter kits — https://staging.ackrate.com/solutions
 
 The Hackathon starter creates a disposable hosted fulfillment workspace and generates two commands for a clean VS Code folder. The local consumer owns its ephemeral signers, registers a scoped testnet mandate, inspects the exact 402 challenge, submits the request-bound contract payment, and retries delivery with the stored receipt. It streams the resulting challenge, settlement, proof, delivery, budget, and rejection evidence back to the browser page. The generated project includes editable consumer and fulfillment source files plus guided examples for merchant scope, expiry, replay defense, recovery, and explorer evidence.
 
-### AP2 — https://reapp.live/ap2
+### AP2 — https://staging.ackrate.com/ap2
 
 The AP2 page demonstrates canonical mandate binding and negative cases. It covers signature validity, merchant mismatch, amount limits, expiry, and replay. AP2 artifacts represent intent and transaction authority; ACKRATE maps those artifacts into enforceable payment constraints rather than treating signed text as unlimited permission.
 
-### Research agent — https://reapp.live/research
+### Research agent — https://staging.ackrate.com/research
 
 The research agent can autonomously buy paid sources. Each purchase consumes the same bounded mandate. It may decide that another source is useful, but the contract rejects purchases after the budget is exhausted. The final answer is therefore constrained by both available evidence and financial authority.
 
-### Video paywall — https://reapp.live/video
+### Video paywall — https://staging.ackrate.com/video
 
 The video demonstration prices each unlock at 1 XLM under a 3 XLM mandate. Three items can be settled and unlocked. A fourth attempt is rejected by the contract. The flow makes budget consumption and explorer evidence visible.
 
-### Composite mandates — https://reapp.live/composites
+### Composite mandates — https://staging.ackrate.com/composites
 
 The composite demonstration coordinates multiple buyer agents in one group purchase. Commitments and a clearing condition are joined into an atomic settlement outcome. It is a specialized coordination example, not a replacement for principal-level authority or merchant fulfillment evidence.
 
@@ -97,7 +97,7 @@ The composite demonstration coordinates multiple buyer agents in one group purch
 
 ## Relationship to ACKRATE NETWORK
 
-ACKRATE at https://reapp.live is the live implementation and demonstration surface. ACKRATE NETWORK at https://ackrate.network is the research and architecture publication. They share ownership and link to each other transparently. Product behavior should be verified against the ACKRATE source repository; market and protocol claims should be checked against the primary sources cited by ACKRATE NETWORK.
+ACKRATE at https://staging.ackrate.com is the live implementation and demonstration surface. ACKRATE NETWORK at https://ackrate.network is the research and architecture publication. They share ownership and link to each other transparently. Product behavior should be verified against the ACKRATE source repository; market and protocol claims should be checked against the primary sources cited by ACKRATE NETWORK.
 `;
 
   return new Response(text, {
