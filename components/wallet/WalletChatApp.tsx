@@ -109,6 +109,7 @@ export function WalletChatApp() {
   const [phase, setPhase] = useState<Phase>("idle");
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [disconnectOpen, setDisconnectOpen] = useState(false);
   const [nowSeconds, setNowSeconds] = useState(() => Math.floor(Date.now() / 1_000));
 
   const refreshMandate = useCallback(async (current: StoredMandate) => {
@@ -282,11 +283,6 @@ export function WalletChatApp() {
     }
   };
 
-  const goToTurnOff = () => {
-    setNotice("Tap Turn off spending below, then approve in Freighter.");
-    document.getElementById("turn-off-mandate")?.scrollIntoView({ behavior: "smooth", block: "center" });
-  };
-
   const disconnect = async () => {
     if (mandate?.status === "Active" && mandate.expiry > Math.floor(Date.now() / 1_000)) {
       setNotice("First tap Turn off spending below. Then disconnect your wallet.");
@@ -311,6 +307,7 @@ export function WalletChatApp() {
     setMandate(null);
     setStored(null);
     setPhase("idle");
+    setDisconnectOpen(false);
     setNotice("Wallet disconnected. Connect a wallet to start again.");
   };
 
@@ -336,7 +333,7 @@ export function WalletChatApp() {
         <div className="topbar-actions">
           <Link href="/wallet/diagnostics" className="nav-link">Diagnostics</Link>
           {session.authenticated ? (
-            <button className="wallet-pill" onClick={mandateOnline ? goToTurnOff : disconnect} title="Disconnect wallet"><Power size={13} /> Disconnect wallet</button>
+            <button className="wallet-pill" onClick={() => setDisconnectOpen(true)} title="Disconnect wallet"><Power size={13} /> Disconnect wallet</button>
           ) : (
             <button className="wallet-pill" onClick={connect} disabled={!config || phase === "authenticating"}><WalletCards size={14} /> Connect wallet</button>
           )}
@@ -382,10 +379,10 @@ export function WalletChatApp() {
               <div className="connected-state">
                 <div className="identity-line"><span className="wallet-led" /><div><small>Connected wallet</small><code>{short(session.address, 9)}</code></div><ShieldCheck size={18} /></div>
                 <p><LockKeyhole size={13} /> Your wallet is connected.</p>
-                <button className={`disconnect-button ${mandateOnline ? "step-link" : ""}`} onClick={mandateOnline ? goToTurnOff : disconnect}>
+                <button className="disconnect-button" onClick={() => setDisconnectOpen(true)}>
                   <Power size={15} /> Disconnect wallet
                 </button>
-                {mandateOnline && <p className="disconnect-help">First turn off spending below. Then tap Disconnect wallet again.</p>}
+                {mandateOnline && <p className="disconnect-help">Tap Disconnect wallet. Ackrate will guide you through both steps.</p>}
                 {config?.network === "mainnet" && (
                   <button className="secondary-button" onClick={addUsdc} disabled={phase === "adding-asset"}>
                     <CircleDollarSign size={15} /> {phase === "adding-asset" ? "Waiting for Freighter…" : "Add USDC to wallet"}
@@ -484,6 +481,34 @@ export function WalletChatApp() {
           )}
         </aside>
       </section>
+
+      {disconnectOpen && session.authenticated && (
+        <div className="disconnect-overlay" role="presentation">
+          <section className="disconnect-dialog glass" role="dialog" aria-modal="true" aria-labelledby="disconnect-title">
+            <button className="disconnect-close" type="button" onClick={() => setDisconnectOpen(false)} aria-label="Close"><X size={18} /></button>
+            <div className="disconnect-icon"><Power size={22} /></div>
+            <p className="eyebrow">DISCONNECT WALLET</p>
+            {mandateOnline ? (
+              <>
+                <h2 id="disconnect-title">First, turn off spending</h2>
+                <p>This stops the agent from spending. Freighter will ask you to approve.</p>
+                <button className="danger-button" onClick={revoke} disabled={phase === "revoking"}>
+                  <X size={16} /> {phase === "revoking" ? "Waiting for Freighter…" : "Turn off spending"}
+                </button>
+                {error && <p className="disconnect-error">{error}</p>}
+              </>
+            ) : (
+              <>
+                <h2 id="disconnect-title">Ready to disconnect</h2>
+                <p>Your saved setup will be cleared. Connecting again will start fresh.</p>
+                {stored?.revokeTx && <TransactionEvidence label="Spending turned off" hash={stored.revokeTx} explorer={explorer} />}
+                <button className="disconnect-button" onClick={disconnect}><Power size={16} /> Disconnect wallet</button>
+                {error && <p className="disconnect-error">{error}</p>}
+              </>
+            )}
+          </section>
+        </div>
+      )}
 
       {(notice || error) && <div className={`toast ${error ? "error" : ""}`}><span>{error ? <TriangleAlert size={16} /> : <Check size={16} />}</span><p>{error ?? notice}</p><button onClick={() => { setError(null); setNotice(null); }} aria-label="Dismiss"><X size={14} /></button></div>}
 

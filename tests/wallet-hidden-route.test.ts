@@ -106,7 +106,7 @@ test("wallet card exposes an obvious site disconnect control", () => {
 
   assert.match(app, /Disconnect wallet/);
   assert.match(app, /Turn off spending/);
-  assert.match(app, /onClick=\{mandateOnline \? goToTurnOff : disconnect\}/);
+  assert.match(app, /onClick=\{\(\) => setDisconnectOpen\(true\)\}/);
   assert.match(app, /method: "DELETE"/);
   assert.match(app, /setSession\(emptySession\)/);
 });
@@ -116,8 +116,8 @@ test("wallet disconnect is blocked until the on-chain mandate is off", () => {
 
   assert.match(app, /mandate\?\.status === "Active" && mandate\.expiry > Math\.floor\(Date\.now\(\) \/ 1_000\)/);
   assert.match(app, /First tap Turn off spending below\. Then disconnect your wallet/);
-  assert.match(app, /className="wallet-pill" onClick=\{mandateOnline \? goToTurnOff : disconnect\}/);
-  assert.match(app, /First turn off spending below\. Then tap Disconnect wallet again/);
+  assert.match(app, /className="wallet-pill" onClick=\{\(\) => setDisconnectOpen\(true\)\}/);
+  assert.match(app, /Tap Disconnect wallet\. Ackrate will guide you through both steps/);
   assert.match(app, /Spending is off\. Now click Disconnect wallet/);
   assert.match(app, /stored\?\.revokeTx && mandate\?\.status !== "Active"/);
 });
@@ -127,8 +127,9 @@ test("turning off reconnects and verifies the exact Freighter account before sig
 
   assert.match(app, /const address = await connectFreighter\(config\.networkPassphrase\)/);
   assert.match(app, /if \(address !== stored\.user\) throw new Error\("Select the same wallet you connected to Ackrate"\)/);
-  assert.match(app, /id="turn-off-mandate"/);
-  assert.match(app, /scrollIntoView\(\{ behavior: "smooth", block: "center" \}\)/);
+  assert.match(app, /role="dialog" aria-modal="true"/);
+  assert.match(app, /First, turn off spending/);
+  assert.match(app, /Ready to disconnect/);
 });
 
 test("confirmed disconnect clears only Ackrate wallet setup and purchase state", () => {

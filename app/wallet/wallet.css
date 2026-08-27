@@ -276,6 +276,17 @@
 .wallet-preview .gate-card strong { color: #f6a0af; font-size: 10px; }
 .wallet-preview .gate-card p { margin: 5px 0 0; color: #8c6f75; font-size: 9px; line-height: 1.5; }
 
+.wallet-preview .disconnect-overlay { position: fixed; z-index: 110; inset: 0; display: grid; place-items: center; padding: 20px; background: rgba(0,0,0,.78); backdrop-filter: blur(12px); }
+.wallet-preview .disconnect-dialog { position: relative; display: grid; gap: 14px; width: min(440px, 100%); padding: 28px; border-radius: 20px; box-shadow: 0 28px 90px rgba(0,0,0,.65); }
+.wallet-preview .disconnect-dialog h2 { margin: 0; color: #eef9f4; font-size: 25px; letter-spacing: -.035em; }
+.wallet-preview .disconnect-dialog > p:not(.eyebrow):not(.disconnect-error) { margin: 0 0 4px; color: #9aada5; font-size: 13px; line-height: 1.6; }
+.wallet-preview .disconnect-icon { display: grid; place-items: center; width: 46px; height: 46px; border: 1px solid rgba(251,113,133,.32); border-radius: 14px; color: #fda4b3; background: rgba(251,113,133,.1); }
+.wallet-preview .disconnect-close { position: absolute; top: 14px; right: 14px; display: grid; place-items: center; width: 34px; height: 34px; border: 0; border-radius: 9px; color: #83948d; background: rgba(255,255,255,.04); cursor: pointer; }
+.wallet-preview .disconnect-close:hover { color: #e6f1ec; background: rgba(255,255,255,.08); }
+.wallet-preview .disconnect-error { margin: 0; color: #fda4b3; font-size: 11px; line-height: 1.5; }
+.wallet-preview .disconnect-dialog .proof-evidence { grid-template-columns: 1fr auto auto; }
+.wallet-preview .disconnect-dialog .proof-evidence > button { display: none; }
+
 .wallet-preview .toast { position: fixed; z-index: 80; right: 22px; bottom: 22px; display: grid; grid-template-columns: auto 1fr auto; align-items: start; gap: 10px; width: min(420px, calc(100vw - 44px)); padding: 13px; border: 1px solid rgba(52,211,153,.2); border-radius: 13px; background: rgba(8,16,12,.96); box-shadow: 0 18px 60px rgba(0,0,0,.42); backdrop-filter: blur(20px); }
 .wallet-preview .toast > span { display: grid; place-items: center; width: 25px; height: 25px; border-radius: 8px; color: #072319; background: var(--emerald); }
 .wallet-preview .toast p { margin: 4px 0 0; color: #b6cac1; font-size: 10px; line-height: 1.5; }
@@ -339,6 +350,7 @@
   .wallet-preview .thread-root { height: 526px; }
   .wallet-preview .diagnostic-grid { grid-template-columns: 1fr; }
   .wallet-preview .diagnostic-head { flex-direction: column; }
+  .wallet-preview .disconnect-dialog { padding: 24px 18px 18px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
