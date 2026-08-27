@@ -143,6 +143,33 @@ export async function completeToolCall(
   );
 }
 
+export async function completePendingToolCalls(input: {
+  sessionId: string;
+  mandateId: string;
+  sourceId: string;
+  result: unknown;
+}): Promise<void> {
+  const client = await initialize();
+  if (!client) {
+    for (const [key, record] of memory.__ackrateToolCalls!.entries()) {
+      if (
+        record.sessionId === input.sessionId
+        && record.mandateId === input.mandateId
+        && record.sourceId === input.sourceId
+        && record.status === "delivery_pending"
+      ) {
+        memory.__ackrateToolCalls!.set(key, { ...record, status: "succeeded", result: input.result });
+      }
+    }
+    return;
+  }
+  await client.query(
+    `UPDATE ackrate_tool_calls SET status = 'succeeded', result = $4::jsonb, updated_at = $5
+     WHERE session_id = $1 AND mandate_id = $2 AND source_id = $3 AND status = 'delivery_pending'`,
+    [input.sessionId, input.mandateId, input.sourceId, JSON.stringify(input.result), Math.floor(Date.now() / 1_000)],
+  );
+}
+
 export class DurableReceiptStore implements SettlementReceiptStore {
   constructor(private readonly sessionId: string, private readonly mandateId: string) {}
 

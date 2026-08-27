@@ -50,12 +50,18 @@ test("wallet RPC relay bounds, compacts, and fails over Mainnet responses", () =
 test("wallet exposes a deterministic real-payment control without an LLM dependency", () => {
   const thread = read("components/wallet/AssistantThread.tsx");
   const purchase = read("app/api/wallet/purchase/route.ts");
+  const recovery = read("app/api/wallet/purchase/recovery/route.ts");
 
   assert.match(thread, /Pay \$0\.01 USDC/);
   assert.match(thread, /"\/api\/wallet\/purchase"/);
   assert.match(purchase, /purchaseCatalogItem/);
   assert.match(purchase, /requireSession/);
   assert.doesNotMatch(purchase, /openai|anthropic|streamText/i);
+  assert.match(recovery, /getPendingCatalogRecovery/);
+  assert.match(recovery, /recoverPendingCatalogPurchase/);
+  assert.match(recovery, /requireSession/);
+  assert.match(recovery, /requireSameOrigin/);
+  assert.match(thread, /Recover delivery — no charge/);
 });
 
 test("wallet closes an expired mandate locally and offers a fresh boundary", () => {

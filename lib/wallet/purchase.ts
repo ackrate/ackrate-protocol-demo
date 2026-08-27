@@ -7,7 +7,7 @@ import {
 } from "@ackrate/core";
 import type { AppConfig } from "./app-config";
 import { boundedResponseJson } from "./http";
-import { completeToolCall, DurableReceiptStore, reserveToolCall } from "./journal";
+import { completePendingToolCalls, completeToolCall, DurableReceiptStore, reserveToolCall } from "./journal";
 import { assertMandateBindings, readMandate } from "./mandate-state";
 import { installMainnetAccountFallback } from "./rpc-account-fallback";
 import { installMainnetRpcRetry } from "./rpc-retry";
@@ -21,13 +21,135 @@ export interface PurchaseInput {
   sourceId: string;
 }
 
-export async function purchaseCatalogItem(input: PurchaseInput): Promise<unknown> {
-  const { config } = input;
+export interface PendingPurchaseRecovery {
+  pending: boolean;
+  txHash?: string;
+  amount?: string;
+  asset?: string;
+  sourceId?: string;
+  sourceTitle?: string;
+}
+
+type PurchaseContext = Awaited<ReturnType<typeof createPurchaseContext>>;
+
+async function createPurchaseContext(config: AppConfig, sessionAddress: string, mandateId: string) {
   installMainnetRpcRetry(config.public.network);
   installMainnetAccountFallback(config.public.network);
   if (!config.agentSecret || !config.merchantUrl || !config.public.agentAddress || !config.public.merchant.address) {
     throw new Error("payment execution is not configured");
   }
+  const onChain = await readMandate(config.network, sessionAddress, mandateId);
+  assertMandateBindings(onChain, {
+    user: sessionAddress,
+    agent: config.public.agentAddress,
+    merchant: config.public.merchant.address,
+    asset: config.public.asset.contractId,
+  });
+  const mandate: IntentMandate = {
+    id: onChain.id,
+    idBuffer: Buffer.from(onChain.id, "hex"),
+    user: onChain.user,
+    agent: onChain.agent,
+    merchant: onChain.merchant,
+    asset: onChain.asset,
+    maxAmount: BigInt(onChain.maxAmount),
+    expiry: onChain.expiry,
+    decimals: config.public.asset.decimals,
+  };
+  return { onChain, mandate };
+}
+
+function catalogItemForReceipt(config: AppConfig, receipt: { url: string; method: string; amount: string }) {
+  if (!config.merchantUrl || receipt.method !== "GET") {
+    throw new Error("retained settlement receipt does not match an allowlisted purchase");
+  }
+  const item = config.public.catalog.find((candidate) => (
+    new URL(candidate.path, config.merchantUrl!).toString() === receipt.url
+    && candidate.price === receipt.amount
+  ));
+  if (!item) throw new Error("retained settlement receipt does not match an allowlisted purchase");
+  return item;
+}
+
+function agentFor(config: AppConfig, context: PurchaseContext, receiptStore: DurableReceiptStore) {
+  if (!config.agentSecret) throw new Error("payment execution is not configured");
+  return ackrate.agent({
+    mandate: context.mandate,
+    signer: config.agentSecret,
+    proofPolicy: "bound-v2-only",
+    receiptStore,
+  }, config.network);
+}
+
+async function completedResult(
+  config: AppConfig,
+  item: AppConfig["public"]["catalog"][number],
+  receipt: NonNullable<ReturnType<typeof getSettlementReceipt>>,
+  response: Response,
+) {
+  if (!response.ok) throw new Error(`merchant delivery failed with HTTP ${response.status}`);
+  const delivered = await boundedResponseJson(response);
+  return {
+    source: { id: item.id, title: item.title },
+    payment: {
+      status: "settled",
+      amount: item.price,
+      asset: config.public.asset.code,
+      txHash: receipt.txHash,
+      mandateId: receipt.mandateId,
+    },
+    delivered,
+  };
+}
+
+export async function getPendingCatalogRecovery(input: Omit<PurchaseInput, "toolCallId" | "sourceId">): Promise<PendingPurchaseRecovery> {
+  const context = await createPurchaseContext(input.config, input.sessionAddress, input.mandateId);
+  const receiptStore = new DurableReceiptStore(input.sessionId, input.mandateId);
+  const receipts = await receiptStore.listPending();
+  if (receipts.length === 0) return { pending: false };
+  if (receipts.length !== 1) throw new Error("multiple retained settlements require operator review");
+  const receipt = receipts[0]!;
+  if (receipt.mandateId !== context.mandate.id) throw new Error("retained settlement mandate mismatch");
+  const item = catalogItemForReceipt(input.config, receipt);
+  return {
+    pending: true,
+    txHash: receipt.txHash,
+    amount: item.price,
+    asset: input.config.public.asset.code,
+    sourceId: item.id,
+    sourceTitle: item.title,
+  };
+}
+
+export async function recoverPendingCatalogPurchase(input: Omit<PurchaseInput, "toolCallId" | "sourceId">): Promise<unknown> {
+  const context = await createPurchaseContext(input.config, input.sessionAddress, input.mandateId);
+  const receiptStore = new DurableReceiptStore(input.sessionId, input.mandateId);
+  const receipts = await receiptStore.listPending();
+  if (receipts.length === 0) throw new Error("no retained delivery is waiting for recovery");
+  if (receipts.length !== 1) throw new Error("multiple retained settlements require operator review");
+  const receipt = receipts[0]!;
+  if (receipt.mandateId !== context.mandate.id) throw new Error("retained settlement mandate mismatch");
+  const item = catalogItemForReceipt(input.config, receipt);
+  const consumer = agentFor(input.config, context, receiptStore);
+  const response = await consumer.retryDelivery(receipt, {
+    headers: { Accept: "application/json" },
+    redirect: "error",
+  });
+  const result = await completedResult(input.config, item, receipt, response);
+  await completePendingToolCalls({
+    sessionId: input.sessionId,
+    mandateId: input.mandateId,
+    sourceId: item.id,
+    result,
+  });
+  await consumer.acknowledgeDelivery(receipt);
+  return result;
+}
+
+export async function purchaseCatalogItem(input: PurchaseInput): Promise<unknown> {
+  const { config } = input;
+  const context = await createPurchaseContext(config, input.sessionAddress, input.mandateId);
+  if (!config.merchantUrl) throw new Error("payment execution is not configured");
   const item = config.public.catalog.find((candidate) => candidate.id === input.sourceId);
   if (!item) throw new Error("the requested source is not in the server allowlist");
   const reservation = await reserveToolCall({
@@ -45,34 +167,10 @@ export async function purchaseCatalogItem(input: PurchaseInput): Promise<unknown
     if (reservation.record.status === "failed") throw new Error("this exact purchase attempt previously failed; start a new chat request");
   }
 
-  const onChain = await readMandate(config.network, input.sessionAddress, input.mandateId);
-  assertMandateBindings(onChain, {
-    user: input.sessionAddress,
-    agent: config.public.agentAddress,
-    merchant: config.public.merchant.address,
-    asset: config.public.asset.contractId,
-  });
   const amount = toStroops(item.price, config.public.asset.decimals);
-  if (BigInt(onChain.remaining) < amount) throw new Error("the contract mandate does not have enough remaining budget");
-
-  const mandate: IntentMandate = {
-    id: onChain.id,
-    idBuffer: Buffer.from(onChain.id, "hex"),
-    user: onChain.user,
-    agent: onChain.agent,
-    merchant: onChain.merchant,
-    asset: onChain.asset,
-    maxAmount: BigInt(onChain.maxAmount),
-    expiry: onChain.expiry,
-    decimals: config.public.asset.decimals,
-  };
+  if (BigInt(context.onChain.remaining) < amount) throw new Error("the contract mandate does not have enough remaining budget");
   const receiptStore = new DurableReceiptStore(input.sessionId, input.mandateId);
-  const consumer = ackrate.agent({
-    mandate,
-    signer: config.agentSecret,
-    proofPolicy: "bound-v2-only",
-    receiptStore,
-  }, config.network);
+  const consumer = agentFor(config, context, receiptStore);
   const url = new URL(item.path, config.merchantUrl).toString();
   let deliveredReceipt: ReturnType<typeof getSettlementReceipt>;
 
@@ -81,22 +179,10 @@ export async function purchaseCatalogItem(input: PurchaseInput): Promise<unknown
       headers: { Accept: "application/json" },
       redirect: "error",
     });
-    if (!response.ok) throw new Error(`merchant delivery failed with HTTP ${response.status}`);
     const receipt = getSettlementReceipt(response);
     if (!receipt) throw new Error("paid response did not carry a settlement receipt");
     deliveredReceipt = receipt;
-    const delivered = await boundedResponseJson(response);
-    const result = {
-      source: { id: item.id, title: item.title },
-      payment: {
-        status: "settled",
-        amount: item.price,
-        asset: config.public.asset.code,
-        txHash: receipt.txHash,
-        mandateId: receipt.mandateId,
-      },
-      delivered,
-    };
+    const result = await completedResult(config, item, receipt, response);
     await completeToolCall({
       sessionId: input.sessionId,
       toolCallId: input.toolCallId,
