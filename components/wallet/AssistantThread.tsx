@@ -59,11 +59,13 @@ export function AssistantThread({ mandateId, asset, explorerNetwork }: { mandate
 }
 
 function QuickPurchase({ mandateId, explorerNetwork }: { mandateId: string; explorerNetwork: "testnet" | "public" }) {
-  const [state, setState] = useState<"checking" | "idle" | "running" | "recovering" | "recovery" | "success" | "error">("checking");
+  const [state, setState] = useState<"checking" | "check_failed" | "idle" | "running" | "recovering" | "recovery" | "success" | "error">("checking");
   const [result, setResult] = useState<PurchaseResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const checkRecovery = async () => {
+    setState("checking");
+    setError(null);
     try {
       const response = await fetch(`/api/wallet/purchase/recovery?mandateId=${encodeURIComponent(mandateId)}`, {
         credentials: "same-origin",
@@ -78,7 +80,8 @@ function QuickPurchase({ mandateId, explorerNetwork }: { mandateId: string; expl
         setState("idle");
       }
     } catch {
-      setState("idle");
+      setState("check_failed");
+      setError("Settlement status could not be confirmed. Payment remains disabled; retry the settlement check.");
     }
   };
 
@@ -150,9 +153,9 @@ function QuickPurchase({ mandateId, explorerNetwork }: { mandateId: string; expl
         <strong>Buy the market signal brief</strong>
         <span>Consumer agent → HTTP 402 → Mainnet USDC → HTTP 200</span>
       </div>
-      <button type="button" onClick={state === "recovery" ? recover : purchase} disabled={state === "running" || state === "recovering" || state === "checking"}>
+      <button type="button" onClick={state === "recovery" ? recover : state === "check_failed" ? checkRecovery : purchase} disabled={state === "running" || state === "recovering" || state === "checking"}>
         {state === "running" || state === "recovering" ? <LoaderCircle className="spin" size={15} /> : <CircleDollarSign size={15} />}
-        {state === "running" ? "Settling…" : state === "recovering" ? "Recovering delivery…" : state === "checking" ? "Checking settlement…" : state === "recovery" ? "Recover delivery — no charge" : "Pay $0.01 USDC"}
+        {state === "running" ? "Settling…" : state === "recovering" ? "Recovering delivery…" : state === "checking" ? "Checking settlement…" : state === "check_failed" ? "Retry settlement check" : state === "recovery" ? "Recover delivery — no charge" : "Pay $0.01 USDC"}
       </button>
       {result && <CompletedPurchase result={result} explorerNetwork={explorerNetwork} />}
       {error && <div className="quick-purchase-error"><TriangleAlert size={14} /><span>{error}</span></div>}

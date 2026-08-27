@@ -62,6 +62,8 @@ test("wallet exposes a deterministic real-payment control without an LLM depende
   assert.match(recovery, /requireSession/);
   assert.match(recovery, /requireSameOrigin/);
   assert.match(thread, /Recover delivery — no charge/);
+  assert.match(thread, /Retry settlement check/);
+  assert.match(thread, /Payment remains disabled/);
 });
 
 test("wallet closes an expired mandate locally and offers a fresh boundary", () => {
