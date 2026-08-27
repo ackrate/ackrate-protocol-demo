@@ -67,6 +67,16 @@ test("wallet closes an expired mandate locally and offers a fresh boundary", () 
   assert.match(app, /Sign & activate mandate/);
 });
 
+test("wallet hydration cannot create a mandate-status request loop", () => {
+  const app = read("components/wallet/WalletChatApp.tsx");
+
+  assert.match(app, /useCallback\(async \(current: StoredMandate\)/);
+  assert.match(app, /if \(parsed\.registrationTx\) void refreshMandate\(parsed\)/);
+  assert.match(app, /if \(stored\) void refreshMandate\(stored\)/);
+  assert.doesNotMatch(app, /const current = candidate \?\? stored/);
+  assert.doesNotMatch(app, /}, \[stored\]\);/);
+});
+
 test("wallet shows clear progress while Mainnet approval is prepared", () => {
   const app = read("components/wallet/WalletChatApp.tsx");
   const styles = read("app/wallet/wallet.css");

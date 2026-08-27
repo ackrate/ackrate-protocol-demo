@@ -111,16 +111,14 @@ export function WalletChatApp() {
   const [error, setError] = useState<string | null>(null);
   const [nowSeconds, setNowSeconds] = useState(() => Math.floor(Date.now() / 1_000));
 
-  const refreshMandate = useCallback(async (candidate?: StoredMandate | null) => {
-    const current = candidate ?? stored;
-    if (!current) return;
+  const refreshMandate = useCallback(async (current: StoredMandate) => {
     const body = await api<{ mandate: MandateView }>("/api/wallet/mandate/status", {
       method: "POST",
       body: JSON.stringify({ mandateId: current.id }),
     });
     setMandate(body.mandate);
     setPhase(body.mandate.status === "Active" && body.mandate.expiry > Math.floor(Date.now() / 1_000) ? "active" : "idle");
-  }, [stored]);
+  }, []);
 
   useEffect(() => {
     const timer = window.setInterval(() => setNowSeconds(Math.floor(Date.now() / 1_000)), 10_000);
@@ -147,17 +145,17 @@ export function WalletChatApp() {
       const parsed = JSON.parse(raw) as StoredMandate;
       if (parsed.user !== session.address || !/^[0-9a-f]{64}$/.test(parsed.id)) throw new Error("invalid stored mandate");
       setStored(parsed);
-      void refreshMandate(parsed).catch(() => undefined);
+      if (parsed.registrationTx) void refreshMandate(parsed).catch(() => undefined);
     } catch {
       localStorage.removeItem(key);
     }
   }, [config, session, refreshMandate]);
 
   useEffect(() => {
-    const refresh = () => void refreshMandate();
+    const refresh = () => { if (stored) void refreshMandate(stored); };
     window.addEventListener("ackrate-mandate-updated", refresh);
     return () => window.removeEventListener("ackrate-mandate-updated", refresh);
-  }, [refreshMandate]);
+  }, [refreshMandate, stored]);
 
   const saveStored = useCallback((value: StoredMandate) => {
     if (!config) return;
