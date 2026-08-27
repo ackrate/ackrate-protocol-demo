@@ -119,7 +119,26 @@ test("wallet disconnect is blocked until the on-chain mandate is off", () => {
   assert.match(app, /className="wallet-pill" onClick=\{\(\) => setDisconnectOpen\(true\)\}/);
   assert.match(app, /Tap Disconnect wallet\. Ackrate will guide you through both steps/);
   assert.match(app, /Spending is off\. Now click Disconnect wallet/);
-  assert.match(app, /stored\?\.revokeTx && mandate\?\.status !== "Active"/);
+  assert.match(app, /const spendingOff = Boolean\(stored\?\.revokeTx && mandate\?\.status !== "Active"\)/);
+  assert.match(app, /spendingOff \? "SPENDING IS OFF"/);
+  assert.match(app, /spendingOff \? "Finish by disconnecting\."/);
+  assert.match(app, /className="disconnect-button locked-action"/);
+});
+
+test("wallet labels reflect the connected and spending-off states", () => {
+  const app = read("components/wallet/WalletChatApp.tsx");
+
+  assert.match(app, /session\.authenticated \? "Connected" : "Connect your wallet"/);
+  assert.match(app, /spendingOff \? "Turned off"/);
+  assert.match(app, /session\.authenticated \? "Your wallet is connected\." : "Connect your wallet first\."/);
+});
+
+test("an existing USDC trustline is shown as ready instead of an error", () => {
+  const app = read("components/wallet/WalletChatApp.tsx");
+
+  assert.match(app, /already\.\*trustline\|trustline\.\*already/i);
+  assert.match(app, /USDC is already ready in your wallet\./);
+  assert.match(app, /usdcReady \? "USDC is ready" : "Add USDC to wallet"/);
 });
 
 test("turning off reconnects and verifies the exact Freighter account before signing", () => {

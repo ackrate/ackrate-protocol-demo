@@ -110,6 +110,7 @@ export function WalletChatApp() {
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [disconnectOpen, setDisconnectOpen] = useState(false);
+  const [usdcReady, setUsdcReady] = useState(false);
   const [nowSeconds, setNowSeconds] = useState(() => Math.floor(Date.now() / 1_000));
 
   const refreshMandate = useCallback(async (current: StoredMandate) => {
@@ -239,10 +240,18 @@ export function WalletChatApp() {
     setNotice("Approve adding USDC in Freighter.");
     try {
       await addTokenToFreighter(config.asset.contractId, config.networkPassphrase);
+      setUsdcReady(true);
       setNotice("USDC is ready in Freighter.");
     } catch (cause) {
-      setError("Could not add USDC. Open Freighter and try again.");
-      setNotice(null);
+      const message = cause instanceof Error ? cause.message : String(cause);
+      if (/already.*trustline|trustline.*already/i.test(message)) {
+        setUsdcReady(true);
+        setError(null);
+        setNotice("USDC is already ready in your wallet.");
+      } else {
+        setError("Could not add USDC. Open Freighter and try again.");
+        setNotice(null);
+      }
     } finally {
       setPhase("idle");
     }
@@ -306,12 +315,14 @@ export function WalletChatApp() {
     setWalletAddress(null);
     setMandate(null);
     setStored(null);
+    setUsdcReady(false);
     setPhase("idle");
     setDisconnectOpen(false);
     setNotice("Wallet disconnected. Connect a wallet to start again.");
   };
 
   const mandateOnline = Boolean(mandate?.status === "Active" && mandate.expiry > nowSeconds);
+  const spendingOff = Boolean(stored?.revokeTx && mandate?.status !== "Active");
   const storedFresh = Boolean(stored && stored.expiry > nowSeconds);
   const currentMandate = mandateOnline ? mandate : null;
   const progress = mandateOnline ? 3 : storedFresh && stored?.registrationTx ? 2 : session.authenticated ? 1 : 0;
@@ -359,9 +370,9 @@ export function WalletChatApp() {
 
       <section className="steps shell" aria-label="Activation progress">
         {[
-          [1, "Wallet", "Connect your wallet"],
-          [2, "Spending", "Choose a limit"],
-          [3, "Buy", "Pay with the agent"],
+          [1, "Wallet", session.authenticated ? "Connected" : "Connect your wallet"],
+          [2, "Spending", mandateOnline ? "Limit is on" : spendingOff ? "Turned off" : session.authenticated ? "Choose a limit" : "Not started"],
+          [3, "Buy", mandateOnline ? "Ready" : "Not ready"],
         ].map(([number, title, caption], index) => (
           <div className={`step ${progress >= Number(number) ? "complete" : ""}`} key={String(title)}>
             <span>{progress > Number(number) ? <Check size={15} /> : number}</span>
@@ -384,8 +395,8 @@ export function WalletChatApp() {
                 </button>
                 {mandateOnline && <p className="disconnect-help">Tap Disconnect wallet. Ackrate will guide you through both steps.</p>}
                 {config?.network === "mainnet" && (
-                  <button className="secondary-button" onClick={addUsdc} disabled={phase === "adding-asset"}>
-                    <CircleDollarSign size={15} /> {phase === "adding-asset" ? "Waiting for Freighter…" : "Add USDC to wallet"}
+                  <button className="secondary-button" onClick={addUsdc} disabled={phase === "adding-asset" || usdcReady}>
+                    <CircleDollarSign size={15} /> {phase === "adding-asset" ? "Waiting for Freighter…" : usdcReady ? "USDC is ready" : "Add USDC to wallet"}
                   </button>
                 )}
               </div>
@@ -399,11 +410,11 @@ export function WalletChatApp() {
 
           <div className={`panel glass mandate-panel ${!session.authenticated ? "muted" : ""}`}>
             <div className="panel-heading"><div><p className="eyebrow">02 · SPENDING</p><h2>Set a spending limit</h2></div><div className={`icon-tile ${mandateOnline ? "live" : ""}`}><Fingerprint size={19} /></div></div>
-            {stored?.revokeTx && mandate?.status !== "Active" ? (
+            {spendingOff ? (
               <div className="mandate-active">
                 <div className="active-banner mandate-off"><span><Check size={15} /></span><div><small>Status</small><strong>Spending is off</strong></div></div>
                 <p className="shutdown-copy">The agent cannot spend now.</p>
-                <TransactionEvidence label="Spending turned off" hash={stored.revokeTx} explorer={explorer} />
+                <TransactionEvidence label="Spending turned off" hash={stored!.revokeTx!} explorer={explorer} />
                 <button className="disconnect-button" onClick={disconnect}><Power size={15} /> Disconnect wallet</button>
               </div>
             ) : !currentMandate ? (
@@ -448,9 +459,14 @@ export function WalletChatApp() {
           ) : (
             <div className="chat-locked">
               <div className="lock-rings"><LockKeyhole size={27} /></div>
-              <p className="eyebrow">NOT READY</p>
-              <h3>Connect your wallet first.</h3>
-              <p>Connect your wallet and approve a spending limit. Then you can buy.</p>
+              <p className="eyebrow">{spendingOff ? "SPENDING IS OFF" : session.authenticated ? "SET YOUR LIMIT" : "NOT READY"}</p>
+              <h3>{spendingOff ? "Finish by disconnecting." : session.authenticated ? "Your wallet is connected." : "Connect your wallet first."}</h3>
+              <p>{spendingOff ? "Disconnect your wallet to clear this setup and start fresh." : session.authenticated ? "Choose and approve a spending limit on the left. Then you can buy." : "Connect your wallet and approve a spending limit. Then you can buy."}</p>
+              {spendingOff && (
+                <button className="disconnect-button locked-action" onClick={() => setDisconnectOpen(true)}>
+                  <Power size={16} /> Disconnect wallet
+                </button>
+              )}
             </div>
           )}
         </section>

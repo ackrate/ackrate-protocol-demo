@@ -199,6 +199,7 @@
 .wallet-preview .lock-rings { position: relative; display: grid; place-items: center; width: 70px; height: 70px; margin-bottom: 20px; border: 1px solid rgba(52,211,153,.13); border-radius: 50%; color: #5bc99d; background: rgba(52,211,153,.035); box-shadow: 0 0 0 13px rgba(52,211,153,.015), 0 0 0 26px rgba(52,211,153,.008); }
 .wallet-preview .chat-locked h3, .wallet-preview .chat-empty h3 { margin: 9px 0 8px; font-size: 18px; letter-spacing: -.03em; }
 .wallet-preview .chat-locked > p:last-child, .wallet-preview .chat-empty > p { max-width: 390px; margin: 0; color: #6e8179; font-size: 11px; line-height: 1.7; }
+.wallet-preview .chat-locked .locked-action { width: min(320px, 100%); margin-top: 18px; }
 .wallet-preview .thread-root { height: 576px; }
 .wallet-preview .thread-viewport { position: relative; height: 100%; overflow-y: auto; display: flex; flex-direction: column; padding: 0 18px 106px; }
 .wallet-preview .quick-purchase { margin: 18px 0 4px; padding: 14px; border: 1px solid rgba(52,211,153,.18); border-radius: 14px; background: linear-gradient(135deg, rgba(52,211,153,.075), rgba(255,255,255,.018)); }
