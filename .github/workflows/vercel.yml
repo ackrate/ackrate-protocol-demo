@@ -62,5 +62,15 @@ jobs:
         if: github.event_name == 'push'
         run: |
           production_url="$(vercel deploy --prebuilt --archive=tgz --prod --token="$VERCEL_TOKEN")"
+          echo "PRODUCTION_URL=$production_url" >> "$GITHUB_ENV"
           echo "### Vercel production" >> "$GITHUB_STEP_SUMMARY"
           echo "[$production_url]($production_url)" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Assign Ackrate staging domain
+        if: github.event_name == 'push'
+        run: |
+          vercel domains add staging.ackrate.com ackrate--ackrate-protocol-demo--a7c4d19 \
+            --force \
+            --scope=agentools-projects \
+            --token="$VERCEL_TOKEN"
+          echo "[staging.ackrate.com](https://staging.ackrate.com) → $PRODUCTION_URL" >> "$GITHUB_STEP_SUMMARY"
