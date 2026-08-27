@@ -357,6 +357,9 @@ export function WalletChatApp() {
               <div className="connected-state">
                 <div className="identity-line"><span className="wallet-led" /><div><small>Authenticated account</small><code>{short(session.address, 9)}</code></div><ShieldCheck size={18} /></div>
                 <p><LockKeyhole size={13} /> Session verified by a signed, non-broadcast Stellar transaction.</p>
+                <button className="disconnect-button" onClick={disconnect}>
+                  <Power size={15} /> Disconnect wallet from Ackrate
+                </button>
                 {config?.network === "mainnet" && (
                   <button className="secondary-button" onClick={addUsdc} disabled={phase === "adding-asset"}>
                     <CircleDollarSign size={15} /> {phase === "adding-asset" ? "Waiting for Freighter…" : "Add Circle USDC"}

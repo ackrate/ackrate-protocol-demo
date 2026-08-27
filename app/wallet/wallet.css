@@ -128,7 +128,7 @@
 .wallet-preview .icon-tile { display: grid; place-items: center; width: 37px; height: 37px; border: 1px solid var(--line); border-radius: 11px; color: #62736c; background: rgba(255,255,255,.025); }
 .wallet-preview .icon-tile.live { color: var(--emerald); border-color: rgba(52,211,153,.2); background: rgba(52,211,153,.07); }
 .wallet-preview .panel-copy { margin: 0 0 16px; color: #73867e; font-size: 11px; line-height: 1.65; }
-.wallet-preview .primary-button, .wallet-preview .secondary-button, .wallet-preview .danger-button {
+.wallet-preview .primary-button, .wallet-preview .secondary-button, .wallet-preview .danger-button, .wallet-preview .disconnect-button {
   display: flex; align-items: center; justify-content: center; gap: 8px; border-radius: 10px; font-weight: 760; cursor: pointer; transition: .2s ease;
 }
 .wallet-preview .primary-button { width: 100%; min-height: 41px; border: 0; background: var(--emerald); color: #052117; font-size: 11px; box-shadow: 0 0 24px rgba(52,211,153,.13); }
@@ -147,6 +147,8 @@
 @keyframes activation-spin { to { transform: rotate(360deg); } }
 @keyframes activation-shimmer { 0%,100% { background-position: 0 50%; } 50% { background-position: 100% 50%; } }
 .wallet-preview .secondary-button { min-height: 36px; padding: 0 13px; border: 1px solid var(--line); background: rgba(255,255,255,.035); font-size: 11px; color: #b2c1bb; }
+.wallet-preview .disconnect-button { width: 100%; min-height: 42px; border: 1px solid rgba(251,113,133,.26); background: rgba(251,113,133,.075); color: #fda4b3; font-size: 11px; }
+.wallet-preview .disconnect-button:hover:not(:disabled) { background: rgba(251,113,133,.13); border-color: rgba(251,113,133,.42); }
 .wallet-preview .danger-button { width: 100%; min-height: 38px; border: 1px solid rgba(251,113,133,.18); background: rgba(251,113,133,.055); color: #fda4b3; font-size: 10px; }
 .wallet-preview .danger-button:hover:not(:disabled) { background: rgba(251,113,133,.1); border-color: rgba(251,113,133,.32); }
 .wallet-preview .connected-state { display: grid; gap: 13px; }

@@ -100,3 +100,12 @@ test("wallet shows clear progress while Mainnet approval is prepared", () => {
   assert.match(styles, /activation-orbit/);
   assert.match(styles, /activation-shimmer/);
 });
+
+test("wallet card exposes an obvious site disconnect control", () => {
+  const app = read("components/wallet/WalletChatApp.tsx");
+
+  assert.match(app, /Disconnect wallet from Ackrate/);
+  assert.match(app, /className="disconnect-button" onClick=\{disconnect\}/);
+  assert.match(app, /method: "DELETE"/);
+  assert.match(app, /setSession\(emptySession\)/);
+});
