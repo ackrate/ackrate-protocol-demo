@@ -105,10 +105,10 @@ test("wallet card exposes an obvious site disconnect control", () => {
   const app = read("components/wallet/WalletChatApp.tsx");
 
   assert.match(app, /Disconnect wallet from Ackrate/);
-  assert.match(app, /First: turn off mandate below/);
+  assert.match(app, /Go to Step 1: Turn off mandate/);
   assert.match(app, /1\. Turn off mandate/);
   assert.match(app, /2\. Disconnect wallet from Ackrate/);
-  assert.match(app, /className="disconnect-button" onClick=\{disconnect\} disabled=\{mandateOnline\}/);
+  assert.match(app, /onClick=\{mandateOnline \? goToTurnOff : disconnect\}/);
   assert.match(app, /method: "DELETE"/);
   assert.match(app, /setSession\(emptySession\)/);
 });
@@ -116,13 +116,21 @@ test("wallet card exposes an obvious site disconnect control", () => {
 test("wallet disconnect is blocked until the on-chain mandate is off", () => {
   const app = read("components/wallet/WalletChatApp.tsx");
 
-  assert.match(app, /disabled=\{mandateOnline\}/);
   assert.match(app, /mandate\?\.status === "Active" && mandate\.expiry > Math\.floor\(Date\.now\(\) \/ 1_000\)/);
   assert.match(app, /First turn off the mandate below\. Then disconnect the wallet/);
-  assert.match(app, /className="wallet-pill" onClick=\{disconnect\} disabled=\{mandateOnline\}/);
+  assert.match(app, /className="wallet-pill" onClick=\{mandateOnline \? goToTurnOff : disconnect\}/);
   assert.match(app, /The wallet stays connected until the agent is safely turned off/);
   assert.match(app, /Mandate is off\. Now click Disconnect wallet from Ackrate/);
   assert.match(app, /stored\?\.revokeTx && mandate\?\.status !== "Active"/);
+});
+
+test("turning off reconnects and verifies the exact Freighter account before signing", () => {
+  const app = read("components/wallet/WalletChatApp.tsx");
+
+  assert.match(app, /const address = await connectFreighter\(config\.networkPassphrase\)/);
+  assert.match(app, /if \(address !== stored\.user\) throw new Error\("Select the same Freighter account that created this mandate"\)/);
+  assert.match(app, /id="turn-off-mandate"/);
+  assert.match(app, /scrollIntoView\(\{ behavior: "smooth", block: "center" \}\)/);
 });
 
 test("confirmed disconnect clears only Ackrate wallet setup and purchase state", () => {

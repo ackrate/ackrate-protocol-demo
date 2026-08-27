@@ -267,7 +267,10 @@ export function WalletChatApp() {
     if (!config || !stored) return;
     setError(null);
     setPhase("revoking");
+    setNotice("Open Freighter. Confirm this wallet, then approve turning off the mandate.");
     try {
+      const address = await connectFreighter(config.networkPassphrase);
+      if (address !== stored.user) throw new Error("Select the same Freighter account that created this mandate");
       const revokeTx = await revokeWithFreighter(config, storedToIntent(stored));
       const next = { ...stored, revokeTx };
       saveStored(next);
@@ -277,6 +280,11 @@ export function WalletChatApp() {
       setError(cause instanceof Error ? cause.message : String(cause));
       setPhase("active");
     }
+  };
+
+  const goToTurnOff = () => {
+    setNotice("Step 1 is highlighted below. Click Turn off mandate, then approve in Freighter.");
+    document.getElementById("turn-off-mandate")?.scrollIntoView({ behavior: "smooth", block: "center" });
   };
 
   const disconnect = async () => {
@@ -328,7 +336,7 @@ export function WalletChatApp() {
         <div className="topbar-actions">
           <Link href="/wallet/diagnostics" className="nav-link">Diagnostics</Link>
           {session.authenticated ? (
-            <button className="wallet-pill" onClick={disconnect} disabled={mandateOnline} title={mandateOnline ? "Turn off the mandate before disconnecting" : "Disconnect wallet from Ackrate"}><span className="wallet-led" /> {short(session.address, 5)} <Power size={13} /></button>
+            <button className="wallet-pill" onClick={mandateOnline ? goToTurnOff : disconnect} title={mandateOnline ? "Go to Turn off mandate" : "Disconnect wallet from Ackrate"}><span className="wallet-led" /> {short(session.address, 5)} <Power size={13} /></button>
           ) : (
             <button className="wallet-pill" onClick={connect} disabled={!config || phase === "authenticating"}><WalletCards size={14} /> Connect Freighter</button>
           )}
@@ -374,8 +382,8 @@ export function WalletChatApp() {
               <div className="connected-state">
                 <div className="identity-line"><span className="wallet-led" /><div><small>Authenticated account</small><code>{short(session.address, 9)}</code></div><ShieldCheck size={18} /></div>
                 <p><LockKeyhole size={13} /> Session verified by a signed, non-broadcast Stellar transaction.</p>
-                <button className="disconnect-button" onClick={disconnect} disabled={mandateOnline}>
-                  <Power size={15} /> {mandateOnline ? "First: turn off mandate below" : stored?.revokeTx ? "2. Disconnect wallet from Ackrate" : "Disconnect wallet from Ackrate"}
+                <button className={`disconnect-button ${mandateOnline ? "step-link" : ""}`} onClick={mandateOnline ? goToTurnOff : disconnect}>
+                  <Power size={15} /> {mandateOnline ? "Go to Step 1: Turn off mandate" : stored?.revokeTx ? "2. Disconnect wallet from Ackrate" : "Disconnect wallet from Ackrate"}
                 </button>
                 {mandateOnline && <p className="disconnect-help">The wallet stays connected until the agent is safely turned off.</p>}
                 {config?.network === "mainnet" && (
@@ -426,7 +434,7 @@ export function WalletChatApp() {
                 <div className="active-banner"><span><Check size={15} /></span><div><small>On-chain status</small><strong>Active mandate</strong></div></div>
                 <div className="mandate-id"><span>Mandate ID</span><code>{short(currentMandate.id, 9)}</code></div>
                 <p className="shutdown-copy">To disconnect safely, turn off the agent first. Freighter will ask you to approve.</p>
-                <button className="danger-button" onClick={revoke} disabled={phase === "revoking"}><X size={15} /> {phase === "revoking" ? "Waiting for Freighter…" : "1. Turn off mandate"}</button>
+                <button id="turn-off-mandate" className="danger-button" onClick={revoke} disabled={phase === "revoking"}><X size={15} /> {phase === "revoking" ? "Waiting for Freighter…" : "1. Turn off mandate"}</button>
               </div>
             )}
           </div>

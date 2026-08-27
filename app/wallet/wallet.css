@@ -150,9 +150,11 @@
 .wallet-preview .disconnect-button { width: 100%; min-height: 42px; border: 1px solid rgba(251,113,133,.26); background: rgba(251,113,133,.075); color: #fda4b3; font-size: 11px; }
 .wallet-preview .disconnect-button:hover:not(:disabled) { background: rgba(251,113,133,.13); border-color: rgba(251,113,133,.42); }
 .wallet-preview .disconnect-button:disabled { opacity: .5; cursor: not-allowed; }
+.wallet-preview .disconnect-button.step-link { opacity: 1; cursor: pointer; border-color: rgba(251,113,133,.42); background: rgba(251,113,133,.12); }
 .wallet-preview .connected-state > .disconnect-help { margin-top: -7px; color: #a87880; }
-.wallet-preview .danger-button { width: 100%; min-height: 38px; border: 1px solid rgba(251,113,133,.18); background: rgba(251,113,133,.055); color: #fda4b3; font-size: 10px; }
-.wallet-preview .danger-button:hover:not(:disabled) { background: rgba(251,113,133,.1); border-color: rgba(251,113,133,.32); }
+.wallet-preview .danger-button { width: 100%; min-height: 46px; border: 1px solid #fb7185; background: #fb7185; color: #21070c; font-size: 12px; box-shadow: 0 8px 24px rgba(251,113,133,.16); }
+.wallet-preview .danger-button:hover:not(:disabled) { background: #fda4af; border-color: #fda4af; transform: translateY(-1px); }
+.wallet-preview .danger-button:disabled { opacity: .55; cursor: wait; transform: none; }
 .wallet-preview .connected-state { display: grid; gap: 13px; }
 .wallet-preview .identity-line { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; border: 1px solid rgba(52,211,153,.13); border-radius: 12px; background: rgba(52,211,153,.035); padding: 11px; }
 .wallet-preview .identity-line div { display: flex; flex-direction: column; min-width: 0; }
