@@ -149,6 +149,8 @@
 .wallet-preview .secondary-button { min-height: 36px; padding: 0 13px; border: 1px solid var(--line); background: rgba(255,255,255,.035); font-size: 11px; color: #b2c1bb; }
 .wallet-preview .disconnect-button { width: 100%; min-height: 42px; border: 1px solid rgba(251,113,133,.26); background: rgba(251,113,133,.075); color: #fda4b3; font-size: 11px; }
 .wallet-preview .disconnect-button:hover:not(:disabled) { background: rgba(251,113,133,.13); border-color: rgba(251,113,133,.42); }
+.wallet-preview .disconnect-button:disabled { opacity: .5; cursor: not-allowed; }
+.wallet-preview .connected-state > .disconnect-help { margin-top: -7px; color: #a87880; }
 .wallet-preview .danger-button { width: 100%; min-height: 38px; border: 1px solid rgba(251,113,133,.18); background: rgba(251,113,133,.055); color: #fda4b3; font-size: 10px; }
 .wallet-preview .danger-button:hover:not(:disabled) { background: rgba(251,113,133,.1); border-color: rgba(251,113,133,.32); }
 .wallet-preview .connected-state { display: grid; gap: 13px; }
@@ -158,6 +160,8 @@
 .wallet-preview .identity-line code { margin-top: 4px; color: #b8d0c6; font-size: 9px; }
 .wallet-preview .identity-line > svg { color: var(--emerald); }
 .wallet-preview .connected-state > p, .wallet-preview .fine-print { display: flex; align-items: flex-start; gap: 6px; margin: 0; color: #677a72; font-size: 9px; line-height: 1.5; }
+.wallet-preview .shutdown-copy { margin: 0; color: #8f797d; font-size: 10px; line-height: 1.55; }
+.wallet-preview .active-banner.mandate-off { border-color: rgba(52,211,153,.18); background: rgba(52,211,153,.04); }
 .wallet-preview .mandate-panel.muted { opacity: .58; }
 .wallet-preview .mandate-panel label { display: block; margin-top: 13px; color: #7f9189; font-size: 9px; font-weight: 650; }
 .wallet-preview .money-input { display: grid; grid-template-columns: auto 1fr; align-items: center; margin-top: 7px; height: 43px; border: 1px solid var(--line); border-radius: 10px; background: rgba(0,0,0,.2); overflow: hidden; }

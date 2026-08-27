@@ -272,7 +272,7 @@ export function WalletChatApp() {
       const next = { ...stored, revokeTx };
       saveStored(next);
       await refreshMandate(next);
-      setNotice("Mandate revoked on-chain. The agent cannot make another payment.");
+      setNotice("Mandate is off. Now click Disconnect wallet from Ackrate.");
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause));
       setPhase("active");
@@ -280,13 +280,30 @@ export function WalletChatApp() {
   };
 
   const disconnect = async () => {
-    await api("/api/wallet/auth/session", { method: "DELETE", body: "{}" }).catch(() => undefined);
+    if (mandate?.status === "Active" && mandate.expiry > Math.floor(Date.now() / 1_000)) {
+      setNotice("First turn off the mandate below. Then disconnect the wallet.");
+      return;
+    }
+
+    setError(null);
+    try {
+      await api("/api/wallet/auth/session", { method: "DELETE", body: "{}" });
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : String(cause));
+      setNotice("Ackrate could not disconnect yet. Your current screen was kept so you can try again.");
+      return;
+    }
+
+    if (config && session.address) {
+      localStorage.removeItem(`ackrate:mandate:${config.network}:${session.address}`);
+    }
+    localStorage.removeItem("ackrate:mainnet:last-payment");
     setSession(emptySession);
     setWalletAddress(null);
     setMandate(null);
     setStored(null);
     setPhase("idle");
-    setNotice(null);
+    setNotice("Disconnected. Connect a wallet to start a fresh setup.");
   };
 
   const mandateOnline = Boolean(mandate?.status === "Active" && mandate.expiry > nowSeconds);
@@ -311,7 +328,7 @@ export function WalletChatApp() {
         <div className="topbar-actions">
           <Link href="/wallet/diagnostics" className="nav-link">Diagnostics</Link>
           {session.authenticated ? (
-            <button className="wallet-pill" onClick={disconnect}><span className="wallet-led" /> {short(session.address, 5)} <Power size={13} /></button>
+            <button className="wallet-pill" onClick={disconnect} disabled={mandateOnline} title={mandateOnline ? "Turn off the mandate before disconnecting" : "Disconnect wallet from Ackrate"}><span className="wallet-led" /> {short(session.address, 5)} <Power size={13} /></button>
           ) : (
             <button className="wallet-pill" onClick={connect} disabled={!config || phase === "authenticating"}><WalletCards size={14} /> Connect Freighter</button>
           )}
@@ -357,9 +374,10 @@ export function WalletChatApp() {
               <div className="connected-state">
                 <div className="identity-line"><span className="wallet-led" /><div><small>Authenticated account</small><code>{short(session.address, 9)}</code></div><ShieldCheck size={18} /></div>
                 <p><LockKeyhole size={13} /> Session verified by a signed, non-broadcast Stellar transaction.</p>
-                <button className="disconnect-button" onClick={disconnect}>
-                  <Power size={15} /> Disconnect wallet from Ackrate
+                <button className="disconnect-button" onClick={disconnect} disabled={mandateOnline}>
+                  <Power size={15} /> {mandateOnline ? "First: turn off mandate below" : stored?.revokeTx ? "2. Disconnect wallet from Ackrate" : "Disconnect wallet from Ackrate"}
                 </button>
+                {mandateOnline && <p className="disconnect-help">The wallet stays connected until the agent is safely turned off.</p>}
                 {config?.network === "mainnet" && (
                   <button className="secondary-button" onClick={addUsdc} disabled={phase === "adding-asset"}>
                     <CircleDollarSign size={15} /> {phase === "adding-asset" ? "Waiting for Freighter…" : "Add Circle USDC"}
@@ -376,7 +394,13 @@ export function WalletChatApp() {
 
           <div className={`panel glass mandate-panel ${!session.authenticated ? "muted" : ""}`}>
             <div className="panel-heading"><div><p className="eyebrow">02 · MANDATE</p><h2>Set the boundary</h2></div><div className={`icon-tile ${mandateOnline ? "live" : ""}`}><Fingerprint size={19} /></div></div>
-            {!currentMandate ? (
+            {stored?.revokeTx && mandate?.status !== "Active" ? (
+              <div className="mandate-active">
+                <div className="active-banner mandate-off"><span><Check size={15} /></span><div><small>On-chain status</small><strong>Mandate off</strong></div></div>
+                <p className="shutdown-copy">The agent cannot spend. Finish by disconnecting this wallet from Ackrate.</p>
+                <button className="disconnect-button" onClick={disconnect}><Power size={15} /> 2. Disconnect wallet from Ackrate</button>
+              </div>
+            ) : !currentMandate ? (
               <>
                 <label>Maximum spend<div className="money-input"><span>{config?.asset.code ?? "ASSET"}</span><input value={budget} onChange={(event) => setBudget(event.target.value)} inputMode="decimal" disabled={!session.authenticated || Boolean(storedFresh && stored?.registrationTx)} /></div></label>
                 <label>Expires after<select value={duration} onChange={(event) => setDuration(event.target.value)} disabled={!session.authenticated || Boolean(storedFresh && stored?.registrationTx)}><option value="30">30 minutes</option><option value="60">1 hour</option><option value="360">6 hours</option><option value="1440">24 hours</option></select></label>
@@ -401,7 +425,8 @@ export function WalletChatApp() {
               <div className="mandate-active">
                 <div className="active-banner"><span><Check size={15} /></span><div><small>On-chain status</small><strong>Active mandate</strong></div></div>
                 <div className="mandate-id"><span>Mandate ID</span><code>{short(currentMandate.id, 9)}</code></div>
-                <button className="danger-button" onClick={revoke} disabled={phase === "revoking"}><X size={15} /> {phase === "revoking" ? "Waiting for Freighter…" : "Revoke authority"}</button>
+                <p className="shutdown-copy">To disconnect safely, turn off the agent first. Freighter will ask you to approve.</p>
+                <button className="danger-button" onClick={revoke} disabled={phase === "revoking"}><X size={15} /> {phase === "revoking" ? "Waiting for Freighter…" : "1. Turn off mandate"}</button>
               </div>
             )}
           </div>
