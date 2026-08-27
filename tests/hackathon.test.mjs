@@ -28,7 +28,7 @@ test("the verified Express runtime remains byte-for-byte unchanged", async () =>
   }
 });
 
-test("navigation hides Consumer and exposes Solutions without deleting the direct Video route", async () => {
+test("navigation exposes Security and Solutions without deleting direct product routes", async () => {
   const [nav, consumer, video] = await Promise.all([
     read("components/Nav.tsx"),
     read("app/consumer/page.tsx"),
@@ -38,7 +38,7 @@ test("navigation hides Consumer and exposes Solutions without deleting the direc
   assert.match(nav, /href: "\/solutions", label: "Solutions"/);
   assert.doesNotMatch(nav, /href: "\/video", label: "Video"/);
   assert.match(nav, /href: "\/express", label: "Express"/);
-  assert.match(nav, /href: "\/merchants", label: "Merchants"/);
+  assert.match(nav, /href: "\/security", label: "Security"/);
   assert.match(consumer, /Preview only · no funds move/);
   assert.match(consumer, /No wallet was created and no transaction was signed/);
   assert.match(consumer, /Give AI a job/);
@@ -48,10 +48,11 @@ test("navigation hides Consumer and exposes Solutions without deleting the direc
   assert.ok(video.length > 100);
 });
 
-test("the Merchants page links every security claim to public Mainnet evidence", async () => {
-  const [page, layout, sitemap, llms] = await Promise.all([
+test("the Contract Security Suite links every claim to public Mainnet evidence", async () => {
+  const [page, route, layout, sitemap, llms] = await Promise.all([
     read("app/merchants/page.tsx"),
-    read("app/merchants/layout.tsx"),
+    read("app/security/page.tsx"),
+    read("app/security/layout.tsx"),
     read("app/sitemap.ts"),
     read("app/llms.txt/route.ts"),
   ]);
@@ -62,17 +63,31 @@ test("the Merchants page links every security claim to public Mainnet evidence",
     "Replay attempt",
     "Unauthorized upgrade",
     "Re-entrant payment",
-    "22",
+    "23",
     "Mainnet contract tests",
-    "gatecheck-contracts.sh",
-    "mainnet-canary-deployment.md",
+    "Known deployed-code vulnerabilities",
+    "Yanked deployed dependencies",
+    "security-scan.sh",
+    "security-threat-model.md",
+    "security-data-flow.md",
+    "security-scan-report.md",
     "deployment-manifest.json",
+    "ACKRATE GATE CHECK",
+    "Recorded evidence only",
+    "Every public function is inside the gate",
+    "UNTRUSTED BY DESIGN",
+    "@ackrate/core",
+    "@ackrate/stellar",
+    "@ackrate/ap2",
+    "@ackrate/express-middleware",
+    "@ackrate/cli",
     "CDBTG5ZKASFA7LOYUPBOTGKAVX5MJIM4U24BYGX7VX23IHYDAHLQPAGS",
     "CD3KRQRNCW52CZHKG2GPQAEOU6UCL426YFNHYUZ7IWUUKAOTKUQX6UUX",
   ]) assert.match(page, new RegExp(required.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")), required);
-  assert.match(layout, /path: "\/merchants"/);
-  assert.match(sitemap, /"\/merchants"/);
-  assert.match(llms, /Merchant assurance/);
+  assert.match(route, /merchants\/page/);
+  assert.match(layout, /path: "\/security"/);
+  assert.match(sitemap, /"\/security"/);
+  assert.match(llms, /Contract Security Suite/);
 });
 
 test("the Solutions page keeps the established responsive pattern and complete guide", async () => {

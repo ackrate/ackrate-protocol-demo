@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import {
   ArrowRight,
@@ -18,7 +18,6 @@ import {
   RefreshCcw,
   ScanSearch,
   ShieldCheck,
-  Store,
   TimerReset,
   WalletCards,
   X,
@@ -27,7 +26,7 @@ import {
 const REPO = "https://github.com/ackrate/ackrate-protocol-contracts";
 const REGISTRY = "CDBTG5ZKASFA7LOYUPBOTGKAVX5MJIM4U24BYGX7VX23IHYDAHLQPAGS";
 const TIMELOCK = "CD3KRQRNCW52CZHKG2GPQAEOU6UCL426YFNHYUZ7IWUUKAOTKUQX6UUX";
-const VERIFY_COMMAND = "git clone https://github.com/ackrate/ackrate-protocol-contracts.git && cd ackrate-protocol-contracts && ./scripts/gatecheck-contracts.sh";
+const VERIFY_COMMAND = "git clone https://github.com/ackrate/ackrate-protocol-contracts.git && cd ackrate-protocol-contracts && ./scripts/security-scan.sh && cargo test --manifest-path contracts/mainnet/mandate-registry/Cargo.toml && cargo test --manifest-path contracts/mainnet/timelock-controller/Cargo.toml";
 
 type Protection = {
   id: string;
@@ -105,30 +104,47 @@ const protections: Protection[] = [
 
 const evidence = [
   {
-    title: "Release threat model",
-    copy: "Protected assets, trust boundaries, invariants, abuse cases, and named release gates.",
-    href: `${REPO}/blob/main/docs/mainnet-roadmap.md`,
+    title: "Threat model",
+    copy: "Protected assets, trust boundaries, invariants, attack paths, controls, and release stop conditions.",
+    href: `${REPO}/blob/main/docs/security-threat-model.md`,
     icon: ScanSearch,
   },
   {
-    title: "Mainnet deployment record",
-    copy: "Contract IDs, transaction hashes, constructor values, live hashes, and read-only verification.",
-    href: `${REPO}/blob/main/docs/mainnet-canary-deployment.md`,
+    title: "Security data flow",
+    copy: "The complete mandate lifecycle, money path, trust boundaries, failure recovery, and governance flow.",
+    href: `${REPO}/blob/main/docs/security-data-flow.md`,
     icon: ClipboardCheck,
   },
   {
-    title: "Governed release manifest",
-    copy: "Exact source commit, Circle USDC identity, roles, artifact hashes, and verification state.",
-    href: `${REPO}/blob/main/contracts/mainnet/deployment-manifest.json`,
+    title: "Gate-check results",
+    copy: "23 passing contract tests, dependency results, remediations, tool versions, and reproduction commands.",
+    href: `${REPO}/blob/main/docs/security-scan-report.md`,
     icon: Fingerprint,
   },
   {
     title: "Continuous contract gate",
-    copy: "Formatting, linting, contract tests, and exact Mainnet candidate reproduction on every change.",
+    copy: "Formatting, warnings-denied linting, dependency scanning, tests, and exact Mainnet artifact checks on every change.",
     href: `${REPO}/blob/main/.github/workflows/ci.yml`,
     icon: GitBranch,
   },
 ];
+
+const gateStages = [
+  { label: "Source", result: "Exact commit + clean tree", evidence: "Reviewed source identity is pinned before any release check begins." },
+  { label: "Surface", result: "Every public function mapped", evidence: "Reads, lifecycle calls, money movement, emergency controls, policy changes, and timelock mutators are covered." },
+  { label: "Hostile paths", result: "23 / 23 tests pass", evidence: "Unauthorized caller, expiry, overspend, replay, substitution, reentrancy, rollback, and unauthorized upgrade paths are exercised." },
+  { label: "Dependencies", result: "0 vulnerabilities · 0 yanked", evidence: "Both Mainnet lockfiles and both deployed WASM graphs pass the exact dependency policy." },
+  { label: "Artifacts", result: "Hashes + interfaces match", evidence: "Pinned toolchain output is compared with recorded artifact digests and contract interfaces." },
+  { label: "Chain", result: "State + constructors verified", evidence: "Live contract identities, roles, asset policy, deployment transactions, and constructor state are recorded in the manifest." },
+] as const;
+
+const clientPackages = [
+  ["@ackrate/core", "Agent payment orchestration"],
+  ["@ackrate/stellar", "Typed Stellar client"],
+  ["@ackrate/ap2", "Mandate adapter"],
+  ["@ackrate/express-middleware", "Fulfillment verifier"],
+  ["@ackrate/cli", "Operator tooling"],
+] as const;
 
 const fade = (delay = 0) => ({
   initial: { opacity: 0, y: 18 },
@@ -140,9 +156,16 @@ const short = (value: string) => `${value.slice(0, 10)}…${value.slice(-8)}`;
 
 export default function MerchantsPage() {
   const [selectedId, setSelectedId] = useState(protections[0]!.id);
+  const [gateIndex, setGateIndex] = useState(0);
   const [copied, setCopied] = useState(false);
   const selected = protections.find((item) => item.id === selectedId) ?? protections[0]!;
   const SelectedIcon = selected.icon;
+  const activeGate = gateStages[gateIndex]!;
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setGateIndex((current) => (current + 1) % gateStages.length), 1_650);
+    return () => window.clearInterval(timer);
+  }, []);
 
   async function copyCommand() {
     await navigator.clipboard.writeText(VERIFY_COMMAND);
@@ -157,22 +180,22 @@ export default function MerchantsPage() {
       <motion.header {...fade()} className="pt-7">
         <div className="inline-flex items-center gap-2 rounded-full border border-emerald-300/15 bg-emerald-400/[0.06] px-3.5 py-1.5 text-[11px] font-semibold tracking-[0.17em] text-emerald-200/90">
           <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,.9)]" />
-          MERCHANT ASSURANCE · STELLAR MAINNET · CIRCLE USDC
+          CONTRACT SECURITY SUITE · STELLAR MAINNET · CIRCLE USDC
         </div>
         <h1 className="mt-6 max-w-5xl text-4xl font-black leading-[1.02] tracking-[-0.045em] text-white sm:text-6xl lg:text-7xl">
-          Accept agent payments.<br />
+          Prove every payment boundary.<br />
           <span className="bg-gradient-to-r from-emerald-300 via-teal-200 to-cyan-300 bg-clip-text text-transparent">
-            Verify every boundary.
+            Trust the contract, not the caller.
           </span>
         </h1>
         <p className="mt-6 max-w-3xl text-base leading-relaxed text-emerald-50/65 sm:text-lg">
-          Merchants do not need to trust an agent, model, SDK, or payment header. MandateRegistry checks the caller,
-          merchant, asset, budget, expiry, and sequence before Circle USDC moves. The fulfillment layer independently
-          verifies the on-chain result before releasing paid work.
+          This is the public evidence surface for Ackrate&apos;s Mainnet enforcement layer. MandateRegistry checks the caller,
+          merchant, asset, budget, expiry, status, and sequence before Circle USDC moves. The SDK, model, interface,
+          payment header, merchant, and RPC are treated as untrusted inputs.
         </p>
         <div className="mt-7 flex flex-wrap gap-3">
           <a href={`https://stellar.expert/explorer/public/contract/${REGISTRY}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-xl bg-emerald-400 px-4 py-2.5 text-sm font-bold text-[#052117] transition hover:bg-emerald-300">
-            View Mainnet contract <ArrowUpRight className="h-4 w-4" />
+            View live Mainnet contract <ArrowUpRight className="h-4 w-4" />
           </a>
           <a href={`${REPO}/tree/main/contracts/mainnet`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.035] px-4 py-2.5 text-sm font-semibold text-white/75 transition hover:border-emerald-300/30 hover:text-white">
             Open contract source <Code2 className="h-4 w-4" />
@@ -182,16 +205,82 @@ export default function MerchantsPage() {
 
       <motion.section {...fade(0.06)} className="mt-10 grid overflow-hidden rounded-2xl border border-white/10 bg-white/[0.025] sm:grid-cols-2 lg:grid-cols-4">
         {[
-          ["22", "Mainnet contract tests"],
+          ["23", "Mainnet contract tests"],
           ["2", "Governed contracts"],
-          ["4", "Successful deployment transactions"],
-          ["1", "Atomic USDC payment path"],
+          ["0", "Known deployed-code vulnerabilities"],
+          ["0", "Yanked deployed dependencies"],
         ].map(([value, label]) => (
           <div key={label} className="border-b border-white/10 p-5 last:border-0 sm:border-r lg:border-b-0">
             <strong className="text-3xl font-black tracking-tight text-emerald-200">{value}</strong>
             <span className="mt-1 block text-xs text-white/45">{label}</span>
           </div>
         ))}
+      </motion.section>
+
+      <motion.section {...fade(0.08)} className="relative mt-8 overflow-hidden rounded-3xl border border-emerald-300/15 bg-[#050a08] p-5 sm:p-8">
+        <div className="pointer-events-none absolute inset-0 opacity-40" aria-hidden>
+          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-emerald-300 to-transparent" />
+          <motion.div
+            className="absolute inset-x-0 h-px bg-gradient-to-r from-transparent via-emerald-300/70 to-transparent shadow-[0_0_24px_rgba(52,211,153,.55)]"
+            animate={{ top: ["8%", "92%", "8%"] }}
+            transition={{ duration: 7, ease: "linear", repeat: Infinity }}
+          />
+          <div className="absolute inset-0 bg-[linear-gradient(rgba(52,211,153,.025)_1px,transparent_1px),linear-gradient(90deg,rgba(52,211,153,.025)_1px,transparent_1px)] bg-[size:42px_42px]" />
+        </div>
+
+        <div className="relative grid gap-8 lg:grid-cols-[.88fr_1.12fr] lg:items-start">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-300/20 bg-emerald-400/[0.07] px-3 py-1.5 text-[10px] font-semibold tracking-[0.16em] text-emerald-200">
+              <motion.span className="h-1.5 w-1.5 rounded-full bg-emerald-300" animate={{ opacity: [0.35, 1, 0.35] }} transition={{ duration: 1.2, repeat: Infinity }} />
+              ACKRATE GATE CHECK · LIVE EVIDENCE MODEL
+            </div>
+            <h2 className="mt-5 text-3xl font-black tracking-tight text-white sm:text-4xl">A release pipeline built to stop on doubt.</h2>
+            <p className="mt-4 text-sm leading-relaxed text-white/45">
+              Ackrate&apos;s gate-check engine evaluates source identity, contract surface, hostile paths, dependencies,
+              reproducible artifacts, and live chain state as one evidence chain. A mismatch at any stage stops the release.
+            </p>
+
+            <div className="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {gateStages.map((stage, index) => (
+                <button
+                  key={stage.label}
+                  type="button"
+                  onClick={() => setGateIndex(index)}
+                  className={`rounded-xl border p-3 text-left transition ${index === gateIndex ? "border-emerald-300/35 bg-emerald-400/[0.1]" : "border-white/[0.07] bg-black/20 hover:border-white/15"}`}
+                >
+                  <span className={`text-[10px] font-semibold tracking-[0.13em] ${index === gateIndex ? "text-emerald-300" : "text-white/30"}`}>{String(index + 1).padStart(2, "0")}</span>
+                  <strong className={`mt-1 block text-xs ${index === gateIndex ? "text-emerald-100" : "text-white/55"}`}>{stage.label}</strong>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="relative overflow-hidden rounded-2xl border border-emerald-300/15 bg-black/35 p-5 font-mono sm:p-6">
+            <div className="flex items-center justify-between gap-4 border-b border-white/[0.07] pb-4">
+              <div className="flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-rose-300/70" /><span className="h-2 w-2 rounded-full bg-amber-200/70" /><span className="h-2 w-2 rounded-full bg-emerald-300/70" />
+              </div>
+              <span className="text-[10px] tracking-[0.14em] text-white/30">contract-gate / mainnet</span>
+            </div>
+            <div className="mt-5 min-h-56">
+              <div className="text-[11px] text-white/30">$ ackrate-gate check --network mainnet --strict</div>
+              <motion.div key={activeGate.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mt-7">
+                <div className="flex items-center justify-between gap-4">
+                  <span className="text-xs tracking-[0.14em] text-emerald-300">SCANNING / {activeGate.label.toUpperCase()}</span>
+                  <span className="rounded-md border border-emerald-300/20 bg-emerald-400/[0.08] px-2 py-1 text-[10px] font-bold text-emerald-200">PASS</span>
+                </div>
+                <strong className="mt-4 block text-lg text-white/90">{activeGate.result}</strong>
+                <p className="mt-3 font-sans text-sm leading-relaxed text-white/45">{activeGate.evidence}</p>
+              </motion.div>
+              <div className="mt-7 h-1.5 overflow-hidden rounded-full bg-white/[0.06]">
+                <motion.div key={gateIndex} className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-300" initial={{ width: "0%" }} animate={{ width: "100%" }} transition={{ duration: 1.55, ease: "linear" }} />
+              </div>
+            </div>
+            <div className="mt-3 flex items-center gap-2 border-t border-white/[0.07] pt-4 text-[10px] text-emerald-300/55">
+              <BadgeCheck className="h-3.5 w-3.5" /> Recorded evidence only · no synthetic pass states
+            </div>
+          </div>
+        </div>
       </motion.section>
 
       <section className="mt-8 grid gap-6 lg:grid-cols-[0.82fr_1.18fr]">
@@ -242,6 +331,53 @@ export default function MerchantsPage() {
         </motion.div>
       </section>
 
+      <motion.section {...fade(0.17)} className="mt-12 overflow-hidden rounded-3xl border border-white/[0.08] bg-white/[0.02] p-5 sm:p-8">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.17em] text-emerald-300/70">Enforcement boundary</p>
+            <h2 className="mt-2 text-3xl font-bold tracking-tight text-white">Everything outside the registry is untrusted.</h2>
+            <p className="mt-3 max-w-3xl text-sm leading-relaxed text-white/45">
+              The interface and agent may propose a payment. Only the on-chain transaction can authorize, consume,
+              and settle it. Failed authorization, validation, allowance, or transfer reverts the complete invocation.
+            </p>
+          </div>
+          <a href={`${REPO}/blob/main/docs/security-data-flow.md`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-300 hover:text-emerald-200">
+            Open full data flow <ArrowUpRight className="h-4 w-4" />
+          </a>
+        </div>
+
+        <div className="mt-7 grid gap-3 lg:grid-cols-[1fr_auto_1fr_auto_1.15fr_auto_1fr] lg:items-stretch">
+          {[
+            ["UNTRUSTED", "Wallet UI + agent", "Proposes an exact merchant, asset, amount, and sequence."],
+            ["UNTRUSTED", "HTTP payment flow", "Carries the challenge and proof; never becomes contract authority."],
+            ["ENFORCEMENT", "MandateRegistry", "Re-reads durable state, authenticates, checks, consumes, then transfers."],
+            ["SETTLEMENT", "Circle USDC", "Moves value only through the registry-bound allowance."],
+          ].map(([eyebrow, title, copy], index) => (
+            <div key={title} className="contents">
+              <div className={`rounded-2xl border p-4 ${index === 2 ? "border-emerald-300/25 bg-emerald-400/[0.08]" : "border-white/[0.07] bg-black/15"}`}>
+                <span className={`text-[10px] font-semibold tracking-[0.15em] ${index === 2 ? "text-emerald-300" : "text-white/30"}`}>{eyebrow}</span>
+                <strong className="mt-2 block text-sm text-white/85">{title}</strong>
+                <p className="mt-2 text-xs leading-relaxed text-white/40">{copy}</p>
+              </div>
+              {index < 3 ? <ArrowRight className="mx-auto hidden h-5 w-5 self-center text-emerald-300/40 lg:block" /> : null}
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-5 grid gap-3 sm:grid-cols-3">
+          {[
+            ["ATOMIC", "State and value change together—or neither changes."],
+            ["DURABLE", "Every payment re-reads the current on-chain mandate."],
+            ["RECOVERABLE", "A paid receipt can recover delivery without paying twice."],
+          ].map(([label, copy]) => (
+            <div key={label} className="rounded-xl border border-emerald-300/10 bg-emerald-400/[0.035] p-4">
+              <strong className="text-xs tracking-[0.14em] text-emerald-300">{label}</strong>
+              <p className="mt-2 text-xs leading-relaxed text-white/45">{copy}</p>
+            </div>
+          ))}
+        </div>
+      </motion.section>
+
       <motion.section {...fade(0.18)} className="mt-12">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div><p className="text-xs font-semibold uppercase tracking-[0.17em] text-emerald-300/70">Independent review trail</p><h2 className="mt-2 text-3xl font-bold tracking-tight text-white">Start with the evidence, not the pitch.</h2></div>
@@ -254,6 +390,105 @@ export default function MerchantsPage() {
               <h3 className="mt-5 text-base font-bold text-white/85">{title}</h3>
               <p className="mt-2 text-sm leading-relaxed text-white/40">{copy}</p>
               <span className="mt-5 inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-300/75 group-hover:text-emerald-200">Open evidence <ArrowUpRight className="h-3.5 w-3.5" /></span>
+            </a>
+          ))}
+        </div>
+      </motion.section>
+
+      <motion.section {...fade(0.19)} className="mt-12 grid gap-6 lg:grid-cols-[1.05fr_.95fr]">
+        <div className="rounded-2xl border border-emerald-300/15 bg-[linear-gradient(145deg,rgba(52,211,153,.07),rgba(255,255,255,.018))] p-5 sm:p-7">
+          <p className="text-xs font-semibold uppercase tracking-[0.17em] text-emerald-300/70">Dependency gate</p>
+          <h2 className="mt-2 text-2xl font-bold tracking-tight text-white">Deployed contract graph is clear.</h2>
+          <div className="mt-6 grid gap-3 sm:grid-cols-2">
+            {[
+              ["0", "known vulnerabilities"],
+              ["0", "yanked dependencies"],
+              ["PASS", "warnings denied"],
+              ["PASS", "WASM graph policy"],
+            ].map(([value, label]) => (
+              <div key={label} className="rounded-xl border border-white/[0.07] bg-black/15 p-4">
+                <strong className="text-2xl font-black text-emerald-200">{value}</strong>
+                <span className="mt-1 block text-xs text-white/40">{label}</span>
+              </div>
+            ))}
+          </div>
+          <p className="mt-5 text-xs leading-relaxed text-white/40">
+            The previously detected vulnerable time package and yanked spin package were remediated. One accepted
+            maintenance warning remains confined to host/test tooling; the gate fails if it enters either deployed WASM graph.
+          </p>
+        </div>
+
+        <div className="rounded-2xl border border-white/[0.08] bg-[#070b09] p-5 sm:p-7">
+          <p className="text-xs font-semibold uppercase tracking-[0.17em] text-emerald-300/70">Source to chain</p>
+          <h2 className="mt-2 text-2xl font-bold tracking-tight text-white">Exact identity, independently reproducible.</h2>
+          <div className="mt-5 grid gap-3">
+            {[
+              ["Deployment manifest", `${REPO}/blob/main/contracts/mainnet/deployment-manifest.json`],
+              ["Canonical Mainnet source", `${REPO}/tree/main/contracts/mainnet`],
+              ["Build provenance", `${REPO}/actions/runs/32963207324`],
+              ["Verification report", `${REPO}/blob/main/docs/security-scan-report.md`],
+            ].map(([label, href]) => (
+              <a key={label} href={href} target="_blank" rel="noreferrer" className="flex items-center justify-between gap-3 rounded-xl border border-white/[0.07] bg-black/15 px-4 py-3 text-sm font-semibold text-white/65 transition hover:border-emerald-300/25 hover:text-emerald-100">
+                {label}<ArrowUpRight className="h-4 w-4 text-emerald-300" />
+              </a>
+            ))}
+          </div>
+          <p className="mt-4 text-xs leading-relaxed text-white/35">
+            The manifest records source commits, artifact hashes, constructor values, contract state, deployment transactions,
+            and the live contract identities used by the application.
+          </p>
+        </div>
+      </motion.section>
+
+      <motion.section {...fade(0.2)} className="mt-12 rounded-3xl border border-white/[0.08] bg-white/[0.02] p-5 sm:p-8">
+        <div className="grid gap-6 lg:grid-cols-[.72fr_1.28fr] lg:items-start">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.17em] text-emerald-300/70">Contract surface</p>
+            <h2 className="mt-2 text-3xl font-bold tracking-tight text-white">Every public function is inside the gate.</h2>
+            <p className="mt-3 text-sm leading-relaxed text-white/45">
+              Reads, mandate lifecycle calls, money-moving calls, emergency controls, policy changes, upgrades, and every
+              timelock mutator are mapped to a named test or an explicit invariant in the threat model.
+            </p>
+            <a href={`${REPO}/blob/main/docs/security-threat-model.md#contract-surface-review`} target="_blank" rel="noreferrer" className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-emerald-300 hover:text-emerald-200">
+              Inspect the function-by-function map <ArrowUpRight className="h-4 w-4" />
+            </a>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {[
+              ["READ STATE", "version · is_paused · is_allowed_asset · get_mandate"],
+              ["MANDATE LIFECYCLE", "register_mandate · revoke_mandate · execute_payment"],
+              ["EMERGENCY + POLICY", "pause · unpause · add_allowed_asset · remove_allowed_asset"],
+              ["GOVERNANCE", "schedule · execute · cancel · update_delay · upgrade"],
+            ].map(([label, functions]) => (
+              <div key={label} className="rounded-xl border border-white/[0.07] bg-black/15 p-4">
+                <strong className="text-[10px] tracking-[0.15em] text-emerald-300/75">{label}</strong>
+                <code className="mt-3 block whitespace-pre-wrap text-xs leading-relaxed text-white/50">{functions}</code>
+              </div>
+            ))}
+          </div>
+        </div>
+      </motion.section>
+
+      <motion.section {...fade(0.21)} className="mt-12 overflow-hidden rounded-3xl border border-white/[0.08] bg-white/[0.02] p-5 sm:p-8">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.17em] text-emerald-300/70">SDK perimeter</p>
+            <h2 className="mt-2 text-3xl font-bold tracking-tight text-white">Useful clients. Zero financial authority.</h2>
+            <p className="mt-3 max-w-3xl text-sm leading-relaxed text-white/45">
+              These packages make the safe path clear, but none can approve its own payment. The registry authenticates
+              and re-checks every value-moving request, even if a package, application, or model is modified.
+            </p>
+          </div>
+          <span className="rounded-full border border-rose-300/15 bg-rose-300/[0.05] px-3 py-1.5 text-[10px] font-semibold tracking-[0.14em] text-rose-200/75">UNTRUSTED BY DESIGN</span>
+        </div>
+        <div className="mt-7 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          {clientPackages.map(([name, role], index) => (
+            <a key={name} href={`https://www.npmjs.com/package/${name}`} target="_blank" rel="noreferrer" className="group relative overflow-hidden rounded-2xl border border-white/[0.07] bg-black/15 p-4 transition hover:-translate-y-0.5 hover:border-emerald-300/25">
+              <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-emerald-300/50 to-transparent opacity-0 transition group-hover:opacity-100" />
+              <span className="text-[10px] font-semibold tracking-[0.15em] text-white/25">PACKAGE {String(index + 1).padStart(2, "0")}</span>
+              <strong className="mt-3 block break-words font-mono text-xs text-emerald-200/85">{name}</strong>
+              <p className="mt-3 text-xs leading-relaxed text-white/40">{role}</p>
+              <div className="mt-4 flex items-center gap-1.5 text-[10px] font-semibold text-emerald-300/55">Inspect package <ArrowUpRight className="h-3 w-3" /></div>
             </a>
           ))}
         </div>
@@ -288,8 +523,8 @@ export default function MerchantsPage() {
 
       <motion.section {...fade(0.28)} className="mt-12 overflow-hidden rounded-3xl border border-emerald-300/15 bg-[radial-gradient(circle_at_20%_0%,rgba(52,211,153,.14),transparent_38%),rgba(255,255,255,.02)] p-7 sm:p-10">
         <div className="grid gap-8 lg:grid-cols-[1fr_auto] lg:items-center">
-          <div><div className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.17em] text-emerald-300/75"><Store className="h-4 w-4" /> Merchant integration</div><h2 className="mt-3 text-3xl font-black tracking-tight text-white sm:text-4xl">Ship the paid endpoint. Keep the proof trail.</h2><p className="mt-4 max-w-2xl text-sm leading-relaxed text-white/50">Express middleware verifies the authenticated quote, Mainnet transaction, registry event, token transfer, and one-time redemption before your protected handler returns value.</p></div>
-          <a href="https://www.npmjs.com/package/@ackrate/express-middleware" target="_blank" rel="noreferrer" className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-400 px-5 py-3 text-sm font-bold text-[#052117] transition hover:bg-emerald-300">Open merchant SDK <ArrowUpRight className="h-4 w-4" /></a>
+          <div><div className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.17em] text-emerald-300/75"><ShieldCheck className="h-4 w-4" /> Independent verification</div><h2 className="mt-3 text-3xl font-black tracking-tight text-white sm:text-4xl">Run the gate. Follow every claim to source.</h2><p className="mt-4 max-w-2xl text-sm leading-relaxed text-white/50">The repository is organized so an external reviewer can reproduce the test and dependency gates, inspect every contract function, verify the trust boundaries, and compare the governed source and artifacts with Mainnet.</p></div>
+          <a href={`${REPO}/blob/main/docs/security-scan-report.md`} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-400 px-5 py-3 text-sm font-bold text-[#052117] transition hover:bg-emerald-300">Open gate-check report <ArrowUpRight className="h-4 w-4" /></a>
         </div>
       </motion.section>
     </main>

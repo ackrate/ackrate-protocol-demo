@@ -13,6 +13,7 @@ const routes = [
   "/merchants",
   "/solutions",
   "/research",
+  "/security",
   "/toolkit",
   "/toolkit/cli",
   "/video",

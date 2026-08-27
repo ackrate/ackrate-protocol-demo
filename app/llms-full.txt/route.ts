@@ -61,6 +61,10 @@ The Express flow demonstrates pay-per-use API fulfillment. A 402 response descri
 
 The Merchants page maps unauthorized caller, expiry, overspend, replay, unauthorized upgrade, and reentrancy cases to the exact governed Mainnet Rust tests. It links the live MandateRegistry and TimelockController, completed deployment record, release manifest, continuous contract gate, artifact provenance, and one-command local reproduction path. The page presents repository evidence; the contract remains the payment authority.
 
+### Contract Security Suite — https://reapp.live/security
+
+The Contract Security Suite is the public release-gate evidence surface for Ackrate's Mainnet contracts. It maps negative paths to exact Rust tests, documents the registry enforcement boundary and atomic USDC data flow, publishes dependency and remediation results, links the live governed contracts, and provides a reproducible local gate command. The recorded Mainnet suites contain 15 MandateRegistry tests and 8 TimelockController tests, with zero known vulnerabilities and zero yanked dependencies in the deployed WASM graphs.
+
 ### Solutions and starter kits — https://reapp.live/solutions
 
 The Hackathon starter creates a disposable hosted fulfillment workspace and generates two commands for a clean VS Code folder. The local consumer owns its ephemeral signers, registers a scoped testnet mandate, inspects the exact 402 challenge, submits the request-bound contract payment, and retries delivery with the stored receipt. It streams the resulting challenge, settlement, proof, delivery, budget, and rejection evidence back to the browser page. The generated project includes editable consumer and fulfillment source files plus guided examples for merchant scope, expiry, replay defense, recovery, and explorer evidence.
