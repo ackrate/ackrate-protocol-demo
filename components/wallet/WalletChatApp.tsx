@@ -76,7 +76,7 @@ function TransactionEvidence({ label, hash, explorer }: { label: string; hash: s
         {copied ? <Check size={13} /> : <Copy size={13} />}
       </button>
       <a href={`${explorer}/tx/${hash}`} target="_blank" rel="noreferrer" aria-label={`Open ${label.toLowerCase()} transaction in Stellar Explorer`} title="Open in Stellar Explorer">
-        <ArrowUpRight size={14} />
+        <ArrowUpRight size={13} /> View transaction
       </a>
     </div>
   );

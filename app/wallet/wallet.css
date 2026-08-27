@@ -202,6 +202,12 @@
 .wallet-preview .quick-purchase .tool-card { margin-bottom: 0; }
 .wallet-preview .quick-purchase-error { display: flex; align-items: flex-start; gap: 8px; margin-top: 10px; padding: 10px; border: 1px solid rgba(251,113,133,.18); border-radius: 10px; color: #f3a2b0; background: rgba(251,113,133,.045); font-size: 9px; line-height: 1.5; }
 .wallet-preview .quick-purchase-error svg { flex: 0 0 auto; }
+.wallet-preview .quick-purchase-notice { display: flex; align-items: flex-start; gap: 8px; margin-top: 10px; padding: 10px; border: 1px solid rgba(52,211,153,.22); border-radius: 10px; color: #a7f3d0; background: rgba(52,211,153,.06); font-size: 9px; line-height: 1.5; }
+.wallet-preview .quick-purchase-notice svg { flex: 0 0 auto; color: var(--emerald); }
+.wallet-preview .quick-purchase-evidence { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-top: 8px; padding: 9px 10px; border: 1px solid rgba(52,211,153,.18); border-radius: 10px; background: rgba(52,211,153,.04); }
+.wallet-preview .quick-purchase-evidence code { color: #82978e; font-size: 8px; }
+.wallet-preview .quick-purchase-evidence a { display: inline-flex; align-items: center; gap: 4px; color: #6ad9ae; font-family: "SFMono-Regular", Consolas, monospace; font-size: 8px; font-weight: 700; }
+.wallet-preview .quick-purchase-evidence a:hover { color: #a7f3d0; }
 .wallet-preview .chat-empty { min-height: 440px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
 .wallet-preview .chat-empty .agent-orb { margin-bottom: 15px; }
 .wallet-preview .chat-prompt { margin-top: 17px; padding: 10px 13px; border: 1px solid var(--line); border-radius: 10px; color: #91a49c; background: rgba(255,255,255,.02); font-size: 10px; }
@@ -254,7 +260,8 @@
 .wallet-preview .proof-card a code { color: #82978e; font-size: 8px; }
 .wallet-preview .proof-evidence { display: grid; grid-template-columns: 1fr auto auto auto; align-items: center; gap: 8px; padding: 10px 0; border-top: 1px solid rgba(255,255,255,.05); color: #64766f; font-size: 8px; }
 .wallet-preview .proof-evidence code { color: #82978e; font-size: 8px; }
-.wallet-preview .proof-evidence button, .wallet-preview .proof-evidence a { display: grid; place-items: center; width: 27px; height: 27px; padding: 0; border: 1px solid rgba(52,211,153,.12); border-radius: 8px; color: #72a893; background: rgba(52,211,153,.035); cursor: pointer; transition: color .2s, border-color .2s; }
+.wallet-preview .proof-evidence button { display: grid; place-items: center; width: 27px; height: 27px; padding: 0; border: 1px solid rgba(52,211,153,.12); border-radius: 8px; color: #72a893; background: rgba(52,211,153,.035); cursor: pointer; transition: color .2s, border-color .2s; }
+.wallet-preview .proof-evidence a { display: inline-flex; align-items: center; gap: 4px; min-height: 27px; padding: 0 8px; border: 1px solid rgba(52,211,153,.12); border-radius: 8px; color: #72a893; background: rgba(52,211,153,.035); white-space: nowrap; transition: color .2s, border-color .2s; }
 .wallet-preview .proof-evidence button:hover, .wallet-preview .proof-evidence a:hover { border-color: rgba(52,211,153,.3); color: #a7f3d0; }
 .wallet-preview .gate-card { display: flex; align-items: flex-start; gap: 10px; border: 1px solid rgba(251,113,133,.16); background: rgba(251,113,133,.045); }
 .wallet-preview .gate-card > svg { flex: 0 0 auto; color: var(--danger); }

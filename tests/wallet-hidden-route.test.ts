@@ -52,7 +52,7 @@ test("wallet exposes a deterministic real-payment control without an LLM depende
   const purchase = read("app/api/wallet/purchase/route.ts");
   const recovery = read("app/api/wallet/purchase/recovery/route.ts");
 
-  assert.match(thread, /Pay \$0\.01 USDC/);
+  assert.match(thread, /Pay \$0\.01 and get the brief/);
   assert.match(thread, /"\/api\/wallet\/purchase"/);
   assert.match(purchase, /purchaseCatalogItem/);
   assert.match(purchase, /requireSession/);
@@ -61,9 +61,15 @@ test("wallet exposes a deterministic real-payment control without an LLM depende
   assert.match(recovery, /recoverPendingCatalogPurchase/);
   assert.match(recovery, /requireSession/);
   assert.match(recovery, /requireSameOrigin/);
-  assert.match(thread, /Recover delivery — no charge/);
-  assert.match(thread, /Retry settlement check/);
+  assert.match(thread, /Get my brief — already paid/);
+  assert.match(thread, /Pay \$0\.01 and get the brief/);
+  assert.match(thread, /Checking your last payment/);
+  assert.match(thread, /See my payment on Stellar Explorer/);
+  assert.match(thread, /You will not pay again/);
+  assert.match(thread, /parseRecovery/);
+  assert.match(thread, /invalid retained settlement evidence/);
   assert.match(thread, /Payment remains disabled/);
+  assert.match(read("components/wallet/WalletChatApp.tsx"), /View transaction/);
 });
 
 test("wallet closes an expired mandate locally and offers a fresh boundary", () => {

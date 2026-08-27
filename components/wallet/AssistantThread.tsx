@@ -61,6 +61,7 @@ export function AssistantThread({ mandateId, asset, explorerNetwork }: { mandate
 function QuickPurchase({ mandateId, explorerNetwork }: { mandateId: string; explorerNetwork: "testnet" | "public" }) {
   const [state, setState] = useState<"checking" | "check_failed" | "idle" | "running" | "recovering" | "recovery" | "success" | "error">("checking");
   const [result, setResult] = useState<PurchaseResult | null>(null);
+  const [recovery, setRecovery] = useState<PendingRecovery | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const checkRecovery = async () => {
@@ -71,15 +72,19 @@ function QuickPurchase({ mandateId, explorerNetwork }: { mandateId: string; expl
         credentials: "same-origin",
         cache: "no-store",
       });
-      const body = await response.json() as { ok: boolean; recovery?: { pending?: boolean }; error?: string };
+      const body = await response.json() as { ok: boolean; recovery?: unknown; error?: string };
       if (!response.ok || !body.ok) throw new Error(body.error ?? `Recovery check returned HTTP ${response.status}`);
-      if (body.recovery?.pending) {
+      const pendingRecovery = parseRecovery(body.recovery);
+      if (pendingRecovery) {
+        setRecovery(pendingRecovery);
         setState("recovery");
-        setError("Payment is already on Mainnet. Recover the retained delivery; this does not sign or pay again.");
+        setError("Payment complete. Tap the green button to get your brief. You will not pay again.");
       } else {
+        setRecovery(null);
         setState("idle");
       }
     } catch {
+      setRecovery(null);
       setState("check_failed");
       setError("Settlement status could not be confirmed. Payment remains disabled; retry the settlement check.");
     }
@@ -92,6 +97,7 @@ function QuickPurchase({ mandateId, explorerNetwork }: { mandateId: string; expl
   const purchase = async () => {
     setState("running");
     setResult(null);
+    setRecovery(null);
     setError(null);
     try {
       const response = await fetch("/api/wallet/purchase", {
@@ -110,14 +116,13 @@ function QuickPurchase({ mandateId, explorerNetwork }: { mandateId: string; expl
     } catch (cause) {
       const message = cause instanceof Error ? cause.message : String(cause);
       if (/retained for recovery|delivery is pending/i.test(message)) {
-        setState("recovery");
-        setError("Payment is already on Mainnet. Recover the retained delivery; this does not sign or pay again.");
+        await checkRecovery();
         return;
       }
       const budgetReached = /Contract,\s*#6|BudgetExceeded|budget.*(?:exceed|remaining|enough)/i.test(message);
       setError(budgetReached
-        ? "Mandate budget reached. MandateRegistry rejected this purchase before settlement."
-        : message);
+        ? "You have used this spending limit. No payment was made."
+        : "We could not finish that purchase. Your payment status is protected; try the check again.");
       setState("error");
     }
   };
@@ -138,6 +143,7 @@ function QuickPurchase({ mandateId, explorerNetwork }: { mandateId: string; expl
         throw new Error(body.error ?? `Recovery returned HTTP ${response.status}`);
       }
       setResult(body.result);
+      setRecovery(null);
       setState("success");
       window.dispatchEvent(new Event("ackrate-mandate-updated"));
     } catch (cause) {
@@ -149,16 +155,31 @@ function QuickPurchase({ mandateId, explorerNetwork }: { mandateId: string; expl
   return (
     <div className="quick-purchase">
       <div>
-        <p className="eyebrow success">VERIFIED PAYMENT PATH</p>
-        <strong>Buy the market signal brief</strong>
-        <span>Consumer agent → HTTP 402 → Mainnet USDC → HTTP 200</span>
+        <p className="eyebrow success">YOUR PURCHASE</p>
+        <strong>Get the market signal brief</strong>
+        <span>{state === "recovery" || state === "recovering"
+          ? "You already paid. Get your brief below."
+          : "Costs $0.01 USDC. Your spending limit is checked automatically."}</span>
       </div>
       <button type="button" onClick={state === "recovery" ? recover : state === "check_failed" ? checkRecovery : purchase} disabled={state === "running" || state === "recovering" || state === "checking"}>
         {state === "running" || state === "recovering" ? <LoaderCircle className="spin" size={15} /> : <CircleDollarSign size={15} />}
-        {state === "running" ? "Settling…" : state === "recovering" ? "Recovering delivery…" : state === "checking" ? "Checking settlement…" : state === "check_failed" ? "Retry settlement check" : state === "recovery" ? "Recover delivery — no charge" : "Pay $0.01 USDC"}
+        {state === "running" ? "Paying securely…" : state === "recovering" ? "Opening your brief…" : state === "checking" ? "Checking your last payment…" : state === "check_failed" ? "Check again" : state === "recovery" ? "Get my brief — already paid" : "Pay $0.01 and get the brief"}
       </button>
       {result && <CompletedPurchase result={result} explorerNetwork={explorerNetwork} />}
-      {error && <div className="quick-purchase-error"><TriangleAlert size={14} /><span>{error}</span></div>}
+      {error && (
+        <div className={state === "recovery" ? "quick-purchase-notice" : "quick-purchase-error"}>
+          {state === "recovery" ? <Check size={14} /> : <TriangleAlert size={14} />}
+          <span>{error}</span>
+        </div>
+      )}
+      {state === "recovery" && recovery && (
+        <div className="quick-purchase-evidence">
+          <code>{recovery.txHash.slice(0, 8)}…{recovery.txHash.slice(-8)}</code>
+          <a href={`https://stellar.expert/explorer/${explorerNetwork}/tx/${recovery.txHash}`} target="_blank" rel="noreferrer" aria-label="Open settled payment in Stellar Explorer">
+            <ArrowUpRight size={12} /> See my payment on Stellar Explorer
+          </a>
+        </div>
+      )}
     </div>
   );
 }
@@ -187,6 +208,27 @@ interface PurchaseResult {
   source: { id: string; title: string };
   payment: { status: string; amount: string; asset: string; txHash: string; mandateId: string };
   delivered: unknown;
+}
+
+interface PendingRecovery {
+  pending: true;
+  txHash: string;
+  amount?: string;
+  asset?: string;
+  sourceId?: string;
+  sourceTitle?: string;
+}
+
+export function parseRecovery(value: unknown): PendingRecovery | null {
+  if (typeof value !== "object" || value === null) throw new Error("invalid recovery status");
+  const candidate = value as { pending?: unknown; txHash?: unknown };
+  if (candidate.pending === false) return null;
+  if (candidate.pending !== true
+    || typeof candidate.txHash !== "string"
+    || !/^[0-9a-f]{64}$/i.test(candidate.txHash)) {
+    throw new Error("invalid retained settlement evidence");
+  }
+  return value as PendingRecovery;
 }
 
 function isPurchaseResult(value: unknown): value is PurchaseResult {
@@ -224,18 +266,18 @@ function CompletedPurchase({ result, explorerNetwork }: { result: PurchaseResult
       <span className="tool-check"><Check size={14} /></span>
       <div className="tool-body">
         <strong>{result.source.title}</strong>
-        <p>{result.payment.amount} {result.payment.asset} settled through MandateRegistry</p>
+        <p>Paid {result.payment.amount} {result.payment.asset}. Your brief is ready.</p>
         <code className="tool-hash">{result.payment.txHash.slice(0, 8)}…{result.payment.txHash.slice(-8)}</code>
         <div className="tool-actions">
           <button type="button" onClick={async () => {
             await navigator.clipboard.writeText(result.payment.txHash);
             setCopied(true);
             window.setTimeout(() => setCopied(false), 1_500);
-          }} aria-label="Copy settlement transaction hash">
-            {copied ? <Check size={12} /> : <Copy size={12} />} {copied ? "Copied" : "Copy hash"}
+          }} aria-label="Copy payment transaction ID">
+            {copied ? <Check size={12} /> : <Copy size={12} />} {copied ? "Copied" : "Copy payment ID"}
           </button>
           <a href={`https://stellar.expert/explorer/${explorerNetwork}/tx/${result.payment.txHash}`} target="_blank" rel="noreferrer" aria-label="Open settlement transaction in Stellar Explorer">
-            <ArrowUpRight size={12} /> Explorer
+            <ArrowUpRight size={12} /> See payment
           </a>
         </div>
       </div>
