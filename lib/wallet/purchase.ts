@@ -29,6 +29,7 @@ export interface PendingPurchaseRecovery {
   asset?: string;
   sourceId?: string;
   sourceTitle?: string;
+  result?: unknown;
 }
 
 type PurchaseContext = Awaited<ReturnType<typeof createPurchaseContext>>;
@@ -150,7 +151,9 @@ export async function getPendingCatalogRecovery(input: Omit<PurchaseInput, "tool
   const receipts = await receiptStore.listPending();
   if (receipts.length === 0) {
     const completed = await latestSucceededToolCall(input);
-    return completedRecoveryEvidence(completed?.result) ?? { pending: false };
+    const result = completed ? attachMarketBriefToPurchaseResult(completed.result) : null;
+    const evidence = completedRecoveryEvidence(result);
+    return evidence ? { ...evidence, result } : { pending: false };
   }
   if (receipts.length !== 1) throw new Error("multiple retained settlements require operator review");
   const receipt = receipts[0]!;
@@ -163,6 +166,7 @@ export async function getPendingCatalogRecovery(input: Omit<PurchaseInput, "tool
     asset: input.config.public.asset.code,
     sourceId: item.id,
     sourceTitle: item.title,
+    result: item.id === "market-brief" ? builtInReportResult(input.config, item, receipt) : undefined,
   };
 }
 

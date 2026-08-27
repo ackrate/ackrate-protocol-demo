@@ -190,9 +190,11 @@ test("a retained paid report opens automatically without contacting the merchant
   const thread = read("components/wallet/AssistantThread.tsx");
   const purchase = read("lib/wallet/purchase.ts");
 
-  assert.match(thread, /const paidResult = await openPaidReport\(mandateId\)/);
+  assert.match(thread, /const paidResult = isPurchaseResult\(pendingRecovery\.result\)/);
   assert.match(thread, /setResult\(paidResult\)[\s\S]*setState\("success"\)/);
+  assert.match(thread, /isPurchaseResult\(pendingRecovery\.result\)/);
   assert.match(purchase, /if \(item\.id === "market-brief"\)/);
+  assert.match(purchase, /result: item\.id === "market-brief" \? builtInReportResult/);
   assert.match(purchase, /await receiptStore\.clearPending\(receipt\.receiptId\)/);
 });
 

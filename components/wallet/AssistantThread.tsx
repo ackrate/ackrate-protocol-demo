@@ -78,13 +78,17 @@ function QuickPurchase({ mandateId, explorerNetwork }: { mandateId: string; expl
       const pendingRecovery = parseRecovery(body.recovery);
       if (pendingRecovery) {
         setRecovery(pendingRecovery);
-        setState("recovering");
-        const paidResult = await openPaidReport(mandateId);
+        const paidResult = isPurchaseResult(pendingRecovery.result)
+          ? pendingRecovery.result
+          : await openPaidReport(mandateId);
         setResult(paidResult);
         setRecovery(null);
         setState("success");
         setError(null);
         window.dispatchEvent(new Event("ackrate-mandate-updated"));
+        if (isPurchaseResult(pendingRecovery.result)) {
+          void openPaidReport(mandateId).catch(() => undefined);
+        }
       } else {
         setRecovery(null);
         setState("idle");
@@ -214,6 +218,7 @@ interface PendingRecovery {
   asset?: string;
   sourceId?: string;
   sourceTitle?: string;
+  result?: unknown;
 }
 
 async function openPaidReport(mandateId: string): Promise<PurchaseResult> {
