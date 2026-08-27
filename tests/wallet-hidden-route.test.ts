@@ -172,15 +172,22 @@ test("every wallet transaction has a visible explorer link", () => {
   assert.match(thread, /View transaction/);
 });
 
-test("a paid report renders below its receipt with findings and sources", () => {
+test("a paid report renders below the workspace with side rails for proof and sources", () => {
+  const app = read("components/wallet/WalletChatApp.tsx");
   const thread = read("components/wallet/AssistantThread.tsx");
   const fulfillment = read("lib/wallet/fulfillment.ts");
   const brief = read("lib/wallet/market-brief.ts");
 
-  assert.match(thread, /className="research-brief"/);
+  assert.match(thread, /className="research-brief report-document"/);
   assert.match(thread, /THE TAKEAWAY/);
   assert.match(thread, /Research sources/);
-  assert.ok(thread.indexOf("payment-receipt") < thread.indexOf("research-brief"));
+  assert.match(thread, /report-rail report-proof-rail/);
+  assert.match(thread, /report-rail report-source-rail/);
+  assert.match(thread, /Your report is ready/);
+  assert.match(thread, /View spending limit/);
+  assert.match(thread, /View USDC approval/);
+  assert.match(app, /<PurchaseReport/);
+  assert.ok(app.indexOf('className="workspace shell"') < app.indexOf("<PurchaseReport"));
   assert.match(fulfillment, /brief: item\.id === "market-brief" \? MARKET_SIGNAL_BRIEF/);
   assert.match(brief, /github\.com\/futurehelp\/query402-api/);
   assert.match(brief, /developers\.stellar\.org\/docs\/tokens\/stellar-asset-contract/);

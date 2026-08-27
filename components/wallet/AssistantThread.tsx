@@ -12,9 +12,9 @@ import { AssistantChatTransport, useChatRuntime } from "@assistant-ui/react-ai-s
 import { ArrowUp, ArrowUpRight, Bot, Check, CircleDollarSign, Copy, LoaderCircle, TriangleAlert, UserRound } from "lucide-react";
 import type { MarketBrief } from "@/lib/wallet/market-brief";
 
-const ExplorerContext = createContext<"testnet" | "public">("testnet");
+const PurchaseCompleteContext = createContext<(result: PurchaseResult) => void>(() => undefined);
 
-export function AssistantThread({ mandateId, asset, explorerNetwork }: { mandateId: string; asset: string; explorerNetwork: "testnet" | "public" }) {
+export function AssistantThread({ mandateId, asset, explorerNetwork, onPurchaseComplete }: { mandateId: string; asset: string; explorerNetwork: "testnet" | "public"; onPurchaseComplete: (result: PurchaseResult) => void }) {
   const transport = useMemo(() => new AssistantChatTransport({
     api: "/api/wallet/chat",
     body: { mandateId },
@@ -23,38 +23,38 @@ export function AssistantThread({ mandateId, asset, explorerNetwork }: { mandate
   const runtime = useChatRuntime({ transport });
   return (
     <AssistantRuntimeProvider runtime={runtime}>
-      <ExplorerContext.Provider value={explorerNetwork}>
-      <ThreadPrimitive.Root className="thread-root">
-        <ThreadPrimitive.Viewport className="thread-viewport">
-          <QuickPurchase mandateId={mandateId} explorerNetwork={explorerNetwork} />
-          <ThreadPrimitive.Empty>
-            <div className="chat-empty">
-              <div className="agent-orb"><Bot size={22} /></div>
-              <p className="eyebrow success">READY TO BUY</p>
-              <h3>Your agent follows your limit.</h3>
-              <p>Buy the brief above. Ackrate checks your spending limit before money moves.</p>
-              <div className="chat-prompt">Use the green button above, or ask the agent below.</div>
+      <PurchaseCompleteContext.Provider value={onPurchaseComplete}>
+        <ThreadPrimitive.Root className="thread-root">
+          <ThreadPrimitive.Viewport className="thread-viewport">
+            <QuickPurchase mandateId={mandateId} explorerNetwork={explorerNetwork} />
+            <ThreadPrimitive.Empty>
+              <div className="chat-empty">
+                <div className="agent-orb"><Bot size={22} /></div>
+                <p className="eyebrow success">READY TO BUY</p>
+                <h3>This is your optional buying assistant.</h3>
+                <p>The green button above is the fastest way to buy. Or tell the agent what you want here.</p>
+                <div className="chat-prompt"><span>Try typing</span><strong>Buy the research brief</strong><small>Then press the arrow to send.</small></div>
+              </div>
+            </ThreadPrimitive.Empty>
+            <ThreadPrimitive.Messages
+              components={{ UserMessage, AssistantMessage }}
+            />
+            <div className="composer-wrap">
+              <ComposerPrimitive.Root className="composer-root">
+                <ComposerPrimitive.Input
+                  aria-label="Message the Ackrate agent"
+                  className="composer-input"
+                  placeholder='Type "Buy the research brief"…'
+                />
+                <ComposerPrimitive.Send className="composer-send" aria-label="Send message">
+                  <ArrowUp size={17} />
+                </ComposerPrimitive.Send>
+              </ComposerPrimitive.Root>
+              <p><CircleDollarSign size={12} /> Payments use {asset}. Ackrate checks your limit every time.</p>
             </div>
-          </ThreadPrimitive.Empty>
-          <ThreadPrimitive.Messages
-            components={{ UserMessage, AssistantMessage }}
-          />
-          <div className="composer-wrap">
-            <ComposerPrimitive.Root className="composer-root">
-              <ComposerPrimitive.Input
-                aria-label="Message the Ackrate agent"
-                className="composer-input"
-                placeholder="Ask the agent to buy something…"
-              />
-              <ComposerPrimitive.Send className="composer-send" aria-label="Send message">
-                <ArrowUp size={17} />
-              </ComposerPrimitive.Send>
-            </ComposerPrimitive.Root>
-            <p><CircleDollarSign size={12} /> Payments use {asset}. Ackrate checks your limit every time.</p>
-          </div>
-        </ThreadPrimitive.Viewport>
-      </ThreadPrimitive.Root>
-      </ExplorerContext.Provider>
+          </ThreadPrimitive.Viewport>
+        </ThreadPrimitive.Root>
+      </PurchaseCompleteContext.Provider>
     </AssistantRuntimeProvider>
   );
 }
@@ -64,6 +64,7 @@ function QuickPurchase({ mandateId, explorerNetwork }: { mandateId: string; expl
   const [result, setResult] = useState<PurchaseResult | null>(null);
   const [recovery, setRecovery] = useState<PendingRecovery | null>(null);
   const [error, setError] = useState<string | null>(null);
+  usePublishPurchase(result);
 
   const checkRecovery = async () => {
     setState("checking");
@@ -180,7 +181,7 @@ function QuickPurchase({ mandateId, explorerNetwork }: { mandateId: string; expl
           </a>
         </div>
       )}
-      {result && <CompletedPurchase result={result} explorerNetwork={explorerNetwork} />}
+      {result && <ReportReadyNotice />}
     </div>
   );
 }
@@ -205,7 +206,7 @@ function AssistantMessage() {
   );
 }
 
-interface PurchaseResult {
+export interface PurchaseResult {
   source: { id: string; title: string };
   payment: { status: string; amount: string; asset: string; txHash: string; mandateId: string };
   delivered: unknown;
@@ -280,17 +281,37 @@ function parseBrief(value: unknown): MarketBrief | null {
 }
 
 function PurchaseTool({ result, isError, args }: ToolCallMessagePartProps<{ sourceId?: string }, unknown>) {
-  const explorerNetwork = useContext(ExplorerContext);
+  usePublishPurchase(isPurchaseResult(result) ? result : null);
   if (isError) {
     return <div className="tool-card tool-error"><TriangleAlert size={15} /><div><strong>Payment stopped</strong><p>No second payment was made.</p></div></div>;
   }
   if (!isPurchaseResult(result)) {
     return <div className="tool-card"><LoaderCircle className="spin" size={15} /><div><strong>Checking your spending limit</strong><p>{args.sourceId ? "Getting your report ready" : "Getting ready"}</p></div></div>;
   }
-  return <CompletedPurchase result={result} explorerNetwork={explorerNetwork} />;
+  return <ReportReadyNotice />;
 }
 
-function CompletedPurchase({ result, explorerNetwork }: { result: PurchaseResult; explorerNetwork: "testnet" | "public" }) {
+function usePublishPurchase(result: PurchaseResult | null) {
+  const publish = useContext(PurchaseCompleteContext);
+  const publishedTx = useRef<string | null>(null);
+  useEffect(() => {
+    if (!result || publishedTx.current === result.payment.txHash) return;
+    publishedTx.current = result.payment.txHash;
+    publish(result);
+  }, [publish, result]);
+}
+
+function ReportReadyNotice() {
+  return (
+    <a className="report-ready-notice" href="#paid-research-brief">
+      <span><Check size={14} /></span>
+      <div><strong>Your report is ready</strong><p>It is displayed below this workspace.</p></div>
+      <ArrowUpRight size={14} />
+    </a>
+  );
+}
+
+export function PurchaseReport({ result, explorerNetwork, registryId, registrationTx, allowanceTx }: { result: PurchaseResult; explorerNetwork: "testnet" | "public"; registryId: string; registrationTx?: string; allowanceTx?: string }) {
   const [copied, setCopied] = useState(false);
   const brief = parseBrief(result.delivered);
   const briefRef = useRef<HTMLElement>(null);
@@ -309,30 +330,38 @@ function CompletedPurchase({ result, explorerNetwork }: { result: PurchaseResult
     briefRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [result.payment.txHash]);
 
+  if (!brief) return null;
+
   return (
-    <div className="completed-purchase">
-      <div className="tool-card tool-success payment-receipt">
-        <span className="tool-check"><Check size={14} /></span>
-        <div className="tool-body">
-          <strong>Payment complete</strong>
-          <p>Paid {result.payment.amount} {result.payment.asset}. Your report is below.</p>
-          <code className="tool-hash">{result.payment.txHash.slice(0, 8)}…{result.payment.txHash.slice(-8)}</code>
-          <div className="tool-actions">
-            <button type="button" onClick={async () => {
-              await navigator.clipboard.writeText(result.payment.txHash);
-              setCopied(true);
-              window.setTimeout(() => setCopied(false), 1_500);
-            }} aria-label="Copy payment transaction ID">
-              {copied ? <Check size={12} /> : <Copy size={12} />} {copied ? "Copied" : "Copy transaction"}
-            </button>
-            <a href={`https://stellar.expert/explorer/${explorerNetwork}/tx/${result.payment.txHash}`} target="_blank" rel="noreferrer" aria-label="Open payment in Stellar Explorer">
-              <ArrowUpRight size={12} /> View transaction
-            </a>
-          </div>
-        </div>
-      </div>
-      {brief && (
-        <article className="research-brief" ref={briefRef} aria-labelledby="research-brief-title">
+    <section id="paid-research-brief" className="report-section shell" ref={briefRef} aria-labelledby="research-brief-title">
+      <header className="report-section-head">
+        <p className="eyebrow success">YOUR PAID RESEARCH</p>
+        <h2>Report, payment proof, and sources</h2>
+        <p>Everything from this purchase is collected below.</p>
+      </header>
+      <div className="report-layout">
+        <aside className="report-rail report-proof-rail" aria-label="Payment proof">
+          <div className="report-rail-heading"><span><Check size={14} /></span><div><small>PAYMENT</small><strong>Complete</strong></div></div>
+          <div className="report-amount"><small>Paid on {explorerNetwork === "public" ? "Mainnet" : "Testnet"}</small><strong>{result.payment.amount} <span>{result.payment.asset}</span></strong></div>
+          <div className="report-hash"><small>Transaction</small><code>{result.payment.txHash.slice(0, 8)}…{result.payment.txHash.slice(-8)}</code></div>
+          <button type="button" className="report-copy" onClick={async () => {
+            await navigator.clipboard.writeText(result.payment.txHash);
+            setCopied(true);
+            window.setTimeout(() => setCopied(false), 1_500);
+          }} aria-label="Copy payment transaction ID">
+            {copied ? <Check size={13} /> : <Copy size={13} />} {copied ? "Copied" : "Copy transaction"}
+          </button>
+          <a className="report-link primary" href={`https://stellar.expert/explorer/${explorerNetwork}/tx/${result.payment.txHash}`} target="_blank" rel="noreferrer" aria-label="Open payment in Stellar Explorer">
+            <span>View payment</span><ArrowUpRight size={14} />
+          </a>
+          {registrationTx && <a className="report-link" href={`https://stellar.expert/explorer/${explorerNetwork}/tx/${registrationTx}`} target="_blank" rel="noreferrer"><span>View spending limit</span><ArrowUpRight size={14} /></a>}
+          {allowanceTx && <a className="report-link" href={`https://stellar.expert/explorer/${explorerNetwork}/tx/${allowanceTx}`} target="_blank" rel="noreferrer"><span>View USDC approval</span><ArrowUpRight size={14} /></a>}
+          <a className="report-link" href={`https://stellar.expert/explorer/${explorerNetwork}/contract/${registryId}`} target="_blank" rel="noreferrer" aria-label="Open payment contract in Stellar Explorer">
+            <span>View payment contract</span><ArrowUpRight size={14} />
+          </a>
+        </aside>
+
+        <article className="research-brief report-document">
           <header className="brief-header">
             <div className="brief-kicker"><span />{brief.kicker}</div>
             <h2 id="research-brief-title">{brief.title}</h2>
@@ -350,21 +379,22 @@ function CompletedPurchase({ result, explorerNetwork }: { result: PurchaseResult
               ))}
             </div>
             <aside className="brief-takeaway"><span>THE TAKEAWAY</span><p>{brief.takeaway}</p></aside>
-            <section className="brief-sources" aria-label="Research sources">
-              <div><span>SOURCES</span><small>Open the original evidence</small></div>
-              <ol>
-                {brief.sources.map((source, index) => (
-                  <li key={source.url}>
-                    <span>{String(index + 1).padStart(2, "0")}</span>
-                    <a href={source.url} target="_blank" rel="noreferrer"><b>{source.publisher}</b><small>{source.title}</small></a>
-                    <ArrowUpRight size={14} />
-                  </li>
-                ))}
-              </ol>
-            </section>
           </div>
         </article>
-      )}
-    </div>
+
+        <aside className="report-rail report-source-rail" aria-label="Research sources">
+          <div className="report-sources-head"><small>SOURCES</small><strong>Original evidence</strong><p>Open the references used in this report.</p></div>
+          <ol>
+            {brief.sources.map((source, index) => (
+              <li key={source.url}>
+                <span>{String(index + 1).padStart(2, "0")}</span>
+                <a href={source.url} target="_blank" rel="noreferrer"><b>{source.publisher}</b><small>{source.title}</small></a>
+                <ArrowUpRight size={14} />
+              </li>
+            ))}
+          </ol>
+        </aside>
+      </div>
+    </section>
   );
 }

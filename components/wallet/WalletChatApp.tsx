@@ -29,7 +29,7 @@ import type { IntentMandate } from "@ackrate/core";
 import { approveWithFreighter, buildMandate, registerWithFreighter, revokeWithFreighter } from "@/lib/wallet/mandate-client";
 import type { MandateView, SafeAppConfig, SessionView } from "@/lib/wallet/types";
 import { addTokenToFreighter, connectFreighter, signFreighterTransaction } from "@/lib/wallet/freighter";
-import { AssistantThread } from "./AssistantThread";
+import { AssistantThread, PurchaseReport, type PurchaseResult } from "./AssistantThread";
 
 type Phase = "idle" | "authenticating" | "adding-asset" | "registering" | "approving" | "active" | "revoking";
 
@@ -112,6 +112,7 @@ export function WalletChatApp() {
   const [disconnectOpen, setDisconnectOpen] = useState(false);
   const [usdcReady, setUsdcReady] = useState(false);
   const [nowSeconds, setNowSeconds] = useState(() => Math.floor(Date.now() / 1_000));
+  const [completedPurchase, setCompletedPurchase] = useState<PurchaseResult | null>(null);
 
   const refreshMandate = useCallback(async (current: StoredMandate) => {
     const body = await api<{ mandate: MandateView }>("/api/wallet/mandate/status", {
@@ -200,6 +201,7 @@ export function WalletChatApp() {
   const activate = async () => {
     if (!config || !session.address || !config.ready) return;
     setError(null);
+    setCompletedPurchase(null);
     try {
       const expiry = Math.floor(Date.now() / 1_000) + Number(duration) * 60;
       const intent = buildMandate(config, session.address, { budget, expiry });
@@ -316,6 +318,7 @@ export function WalletChatApp() {
     setMandate(null);
     setStored(null);
     setUsdcReady(false);
+    setCompletedPurchase(null);
     setPhase("idle");
     setDisconnectOpen(false);
     setNotice("Wallet disconnected. Connect a wallet to start again.");
@@ -455,7 +458,7 @@ export function WalletChatApp() {
             <div className={`agent-status ${mandateOnline ? "online" : ""}`}><span /> {mandateOnline ? "READY TO BUY" : "SET UP FIRST"}</div>
           </div>
           {mandateOnline && mandate && config ? (
-            <AssistantThread mandateId={mandate.id} asset={config.asset.code} explorerNetwork={config.explorerNetwork} />
+            <AssistantThread mandateId={mandate.id} asset={config.asset.code} explorerNetwork={config.explorerNetwork} onPurchaseComplete={setCompletedPurchase} />
           ) : (
             <div className="chat-locked">
               <div className="lock-rings"><LockKeyhole size={27} /></div>
@@ -497,6 +500,16 @@ export function WalletChatApp() {
           )}
         </aside>
       </section>
+
+      {completedPurchase && config && (
+        <PurchaseReport
+          result={completedPurchase}
+          explorerNetwork={config.explorerNetwork}
+          registryId={config.mandateRegistryId}
+          registrationTx={stored?.registrationTx}
+          allowanceTx={stored?.allowanceTx}
+        />
+      )}
 
       {disconnectOpen && session.authenticated && (
         <div className="disconnect-overlay" role="presentation">
