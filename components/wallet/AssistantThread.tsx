@@ -29,10 +29,10 @@ export function AssistantThread({ mandateId, asset, explorerNetwork }: { mandate
           <ThreadPrimitive.Empty>
             <div className="chat-empty">
               <div className="agent-orb"><Bot size={22} /></div>
-              <p className="eyebrow success">MANDATE ONLINE</p>
-              <h3>Your agent has boundaries.</h3>
-              <p>Ask for a listed source. Every payment is re-checked and consumed atomically by MandateRegistry.</p>
-              <div className="chat-prompt">Use the verified purchase control above. Natural-language requests remain available below.</div>
+              <p className="eyebrow success">READY TO BUY</p>
+              <h3>Your agent follows your limit.</h3>
+              <p>Buy the brief above. Ackrate checks your spending limit before money moves.</p>
+              <div className="chat-prompt">Use the green button above, or ask the agent below.</div>
             </div>
           </ThreadPrimitive.Empty>
           <ThreadPrimitive.Messages
@@ -41,15 +41,15 @@ export function AssistantThread({ mandateId, asset, explorerNetwork }: { mandate
           <div className="composer-wrap">
             <ComposerPrimitive.Root className="composer-root">
               <ComposerPrimitive.Input
-                aria-label="Message the ACKRATE agent"
+                aria-label="Message the Ackrate agent"
                 className="composer-input"
-                placeholder="Ask the agent to purchase a source…"
+                placeholder="Ask the agent to buy something…"
               />
               <ComposerPrimitive.Send className="composer-send" aria-label="Send message">
                 <ArrowUp size={17} />
               </ComposerPrimitive.Send>
             </ComposerPrimitive.Root>
-            <p><CircleDollarSign size={12} /> Payments settle in {asset}. The contract—not the model—enforces the mandate.</p>
+            <p><CircleDollarSign size={12} /> Payments use {asset}. Ackrate checks your limit every time.</p>
           </div>
         </ThreadPrimitive.Viewport>
       </ThreadPrimitive.Root>
@@ -78,7 +78,7 @@ function QuickPurchase({ mandateId, explorerNetwork }: { mandateId: string; expl
       if (pendingRecovery) {
         setRecovery(pendingRecovery);
         setState("recovery");
-        setError("Payment complete. Tap the green button to get your brief. You will not pay again.");
+        setError("Your payment went through. Tap the green button to get your brief. You will not pay again.");
       } else {
         setRecovery(null);
         setState("idle");
@@ -86,7 +86,7 @@ function QuickPurchase({ mandateId, explorerNetwork }: { mandateId: string; expl
     } catch {
       setRecovery(null);
       setState("check_failed");
-      setError("Settlement status could not be confirmed. Payment remains disabled; retry the settlement check.");
+      setError("We could not check your last payment. Tap Check payment before trying to pay.");
     }
   };
 
@@ -122,7 +122,7 @@ function QuickPurchase({ mandateId, explorerNetwork }: { mandateId: string; expl
       const budgetReached = /Contract,\s*#6|BudgetExceeded|budget.*(?:exceed|remaining|enough)/i.test(message);
       setError(budgetReached
         ? "You have used this spending limit. No payment was made."
-        : "We could not finish that purchase. Your payment status is protected; try the check again.");
+        : "We could not finish. Tap Check payment before trying again.");
       setState("error");
     }
   };
@@ -147,7 +147,7 @@ function QuickPurchase({ mandateId, explorerNetwork }: { mandateId: string; expl
       setState("success");
       window.dispatchEvent(new Event("ackrate-mandate-updated"));
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
+      setError("We could not open your brief. Try again. You will not pay again.");
       setState("recovery");
     }
   };
@@ -156,14 +156,14 @@ function QuickPurchase({ mandateId, explorerNetwork }: { mandateId: string; expl
     <div className="quick-purchase">
       <div>
         <p className="eyebrow success">YOUR PURCHASE</p>
-        <strong>Get the market signal brief</strong>
+        <strong>Buy a market report</strong>
         <span>{state === "recovery" || state === "recovering"
-          ? "You already paid. Get your brief below."
-          : "Costs $0.01 USDC. Your spending limit is checked automatically."}</span>
+          ? "You already paid. Get your report below."
+          : "Costs $0.01 USDC. Ackrate checks your limit first."}</span>
       </div>
       <button type="button" onClick={state === "recovery" ? recover : state === "check_failed" ? checkRecovery : purchase} disabled={state === "running" || state === "recovering" || state === "checking"}>
         {state === "running" || state === "recovering" ? <LoaderCircle className="spin" size={15} /> : <CircleDollarSign size={15} />}
-        {state === "running" ? "Paying securely…" : state === "recovering" ? "Opening your brief…" : state === "checking" ? "Checking your last payment…" : state === "check_failed" ? "Check again" : state === "recovery" ? "Get my brief — already paid" : "Pay $0.01 and get the brief"}
+        {state === "running" ? "Paying…" : state === "recovering" ? "Opening your report…" : state === "checking" ? "Checking your last payment…" : state === "check_failed" ? "Check payment" : state === "recovery" ? "Get my report — no new charge" : "Pay $0.01 and get the report"}
       </button>
       {result && <CompletedPurchase result={result} explorerNetwork={explorerNetwork} />}
       {error && (
@@ -176,7 +176,7 @@ function QuickPurchase({ mandateId, explorerNetwork }: { mandateId: string; expl
         <div className="quick-purchase-evidence">
           <code>{recovery.txHash.slice(0, 8)}…{recovery.txHash.slice(-8)}</code>
           <a href={`https://stellar.expert/explorer/${explorerNetwork}/tx/${recovery.txHash}`} target="_blank" rel="noreferrer" aria-label="Open settled payment in Stellar Explorer">
-            <ArrowUpRight size={12} /> See my payment on Stellar Explorer
+            <ArrowUpRight size={12} /> View transaction
           </a>
         </div>
       )}
@@ -240,10 +240,10 @@ function isPurchaseResult(value: unknown): value is PurchaseResult {
 function PurchaseTool({ result, isError, args }: ToolCallMessagePartProps<{ sourceId?: string }, unknown>) {
   const explorerNetwork = useContext(ExplorerContext);
   if (isError) {
-    return <div className="tool-card tool-error"><TriangleAlert size={15} /><div><strong>Payment stopped safely</strong><p>The request failed before a second payment could be issued.</p></div></div>;
+    return <div className="tool-card tool-error"><TriangleAlert size={15} /><div><strong>Payment stopped</strong><p>No second payment was made.</p></div></div>;
   }
   if (!isPurchaseResult(result)) {
-    return <div className="tool-card"><LoaderCircle className="spin" size={15} /><div><strong>Checking mandate + settlement</strong><p>{args.sourceId ? `Preparing ${args.sourceId}` : "Preparing allowlisted source"}</p></div></div>;
+    return <div className="tool-card"><LoaderCircle className="spin" size={15} /><div><strong>Checking your spending limit</strong><p>{args.sourceId ? "Getting your report ready" : "Getting ready"}</p></div></div>;
   }
   return <CompletedPurchase result={result} explorerNetwork={explorerNetwork} />;
 }
@@ -266,7 +266,7 @@ function CompletedPurchase({ result, explorerNetwork }: { result: PurchaseResult
       <span className="tool-check"><Check size={14} /></span>
       <div className="tool-body">
         <strong>{result.source.title}</strong>
-        <p>Paid {result.payment.amount} {result.payment.asset}. Your brief is ready.</p>
+        <p>Paid {result.payment.amount} {result.payment.asset}. Your report is ready.</p>
         <code className="tool-hash">{result.payment.txHash.slice(0, 8)}…{result.payment.txHash.slice(-8)}</code>
         <div className="tool-actions">
           <button type="button" onClick={async () => {
@@ -274,10 +274,10 @@ function CompletedPurchase({ result, explorerNetwork }: { result: PurchaseResult
             setCopied(true);
             window.setTimeout(() => setCopied(false), 1_500);
           }} aria-label="Copy payment transaction ID">
-            {copied ? <Check size={12} /> : <Copy size={12} />} {copied ? "Copied" : "Copy payment ID"}
+            {copied ? <Check size={12} /> : <Copy size={12} />} {copied ? "Copied" : "Copy transaction"}
           </button>
-          <a href={`https://stellar.expert/explorer/${explorerNetwork}/tx/${result.payment.txHash}`} target="_blank" rel="noreferrer" aria-label="Open settlement transaction in Stellar Explorer">
-            <ArrowUpRight size={12} /> See payment
+          <a href={`https://stellar.expert/explorer/${explorerNetwork}/tx/${result.payment.txHash}`} target="_blank" rel="noreferrer" aria-label="Open payment in Stellar Explorer">
+            <ArrowUpRight size={12} /> View transaction
           </a>
         </div>
       </div>

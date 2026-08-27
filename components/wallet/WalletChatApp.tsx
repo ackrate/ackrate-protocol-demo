@@ -166,7 +166,7 @@ export function WalletChatApp() {
   const connect = async () => {
     if (!config) return;
     setError(null);
-    setNotice("Open Freighter and approve the connection request.");
+    setNotice("Open Freighter and connect your wallet.");
     setPhase("authenticating");
     try {
       const address = await connectFreighter(config.networkPassphrase);
@@ -175,7 +175,7 @@ export function WalletChatApp() {
         method: "POST",
         body: JSON.stringify({ address }),
       });
-      setNotice("Approve the non-broadcast authentication transaction in Freighter.");
+      setNotice("Approve the sign-in request in Freighter. This does not send money.");
       const signedTransactionXdr = await signFreighterTransaction(
         challenge.transactionXdr,
         address,
@@ -186,10 +186,10 @@ export function WalletChatApp() {
         body: JSON.stringify({ signedTransactionXdr }),
       });
       setSession(verified.session);
-      setNotice("Freighter verified. Your session is bound to this wallet and network.");
+      setNotice("Wallet connected.");
       setPhase("idle");
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
+      setError("Could not connect. Open Freighter, choose Mainnet, and try again.");
       setNotice(null);
       setPhase("idle");
     }
@@ -213,20 +213,20 @@ export function WalletChatApp() {
       };
       saveStored(next);
       setPhase("registering");
-      setNotice("Review and approve the mandate registration in Freighter.");
+      setNotice("Approve your spending limit in Freighter.");
       const registrationTx = await registerWithFreighter(config, intent);
       next = { ...next, registrationTx };
       saveStored(next);
       setPhase("approving");
-      setNotice("One final Freighter approval: allowance goes to MandateRegistry, never the agent.");
+      setNotice("One more Freighter approval lets Ackrate use USDC within your limit.");
       const allowanceTx = await approveWithFreighter(config, intent);
       next = { ...next, allowanceTx };
       saveStored(next);
       await refreshMandate(next);
-      setNotice("Mandate active. The agent can spend only inside the on-chain envelope.");
+      setNotice("Spending is on. The agent cannot spend more than your limit.");
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
-      setNotice("The flow stopped safely. Any completed on-chain step is retained for recovery.");
+      setError("Could not finish setup. Open Freighter and follow the button on this screen.");
+      setNotice("Setup stopped safely. Follow the button on the screen to continue.");
       setPhase("idle");
     }
   };
@@ -235,12 +235,12 @@ export function WalletChatApp() {
     if (!config || config.network !== "mainnet") return;
     setError(null);
     setPhase("adding-asset");
-    setNotice("Approve adding Circle USDC in Freighter.");
+    setNotice("Approve adding USDC in Freighter.");
     try {
       await addTokenToFreighter(config.asset.contractId, config.networkPassphrase);
-      setNotice("USDC is available in Freighter. Swap a small amount of XLM to USDC, then return here.");
+      setNotice("USDC is ready in Freighter.");
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
+      setError("Could not add USDC. Open Freighter and try again.");
       setNotice(null);
     } finally {
       setPhase("idle");
@@ -256,9 +256,9 @@ export function WalletChatApp() {
       const next = { ...stored, allowanceTx };
       saveStored(next);
       await refreshMandate(next);
-      setNotice("Allowance confirmed. Mandate is ready for the agent.");
+      setNotice("Spending limit approved. The agent is ready.");
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
+      setError("Could not finish the spending limit. Open Freighter and try again.");
       setPhase("idle");
     }
   };
@@ -267,29 +267,29 @@ export function WalletChatApp() {
     if (!config || !stored) return;
     setError(null);
     setPhase("revoking");
-    setNotice("Open Freighter. Confirm this wallet, then approve turning off the mandate.");
+    setNotice("Open Freighter, choose this wallet, and approve Turn off spending.");
     try {
       const address = await connectFreighter(config.networkPassphrase);
-      if (address !== stored.user) throw new Error("Select the same Freighter account that created this mandate");
+      if (address !== stored.user) throw new Error("Select the same wallet you connected to Ackrate");
       const revokeTx = await revokeWithFreighter(config, storedToIntent(stored));
       const next = { ...stored, revokeTx };
       saveStored(next);
       await refreshMandate(next);
-      setNotice("Mandate is off. Now click Disconnect wallet from Ackrate.");
+      setNotice("Spending is off. Now click Disconnect wallet.");
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
+      setError("Could not turn off spending. Open Freighter, select the same wallet, and try again.");
       setPhase("active");
     }
   };
 
   const goToTurnOff = () => {
-    setNotice("Step 1 is highlighted below. Click Turn off mandate, then approve in Freighter.");
+    setNotice("Tap Turn off spending below, then approve in Freighter.");
     document.getElementById("turn-off-mandate")?.scrollIntoView({ behavior: "smooth", block: "center" });
   };
 
   const disconnect = async () => {
     if (mandate?.status === "Active" && mandate.expiry > Math.floor(Date.now() / 1_000)) {
-      setNotice("First turn off the mandate below. Then disconnect the wallet.");
+      setNotice("First tap Turn off spending below. Then disconnect your wallet.");
       return;
     }
 
@@ -297,8 +297,8 @@ export function WalletChatApp() {
     try {
       await api("/api/wallet/auth/session", { method: "DELETE", body: "{}" });
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
-      setNotice("Ackrate could not disconnect yet. Your current screen was kept so you can try again.");
+      setError("Could not disconnect. Please try again.");
+      setNotice("Your wallet is still connected.");
       return;
     }
 
@@ -311,7 +311,7 @@ export function WalletChatApp() {
     setMandate(null);
     setStored(null);
     setPhase("idle");
-    setNotice("Disconnected. Connect a wallet to start a fresh setup.");
+    setNotice("Wallet disconnected. Connect a wallet to start again.");
   };
 
   const mandateOnline = Boolean(mandate?.status === "Active" && mandate.expiry > nowSeconds);
@@ -332,27 +332,27 @@ export function WalletChatApp() {
       <div className="aurora" aria-hidden />
       <header className="topbar">
         <Link href="/" className="brand"><span>R</span> ACKRATE</Link>
-        <div className="topbar-center"><span className="pulse-dot" /> Mandate control room</div>
+        <div className="topbar-center"><span className="pulse-dot" /> Wallet & payments</div>
         <div className="topbar-actions">
           <Link href="/wallet/diagnostics" className="nav-link">Diagnostics</Link>
           {session.authenticated ? (
-            <button className="wallet-pill" onClick={mandateOnline ? goToTurnOff : disconnect} title={mandateOnline ? "Go to Turn off mandate" : "Disconnect wallet from Ackrate"}><span className="wallet-led" /> {short(session.address, 5)} <Power size={13} /></button>
+            <button className="wallet-pill" onClick={mandateOnline ? goToTurnOff : disconnect} title="Disconnect wallet"><Power size={13} /> Disconnect wallet</button>
           ) : (
-            <button className="wallet-pill" onClick={connect} disabled={!config || phase === "authenticating"}><WalletCards size={14} /> Connect Freighter</button>
+            <button className="wallet-pill" onClick={connect} disabled={!config || phase === "authenticating"}><WalletCards size={14} /> Connect wallet</button>
           )}
         </div>
       </header>
 
       <section className="hero shell">
         <div>
-          <div className="status-chip"><Sparkles size={13} /> CONTRACT-ENFORCED AGENT PAYMENTS</div>
-          <h1>Give the agent a budget.<br /><span>Keep the authority.</span></h1>
-          <p>Sign with Freighter. MandateRegistry re-checks the agent, merchant, asset, expiry, and remaining budget every time value moves.</p>
+          <div className="status-chip"><Sparkles size={13} /> SAFE AGENT PAYMENTS</div>
+          <h1>Choose what the agent can spend.<br /><span>Stay in control.</span></h1>
+          <p>You choose the limit. Ackrate checks it before every payment.</p>
         </div>
         <div className="network-card glass">
           <div className="network-card-top">
-            <span><Activity size={14} /> NETWORK</span>
-            <b className={config?.ready ? "online" : "blocked"}>{config?.ready ? "READY" : "GATED"}</b>
+            <span><Activity size={14} /> PAYMENT NETWORK</span>
+            <b className={config?.ready ? "online" : "blocked"}>{config?.ready ? "READY" : "NOT READY"}</b>
           </div>
           <strong>{config?.networkLabel ?? "Loading network…"}</strong>
           <code>{short(config?.mandateRegistryId, 9)}</code>
@@ -362,9 +362,9 @@ export function WalletChatApp() {
 
       <section className="steps shell" aria-label="Activation progress">
         {[
-          [1, "Wallet", "Authenticate with Freighter"],
-          [2, "Mandate", "Register + approve"],
-          [3, "Agent", "Chat + settle"],
+          [1, "Wallet", "Connect your wallet"],
+          [2, "Spending", "Choose a limit"],
+          [3, "Buy", "Pay with the agent"],
         ].map(([number, title, caption], index) => (
           <div className={`step ${progress >= Number(number) ? "complete" : ""}`} key={String(title)}>
             <span>{progress > Number(number) ? <Check size={15} /> : number}</span>
@@ -377,64 +377,65 @@ export function WalletChatApp() {
       <section className="workspace shell">
         <aside className="control-column">
           <div className="panel glass wallet-panel">
-            <div className="panel-heading"><div><p className="eyebrow">01 · WALLET</p><h2>Freighter authority</h2></div><div className={`icon-tile ${session.authenticated ? "live" : ""}`}><WalletCards size={19} /></div></div>
+            <div className="panel-heading"><div><p className="eyebrow">01 · WALLET</p><h2>Your wallet</h2></div><div className={`icon-tile ${session.authenticated ? "live" : ""}`}><WalletCards size={19} /></div></div>
             {session.authenticated ? (
               <div className="connected-state">
-                <div className="identity-line"><span className="wallet-led" /><div><small>Authenticated account</small><code>{short(session.address, 9)}</code></div><ShieldCheck size={18} /></div>
-                <p><LockKeyhole size={13} /> Session verified by a signed, non-broadcast Stellar transaction.</p>
+                <div className="identity-line"><span className="wallet-led" /><div><small>Connected wallet</small><code>{short(session.address, 9)}</code></div><ShieldCheck size={18} /></div>
+                <p><LockKeyhole size={13} /> Your wallet is connected.</p>
                 <button className={`disconnect-button ${mandateOnline ? "step-link" : ""}`} onClick={mandateOnline ? goToTurnOff : disconnect}>
-                  <Power size={15} /> {mandateOnline ? "Go to Step 1: Turn off mandate" : stored?.revokeTx ? "2. Disconnect wallet from Ackrate" : "Disconnect wallet from Ackrate"}
+                  <Power size={15} /> Disconnect wallet
                 </button>
-                {mandateOnline && <p className="disconnect-help">The wallet stays connected until the agent is safely turned off.</p>}
+                {mandateOnline && <p className="disconnect-help">First turn off spending below. Then tap Disconnect wallet again.</p>}
                 {config?.network === "mainnet" && (
                   <button className="secondary-button" onClick={addUsdc} disabled={phase === "adding-asset"}>
-                    <CircleDollarSign size={15} /> {phase === "adding-asset" ? "Waiting for Freighter…" : "Add Circle USDC"}
+                    <CircleDollarSign size={15} /> {phase === "adding-asset" ? "Waiting for Freighter…" : "Add USDC to wallet"}
                   </button>
                 )}
               </div>
             ) : (
               <>
-                <p className="panel-copy">Connect Freighter on Mainnet. Signing stays inside Freighter; this app never receives your recovery phrase or secret key.</p>
-                <button className="primary-button" onClick={connect} disabled={!config || phase === "authenticating"}><WalletCards size={16} /> {phase === "authenticating" ? "Waiting for Freighter…" : "Connect Freighter"}</button>
+                <p className="panel-copy">Connect your Freighter wallet to begin. Ackrate never sees your secret phrase.</p>
+                <button className="primary-button" onClick={connect} disabled={!config || phase === "authenticating"}><WalletCards size={16} /> {phase === "authenticating" ? "Waiting for Freighter…" : "Connect wallet"}</button>
               </>
             )}
           </div>
 
           <div className={`panel glass mandate-panel ${!session.authenticated ? "muted" : ""}`}>
-            <div className="panel-heading"><div><p className="eyebrow">02 · MANDATE</p><h2>Set the boundary</h2></div><div className={`icon-tile ${mandateOnline ? "live" : ""}`}><Fingerprint size={19} /></div></div>
+            <div className="panel-heading"><div><p className="eyebrow">02 · SPENDING</p><h2>Set a spending limit</h2></div><div className={`icon-tile ${mandateOnline ? "live" : ""}`}><Fingerprint size={19} /></div></div>
             {stored?.revokeTx && mandate?.status !== "Active" ? (
               <div className="mandate-active">
-                <div className="active-banner mandate-off"><span><Check size={15} /></span><div><small>On-chain status</small><strong>Mandate off</strong></div></div>
-                <p className="shutdown-copy">The agent cannot spend. Finish by disconnecting this wallet from Ackrate.</p>
-                <button className="disconnect-button" onClick={disconnect}><Power size={15} /> 2. Disconnect wallet from Ackrate</button>
+                <div className="active-banner mandate-off"><span><Check size={15} /></span><div><small>Status</small><strong>Spending is off</strong></div></div>
+                <p className="shutdown-copy">The agent cannot spend now.</p>
+                <TransactionEvidence label="Spending turned off" hash={stored.revokeTx} explorer={explorer} />
+                <button className="disconnect-button" onClick={disconnect}><Power size={15} /> Disconnect wallet</button>
               </div>
             ) : !currentMandate ? (
               <>
-                <label>Maximum spend<div className="money-input"><span>{config?.asset.code ?? "ASSET"}</span><input value={budget} onChange={(event) => setBudget(event.target.value)} inputMode="decimal" disabled={!session.authenticated || Boolean(storedFresh && stored?.registrationTx)} /></div></label>
-                <label>Expires after<select value={duration} onChange={(event) => setDuration(event.target.value)} disabled={!session.authenticated || Boolean(storedFresh && stored?.registrationTx)}><option value="30">30 minutes</option><option value="60">1 hour</option><option value="360">6 hours</option><option value="1440">24 hours</option></select></label>
-                <div className="scope-box"><div><span>Agent</span><code>{short(config?.agentAddress, 6)}</code></div><div><span>Merchant</span><code>{config?.merchant.name ?? "Not configured"}</code></div><div><span>Asset</span><code>{config?.asset.code ?? "—"}</code></div></div>
+                <label>How much can the agent spend?<div className="money-input"><span>{config?.asset.code ?? "ASSET"}</span><input value={budget} onChange={(event) => setBudget(event.target.value)} inputMode="decimal" disabled={!session.authenticated || Boolean(storedFresh && stored?.registrationTx)} /></div></label>
+                <label>How long should it last?<select value={duration} onChange={(event) => setDuration(event.target.value)} disabled={!session.authenticated || Boolean(storedFresh && stored?.registrationTx)}><option value="30">30 minutes</option><option value="60">1 hour</option><option value="360">6 hours</option><option value="1440">24 hours</option></select></label>
+                <div className="scope-box"><div><span>Agent wallet</span><code>{short(config?.agentAddress, 6)}</code></div><div><span>Who gets paid</span><code>{config?.merchant.name ?? "Not configured"}</code></div><div><span>Money used</span><code>{config?.asset.code ?? "—"}</code></div></div>
                 {stored?.registrationTx && !stored.allowanceTx ? (
-                  <button className="primary-button" onClick={retryAllowance} disabled={phase === "approving"}><RefreshCw size={16} /> {phase === "approving" ? "Waiting for Freighter…" : "Finish allowance approval"}</button>
+                  <button className="primary-button" onClick={retryAllowance} disabled={phase === "approving"}><RefreshCw size={16} /> {phase === "approving" ? "Waiting for Freighter…" : "Finish setup"}</button>
                 ) : (
                   <button className={`primary-button ${mandateBusy ? "busy" : ""}`} onClick={activate} disabled={!session.authenticated || !config?.ready || mandateBusy}>
                     {mandateBusy ? <LoaderCircle className="activation-spinner" size={17} /> : <Zap size={16} />}
-                    {phase === "registering" ? "Securing your mandate…" : phase === "approving" ? "Finalizing your allowance…" : "Sign & activate mandate"}
+                    {phase === "registering" ? "Saving your limit…" : phase === "approving" ? "Finishing setup…" : "Approve spending limit"}
                   </button>
                 )}
                 {mandateBusy && (
                   <div className="activation-progress" role="status" aria-live="polite">
                     <span className="activation-orbit" aria-hidden><i /><i /><i /></span>
-                    <span><strong>Preparing Mainnet approval</strong><small>Keep this window open. Freighter appears when the transaction is ready.</small></span>
+                    <span><strong>Preparing Freighter</strong><small>Keep this window open. Freighter will ask you to approve.</small></span>
                   </div>
                 )}
-                <p className="fine-print"><ShieldCheck size={12} /> Allowance is granted only to MandateRegistry—not the agent or this app.</p>
+                <p className="fine-print"><ShieldCheck size={12} /> The agent cannot spend more than this limit.</p>
               </>
             ) : (
               <div className="mandate-active">
-                <div className="active-banner"><span><Check size={15} /></span><div><small>On-chain status</small><strong>Active mandate</strong></div></div>
-                <div className="mandate-id"><span>Mandate ID</span><code>{short(currentMandate.id, 9)}</code></div>
-                <p className="shutdown-copy">To disconnect safely, turn off the agent first. Freighter will ask you to approve.</p>
-                <button id="turn-off-mandate" className="danger-button" onClick={revoke} disabled={phase === "revoking"}><X size={15} /> {phase === "revoking" ? "Waiting for Freighter…" : "1. Turn off mandate"}</button>
+                <div className="active-banner"><span><Check size={15} /></span><div><small>Status</small><strong>Spending is on</strong></div></div>
+                <div className="mandate-id"><span>Spending limit ID</span><code>{short(currentMandate.id, 9)}</code></div>
+                <p className="shutdown-copy">Turn off spending before you disconnect your wallet.</p>
+                <button id="turn-off-mandate" className="danger-button" onClick={revoke} disabled={phase === "revoking"}><X size={15} /> {phase === "revoking" ? "Waiting for Freighter…" : "Turn off spending"}</button>
               </div>
             )}
           </div>
@@ -442,51 +443,51 @@ export function WalletChatApp() {
 
         <section className="panel glass chat-panel">
           <div className="chat-head">
-            <div className="agent-title"><div className="agent-orb"><Bot size={21} /></div><div><p className="eyebrow">03 · CONSUMER AGENT</p><h2>Research console</h2></div></div>
-            <div className={`agent-status ${mandateOnline ? "online" : ""}`}><span /> {mandateOnline ? "MANDATE ONLINE" : "AWAITING MANDATE"}</div>
+            <div className="agent-title"><div className="agent-orb"><Bot size={21} /></div><div><p className="eyebrow">03 · BUY</p><h2>Buy a research brief</h2></div></div>
+            <div className={`agent-status ${mandateOnline ? "online" : ""}`}><span /> {mandateOnline ? "READY TO BUY" : "SET UP FIRST"}</div>
           </div>
           {mandateOnline && mandate && config ? (
             <AssistantThread mandateId={mandate.id} asset={config.asset.code} explorerNetwork={config.explorerNetwork} />
           ) : (
             <div className="chat-locked">
               <div className="lock-rings"><LockKeyhole size={27} /></div>
-              <p className="eyebrow">AGENT LOCKED</p>
-              <h3>Authority comes first.</h3>
-              <p>Connect Freighter, register the mandate, and approve the contract allowance. Chat unlocks only after the on-chain state reads Active.</p>
+              <p className="eyebrow">NOT READY</p>
+              <h3>Connect your wallet first.</h3>
+              <p>Connect your wallet and approve a spending limit. Then you can buy.</p>
             </div>
           )}
         </section>
 
         <aside className="evidence-column">
           <div className="panel glass authority-card">
-            <div className="panel-heading"><div><p className="eyebrow">LIVE AUTHORITY</p><h2>Spending envelope</h2></div><CircleDollarSign size={20} /></div>
+            <div className="panel-heading"><div><p className="eyebrow">SPENDING</p><h2>Your limit</h2></div><CircleDollarSign size={20} /></div>
             <div className="remaining"><span>Remaining</span><strong>{remaining} <small>{config?.asset.code ?? ""}</small></strong></div>
             <div className="meter"><span style={{ width: `${Math.min(100, usedPercent)}%` }} /></div>
-            <div className="budget-row"><div><span>Spent</span><strong>{spent}</strong></div><div><span>Budget</span><strong>{currentMandate && config ? formatUnits(currentMandate.maxAmount, config.asset.decimals) : budget}</strong></div></div>
+            <div className="budget-row"><div><span>Spent</span><strong>{spent}</strong></div><div><span>Limit</span><strong>{currentMandate && config ? formatUnits(currentMandate.maxAmount, config.asset.decimals) : budget}</strong></div></div>
             <div className="authority-list">
               <div><Clock3 size={14} /><span>Expires</span><strong>{expires ? new Date(expires * 1_000).toLocaleString() : "Not signed"}</strong></div>
-              <div><Fingerprint size={14} /><span>Sequence</span><strong>{currentMandate?.seq ?? 0}</strong></div>
-              <div><Database size={14} /><span>State</span><strong>{config?.durableState ? "Durable" : "Local preview"}</strong></div>
+              <div><Fingerprint size={14} /><span>Payments made</span><strong>{currentMandate?.seq ?? 0}</strong></div>
+              <div><Database size={14} /><span>Saved</span><strong>{config?.durableState ? "Yes" : "Not yet"}</strong></div>
             </div>
           </div>
 
           <div className="panel glass proof-card">
-            <div className="panel-heading"><div><p className="eyebrow">CHAIN EVIDENCE</p><h2>Verifiable by default</h2></div><ExternalLink size={18} /></div>
-            <a href={config?.mandateRegistryId ? `${explorer}/contract/${config.mandateRegistryId}` : "#"} target="_blank" rel="noreferrer"><span>MandateRegistry</span><code>{short(config?.mandateRegistryId, 6)}</code><ArrowUpRight size={14} /></a>
-            {stored?.registrationTx && <TransactionEvidence label="Registration" hash={stored.registrationTx} explorer={explorer} />}
-            {stored?.allowanceTx && <TransactionEvidence label="Allowance" hash={stored.allowanceTx} explorer={explorer} />}
-            {stored?.revokeTx && <TransactionEvidence label="Revocation" hash={stored.revokeTx} explorer={explorer} />}
+            <div className="panel-heading"><div><p className="eyebrow">TRANSACTIONS</p><h2>View on Stellar</h2></div><ExternalLink size={18} /></div>
+            <a href={config?.mandateRegistryId ? `${explorer}/contract/${config.mandateRegistryId}` : "#"} target="_blank" rel="noreferrer"><span>Payment contract</span><code>{short(config?.mandateRegistryId, 6)}</code><ArrowUpRight size={14} /></a>
+            {stored?.registrationTx && <TransactionEvidence label="Spending limit" hash={stored.registrationTx} explorer={explorer} />}
+            {stored?.allowanceTx && <TransactionEvidence label="USDC approval" hash={stored.allowanceTx} explorer={explorer} />}
+            {stored?.revokeTx && <TransactionEvidence label="Spending turned off" hash={stored.revokeTx} explorer={explorer} />}
           </div>
 
           {config && !config.ready && (
-            <div className="panel gate-card"><TriangleAlert size={18} /><div><strong>Release gate closed</strong><p>{config.blockers.length} configuration item{config.blockers.length === 1 ? "" : "s"} remain. No mainnet fallback is permitted.</p></div></div>
+            <div className="panel gate-card"><TriangleAlert size={18} /><div><strong>Not ready yet</strong><p>Please try again later.</p></div></div>
           )}
         </aside>
       </section>
 
       {(notice || error) && <div className={`toast ${error ? "error" : ""}`}><span>{error ? <TriangleAlert size={16} /> : <Check size={16} />}</span><p>{error ?? notice}</p><button onClick={() => { setError(null); setNotice(null); }} aria-label="Dismiss"><X size={14} /></button></div>}
 
-      <footer className="footer shell"><div><ShieldCheck size={15} /> Protocol-enforced spending limits</div><p>SDK, model, and interface are untrusted. MandateRegistry decides whether value moves.</p><Link href="/wallet/diagnostics">Release diagnostics <ArrowUpRight size={13} /></Link></footer>
+      <footer className="footer shell"><div><ShieldCheck size={15} /> Your spending limit is checked every time</div><p>Ackrate decides if a payment is allowed.</p><Link href="/wallet/diagnostics">Technical details <ArrowUpRight size={13} /></Link></footer>
     </main>
   );
 }

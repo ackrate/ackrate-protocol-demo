@@ -52,7 +52,7 @@ test("wallet exposes a deterministic real-payment control without an LLM depende
   const purchase = read("app/api/wallet/purchase/route.ts");
   const recovery = read("app/api/wallet/purchase/recovery/route.ts");
 
-  assert.match(thread, /Pay \$0\.01 and get the brief/);
+  assert.match(thread, /Pay \$0\.01 and get the report/);
   assert.match(thread, /"\/api\/wallet\/purchase"/);
   assert.match(purchase, /purchaseCatalogItem/);
   assert.match(purchase, /requireSession/);
@@ -61,14 +61,14 @@ test("wallet exposes a deterministic real-payment control without an LLM depende
   assert.match(recovery, /recoverPendingCatalogPurchase/);
   assert.match(recovery, /requireSession/);
   assert.match(recovery, /requireSameOrigin/);
-  assert.match(thread, /Get my brief — already paid/);
-  assert.match(thread, /Pay \$0\.01 and get the brief/);
+  assert.match(thread, /Get my report — no new charge/);
+  assert.match(thread, /Pay \$0\.01 and get the report/);
   assert.match(thread, /Checking your last payment/);
-  assert.match(thread, /See my payment on Stellar Explorer/);
+  assert.match(thread, /View transaction/);
   assert.match(thread, /You will not pay again/);
   assert.match(thread, /parseRecovery/);
   assert.match(thread, /invalid retained settlement evidence/);
-  assert.match(thread, /Payment remains disabled/);
+  assert.match(thread, /Tap Check payment before trying to pay/);
   assert.match(read("components/wallet/WalletChatApp.tsx"), /View transaction/);
 });
 
@@ -78,7 +78,7 @@ test("wallet closes an expired mandate locally and offers a fresh boundary", () 
   assert.match(app, /mandate\.expiry > nowSeconds/);
   assert.match(app, /setInterval\(\(\) => setNowSeconds/);
   assert.match(app, /!currentMandate/);
-  assert.match(app, /Sign & activate mandate/);
+  assert.match(app, /Approve spending limit/);
 });
 
 test("wallet hydration cannot create a mandate-status request loop", () => {
@@ -95,8 +95,8 @@ test("wallet shows clear progress while Mainnet approval is prepared", () => {
   const app = read("components/wallet/WalletChatApp.tsx");
   const styles = read("app/wallet/wallet.css");
 
-  assert.match(app, /Securing your mandate/);
-  assert.match(app, /Preparing Mainnet approval/);
+  assert.match(app, /Saving your limit/);
+  assert.match(app, /Preparing Freighter/);
   assert.match(styles, /activation-orbit/);
   assert.match(styles, /activation-shimmer/);
 });
@@ -104,10 +104,8 @@ test("wallet shows clear progress while Mainnet approval is prepared", () => {
 test("wallet card exposes an obvious site disconnect control", () => {
   const app = read("components/wallet/WalletChatApp.tsx");
 
-  assert.match(app, /Disconnect wallet from Ackrate/);
-  assert.match(app, /Go to Step 1: Turn off mandate/);
-  assert.match(app, /1\. Turn off mandate/);
-  assert.match(app, /2\. Disconnect wallet from Ackrate/);
+  assert.match(app, /Disconnect wallet/);
+  assert.match(app, /Turn off spending/);
   assert.match(app, /onClick=\{mandateOnline \? goToTurnOff : disconnect\}/);
   assert.match(app, /method: "DELETE"/);
   assert.match(app, /setSession\(emptySession\)/);
@@ -117,10 +115,10 @@ test("wallet disconnect is blocked until the on-chain mandate is off", () => {
   const app = read("components/wallet/WalletChatApp.tsx");
 
   assert.match(app, /mandate\?\.status === "Active" && mandate\.expiry > Math\.floor\(Date\.now\(\) \/ 1_000\)/);
-  assert.match(app, /First turn off the mandate below\. Then disconnect the wallet/);
+  assert.match(app, /First tap Turn off spending below\. Then disconnect your wallet/);
   assert.match(app, /className="wallet-pill" onClick=\{mandateOnline \? goToTurnOff : disconnect\}/);
-  assert.match(app, /The wallet stays connected until the agent is safely turned off/);
-  assert.match(app, /Mandate is off\. Now click Disconnect wallet from Ackrate/);
+  assert.match(app, /First turn off spending below\. Then tap Disconnect wallet again/);
+  assert.match(app, /Spending is off\. Now click Disconnect wallet/);
   assert.match(app, /stored\?\.revokeTx && mandate\?\.status !== "Active"/);
 });
 
@@ -128,7 +126,7 @@ test("turning off reconnects and verifies the exact Freighter account before sig
   const app = read("components/wallet/WalletChatApp.tsx");
 
   assert.match(app, /const address = await connectFreighter\(config\.networkPassphrase\)/);
-  assert.match(app, /if \(address !== stored\.user\) throw new Error\("Select the same Freighter account that created this mandate"\)/);
+  assert.match(app, /if \(address !== stored\.user\) throw new Error\("Select the same wallet you connected to Ackrate"\)/);
   assert.match(app, /id="turn-off-mandate"/);
   assert.match(app, /scrollIntoView\(\{ behavior: "smooth", block: "center" \}\)/);
 });
@@ -139,6 +137,28 @@ test("confirmed disconnect clears only Ackrate wallet setup and purchase state",
   assert.doesNotMatch(app, /auth\/session"[\s\S]{0,100}\.catch\(\(\) => undefined\)/);
   assert.match(app, /localStorage\.removeItem\(`ackrate:mandate:\$\{config\.network\}:\$\{session\.address\}`\)/);
   assert.match(app, /localStorage\.removeItem\("ackrate:mainnet:last-payment"\)/);
-  assert.match(app, /Disconnected\. Connect a wallet to start a fresh setup/);
-  assert.match(app, /Ackrate could not disconnect yet\. Your current screen was kept so you can try again/);
+  assert.match(app, /Wallet disconnected\. Connect a wallet to start again/);
+  assert.match(app, /Could not disconnect\. Please try again/);
+});
+
+test("every wallet transaction has a visible explorer link", () => {
+  const app = read("components/wallet/WalletChatApp.tsx");
+  const thread = read("components/wallet/AssistantThread.tsx");
+
+  assert.match(app, /TransactionEvidence label="Spending limit"/);
+  assert.match(app, /TransactionEvidence label="USDC approval"/);
+  assert.match(app, /TransactionEvidence label="Spending turned off"/);
+  assert.match(app, /View transaction/);
+  assert.match(thread, /View transaction/);
+});
+
+test("wallet journey uses plain action language", () => {
+  const app = read("components/wallet/WalletChatApp.tsx");
+  const thread = read("components/wallet/AssistantThread.tsx");
+
+  for (const label of ["Connect wallet", "Set a spending limit", "Approve spending limit", "Pay $0.01 and get the report", "Turn off spending", "Disconnect wallet"]) {
+    assert.match(`${app}\n${thread}`, new RegExp(label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  }
+  assert.doesNotMatch(app, /Mandate control room|Freighter authority|Authenticated account|Set the boundary|Active mandate|Revoke authority|Spending envelope|Verifiable by default/);
+  assert.doesNotMatch(thread, /MANDATE ONLINE|Your agent has boundaries|Settlement status could not be confirmed|Get my brief — already paid/);
 });
