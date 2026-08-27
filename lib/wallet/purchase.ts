@@ -117,6 +117,33 @@ function completedRecoveryEvidence(value: unknown): PendingPurchaseRecovery | nu
   };
 }
 
+function builtInReportResult(
+  config: AppConfig,
+  item: AppConfig["public"]["catalog"][number],
+  receipt: NonNullable<ReturnType<typeof getSettlementReceipt>>,
+) {
+  return attachMarketBriefToPurchaseResult({
+    source: { id: item.id, title: item.title },
+    payment: {
+      status: "settled",
+      amount: item.price,
+      asset: config.public.asset.code,
+      txHash: receipt.txHash,
+      mandateId: receipt.mandateId,
+    },
+    delivered: {
+      ok: true,
+      source: item.id,
+      title: item.title,
+      data: item.description,
+      settledTx: receipt.txHash,
+      mandateId: receipt.mandateId,
+      settledAmount: item.price,
+      asset: config.public.asset.code,
+    },
+  });
+}
+
 export async function getPendingCatalogRecovery(input: Omit<PurchaseInput, "toolCallId" | "sourceId">): Promise<PendingPurchaseRecovery> {
   const context = await createPurchaseContext(input.config, input.sessionAddress, input.mandateId);
   const receiptStore = new DurableReceiptStore(input.sessionId, input.mandateId);
@@ -152,6 +179,17 @@ export async function recoverPendingCatalogPurchase(input: Omit<PurchaseInput, "
   const receipt = receipts[0]!;
   if (receipt.mandateId !== context.mandate.id) throw new Error("retained settlement mandate mismatch");
   const item = catalogItemForReceipt(input.config, receipt);
+  if (item.id === "market-brief") {
+    const result = builtInReportResult(input.config, item, receipt);
+    await completePendingToolCalls({
+      sessionId: input.sessionId,
+      mandateId: input.mandateId,
+      sourceId: item.id,
+      result,
+    });
+    await receiptStore.clearPending(receipt.receiptId);
+    return result;
+  }
   const consumer = agentFor(input.config, context, receiptStore);
   const response = await consumer.retryDelivery(receipt, {
     headers: { Accept: "application/json" },

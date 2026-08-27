@@ -78,8 +78,13 @@ function QuickPurchase({ mandateId, explorerNetwork }: { mandateId: string; expl
       const pendingRecovery = parseRecovery(body.recovery);
       if (pendingRecovery) {
         setRecovery(pendingRecovery);
-        setState("recovery");
-        setError("Your payment went through. Tap the green button to get your brief. You will not pay again.");
+        setState("recovering");
+        const paidResult = await openPaidReport(mandateId);
+        setResult(paidResult);
+        setRecovery(null);
+        setState("success");
+        setError(null);
+        window.dispatchEvent(new Event("ackrate-mandate-updated"));
       } else {
         setRecovery(null);
         setState("idle");
@@ -133,17 +138,8 @@ function QuickPurchase({ mandateId, explorerNetwork }: { mandateId: string; expl
     setResult(null);
     setError(null);
     try {
-      const response = await fetch("/api/wallet/purchase/recovery", {
-        method: "POST",
-        credentials: "same-origin",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mandateId }),
-      });
-      const body = await response.json() as { ok: boolean; result?: unknown; error?: string };
-      if (!response.ok || !body.ok || !isPurchaseResult(body.result)) {
-        throw new Error(body.error ?? `Recovery returned HTTP ${response.status}`);
-      }
-      setResult(body.result);
+      const paidResult = await openPaidReport(mandateId);
+      setResult(paidResult);
       setRecovery(null);
       setState("success");
       window.dispatchEvent(new Event("ackrate-mandate-updated"));
@@ -218,6 +214,20 @@ interface PendingRecovery {
   asset?: string;
   sourceId?: string;
   sourceTitle?: string;
+}
+
+async function openPaidReport(mandateId: string): Promise<PurchaseResult> {
+  const response = await fetch("/api/wallet/purchase/recovery", {
+    method: "POST",
+    credentials: "same-origin",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ mandateId }),
+  });
+  const body = await response.json() as { ok: boolean; result?: unknown; error?: string };
+  if (!response.ok || !body.ok || !isPurchaseResult(body.result)) {
+    throw new Error(body.error ?? `Report returned HTTP ${response.status}`);
+  }
+  return body.result;
 }
 
 export function parseRecovery(value: unknown): PendingRecovery | null {

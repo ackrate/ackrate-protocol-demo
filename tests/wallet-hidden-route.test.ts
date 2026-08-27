@@ -186,6 +186,16 @@ test("a paid report renders below its receipt with findings and sources", () => 
   assert.match(brief, /developers\.stellar\.org\/docs\/tokens\/stellar-asset-contract/);
 });
 
+test("a retained paid report opens automatically without contacting the merchant again", () => {
+  const thread = read("components/wallet/AssistantThread.tsx");
+  const purchase = read("lib/wallet/purchase.ts");
+
+  assert.match(thread, /const paidResult = await openPaidReport\(mandateId\)/);
+  assert.match(thread, /setResult\(paidResult\)[\s\S]*setState\("success"\)/);
+  assert.match(purchase, /if \(item\.id === "market-brief"\)/);
+  assert.match(purchase, /await receiptStore\.clearPending\(receipt\.receiptId\)/);
+});
+
 test("wallet journey uses plain action language", () => {
   const app = read("components/wallet/WalletChatApp.tsx");
   const thread = read("components/wallet/AssistantThread.tsx");
