@@ -6,10 +6,11 @@ import { Package, Play, Terminal } from "lucide-react";
 
 const CONTRACT_ID = "CCHQ5G4Y4YBMY6D3TYYJSVJVCKUM22Q6TMKCCHVAHY4X7K6QELQACZRM";
 
-const INSTALL = `npm install @ackrate/core@0.3.1 @ackrate/stellar@0.2.2 \\
-  @ackrate/ap2@0.3.0 @ackrate/express-middleware@0.2.2 \\
+const INSTALL = `# Candidate set — confirm npm publication before installing
+npm install @ackrate/core@0.3.3 @ackrate/stellar@0.2.5 \\
+  @ackrate/ap2@0.3.2 @ackrate/express-middleware@0.2.4 \\
   @stellar/stellar-sdk express
-npm install --global @ackrate/cli@0.1.9`;
+npm install --global @ackrate/cli@0.1.10`;
 
 const CLEAN_CLONE = `git clone https://github.com/ackrate/ackrate-protocol.git
 cd ackrate-protocol
@@ -59,11 +60,11 @@ const paidSource = createBoundAckratePaidJsonRoute({
 app.get("/source/:id", paidSource);`;
 
 const PACKAGES: [string, string][] = [
-  ["@ackrate/core 0.3.1", "Mandates, contract-enforced payments, and bound-v2 agent.fetch()"],
-  ["@ackrate/stellar 0.2.2", "Typed contract client, testnet config, signers, and token helpers"],
-  ["@ackrate/ap2 0.3.0", "Signed, version-pinned AP2 IntentMandate validation"],
-  ["@ackrate/express-middleware 0.2.2", "Exact-request proof verification and safe same-resource recovery"],
-  ["@ackrate/cli 0.1.9", "Terminal setup, mandate, payment, reconciliation, and demo commands"],
+  ["@ackrate/core 0.3.3", "Mandates, contract-enforced payments, and bound-v2 agent.fetch()"],
+  ["@ackrate/stellar 0.2.5", "Typed contract client, testnet and verified Mainnet config, signers, and token helpers"],
+  ["@ackrate/ap2 0.3.2", "Signed, version-pinned AP2 IntentMandate validation"],
+  ["@ackrate/express-middleware 0.2.4", "Exact-request proof verification and safe same-resource recovery"],
+  ["@ackrate/cli 0.1.10", "Terminal setup, mandate, payment, reconciliation, and fail-closed Mainnet demo support"],
 ];
 
 const RESULT: [string, string][] = [
@@ -86,7 +87,7 @@ export default function Docs() {
       <motion.div {...fade()}>
         <div className="inline-flex items-center gap-2 rounded-full glass px-3.5 py-1.5 text-[11px] font-semibold tracking-[0.18em] text-emerald-300/90">
           <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.9)]" />
-          @ackrate/core 0.3.1 · DOCS
+          @ackrate/core 0.3.3 · CANDIDATE DOCS
         </div>
         <h1 className="mt-5 text-4xl font-black tracking-tight sm:text-6xl">
           Agent payments,{" "}
@@ -103,7 +104,7 @@ export default function Docs() {
           </Link>
           <a href="https://www.npmjs.com/package/@ackrate/core" target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-xl border border-white/15 px-4 py-2.5 text-sm font-semibold text-emerald-100/80 transition hover:border-emerald-400/40 hover:text-emerald-100">
             <Package className="h-4 w-4" aria-hidden />
-            @ackrate/core 0.3.1
+            @ackrate/core 0.3.3 candidate
           </a>
         </div>
       </motion.div>
@@ -130,8 +131,11 @@ export default function Docs() {
       </motion.section>
 
       <motion.section {...fade(0.08)} className="mt-9">
-        <H>Install the current toolkit</H>
+        <H>Candidate toolkit</H>
         <Code>{INSTALL}</Code>
+        <p className="mt-3 text-sm text-emerald-100/60">
+          This is the source-repository candidate set. Confirm each version on npm before running the install commands.
+        </p>
       </motion.section>
 
       <motion.section {...fade(0.11)} className="mt-8">
@@ -181,7 +185,7 @@ export default function Docs() {
       </motion.section>
 
       <motion.section {...fade(0.23)} className="mt-8">
-        <H>Current release targets</H>
+        <H>Current candidate targets</H>
         <div className="overflow-hidden rounded-xl border border-white/10">
           {PACKAGES.map(([name, purpose], i) => (
             <div key={name} className={`flex flex-col gap-1 px-4 py-3 sm:flex-row sm:items-center sm:justify-between ${i % 2 ? "bg-white/[0.02]" : ""}`}>

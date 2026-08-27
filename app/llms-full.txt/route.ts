@@ -8,7 +8,7 @@ export function GET() {
 Canonical site: https://reapp.live/
 Source: https://github.com/ackrate/ackrate-protocol
 Research companion: https://ackrate.network/
-Environment: Stellar testnet demonstrations; do not use production or mainnet secrets.
+Environment: public research, video, composite, CLI, and starter demonstrations use Stellar testnet; the /wallet canary uses Stellar Mainnet, Circle USDC, and Freighter authorization.
 
 ## What ACKRATE is
 
@@ -29,15 +29,15 @@ The architecture is intentionally split. The model can research, compare, plan, 
 
 The fourth payment in a three-payment budget is not a UI simulation. The contract rejects it because the remaining authority is insufficient. Revocation and replay cases follow the same deterministic deny path.
 
-## Published packages
+## Current candidate package set
 
-- @ackrate/core 0.3.1: mandate construction, registration, payment helpers, and agent.fetch().
-- @ackrate/stellar 0.2.2: typed contract client, Stellar testnet configuration, signers, token helpers, and explorer integration.
-- @ackrate/ap2 0.3.0: AP2 IntentMandate and TransactionMandate translation with pinned canonicalization and validation behavior.
-- @ackrate/express-middleware 0.2.2: HTTP payment challenge, settlement verification, protected-route integration, and one-time redemption controls for Express 4 and 5.
-- @ackrate/cli 0.1.9: terminal setup, mandate, payment, inspection, and demonstration commands.
+- @ackrate/core 0.3.3: mandate construction, registration, payment helpers, and agent.fetch().
+- @ackrate/stellar 0.2.5: typed contract client, verified Mainnet manifest support, Stellar network configuration, signers, token helpers, and explorer integration.
+- @ackrate/ap2 0.3.2: AP2 IntentMandate and TransactionMandate translation with pinned canonicalization and validation behavior.
+- @ackrate/express-middleware 0.2.4: HTTP payment challenge, settlement verification, protected-route integration, and one-time redemption controls for Express 4 and 5.
+- @ackrate/cli 0.1.10: terminal setup, mandate, payment, inspection, and fail-closed testnet and Mainnet demonstration commands.
 
-Confirm versions at https://reapp.live/ and the npm registry before copying an installation command.
+These are the current source-repository candidate versions. Confirm publication at the npm registry before copying an installation command because publication can trail the repository candidate.
 
 ## Public routes
 
@@ -63,7 +63,11 @@ The Merchants page maps unauthorized caller, expiry, overspend, replay, unauthor
 
 ### Contract Security Suite — https://reapp.live/security
 
-The Contract Security Suite is the public release-gate evidence surface for Ackrate's Mainnet contracts. It maps negative paths to exact Rust tests, documents the registry enforcement boundary and atomic USDC data flow, publishes dependency and remediation results, links the live governed contracts, and provides a reproducible local gate command. The recorded Mainnet suites contain 15 MandateRegistry tests and 8 TimelockController tests, with zero known vulnerabilities and zero yanked dependencies in the deployed WASM graphs.
+The Contract Security Suite is the public release-gate evidence surface for Ackrate's Mainnet contracts. It maps named negative paths to exact Rust tests, documents the registry enforcement boundary and atomic USDC data flow, links dependency results and the live governed contracts, and provides a reproducible local gate command. The Mainnet suites contain 23 MandateRegistry tests and 11 TimelockController tests, for 34 total contract tests. The latest required workflow and versioned report are authoritative for dependency status.
+
+### Mainnet wallet canary — https://reapp.live/wallet
+
+The wallet canary connects a Freighter G-account on Stellar Mainnet. A person chooses a small Circle USDC spending limit, signs mandate registration and contract allowance transactions, and then lets the consumer agent request a protected report. MandateRegistry re-checks the caller, merchant, asset, amount, expiry, status, and sequence before every payment. The page links registration, allowance, payment, and shutdown transactions to Stellar Explorer. Disconnecting first turns off any active spending limit, then clears the browser session.
 
 ### Solutions and starter kits — https://reapp.live/solutions
 
@@ -93,7 +97,7 @@ The composite demonstration coordinates multiple buyer agents in one group purch
 - Repeated fulfillment requires durable redemption controls; process-local state is demonstration-only.
 - Provider acknowledgement is not automatically settlement, and settlement is not automatically fulfillment.
 - Test both allowed and denied paths against the same contract and middleware used by the application.
-- Do not place mainnet keys, production wallets, or reusable credentials into a demo environment.
+- Public testnet demos use disposable actors. The Mainnet wallet canary asks Freighter to sign and must never receive a recovery phrase or private key.
 
 ## Relationship to ACKRATE NETWORK
 

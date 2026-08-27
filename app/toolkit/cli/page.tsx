@@ -45,7 +45,7 @@ export default function ToolkitCliPage() {
       fit.fit();
       termRef.current = term;
       fitRef.current = fit;
-      term.writeln("\x1b[2m@ackrate/cli@0.1.9 · installed command: ackrate · pick a command below or type one, then Run.\x1b[0m");
+      term.writeln("\x1b[2m@ackrate/cli candidate 0.1.10 · pinned testnet runner · pick a command below or type one, then Run.\x1b[0m");
       term.writeln("\x1b[2mState (config, keys, mandate) persists across commands in this session.\x1b[0m\r\n");
       setReady(true);
       const onResize = () => fit.fit();

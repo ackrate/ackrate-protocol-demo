@@ -63,7 +63,7 @@ test("the Contract Security Suite links every claim to public Mainnet evidence",
     "Replay attempt",
     "Unauthorized upgrade",
     "Re-entrant payment",
-    "23",
+    "34",
     "Mainnet contract tests",
     "Known deployed-code vulnerabilities",
     "Yanked deployed dependencies",
@@ -74,7 +74,20 @@ test("the Contract Security Suite links every claim to public Mainnet evidence",
     "deployment-manifest.json",
     "ACKRATE GATE CHECK",
     "Recorded evidence only",
-    "Every public function is inside the gate",
+    "The public contract surface is mapped",
+    "34 total contract tests",
+    "23 Registry tests",
+    "11 TimelockController tests",
+    "6 NAMED PATHS COVERED",
+    "get_schema_version",
+    "is_asset_allowed",
+    "set_asset_allowed",
+    "#results",
+    "#findings-and-disposition",
+    "#reviewer-reproduction",
+    "cargo fmt",
+    "cargo clippy",
+    "cargo build",
     "UNTRUSTED BY DESIGN",
     "@ackrate/core",
     "@ackrate/stellar",
@@ -88,6 +101,12 @@ test("the Contract Security Suite links every claim to public Mainnet evidence",
   assert.match(layout, /path: "\/security"/);
   assert.match(sitemap, /"\/security"/);
   assert.match(llms, /Contract Security Suite/);
+  assert.doesNotMatch(page, /(?:23|34) \/ (?:23|34) PASS/);
+  assert.doesNotMatch(page, /31 total contract tests|8 timelock tests/);
+  assert.doesNotMatch(page, /15 Registry tests/);
+  assert.doesNotMatch(page, /23 total contract tests/);
+  assert.doesNotMatch(page, /#contract-tests|#dependency-gate|#independent-reproduction/);
+  assert.doesNotMatch(page, /\bversion · is_paused|\bis_allowed_asset\b|\badd_allowed_asset\b|\bremove_allowed_asset\b/);
 });
 
 test("the Solutions page keeps the established responsive pattern and complete guide", async () => {
@@ -226,42 +245,69 @@ test("new public copy follows repository terminology rules", async () => {
   assert.doesNotMatch(combined, /Hackathon starter[\s\S]*?calls the hosted endpoint through agent\.fetch\(\)/);
   assert.match(combined, /inspects the exact 402 challenge, submits the request-bound contract payment/);
   for (const version of [
-    "@ackrate/core 0.3.1",
-    "@ackrate/stellar 0.2.2",
-    "@ackrate/ap2 0.3.0",
-    "@ackrate/express-middleware 0.2.2",
-    "@ackrate/cli 0.1.9",
+    "@ackrate/core 0.3.3",
+    "@ackrate/stellar 0.2.5",
+    "@ackrate/ap2 0.3.2",
+    "@ackrate/express-middleware 0.2.4",
+    "@ackrate/cli 0.1.10",
   ]) assert.match(combined, new RegExp(version.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")), version);
 });
 
-test("the vendored CLI and public pages use the released CLI and permanent contract", async () => {
+test("plain-text guides distinguish testnet demos, the Mainnet wallet, and candidate versions", async () => {
+  const [shortGuide, fullGuide] = await Promise.all([
+    read("app/llms.txt/route.ts"),
+    read("app/llms-full.txt/route.ts"),
+  ]);
+  for (const guide of [shortGuide, fullGuide]) {
+    assert.match(guide, /public[\s\S]*testnet/i);
+    assert.match(guide, /wallet[\s\S]*Mainnet/i);
+    assert.match(guide, /Circle USDC/);
+    assert.match(guide, /Freighter/);
+    assert.match(guide, /candidate versions/i);
+    for (const version of [
+      "@ackrate/core 0.3.3",
+      "@ackrate/stellar 0.2.5",
+      "@ackrate/ap2 0.3.2",
+      "@ackrate/express-middleware 0.2.4",
+      "@ackrate/cli 0.1.10",
+    ]) assert.match(guide, new RegExp(version.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")), version);
+    for (const staleVersion of [
+      "@ackrate/core 0.3.1",
+      "@ackrate/stellar 0.2.2",
+      "@ackrate/ap2 0.3.0",
+      "@ackrate/express-middleware 0.2.2",
+    ]) assert.doesNotMatch(guide, new RegExp(staleVersion.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")), staleVersion);
+  }
+});
+
+test("public toolkit pages label candidate versions without relabeling the pinned testnet runner", async () => {
   const bundle = new URL("../vendor/ackrate-cli.mjs", import.meta.url);
   const { stdout } = await run(process.execPath, [bundle.pathname, "--version"]);
   const actualVersion = stdout.trim();
 
   assert.equal(actualVersion, "0.1.9");
-  for (const path of [
-    "app/toolkit/cli/page.tsx",
-    "app/cli/page.tsx",
-    "app/page.tsx",
-    "app/llms.txt/route.ts",
-    "app/llms-full.txt/route.ts",
-  ]) {
-    const source = await read(path);
-    const claimedVersions = [
-      ...source.matchAll(/@ackrate\/cli(?:@| · | )(\d+\.\d+\.\d+)/g),
-    ].map((match) => match[1]);
-    for (const version of claimedVersions) {
-      assert.equal(version, actualVersion, `${path} advertises CLI ${version}`);
-    }
-  }
-
   const [home, cli, terminal, bundleSource] = await Promise.all([
     read("app/page.tsx"),
     read("app/cli/page.tsx"),
     read("app/toolkit/cli/page.tsx"),
     read("vendor/ackrate-cli.mjs"),
   ]);
+  for (const [path, source] of [
+    ["app/page.tsx", home],
+    ["app/cli/page.tsx", cli],
+    ["app/toolkit/cli/page.tsx", terminal],
+  ]) {
+    assert.match(source, /0\.1\.10/, `${path} candidate version`);
+    assert.match(source, /candidate/i, `${path} candidate label`);
+    assert.doesNotMatch(source, /0\.1\.10[^\n]*(?:published|released|installed)|(?:published|released|installed)[^\n]*0\.1\.10/i);
+  }
+  for (const version of [
+    "@ackrate/core 0.3.3",
+    "@ackrate/stellar 0.2.5",
+    "@ackrate/ap2 0.3.2",
+    "@ackrate/express-middleware 0.2.4",
+    "@ackrate/cli 0.1.10",
+  ]) assert.match(home, new RegExp(version.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")), version);
   for (const [path, source] of [
     ["app/page.tsx", home],
     ["app/cli/page.tsx", cli],

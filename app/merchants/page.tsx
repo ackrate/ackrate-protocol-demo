@@ -27,7 +27,17 @@ import SecurityProofField from "../../components/security/SecurityProofField";
 const REPO = "https://github.com/ackrate/ackrate-protocol-contracts";
 const REGISTRY = "CDBTG5ZKASFA7LOYUPBOTGKAVX5MJIM4U24BYGX7VX23IHYDAHLQPAGS";
 const TIMELOCK = "CD3KRQRNCW52CZHKG2GPQAEOU6UCL426YFNHYUZ7IWUUKAOTKUQX6UUX";
-const VERIFY_COMMAND = "git clone https://github.com/ackrate/ackrate-protocol-contracts.git && cd ackrate-protocol-contracts && ./scripts/security-scan.sh && cargo test --manifest-path contracts/mainnet/mandate-registry/Cargo.toml && cargo test --manifest-path contracts/mainnet/timelock-controller/Cargo.toml";
+const VERIFY_COMMAND = `git clone https://github.com/ackrate/ackrate-protocol-contracts.git
+cd ackrate-protocol-contracts
+./scripts/security-scan.sh
+cargo fmt --manifest-path contracts/mainnet/mandate-registry/Cargo.toml --all -- --check
+cargo clippy --manifest-path contracts/mainnet/mandate-registry/Cargo.toml --all-targets -- -D warnings
+cargo test --manifest-path contracts/mainnet/mandate-registry/Cargo.toml
+cargo build --manifest-path contracts/mainnet/mandate-registry/Cargo.toml --target wasm32v1-none --release
+cargo fmt --manifest-path contracts/mainnet/timelock-controller/Cargo.toml --all -- --check
+cargo clippy --manifest-path contracts/mainnet/timelock-controller/Cargo.toml --all-targets -- -D warnings
+cargo test --manifest-path contracts/mainnet/timelock-controller/Cargo.toml
+cargo build --manifest-path contracts/mainnet/timelock-controller/Cargo.toml --target wasm32v1-none --release`;
 
 type Protection = {
   id: string;
@@ -118,7 +128,7 @@ const evidence = [
   },
   {
     title: "Gate-check results",
-    copy: "23 passing contract tests, dependency results, remediations, tool versions, and reproduction commands.",
+    copy: "34 total contract tests: 23 Registry tests, 11 TimelockController tests, plus dependency results and reproduction commands.",
     href: `${REPO}/blob/main/docs/security-scan-report.md`,
     icon: Fingerprint,
   },
@@ -133,16 +143,16 @@ const evidence = [
 const requirements = [
   {
     label: "Contract surface",
-    result: "EVERY FUNCTION MAPPED",
-    copy: "Every public registry and timelock function has a named test or explicit invariant.",
+    result: "SURFACE MAPPED",
+    copy: "Public Registry and timelock functions are listed with their named tests or explicit invariants.",
     href: `${REPO}/blob/main/docs/security-threat-model.md#contract-surface-review`,
     icon: Code2,
   },
   {
     label: "Negative paths",
-    result: "23 / 23 PASS",
-    copy: "Unauthorized callers, expiry, overspend, replay, hostile tokens, and upgrade attempts are exercised.",
-    href: `${REPO}/blob/main/docs/security-scan-report.md#contract-tests`,
+    result: "6 NAMED PATHS COVERED",
+    copy: "The suite covers unauthorized callers, expiry, overspend, replay, reentrancy, and upgrade attempts; 34 is the total Mainnet test count.",
+    href: `${REPO}/blob/main/docs/security-scan-report.md#results`,
     icon: ShieldCheck,
   },
   {
@@ -161,25 +171,25 @@ const requirements = [
   },
   {
     label: "Dependency gate",
-    result: "0 KNOWN ISSUES",
-    copy: "Both Mainnet lockfiles and both deployed WASM dependency graphs pass the release policy.",
-    href: `${REPO}/blob/main/docs/security-scan-report.md#dependency-gate`,
+    result: "REQUIRED GATE",
+    copy: "The required workflow fails on actionable dependency or yanked-package findings; the latest run and versioned report are authoritative.",
+    href: `${REPO}/blob/main/docs/security-scan-report.md#findings-and-disposition`,
     icon: Fingerprint,
   },
   {
     label: "Independent replay",
     result: "ONE COMMAND",
-    copy: "An external reviewer can reproduce formatting, linting, dependency checks, and contract tests.",
-    href: `${REPO}/blob/main/docs/security-scan-report.md#independent-reproduction`,
+    copy: "An external reviewer can reproduce dependency checks, formatting, linting, contract tests, and portable WASM builds.",
+    href: `${REPO}/blob/main/docs/security-scan-report.md#reviewer-reproduction`,
     icon: ClipboardCheck,
   },
 ] as const;
 
 const gateStages = [
   { label: "Source", result: "Exact commit + clean tree", evidence: "Reviewed source identity is pinned before any release check begins." },
-  { label: "Surface", result: "Every public function mapped", evidence: "Reads, lifecycle calls, money movement, emergency controls, policy changes, and timelock mutators are covered." },
-  { label: "Hostile paths", result: "23 / 23 tests pass", evidence: "Unauthorized caller, expiry, overspend, replay, substitution, reentrancy, rollback, and unauthorized upgrade paths are exercised." },
-  { label: "Dependencies", result: "0 vulnerabilities · 0 yanked", evidence: "Both Mainnet lockfiles and both deployed WASM graphs pass the exact dependency policy." },
+  { label: "Surface", result: "Public interface mapped", evidence: "Reads, lifecycle calls, money movement, emergency controls, policy changes, access control, and timelock mutators are listed." },
+  { label: "Hostile paths", result: "Named rejection paths covered", evidence: "Unauthorized caller, expiry, overspend, replay, substitution, reentrancy, rollback, and unauthorized upgrade paths are exercised across 34 total tests." },
+  { label: "Dependencies", result: "Required CI gate", evidence: "The latest required workflow and versioned report are the source of truth for both lockfiles and deployed WASM graphs." },
   { label: "Artifacts", result: "Hashes + interfaces match", evidence: "Pinned toolchain output is compared with recorded artifact digests and contract interfaces." },
   { label: "Chain", result: "State + constructors verified", evidence: "Live contract identities, roles, asset policy, deployment transactions, and constructor state are recorded in the manifest." },
 ] as const;
@@ -258,7 +268,7 @@ export default function MerchantsPage() {
 
       <motion.section {...fade(0.06)} className="mt-10 grid overflow-hidden rounded-2xl border border-white/10 bg-white/[0.025] sm:grid-cols-2 lg:grid-cols-4">
         {[
-          ["23", "Mainnet contract tests"],
+          ["34", "Mainnet contract tests"],
           ["2", "Governed contracts"],
           ["0", "Known deployed-code vulnerabilities"],
           ["0", "Yanked deployed dependencies"],
@@ -545,7 +555,7 @@ export default function MerchantsPage() {
         <div className="grid gap-6 lg:grid-cols-[.72fr_1.28fr] lg:items-start">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.17em] text-emerald-300/70">Contract surface</p>
-            <h2 className="mt-2 text-3xl font-bold tracking-tight text-white">Every public function is inside the gate.</h2>
+            <h2 className="mt-2 text-3xl font-bold tracking-tight text-white">The public contract surface is mapped.</h2>
             <p className="mt-3 text-sm leading-relaxed text-white/45">
               Reads, mandate lifecycle calls, money-moving calls, emergency controls, policy changes, upgrades, and every
               timelock mutator are mapped to a named test or an explicit invariant in the threat model.
@@ -556,10 +566,11 @@ export default function MerchantsPage() {
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             {[
-              ["READ STATE", "version · is_paused · is_allowed_asset · get_mandate"],
+              ["READ STATE", "get_schema_version · is_paused · is_asset_allowed · get_mandate"],
               ["MANDATE LIFECYCLE", "register_mandate · revoke_mandate · execute_payment"],
-              ["EMERGENCY + POLICY", "pause · unpause · add_allowed_asset · remove_allowed_asset"],
-              ["GOVERNANCE", "schedule · execute · cancel · update_delay · upgrade"],
+              ["EMERGENCY + POLICY", "pause · unpause · set_asset_allowed"],
+              ["ACCESS + GOVERNANCE", "grant_role · revoke_role · set_role_admin · upgrade"],
+              ["TIMELOCK", "schedule · execute · cancel · update_delay"],
             ].map(([label, functions]) => (
               <div key={label} className="rounded-xl border border-white/[0.07] bg-black/15 p-4">
                 <strong className="text-[10px] tracking-[0.15em] text-emerald-300/75">{label}</strong>
@@ -602,7 +613,7 @@ export default function MerchantsPage() {
             <code className="min-w-0 flex-1 overflow-auto whitespace-pre-wrap break-all text-xs leading-relaxed text-emerald-100/70">{VERIFY_COMMAND}</code>
             <button type="button" onClick={copyCommand} className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-emerald-300/15 bg-emerald-400/[0.06] text-emerald-300 transition hover:border-emerald-300/30" aria-label="Copy verification command" title="Copy verification command">{copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}</button>
           </div>
-          <p className="mt-3 text-xs leading-relaxed text-white/35">The gate formats, lints, tests, and builds the contract variants. The governed Mainnet release adds exact-source, toolchain, interface, artifact-hash, and provenance checks.</p>
+          <p className="mt-3 text-xs leading-relaxed text-white/35">This portable source gate checks dependencies, formatting, warnings-denied linting, all 34 Mainnet contract tests, and both WASM builds. The governed Mainnet workflow separately pins the release platform and verifies source, toolchain, interfaces, artifact hashes, provenance, and chain state.</p>
         </motion.div>
 
         <motion.div {...fade(0.24)} className="rounded-2xl border border-emerald-300/15 bg-emerald-400/[0.045] p-5 sm:p-6">

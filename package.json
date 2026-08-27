@@ -13,11 +13,12 @@
     "generate:starters": "node scripts/starters/generate.mjs",
     "check:starters": "node scripts/starters/verify.mjs",
     "check:branding": "node scripts/check-branding.mjs",
+    "check:workflow-pins": "node scripts/check-workflow-pins.mjs",
     "test:hackathon": "node --test tests/hackathon.test.mjs tests/starter-catalog.test.mjs tests/starter-generation.test.mjs tests/starter-install.test.mjs tests/starter-presenter.test.mjs tests/starter-scenarios.test.mjs tests/shared-runtime.test.mjs tests/scenario-contract.test.mjs tests/scenario-runtime-boundary.test.mjs tests/contract-exact-payment.test.mjs tests/fulfillment-recovery.test.mjs tests/storage-recovery.test.mjs tests/operator-closure.test.mjs",
     "test:wallet": "node --import tsx --test tests/wallet-*.test.ts",
     "smoke:hackathon": "node scripts/hackathon-smoke.mjs",
     "gatecheck:hackathon": "npm run typecheck && npm run test:hackathon && npm run build && npm run smoke:hackathon",
-    "gatecheck:t3": "npm run check:branding && npm run check:starters && npm run typecheck && npm run test:hackathon && npm run test:wallet && npm audit --audit-level=high && npm run build && npm run smoke:hackathon"
+    "gatecheck:t3": "npm run check:branding && npm run check:workflow-pins && npm run check:starters && npm run typecheck && npm run test:hackathon && npm run test:wallet && npm audit --audit-level=high && npm run build && npm run smoke:hackathon"
   },
   "dependencies": {
     "@ai-sdk/openai": "4.0.33",

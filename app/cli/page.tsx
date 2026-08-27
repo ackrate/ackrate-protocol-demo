@@ -16,13 +16,14 @@ import {
 import "@xterm/xterm/css/xterm.css";
 
 const PACKAGE = "@ackrate/cli";
-const VERSION = "0.1.9";
+const VERSION = "0.1.10";
 const COMMAND = "ackrate";
 const CONTRACT = "CCHQ5G4Y4YBMY6D3TYYJSVJVCKUM22Q6TMKCCHVAHY4X7K6QELQACZRM";
 
-const INSTALL = `npx @ackrate/cli@0.1.9 demo research-agent
+const INSTALL = `# Candidate version — confirm npm publication before installing
+npx @ackrate/cli@0.1.10 demo research-agent
 
-npm install -g @ackrate/cli@0.1.9
+npm install -g @ackrate/cli@0.1.10
 ackrate --help`;
 
 const PROJECT_FLOW = `ackrate init
@@ -95,7 +96,7 @@ export default function CliPage() {
       fit.fit();
       termRef.current = term;
       fitRef.current = fit;
-      term.writeln(`\x1b[2m${PACKAGE}@${VERSION} · installed command: ${COMMAND} · pick a command below or type one, then Run.\x1b[0m`);
+      term.writeln(`\x1b[2m${PACKAGE} candidate ${VERSION} · pinned testnet runner · pick a command below or type one, then Run.\x1b[0m`);
       term.writeln("\x1b[2mState (config, keys, mandate) persists across commands in this browser session.\x1b[0m\r\n");
       setReady(true);
       const onResize = () => fit.fit();
@@ -158,8 +159,9 @@ export default function CliPage() {
           </h1>
           <p className="mt-5 max-w-2xl text-base leading-relaxed text-emerald-100/70 sm:text-lg">
             <code className="rounded bg-black/30 px-1.5 py-0.5 font-mono text-sm text-emerald-100">{PACKAGE}</code>
-            {" "}is live on npm. Run the exact same command surface here: create testnet actors, authorize a mandate,
-            and watch the contract reject payments past budget.
+            {" "}is live on npm. This page tracks candidate {VERSION}; confirm publication before installing it. The
+            browser runner stays on testnet: create ephemeral actors, authorize a mandate, and watch the contract reject
+            payments past budget.
           </p>
 
           <div className="mt-5 grid grid-cols-2 gap-2.5">
@@ -292,7 +294,7 @@ export default function CliPage() {
         <div className="rounded-xl border border-white/10 bg-black/25 p-5">
           <div className="flex items-center gap-2 text-sm font-semibold text-emerald-100">
             <WalletCards className="h-4 w-4 text-emerald-300" aria-hidden />
-            Install
+            Candidate install commands
           </div>
           <Code>{INSTALL}</Code>
         </div>
