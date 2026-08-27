@@ -120,7 +120,8 @@ export default function Intro({ onDone }: { onDone: () => void }) {
     core.scale.set(0, 0, 1);
     scene.add(core);
 
-    const clock = new THREE.Clock();
+    const timer = new THREE.Timer();
+    timer.connect(document);
     let raf = 0;
     const easeOut = (t: number) => 1 - Math.pow(1 - t, 3);
     const easeIn = (t: number) => t * t * t;
@@ -136,7 +137,8 @@ export default function Intro({ onDone }: { onDone: () => void }) {
     const tTag = window.setTimeout(() => setPhase(2), 2650);
 
     const render = () => {
-      const e = clock.getElapsedTime();
+      timer.update();
+      const e = timer.getElapsed();
       const conv = easeOut(Math.min(1, e / 2.4));
       const warp = easeIn(e > 3.8 ? Math.min(1, (e - 3.8) / 0.8) : 0);
       for (let i = 0; i < COUNT; i++) {
@@ -187,6 +189,7 @@ export default function Intro({ onDone }: { onDone: () => void }) {
       mat.dispose();
       coreMat.dispose();
       glow.dispose();
+      timer.dispose();
       renderer.dispose();
       if (renderer.domElement.parentNode) renderer.domElement.parentNode.removeChild(renderer.domElement);
     };

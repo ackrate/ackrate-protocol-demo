@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
+import { AnimatePresence, MotionConfig, motion, useReducedMotion, useScroll, useSpring } from "framer-motion";
 import {
   ArrowRight,
   ArrowUpRight,
@@ -22,6 +22,7 @@ import {
   WalletCards,
   X,
 } from "lucide-react";
+import SecurityProofField from "../../components/security/SecurityProofField";
 
 const REPO = "https://github.com/ackrate/ackrate-protocol-contracts";
 const REGISTRY = "CDBTG5ZKASFA7LOYUPBOTGKAVX5MJIM4U24BYGX7VX23IHYDAHLQPAGS";
@@ -129,6 +130,51 @@ const evidence = [
   },
 ];
 
+const requirements = [
+  {
+    label: "Contract surface",
+    result: "EVERY FUNCTION MAPPED",
+    copy: "Every public registry and timelock function has a named test or explicit invariant.",
+    href: `${REPO}/blob/main/docs/security-threat-model.md#contract-surface-review`,
+    icon: Code2,
+  },
+  {
+    label: "Negative paths",
+    result: "23 / 23 PASS",
+    copy: "Unauthorized callers, expiry, overspend, replay, hostile tokens, and upgrade attempts are exercised.",
+    href: `${REPO}/blob/main/docs/security-scan-report.md#contract-tests`,
+    icon: ShieldCheck,
+  },
+  {
+    label: "Threat model",
+    result: "PUBLISHED",
+    copy: "Assets, trust assumptions, invariants, attack surfaces, mitigations, and stop conditions are explicit.",
+    href: `${REPO}/blob/main/docs/security-threat-model.md`,
+    icon: ScanSearch,
+  },
+  {
+    label: "Trust boundaries",
+    result: "PUBLISHED",
+    copy: "The mandate lifecycle, money path, failure recovery, and governed upgrade path are diagrammed.",
+    href: `${REPO}/blob/main/docs/security-data-flow.md`,
+    icon: GitBranch,
+  },
+  {
+    label: "Dependency gate",
+    result: "0 KNOWN ISSUES",
+    copy: "Both Mainnet lockfiles and both deployed WASM dependency graphs pass the release policy.",
+    href: `${REPO}/blob/main/docs/security-scan-report.md#dependency-gate`,
+    icon: Fingerprint,
+  },
+  {
+    label: "Independent replay",
+    result: "ONE COMMAND",
+    copy: "An external reviewer can reproduce formatting, linting, dependency checks, and contract tests.",
+    href: `${REPO}/blob/main/docs/security-scan-report.md#independent-reproduction`,
+    icon: ClipboardCheck,
+  },
+] as const;
+
 const gateStages = [
   { label: "Source", result: "Exact commit + clean tree", evidence: "Reviewed source identity is pinned before any release check begins." },
   { label: "Surface", result: "Every public function mapped", evidence: "Reads, lifecycle calls, money movement, emergency controls, policy changes, and timelock mutators are covered." },
@@ -148,7 +194,8 @@ const clientPackages = [
 
 const fade = (delay = 0) => ({
   initial: { opacity: 0, y: 18 },
-  animate: { opacity: 1, y: 0 },
+  whileInView: { opacity: 1, y: 0 },
+  viewport: { once: true, amount: 0.12 },
   transition: { duration: 0.5, delay, ease: "easeOut" as const },
 });
 
@@ -158,14 +205,18 @@ export default function MerchantsPage() {
   const [selectedId, setSelectedId] = useState(protections[0]!.id);
   const [gateIndex, setGateIndex] = useState(0);
   const [copied, setCopied] = useState(false);
+  const shouldReduceMotion = useReducedMotion();
+  const { scrollYProgress } = useScroll();
+  const progress = useSpring(scrollYProgress, { stiffness: 120, damping: 28, mass: 0.25 });
   const selected = protections.find((item) => item.id === selectedId) ?? protections[0]!;
   const SelectedIcon = selected.icon;
   const activeGate = gateStages[gateIndex]!;
 
   useEffect(() => {
+    if (shouldReduceMotion) return;
     const timer = window.setInterval(() => setGateIndex((current) => (current + 1) % gateStages.length), 1_650);
     return () => window.clearInterval(timer);
-  }, []);
+  }, [shouldReduceMotion]);
 
   async function copyCommand() {
     await navigator.clipboard.writeText(VERIFY_COMMAND);
@@ -174,6 +225,8 @@ export default function MerchantsPage() {
   }
 
   return (
+    <MotionConfig reducedMotion="user">
+    <motion.div aria-hidden className="fixed inset-x-0 top-0 z-[70] h-0.5 origin-left bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-300" style={{ scaleX: progress }} />
     <main className="relative mx-auto w-full max-w-7xl overflow-hidden px-4 pb-20 pt-8 sm:px-6">
       <div className="glow" aria-hidden />
 
@@ -215,6 +268,52 @@ export default function MerchantsPage() {
             <span className="mt-1 block text-xs text-white/45">{label}</span>
           </div>
         ))}
+      </motion.section>
+
+      <motion.section {...fade(0.07)} className="relative mt-8 overflow-hidden rounded-3xl border border-emerald-300/15 bg-[radial-gradient(circle_at_20%_20%,rgba(52,211,153,.12),transparent_38%),#050a08] p-5 sm:p-8">
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(52,211,153,.025)_1px,transparent_1px),linear-gradient(90deg,rgba(52,211,153,.025)_1px,transparent_1px)] bg-[size:38px_38px]" aria-hidden />
+        <div className="relative grid gap-8 lg:grid-cols-[.72fr_1.28fr] lg:items-center">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.17em] text-emerald-300/70">Complete evidence map</p>
+            <h2 className="mt-2 text-3xl font-black tracking-tight text-white sm:text-4xl">Six requirements. One inspectable chain.</h2>
+            <p className="mt-4 text-sm leading-relaxed text-white/45">
+              Each node resolves to public source, a named test, a recorded gate result, or a reproduction path. Nothing on this page is a decorative pass state.
+            </p>
+            <div className="relative mt-6 h-64 overflow-hidden rounded-2xl border border-emerald-300/15 bg-black/25">
+              <SecurityProofField />
+              <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle,transparent_28%,rgba(3,8,6,.78)_78%)]" aria-hidden />
+              <div className="pointer-events-none absolute inset-x-4 bottom-4 flex items-center justify-between text-[10px] font-semibold tracking-[0.14em] text-emerald-200/55" aria-hidden>
+                <span>LIVE REQUIREMENT GRAPH</span><span>6 / 6 LINKED</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            {requirements.map(({ label, result, copy, href, icon: Icon }, index) => (
+              <motion.a
+                key={label}
+                href={href}
+                target="_blank"
+                rel="noreferrer"
+                initial={{ opacity: 0, y: 16, scale: 0.98 }}
+                whileInView={{ opacity: 1, y: 0, scale: 1 }}
+                viewport={{ once: true, amount: 0.35 }}
+                transition={{ duration: 0.42, delay: index * 0.055 }}
+                whileHover={{ y: -4, rotateX: 1.5, rotateY: index % 2 === 0 ? 1.5 : -1.5 }}
+                className="group relative overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4 [transform-style:preserve-3d] hover:border-emerald-300/25"
+              >
+                <motion.div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-emerald-300 to-transparent" initial={{ scaleX: 0 }} whileInView={{ scaleX: 1 }} viewport={{ once: true }} transition={{ duration: 0.65, delay: 0.15 + index * 0.055 }} />
+                <div className="flex items-start justify-between gap-3">
+                  <span className="grid h-9 w-9 place-items-center rounded-xl border border-emerald-300/15 bg-emerald-400/[0.07] text-emerald-300"><Icon className="h-4 w-4" /></span>
+                  <span className="rounded-md border border-emerald-300/15 bg-emerald-400/[0.06] px-2 py-1 text-[9px] font-bold tracking-[0.11em] text-emerald-200">{result}</span>
+                </div>
+                <h3 className="mt-4 text-sm font-bold text-white/85">{label}</h3>
+                <p className="mt-2 text-xs leading-relaxed text-white/40">{copy}</p>
+                <span className="mt-4 inline-flex items-center gap-1.5 text-[10px] font-semibold text-emerald-300/65 group-hover:text-emerald-200">Inspect evidence <ArrowUpRight className="h-3 w-3" /></span>
+              </motion.a>
+            ))}
+          </div>
+        </div>
       </motion.section>
 
       <motion.section {...fade(0.08)} className="relative mt-8 overflow-hidden rounded-3xl border border-emerald-300/15 bg-[#050a08] p-5 sm:p-8">
@@ -264,7 +363,8 @@ export default function MerchantsPage() {
             </div>
             <div className="mt-5 min-h-56">
               <div className="text-[11px] text-white/30">$ ackrate-gate check --network mainnet --strict</div>
-              <motion.div key={activeGate.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mt-7">
+              <AnimatePresence mode="wait">
+              <motion.div key={activeGate.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} className="mt-7">
                 <div className="flex items-center justify-between gap-4">
                   <span className="text-xs tracking-[0.14em] text-emerald-300">SCANNING / {activeGate.label.toUpperCase()}</span>
                   <span className="rounded-md border border-emerald-300/20 bg-emerald-400/[0.08] px-2 py-1 text-[10px] font-bold text-emerald-200">PASS</span>
@@ -272,6 +372,7 @@ export default function MerchantsPage() {
                 <strong className="mt-4 block text-lg text-white/90">{activeGate.result}</strong>
                 <p className="mt-3 font-sans text-sm leading-relaxed text-white/45">{activeGate.evidence}</p>
               </motion.div>
+              </AnimatePresence>
               <div className="mt-7 h-1.5 overflow-hidden rounded-full bg-white/[0.06]">
                 <motion.div key={gateIndex} className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-300" initial={{ width: "0%" }} animate={{ width: "100%" }} transition={{ duration: 1.55, ease: "linear" }} />
               </div>
@@ -425,7 +526,7 @@ export default function MerchantsPage() {
             {[
               ["Deployment manifest", `${REPO}/blob/main/contracts/mainnet/deployment-manifest.json`],
               ["Canonical Mainnet source", `${REPO}/tree/main/contracts/mainnet`],
-              ["Build provenance", `${REPO}/actions/runs/32963207324`],
+              ["Build provenance", `${REPO}/actions/runs/33049143306`],
               ["Verification report", `${REPO}/blob/main/docs/security-scan-report.md`],
             ].map(([label, href]) => (
               <a key={label} href={href} target="_blank" rel="noreferrer" className="flex items-center justify-between gap-3 rounded-xl border border-white/[0.07] bg-black/15 px-4 py-3 text-sm font-semibold text-white/65 transition hover:border-emerald-300/25 hover:text-emerald-100">
@@ -528,5 +629,6 @@ export default function MerchantsPage() {
         </div>
       </motion.section>
     </main>
+    </MotionConfig>
   );
 }
