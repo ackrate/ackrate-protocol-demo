@@ -35,14 +35,19 @@ test("the landing page leads with a human outcome and keeps technical depth on l
     read("app/express/page.tsx"),
   ]);
   for (const line of [
-    "Give an AI a job.",
-    "Keep the final say.",
-    "Your passwords and payment methods stay yours.",
-    "Maya's gift is on its way.",
-    "Anything outside these rules stays out of reach.",
-    "Set the edges. Let it work.",
+    "Ackrate is building the",
+    "delegation and enforcement layer for autonomous agents.",
+    "Give an agent the job—not the keys to everything.",
+    "Find Maya a birthday gift. Spend up to $75 at the bookshop before 8 PM.",
+    "AI agents are becoming capable of spending money",
+    "Those constraints are enforced independently of the agent itself.",
+    "Stop handing over the master key.",
+    "What is Ackrate in plain English?",
   ]) assert.ok(home.includes(line), line);
-  assert.match(home, /role="tablist"/);
+  assert.match(home, /permissionFacts/);
+  assert.match(home, /freedoms/);
+  assert.match(home, /The old way/);
+  assert.match(home, /With Ackrate/);
   assert.match(home, /href="\/express"/);
   assert.match(home, /href="\/docs"/);
   assert.doesNotMatch(home, /MandateRegistry|Circle USDC|Stellar Mainnet|agent\.fetch|MAINNET_REGISTRY/);

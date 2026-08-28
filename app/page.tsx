@@ -1,266 +1,336 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
-import { AnimatePresence, motion } from "framer-motion";
+import { motion } from "framer-motion";
 import {
+  ArrowDown,
   ArrowRight,
   Check,
+  ChevronDown,
   Clock3,
-  LockKeyhole,
+  KeyRound,
   MapPin,
   ShieldCheck,
   Sparkles,
   WalletCards,
+  X,
 } from "lucide-react";
 
-const examples = [
+const permissionFacts = [
+  { value: "1", label: "clear job" },
+  { value: "$75", label: "spending ceiling" },
+  { value: "1", label: "approved shop" },
+  { value: "8 PM", label: "permission ends" },
+] as const;
+
+const freedoms = [
+  { icon: WalletCards, title: "Only this much", copy: "Give the job a ceiling—not the agent your whole wallet." },
+  { icon: MapPin, title: "Only in the right places", copy: "Choose the shops, services, and resources that are in bounds." },
+  { icon: Clock3, title: "Only for as long as needed", copy: "When the job is over, the permission is over too." },
+  { icon: KeyRound, title: "No keys handed over", copy: "Credentials and payment methods stay out of the agent's hands." },
+  { icon: ShieldCheck, title: "Rules that stay put", copy: "The boundary is enforced independently of the agent itself." },
+] as const;
+
+const faqs = [
   {
-    id: "gift",
-    tab: "Birthday gift",
-    task: "Find Maya a birthday gift",
-    agent: "Shopping helper",
-    budget: "$75 max",
-    place: "Bookshop only",
-    deadline: "Tonight, 8 PM",
-    result: "Gift ordered",
-    note: "Maya's gift is on its way. $28 stays unspent.",
+    question: "What is Ackrate in plain English?",
+    answer: "Ackrate lets you give an AI agent a small, temporary permission for one job instead of giving it broad access to your money, accounts, or credentials.",
   },
   {
-    id: "lunch",
-    tab: "Team lunch",
-    task: "Book lunch for the team",
-    agent: "Office helper",
-    budget: "$180 max",
-    place: "3 nearby restaurants",
-    deadline: "Today, 12:30 PM",
-    result: "Table booked",
-    note: "Lunch is sorted. The permission ends after the booking.",
+    question: "What can I limit?",
+    answer: "You can limit how much an agent can spend, where it can act, what it can access, how long the authority lasts, and whether it can pass any of that authority to another agent.",
   },
   {
-    id: "research",
-    tab: "Research brief",
-    task: "Find the sources I need",
-    agent: "Research helper",
-    budget: "$20 max",
-    place: "Trusted sources only",
-    deadline: "Next 30 minutes",
-    result: "Brief ready",
-    note: "The useful sources are ready. Nothing else was purchased.",
+    question: "Does the agent enforce its own rules?",
+    answer: "No. Ackrate checks the permission independently, so an agent cannot simply decide to ignore the boundary it was given.",
+  },
+  {
+    question: "Where can I see the technical details?",
+    answer: "The live Express walkthrough shows the full payment flow, while the docs cover the protocol, packages, and integration details.",
   },
 ] as const;
 
+const fadeUp = {
+  initial: { opacity: 0, y: 24 },
+  whileInView: { opacity: 1, y: 0 },
+  viewport: { once: true, margin: "-80px" },
+  transition: { duration: 0.55, ease: "easeOut" as const },
+};
+
 export default function HomePage() {
-  const [activeId, setActiveId] = useState<(typeof examples)[number]["id"]>("gift");
-  const active = examples.find((example) => example.id === activeId) ?? examples[0];
-
   return (
-    <main className="relative overflow-hidden">
-      <div className="glow" aria-hidden />
-
-      <section className="relative mx-auto grid min-h-[calc(100svh-4rem)] w-full max-w-6xl items-center gap-12 px-5 py-16 sm:px-6 sm:py-20 lg:grid-cols-[0.88fr_1.12fr] lg:gap-16 lg:px-8">
-        <motion.div
-          initial={{ opacity: 0, y: 18 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
-          className="relative z-10"
-        >
-          <div className="inline-flex items-center gap-2 rounded-full border border-emerald-300/20 bg-emerald-400/[0.07] px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-emerald-200">
-            <ShieldCheck className="h-3.5 w-3.5" aria-hidden />
-            Permission that ends with the job
-          </div>
-          <h1 className="mt-6 max-w-2xl text-5xl font-black tracking-[-0.05em] text-emerald-50 sm:text-6xl lg:text-7xl">
-            Give an AI a job. <span className="text-emerald-300">Keep the final say.</span>
-          </h1>
-          <p className="mt-6 max-w-xl text-lg leading-8 text-emerald-100/65 sm:text-xl sm:leading-9">
-            Set the budget, choose where it can act, then let it get on with it. Ackrate makes sure the agent cannot go beyond what you allowed.
-          </p>
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <a
-              href="#how-it-works"
-              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-400 to-teal-300 px-6 py-3 text-sm font-black text-[#06241a] shadow-[0_12px_38px_-10px_rgba(52,211,153,0.75)] transition hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-200"
-            >
-              See how it feels
-              <ArrowRight className="h-4 w-4" aria-hidden />
-            </a>
-            <Link
-              href="/express"
-              className="inline-flex min-h-12 items-center justify-center rounded-xl border border-emerald-300/20 bg-black/20 px-5 py-3 text-sm font-semibold text-emerald-100/75 transition hover:border-emerald-300/40 hover:text-emerald-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/60"
-            >
-              See the live demo
-            </Link>
-          </div>
-          <p className="mt-5 flex items-center gap-2 text-sm text-emerald-100/45">
-            <LockKeyhole className="h-4 w-4 text-emerald-300/70" aria-hidden />
-            Your passwords and payment methods stay yours.
-          </p>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, scale: 0.97, y: 22 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          transition={{ delay: 0.08, duration: 0.55, ease: "easeOut" }}
-          className="relative"
-          aria-label="Examples of a small, task-specific permission"
-        >
-          <div className="pointer-events-none absolute -inset-12 bg-[radial-gradient(circle,rgba(52,211,153,0.16),transparent_66%)] blur-2xl" aria-hidden />
-          <div className="relative overflow-hidden rounded-[2rem] border border-emerald-300/20 bg-[#07110e]/95 p-4 shadow-[0_32px_110px_-42px_rgba(16,185,129,0.72)] sm:p-6">
-            <div className="no-scrollbar flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Choose an everyday example">
-              {examples.map((example) => (
-                <button
-                  key={example.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={active.id === example.id}
-                  onClick={() => setActiveId(example.id)}
-                  className={`relative shrink-0 rounded-full px-3.5 py-2 text-xs font-semibold transition ${
-                    active.id === example.id ? "text-[#06241a]" : "text-emerald-100/45 hover:text-emerald-100/75"
-                  }`}
-                >
-                  {active.id === example.id && (
-                    <motion.span
-                      layoutId="example-tab"
-                      className="absolute inset-0 rounded-full bg-emerald-300"
-                      transition={{ type: "spring", stiffness: 420, damping: 34 }}
-                    />
-                  )}
-                  <span className="relative z-10">{example.tab}</span>
-                </button>
-              ))}
-            </div>
-
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={active.id}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
-                transition={{ duration: 0.22 }}
-                className="mt-5 rounded-2xl border border-white/10 bg-black/25 p-5 sm:p-6"
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-emerald-300/60">Your request</p>
-                    <h2 className="mt-2 text-2xl font-black tracking-tight text-emerald-50 sm:text-3xl">{active.task}</h2>
-                    <p className="mt-1 text-sm text-emerald-100/45">Handled by your {active.agent.toLowerCase()}</p>
-                  </div>
-                  <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-emerald-400/10 text-emerald-300">
-                    <Sparkles className="h-5 w-5" aria-hidden />
-                  </span>
-                </div>
-
-                <div className="mt-6 grid gap-3 sm:grid-cols-3">
-                  <Permission icon={WalletCards} label="Spend" value={active.budget} />
-                  <Permission icon={MapPin} label="Where" value={active.place} />
-                  <Permission icon={Clock3} label="Until" value={active.deadline} />
-                </div>
-
-                <div className="mt-5 rounded-2xl border border-emerald-300/20 bg-emerald-400/[0.07] p-4">
-                  <div className="flex items-center gap-3">
-                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-emerald-300 text-[#06241a]">
-                      <Check className="h-4 w-4" aria-hidden />
-                    </span>
-                    <div>
-                      <p className="text-sm font-bold text-emerald-100">{active.result}</p>
-                      <p className="mt-0.5 text-xs leading-5 text-emerald-100/50">{active.note}</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-4 flex items-center gap-2 px-1 text-xs text-emerald-100/40">
-                  <ShieldCheck className="h-4 w-4 shrink-0 text-emerald-300/70" aria-hidden />
-                  Anything outside these rules stays out of reach.
-                </div>
-              </motion.div>
-            </AnimatePresence>
-          </div>
-        </motion.div>
-      </section>
-
-      <section id="how-it-works" className="relative mx-auto w-full max-w-6xl scroll-mt-24 px-5 py-20 sm:px-6 lg:px-8 lg:py-28">
-        <motion.div
-          initial={{ opacity: 0, y: 18 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-100px" }}
-          transition={{ duration: 0.5 }}
-          className="mx-auto max-w-3xl text-center"
-        >
-          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-300/65">Enough freedom to be useful</p>
-          <h2 className="mt-4 text-4xl font-black tracking-[-0.04em] text-emerald-50 sm:text-5xl">Set the edges. Let it work.</h2>
-          <p className="mx-auto mt-5 max-w-2xl text-base leading-8 text-emerald-100/55 sm:text-lg">
-            You choose the job and the limit. Ackrate holds that line while the agent handles the rest.
-          </p>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-80px" }}
-          transition={{ delay: 0.08, duration: 0.5 }}
-          className="mt-12 grid gap-3 rounded-[2rem] border border-emerald-300/15 bg-[#07110e]/80 p-4 sm:grid-cols-[1fr_auto_1fr_auto_1fr] sm:items-stretch sm:p-6"
-        >
-          <FlowStep number="1" title="Name the job" copy="One clear request, in your words." />
-          <FlowArrow />
-          <FlowStep number="2" title="Choose the limit" copy="A small permission that fits the job." featured />
-          <FlowArrow />
-          <FlowStep number="3" title="Get the result" copy="The agent works. Your rules stay put." />
-        </motion.div>
-      </section>
-
-      <section className="mx-auto w-full max-w-6xl px-5 pb-20 sm:px-6 lg:px-8 lg:pb-28">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-80px" }}
-          transition={{ duration: 0.5 }}
-          className="relative overflow-hidden rounded-[2rem] border border-emerald-300/20 bg-gradient-to-br from-emerald-400/[0.12] via-[#07110e] to-[#07110e] px-6 py-10 sm:px-10 sm:py-12 lg:flex lg:items-center lg:justify-between lg:gap-12"
-        >
-          <div className="pointer-events-none absolute -right-20 -top-24 h-64 w-64 rounded-full bg-emerald-400/10 blur-3xl" aria-hidden />
-          <div className="relative max-w-2xl">
-            <h2 className="text-3xl font-black tracking-[-0.035em] text-emerald-50 sm:text-4xl">Your agent gets room to help. You keep the keys.</h2>
-            <p className="mt-4 text-base leading-7 text-emerald-100/55">
-              When the job is over, the permission is over too. See the payment flow in action, or open the technical guide when you want the details.
+    <main className="ackrate-home relative overflow-hidden bg-[#f4f2ec] text-[#151914]">
+      <section className="relative border-b border-[#151914]/15">
+        <div className="home-grid pointer-events-none absolute inset-0" aria-hidden />
+        <div className="relative mx-auto grid min-h-[calc(100svh-4rem)] w-full max-w-[82rem] items-center gap-12 px-5 py-16 sm:px-8 sm:py-20 lg:grid-cols-[1.04fr_0.96fr] lg:gap-20 lg:px-10 lg:py-24">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.55, ease: "easeOut" }}
+            className="relative z-10"
+          >
+            <p className="home-kicker">Delegation for autonomous agents</p>
+            <h1 className="home-display mt-6 max-w-4xl text-[clamp(3.2rem,7vw,7rem)] leading-[0.89] tracking-[-0.055em]">
+              Ackrate is building the <em>delegation and enforcement layer for autonomous agents.</em>
+            </h1>
+            <p className="mt-8 max-w-2xl text-lg leading-8 text-[#283128]/70 sm:text-xl sm:leading-9">
+              Give an agent the job—not the keys to everything. Set the boundary once, then let it get on with the work.
             </p>
+            <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+              <a href="#one-job" className="home-button home-button-dark">
+                See how it works
+                <ArrowDown className="h-4 w-4" aria-hidden />
+              </a>
+              <Link href="/express" className="home-button home-button-light">
+                Try the live flow
+                <ArrowRight className="h-4 w-4" aria-hidden />
+              </Link>
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, scale: 0.96, y: 24 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ delay: 0.08, duration: 0.62, ease: "easeOut" }}
+            className="relative mx-auto w-full max-w-[34rem] py-6"
+            aria-label="A task-specific permission for a birthday gift"
+          >
+            <div className="permission-orbit relative mx-auto aspect-square w-full max-w-[31rem] rounded-full border border-[#157a4b]/30 bg-[#e7f1e6]">
+              <div className="absolute inset-[13%] rounded-full border border-dashed border-[#157a4b]/45" aria-hidden />
+              <div className="absolute inset-[29%] grid place-items-center rounded-full bg-[#123d2c] text-center text-white shadow-[0_30px_80px_-28px_rgba(18,61,44,0.7)]">
+                <div>
+                  <Sparkles className="mx-auto h-6 w-6 text-[#b9f36a]" aria-hidden />
+                  <p className="mt-3 text-[10px] font-bold uppercase tracking-[0.2em] text-white/55">Agent&apos;s job</p>
+                  <p className="mt-2 px-4 text-base font-bold leading-5 sm:text-lg">Find Maya a birthday gift</p>
+                </div>
+              </div>
+              <OrbitChip className="left-[4%] top-[17%]" icon={WalletCards} label="$75 max" />
+              <OrbitChip className="right-[-2%] top-[31%]" icon={MapPin} label="Bookshop" />
+              <OrbitChip className="bottom-[15%] left-[12%]" icon={Clock3} label="Until 8 PM" />
+              <div className="absolute bottom-[6%] right-[3%] rounded-full border border-[#151914]/15 bg-[#f4f2ec] px-3 py-2 text-xs font-bold text-[#151914]/45 line-through decoration-[#b44632] decoration-2">
+                Your whole wallet
+              </div>
+              <div className="absolute right-[1%] top-[5%] grid h-14 w-14 place-items-center rounded-full bg-[#b9f36a] text-[#123d2c] shadow-lg sm:h-16 sm:w-16">
+                <ShieldCheck className="h-6 w-6" aria-hidden />
+              </div>
+            </div>
+            <p className="mx-auto mt-5 max-w-sm text-center text-sm leading-6 text-[#283128]/55">
+              A useful amount of freedom, wrapped in a boundary the agent cannot move.
+            </p>
+          </motion.div>
+        </div>
+      </section>
+
+      <section className="border-b border-[#151914]/15 bg-[#123d2c] text-white" aria-label="One task-specific permission">
+        <div className="mx-auto grid w-full max-w-[82rem] grid-cols-2 px-5 sm:px-8 lg:grid-cols-4 lg:px-10">
+          {permissionFacts.map((fact, index) => (
+            <motion.div
+              key={fact.label}
+              {...fadeUp}
+              transition={{ ...fadeUp.transition, delay: index * 0.04 }}
+              className={`py-8 sm:py-10 ${index % 2 ? "border-l" : ""} ${index > 1 ? "border-t lg:border-t-0" : ""} ${index > 0 ? "lg:border-l" : ""} border-white/15 px-4 sm:px-6`}
+            >
+              <p className="home-display text-4xl tracking-[-0.04em] text-[#b9f36a] sm:text-5xl">{fact.value}</p>
+              <p className="mt-2 text-xs font-bold uppercase tracking-[0.16em] text-white/55">{fact.label}</p>
+            </motion.div>
+          ))}
+        </div>
+      </section>
+
+      <section id="one-job" className="scroll-mt-20 border-b border-[#151914]/15">
+        <div className="mx-auto w-full max-w-[82rem] px-5 py-20 sm:px-8 sm:py-28 lg:px-10 lg:py-32">
+          <motion.div {...fadeUp} className="grid items-end gap-8 lg:grid-cols-[0.72fr_1.28fr] lg:gap-16">
+            <div>
+              <p className="home-kicker">One clear instruction</p>
+              <h2 className="home-display mt-5 text-5xl leading-[0.96] tracking-[-0.045em] sm:text-6xl">Say what the agent may do.</h2>
+            </div>
+            <p className="max-w-xl text-lg leading-8 text-[#283128]/65 lg:justify-self-end">
+              One job. A few clear edges. A result you can understand without learning how the machinery works.
+            </p>
+          </motion.div>
+
+          <motion.div {...fadeUp} className="mt-12 overflow-hidden rounded-[2rem] border border-[#151914]/20 bg-white shadow-[0_28px_80px_-48px_rgba(18,61,44,0.55)]">
+            <div className="grid lg:grid-cols-[1.18fr_0.82fr]">
+              <div className="p-6 sm:p-10 lg:p-12">
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#157a4b]">You ask</p>
+                <blockquote className="home-display mt-6 max-w-3xl text-4xl leading-[1.05] tracking-[-0.035em] sm:text-5xl">
+                  “Find Maya a birthday gift. Spend up to $75 at the bookshop before 8 PM.”
+                </blockquote>
+              </div>
+              <div className="flex items-center border-t border-[#151914]/15 bg-[#e7f1e6] p-6 sm:p-10 lg:border-l lg:border-t-0 lg:p-12">
+                <div>
+                  <span className="grid h-12 w-12 place-items-center rounded-full bg-[#157a4b] text-white"><Check className="h-5 w-5" aria-hidden /></span>
+                  <p className="mt-6 text-2xl font-black tracking-tight">Gift ordered.</p>
+                  <p className="mt-2 text-base leading-7 text-[#283128]/65">$28 stayed unspent. The permission is now closed.</p>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
+      <section className="border-b border-[#151914]/15 bg-[#fffdf8]">
+        <div className="mx-auto grid w-full max-w-[82rem] gap-10 px-5 py-20 sm:px-8 sm:py-28 lg:grid-cols-[0.72fr_1.28fr] lg:gap-20 lg:px-10 lg:py-32">
+          <motion.p {...fadeUp} className="home-kicker lg:pt-3">Why Ackrate</motion.p>
+          <motion.div {...fadeUp}>
+            <h2 className="home-display max-w-4xl text-5xl leading-[0.98] tracking-[-0.045em] sm:text-6xl lg:text-7xl">Capable agents should not need <em>unlimited access.</em></h2>
+            <p className="mt-8 max-w-3xl text-lg leading-8 text-[#283128]/68 sm:text-xl sm:leading-9">
+              <strong className="font-semibold text-[#151914]">AI agents are becoming capable of spending money</strong>, buying services, calling paid APIs, and coordinating with other agents.
+            </p>
+            <p className="mt-4 max-w-3xl text-lg leading-8 text-[#283128]/68 sm:text-xl sm:leading-9">The answer is not a bigger set of keys. It is a smaller permission that matches the job.</p>
+          </motion.div>
+        </div>
+      </section>
+
+      <section id="how-it-works" className="scroll-mt-20 border-b border-[#151914]/15">
+        <div className="mx-auto grid w-full max-w-[82rem] items-center gap-14 px-5 py-20 sm:px-8 sm:py-28 lg:grid-cols-[0.92fr_1.08fr] lg:gap-20 lg:px-10 lg:py-32">
+          <motion.div {...fadeUp}>
+            <p className="home-kicker">Independent by design</p>
+            <h2 className="home-display mt-5 text-5xl leading-[0.96] tracking-[-0.045em] sm:text-6xl lg:text-7xl">You draw the line. Ackrate holds it.</h2>
+            <p className="mt-7 max-w-xl text-lg leading-8 text-[#283128]/68">Those constraints are enforced independently of the agent itself. The agent gets enough authority to help—and no more.</p>
+          </motion.div>
+
+          <motion.div {...fadeUp} className="rounded-[2rem] border border-[#151914]/20 bg-[#e7f1e6] p-5 sm:p-8">
+            <div className="space-y-3">
+              <EnforcementRow number="01" title="You decide" copy="The job, budget, place, and deadline." />
+              <div className="grid place-items-center text-[#157a4b]" aria-hidden><ArrowDown className="h-5 w-5" /></div>
+              <EnforcementRow number="02" title="Ackrate checks" copy="Every action is tested against that permission." featured />
+              <div className="grid place-items-center text-[#157a4b]" aria-hidden><ArrowDown className="h-5 w-5" /></div>
+              <EnforcementRow number="03" title="The agent acts" copy="Allowed work continues. Everything else stops." />
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
+      <section className="border-b border-[#151914]/15 bg-[#123d2c] text-white">
+        <div className="mx-auto w-full max-w-[82rem] px-5 py-20 sm:px-8 sm:py-28 lg:px-10 lg:py-32">
+          <motion.div {...fadeUp} className="max-w-5xl">
+            <p className="home-kicker !text-[#b9f36a]">Useful freedom</p>
+            <h2 className="home-display mt-5 text-5xl leading-[0.96] tracking-[-0.045em] sm:text-6xl lg:text-7xl">Every permission has an edge.</h2>
+          </motion.div>
+          <div className="mt-12 grid border-l border-t border-white/20 sm:grid-cols-2 lg:grid-cols-6">
+            {freedoms.map((item, index) => (
+              <motion.article
+                key={item.title}
+                {...fadeUp}
+                transition={{ ...fadeUp.transition, delay: index * 0.04 }}
+                className={`border-b border-r border-white/20 p-6 sm:p-8 ${index < 2 ? "lg:col-span-3" : "lg:col-span-2"}`}
+              >
+                <item.icon className="h-6 w-6 text-[#b9f36a]" aria-hidden />
+                <h3 className="mt-12 text-xl font-black tracking-tight sm:text-2xl">{item.title}</h3>
+                <p className="mt-3 max-w-sm text-sm leading-6 text-white/60 sm:text-base sm:leading-7">{item.copy}</p>
+              </motion.article>
+            ))}
           </div>
-          <div className="relative mt-7 flex flex-col gap-3 sm:flex-row lg:mt-0 lg:shrink-0">
-            <Link href="/express" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-emerald-300 px-5 py-3 text-sm font-black text-[#06241a] transition hover:bg-emerald-200">
-              Open the live demo
-              <ArrowRight className="h-4 w-4" aria-hidden />
-            </Link>
-            <Link href="/docs" className="inline-flex min-h-12 items-center justify-center rounded-xl border border-emerald-300/20 px-5 py-3 text-sm font-semibold text-emerald-100/75 transition hover:border-emerald-300/40 hover:text-emerald-100">
-              Read the docs
-            </Link>
+        </div>
+      </section>
+
+      <section className="border-b border-[#151914]/15 bg-[#fffdf8]">
+        <div className="mx-auto w-full max-w-[82rem] px-5 py-20 sm:px-8 sm:py-28 lg:px-10 lg:py-32">
+          <motion.div {...fadeUp} className="max-w-5xl">
+            <p className="home-kicker">A better handoff</p>
+            <h2 className="home-display mt-5 text-5xl leading-[0.96] tracking-[-0.045em] sm:text-6xl lg:text-7xl">Stop handing over the master key.</h2>
+            <p className="mt-7 max-w-2xl text-lg leading-8 text-[#283128]/65">Broad access makes a small task carry a very large risk. A bounded permission keeps the authority proportional to the work.</p>
+          </motion.div>
+
+          <motion.div {...fadeUp} className="mt-12 grid overflow-hidden rounded-[2rem] border border-[#151914]/20 lg:grid-cols-2">
+            <ComparisonColumn
+              eyebrow="The old way"
+              tone="old"
+              items={[
+                ["Share a wallet or credential", "The agent receives more power than the job needs."],
+                ["Ask the agent to behave", "The same system acting is expected to police itself."],
+                ["Clean up access later", "Long-lived keys and approvals are easy to forget."],
+              ]}
+            />
+            <ComparisonColumn
+              eyebrow="With Ackrate"
+              tone="new"
+              items={[
+                ["Name the job", "Authority begins with a specific outcome."],
+                ["Draw the boundary", "Amount, place, resources, time, and delegation are explicit."],
+                ["Let enforcement hold it", "The agent works; the permission stays put."],
+              ]}
+            />
+          </motion.div>
+        </div>
+      </section>
+
+      <section className="border-b border-[#151914]/15 bg-[#b9f36a]">
+        <motion.div {...fadeUp} className="mx-auto flex w-full max-w-[82rem] flex-col gap-10 px-5 py-20 sm:px-8 sm:py-24 lg:flex-row lg:items-end lg:justify-between lg:gap-20 lg:px-10 lg:py-28">
+          <div className="max-w-4xl">
+            <p className="home-kicker">Give it room to help</p>
+            <h2 className="home-display mt-5 text-5xl leading-[0.93] tracking-[-0.05em] sm:text-6xl lg:text-8xl">Give the agent a job. <em>Keep the keys.</em></h2>
+          </div>
+          <div className="flex shrink-0 flex-col gap-3 sm:flex-row lg:flex-col">
+            <Link href="/express" className="home-button home-button-dark">Open the live demo <ArrowRight className="h-4 w-4" aria-hidden /></Link>
+            <Link href="/docs" className="home-button border border-[#151914]/25 bg-transparent text-[#151914] hover:bg-white/40">Read the details</Link>
           </div>
         </motion.div>
+      </section>
+
+      <section className="bg-[#f4f2ec]">
+        <div className="mx-auto grid w-full max-w-[82rem] gap-10 px-5 py-20 sm:px-8 sm:py-28 lg:grid-cols-[0.65fr_1.35fr] lg:gap-20 lg:px-10 lg:py-32">
+          <motion.div {...fadeUp}>
+            <p className="home-kicker">Questions</p>
+            <h2 className="home-display mt-5 text-5xl tracking-[-0.045em] sm:text-6xl">The short version.</h2>
+          </motion.div>
+          <motion.div {...fadeUp} className="border-t border-[#151914]/20">
+            {faqs.map((faq) => (
+              <details key={faq.question} className="group border-b border-[#151914]/20 py-1">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-6 py-6 text-lg font-black tracking-tight sm:text-xl">
+                  {faq.question}
+                  <ChevronDown className="h-5 w-5 shrink-0 transition-transform group-open:rotate-180" aria-hidden />
+                </summary>
+                <p className="max-w-2xl pb-7 pr-8 text-base leading-7 text-[#283128]/65">{faq.answer}</p>
+              </details>
+            ))}
+          </motion.div>
+        </div>
       </section>
     </main>
   );
 }
 
-function Permission({ icon: Icon, label, value }: { icon: typeof WalletCards; label: string; value: string }) {
+function OrbitChip({ className, icon: Icon, label }: { className: string; icon: typeof WalletCards; label: string }) {
   return (
-    <div className="rounded-xl border border-white/10 bg-white/[0.025] p-3.5">
-      <Icon className="h-4 w-4 text-emerald-300/70" aria-hidden />
-      <p className="mt-3 text-[9px] font-bold uppercase tracking-[0.15em] text-emerald-100/30">{label}</p>
-      <p className="mt-1 text-xs font-bold leading-5 text-emerald-100/80">{value}</p>
+    <div className={`absolute flex items-center gap-2 rounded-full border border-[#151914]/15 bg-[#fffdf8] px-3 py-2 text-xs font-black shadow-[0_12px_30px_-18px_rgba(21,25,20,0.5)] sm:px-4 sm:py-2.5 sm:text-sm ${className}`}>
+      <Icon className="h-4 w-4 text-[#157a4b]" aria-hidden />
+      {label}
     </div>
   );
 }
 
-function FlowStep({ number, title, copy, featured = false }: { number: string; title: string; copy: string; featured?: boolean }) {
+function EnforcementRow({ number, title, copy, featured = false }: { number: string; title: string; copy: string; featured?: boolean }) {
   return (
-    <div className={`rounded-2xl p-5 sm:p-6 ${featured ? "border border-emerald-300/20 bg-emerald-400/[0.08]" : "border border-white/[0.07] bg-black/15"}`}>
-      <span className="font-mono text-[10px] text-emerald-300/55">{number.padStart(2, "0")}</span>
-      <h3 className="mt-5 text-lg font-bold text-emerald-100">{title}</h3>
-      <p className="mt-2 text-sm leading-6 text-emerald-100/45">{copy}</p>
+    <div className={`grid grid-cols-[auto_1fr] items-center gap-4 rounded-2xl border p-5 sm:gap-6 sm:p-6 ${featured ? "border-[#157a4b] bg-[#123d2c] text-white shadow-xl" : "border-[#151914]/15 bg-[#fffdf8]"}`}>
+      <span className={`home-display text-3xl ${featured ? "text-[#b9f36a]" : "text-[#157a4b]"}`}>{number}</span>
+      <div>
+        <h3 className="text-lg font-black tracking-tight">{title}</h3>
+        <p className={`mt-1 text-sm leading-6 ${featured ? "text-white/60" : "text-[#283128]/60"}`}>{copy}</p>
+      </div>
     </div>
   );
 }
 
-function FlowArrow() {
+function ComparisonColumn({ eyebrow, tone, items }: { eyebrow: string; tone: "old" | "new"; items: readonly (readonly [string, string])[] }) {
+  const fresh = tone === "new";
   return (
-    <div className="grid place-items-center py-1 text-emerald-300/30 sm:px-1 sm:py-0" aria-hidden>
-      <ArrowRight className="h-5 w-5 rotate-90 sm:rotate-0" />
+    <div className={`${fresh ? "bg-[#e7f1e6]" : "bg-[#eeeae2]"} p-6 sm:p-10 lg:p-12 ${fresh ? "border-t border-[#151914]/20 lg:border-l lg:border-t-0" : ""}`}>
+      <p className={`text-xs font-black uppercase tracking-[0.18em] ${fresh ? "text-[#157a4b]" : "text-[#8a473a]"}`}>{eyebrow}</p>
+      <div className="mt-8 space-y-8">
+        {items.map(([title, copy]) => (
+          <div key={title} className="grid grid-cols-[auto_1fr] gap-4">
+            <span className={`mt-0.5 grid h-7 w-7 place-items-center rounded-full ${fresh ? "bg-[#157a4b] text-white" : "border border-[#8a473a]/30 text-[#8a473a]"}`}>
+              {fresh ? <Check className="h-3.5 w-3.5" aria-hidden /> : <X className="h-3.5 w-3.5" aria-hidden />}
+            </span>
+            <div>
+              <h3 className="text-lg font-black tracking-tight">{title}</h3>
+              <p className="mt-1 text-sm leading-6 text-[#283128]/62 sm:text-base sm:leading-7">{copy}</p>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

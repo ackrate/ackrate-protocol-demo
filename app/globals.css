@@ -106,3 +106,105 @@ body::before {
   background: rgba(52, 211, 153, 0.32);
   color: #eafff7;
 }
+
+/* Editorial home treatment: warm, direct, and intentionally distinct from the
+   technical product pages. Large serif headlines echo a printed manifesto;
+   restrained diagrams carry the detail that paragraphs would otherwise need. */
+.ackrate-home {
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.ackrate-home .home-display,
+.home-footer-display {
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: 400;
+}
+
+.ackrate-home .home-display em,
+.home-footer-display em {
+  color: #157a4b;
+  font-weight: 400;
+}
+
+.ackrate-home .home-kicker {
+  color: #157a4b;
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 0.19em;
+  line-height: 1.4;
+  text-transform: uppercase;
+}
+
+.ackrate-home .home-button {
+  align-items: center;
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 0.875rem;
+  font-weight: 850;
+  gap: 0.55rem;
+  justify-content: center;
+  min-height: 3.25rem;
+  padding: 0.8rem 1.35rem;
+  transition: background-color 180ms ease, color 180ms ease, transform 180ms ease;
+}
+
+.ackrate-home .home-button:hover {
+  transform: translateY(-2px);
+}
+
+.ackrate-home .home-button-dark {
+  background: #151914;
+  color: #fffdf8;
+}
+
+.ackrate-home .home-button-dark:hover {
+  background: #157a4b;
+}
+
+.ackrate-home .home-button-light {
+  background: rgba(255, 253, 248, 0.62);
+  border: 1px solid rgba(21, 25, 20, 0.22);
+  color: #151914;
+}
+
+.ackrate-home .home-button-light:hover {
+  background: #fffdf8;
+}
+
+.ackrate-home .home-grid {
+  background-image:
+    linear-gradient(rgba(21, 25, 20, 0.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(21, 25, 20, 0.055) 1px, transparent 1px);
+  background-size: 48px 48px;
+  -webkit-mask-image: radial-gradient(ellipse 75% 72% at 72% 42%, black, transparent 83%);
+  mask-image: radial-gradient(ellipse 75% 72% at 72% 42%, black, transparent 83%);
+}
+
+.ackrate-home .permission-orbit::before {
+  background: radial-gradient(circle, rgba(185, 243, 106, 0.76), rgba(185, 243, 106, 0) 69%);
+  border-radius: 999px;
+  content: "";
+  height: 42%;
+  left: 29%;
+  pointer-events: none;
+  position: absolute;
+  top: 29%;
+  width: 42%;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .ackrate-home .permission-orbit {
+    animation: permission-breathe 5s ease-in-out infinite;
+  }
+}
+
+@keyframes permission-breathe {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(21, 122, 75, 0.03); }
+  50% { box-shadow: 0 0 0 18px rgba(21, 122, 75, 0.045); }
+}
+
+@media (max-width: 420px) {
+  .ackrate-home .permission-orbit {
+    width: calc(100% - 0.75rem);
+  }
+}

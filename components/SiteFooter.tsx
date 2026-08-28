@@ -14,17 +14,22 @@ export default function SiteFooter() {
   if (path.startsWith("/wallet")) return null;
   if (path === "/") {
     return (
-      <footer className="border-t border-white/10 bg-black/20">
-        <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-5 py-9 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
+      <footer className="border-t border-[#151914]/15 bg-[#fffdf8] text-[#151914]">
+        <div className="mx-auto grid w-full max-w-[82rem] gap-10 px-5 py-12 sm:px-8 md:grid-cols-[1.2fr_0.8fr] lg:px-10 lg:py-16">
           <div>
-            <p className="text-sm font-bold tracking-tight text-emerald-100">ACKRATE</p>
-            <p className="mt-2 text-sm text-emerald-100/45">Agents can move quickly. Your permissions stay small.</p>
+            <p className="text-sm font-black tracking-tight">ACKRATE</p>
+            <p className="home-footer-display mt-4 max-w-xl text-3xl leading-tight tracking-[-0.03em] sm:text-4xl">
+              Room for the agent to help. <em className="text-[#157a4b]">A boundary that stays put.</em>
+            </p>
           </div>
-          <nav className="flex flex-wrap gap-x-6 gap-y-3 text-sm" aria-label="Ackrate links">
-            <a className="text-emerald-100/55 transition hover:text-emerald-200" href="/express">Live demo</a>
-            <a className="text-emerald-100/55 transition hover:text-emerald-200" href="/docs">Docs</a>
-            <a className="text-emerald-100/55 transition hover:text-emerald-200" href="https://github.com/ackrate/ackrate-protocol">GitHub</a>
+          <nav className="grid content-start gap-3 text-sm font-bold md:justify-self-end md:text-right" aria-label="Ackrate links">
+            <a className="transition hover:text-[#157a4b]" href="/express">Live demo ↗</a>
+            <a className="transition hover:text-[#157a4b]" href="/docs">Documentation ↗</a>
+            <a className="transition hover:text-[#157a4b]" href="https://github.com/ackrate/ackrate-protocol">GitHub ↗</a>
           </nav>
+        </div>
+        <div className="border-t border-[#151914]/15 px-5 py-5 text-center text-[10px] font-bold uppercase tracking-[0.17em] text-[#151914]/45">
+          Delegation and enforcement for autonomous agents
         </div>
       </footer>
     );
