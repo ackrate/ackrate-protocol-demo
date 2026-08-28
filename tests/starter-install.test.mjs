@@ -41,7 +41,7 @@ test("all twenty copied setup commands verify pinned installers that verify pinn
     assert.doesNotMatch(posix, /unzip -q|npm ci/);
     // Must not be a pipe-to-shell: a truncated stream must never half-execute.
     assert.doesNotMatch(posix, /curl[^|]*\|\s*(?:sh|bash)/);
-    const syntax = spawnSync("zsh", ["-n", "-c", posix], { encoding: "utf8" });
+    const syntax = spawnSync("sh", ["-n", "-c", posix], { encoding: "utf8" });
     assert.equal(syntax.status, 0, `${entry.slug}: ${syntax.stderr}`);
     // Homebrew-style parallel: download the whole installer, then execute — never
     // pipe into Invoke-Expression. The installer self-verifies the ZIP payload hash.
