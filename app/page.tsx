@@ -62,21 +62,29 @@ export default function HomePage() {
     <main className="ackrate-home relative overflow-hidden bg-[#f4f2ec] text-[#151914]">
       <section className="relative border-b border-[#151914]/15">
         <div className="home-grid pointer-events-none absolute inset-0" aria-hidden />
-        <div className="relative mx-auto grid min-h-[calc(100svh-4rem)] w-full max-w-[82rem] items-center gap-12 px-5 py-16 sm:px-8 sm:py-20 lg:grid-cols-[1.04fr_0.96fr] lg:gap-20 lg:px-10 lg:py-24">
+        <div className="hero-unit relative mx-auto grid min-h-[calc(100svh-4rem)] w-full max-w-[90rem] items-center gap-10 px-5 py-12 sm:px-8 sm:py-14 lg:grid-cols-[1.32fr_0.68fr] lg:gap-12 lg:px-10 lg:py-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.55, ease: "easeOut" }}
             className="relative z-10"
           >
-            <p className="home-kicker">Delegation for autonomous agents</p>
-            <h1 className="home-display mt-6 max-w-4xl text-[clamp(3.2rem,7vw,7rem)] leading-[0.89] tracking-[-0.055em]">
+            <h1 className="hero-pitch home-display max-w-5xl text-[clamp(2.7rem,4.4vw,4.8rem)] leading-[0.94] tracking-[-0.05em]">
               Ackrate is building the <em>delegation and enforcement layer for autonomous agents.</em>
             </h1>
-            <p className="mt-8 max-w-2xl text-lg leading-8 text-[#283128]/70 sm:text-xl sm:leading-9">
-              Give an agent the job—not the keys to everything. Set the boundary once, then let it get on with the work.
-            </p>
-            <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+            <div className="hero-copy mt-6 max-w-4xl space-y-3 text-[0.95rem] leading-[1.55] text-[#283128]/72 sm:text-base lg:mt-5 lg:space-y-2.5">
+              <p>
+                <strong className="font-black text-[#151914]">AI agents are becoming capable of spending money</strong>, buying services, calling paid APIs, and coordinating with other agents.
+              </p>
+              <p>
+                But <strong className="font-black text-[#151914]">today, giving an agent the ability to act often means giving it access to credentials</strong>, wallets, or payment methods that are far more powerful than the task actually requires.
+              </p>
+              <p>
+                <strong className="font-black text-[#151914]">Ackrate lets a person, organization, or parent agent delegate a specific set of permissions to an subagent</strong>: how much it can spend, where it can spend it, what resources it can access, how long the authority lasts, and whether it can delegate part of that authority further.
+              </p>
+              <p>Those constraints are enforced independently of the agent itself.</p>
+            </div>
+            <div className="hero-actions mt-6 flex flex-col gap-3 sm:flex-row lg:mt-5">
               <a href="#one-job" className="home-button home-button-dark">
                 See how it works
                 <ArrowDown className="h-4 w-4" aria-hidden />
@@ -92,10 +100,10 @@ export default function HomePage() {
             initial={{ opacity: 0, scale: 0.96, y: 24 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ delay: 0.08, duration: 0.62, ease: "easeOut" }}
-            className="relative mx-auto w-full max-w-[34rem] py-6"
+            className="hero-visual relative mx-auto w-full max-w-[28rem] py-4"
             aria-label="A task-specific permission for a birthday gift"
           >
-            <div className="permission-orbit relative mx-auto aspect-square w-full max-w-[31rem] rounded-full border border-[#157a4b]/30 bg-[#e7f1e6]">
+            <div className="permission-orbit relative mx-auto aspect-square w-full max-w-[26rem] rounded-full border border-[#157a4b]/30 bg-[#e7f1e6]">
               <div className="absolute inset-[13%] rounded-full border border-dashed border-[#157a4b]/45" aria-hidden />
               <div className="absolute inset-[29%] grid place-items-center rounded-full bg-[#123d2c] text-center text-white shadow-[0_30px_80px_-28px_rgba(18,61,44,0.7)]">
                 <div>

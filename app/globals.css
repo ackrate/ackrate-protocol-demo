@@ -208,3 +208,36 @@ body::before {
     width: calc(100% - 0.75rem);
   }
 }
+
+/* Keep the complete original pitch and its illustration inside shorter desktop
+   viewports (including 1280x720) without hiding or truncating any copy. */
+@media (min-width: 1024px) and (max-height: 900px) {
+  .ackrate-home .hero-unit {
+    min-height: calc(100vh - 4rem);
+    padding-bottom: 1.25rem;
+    padding-top: 1.25rem;
+  }
+
+  .ackrate-home .hero-pitch {
+    font-size: clamp(2.4rem, 3.7vw, 3.6rem);
+    line-height: 0.93;
+  }
+
+  .ackrate-home .hero-copy {
+    font-size: 0.875rem;
+    line-height: 1.38;
+    margin-top: 1rem;
+  }
+
+  .ackrate-home .hero-copy > * + * {
+    margin-top: 0.45rem;
+  }
+
+  .ackrate-home .hero-actions {
+    margin-top: 1rem;
+  }
+
+  .ackrate-home .hero-visual {
+    max-width: 22rem;
+  }
+}
