@@ -174,14 +174,28 @@ export function WalletChatApp() {
     try {
       const address = await connectFreighter(config.networkPassphrase);
       setWalletAddress(address);
+      setNotice("Wallet connected. No transaction was created, signed, or sent.");
+      setPhase("idle");
+    } catch (cause) {
+      setError("Could not connect. Open Freighter, choose Mainnet, and try again.");
+      setNotice(null);
+      setPhase("idle");
+    }
+  };
+
+  const authenticate = async () => {
+    if (!config || !walletAddress) return;
+    setError(null);
+    setPhase("authenticating");
+    try {
       const challenge = await api<{ transactionXdr: string }>("/api/wallet/auth/challenge", {
         method: "POST",
-        body: JSON.stringify({ address }),
+        body: JSON.stringify({ address: walletAddress }),
       });
-      setNotice("Approve the sign-in request in Freighter. This does not send money.");
+      setNotice("Verify wallet control in Freighter. This challenge is never sent to Mainnet.");
       const signedTransactionXdr = await signFreighterTransaction(
         challenge.transactionXdr,
-        address,
+        walletAddress,
         config.networkPassphrase,
       );
       const verified = await api<{ session: SessionView }>("/api/wallet/auth/verify", {
@@ -189,10 +203,10 @@ export function WalletChatApp() {
         body: JSON.stringify({ signedTransactionXdr }),
       });
       setSession(verified.session);
-      setNotice("Wallet connected.");
+      setNotice("Wallet verified. You can now choose a spending limit.");
       setPhase("idle");
     } catch (cause) {
-      setError("Could not connect. Open Freighter, choose Mainnet, and try again.");
+      setError("Could not verify this wallet. No transaction was sent to Mainnet.");
       setNotice(null);
       setPhase("idle");
     }
@@ -328,7 +342,7 @@ export function WalletChatApp() {
   const spendingOff = Boolean(stored?.revokeTx && mandate?.status !== "Active");
   const storedFresh = Boolean(stored && stored.expiry > nowSeconds);
   const currentMandate = mandateOnline ? mandate : null;
-  const progress = mandateOnline ? 3 : storedFresh && stored?.registrationTx ? 2 : session.authenticated ? 1 : 0;
+  const progress = mandateOnline ? 3 : storedFresh && stored?.registrationTx ? 2 : walletAddress ? 1 : 0;
   const remaining = currentMandate && config ? formatUnits(currentMandate.remaining, config.asset.decimals) : budget;
   const spent = currentMandate && config ? formatUnits(currentMandate.spent, config.asset.decimals) : "0";
   const usedPercent = currentMandate && BigInt(currentMandate.maxAmount) > 0n
@@ -346,8 +360,8 @@ export function WalletChatApp() {
         <div className="topbar-center"><span className="pulse-dot" /> Wallet & payments</div>
         <div className="topbar-actions">
           <Link href="/wallet/diagnostics" className="nav-link">Diagnostics</Link>
-          {session.authenticated ? (
-            <button className="wallet-pill" onClick={() => setDisconnectOpen(true)} title="Disconnect wallet"><Power size={13} /> Disconnect wallet</button>
+          {walletAddress ? (
+            <button className="wallet-pill" onClick={session.authenticated ? () => setDisconnectOpen(true) : disconnect} title="Disconnect wallet"><Power size={13} /> Disconnect wallet</button>
           ) : (
             <button className="wallet-pill" onClick={connect} disabled={!config || phase === "authenticating"}><WalletCards size={14} /> Connect wallet</button>
           )}
@@ -373,7 +387,7 @@ export function WalletChatApp() {
 
       <section className="steps shell" aria-label="Activation progress">
         {[
-          [1, "Wallet", session.authenticated ? "Connected" : "Connect your wallet"],
+          [1, "Wallet", session.authenticated ? "Verified" : walletAddress ? "Connected — verify next" : "Connect — no transaction"],
           [2, "Spending", mandateOnline ? "Limit is on" : spendingOff ? "Turned off" : session.authenticated ? "Choose a limit" : "Not started"],
           [3, "Buy", mandateOnline ? "Ready" : "Not ready"],
         ].map(([number, title, caption], index) => (
@@ -388,7 +402,7 @@ export function WalletChatApp() {
       <section className="workspace shell">
         <aside className="control-column">
           <div className="panel glass wallet-panel">
-            <div className="panel-heading"><div><p className="eyebrow">01 · WALLET</p><h2>Your wallet</h2></div><div className={`icon-tile ${session.authenticated ? "live" : ""}`}><WalletCards size={19} /></div></div>
+            <div className="panel-heading"><div><p className="eyebrow">01 · WALLET</p><h2>Your wallet</h2></div><div className={`icon-tile ${walletAddress ? "live" : ""}`}><WalletCards size={19} /></div></div>
             {session.authenticated ? (
               <div className="connected-state">
                 <div className="identity-line"><span className="wallet-led" /><div><small>Connected wallet</small><code>{short(session.address, 9)}</code></div><ShieldCheck size={18} /></div>
@@ -403,9 +417,20 @@ export function WalletChatApp() {
                   </button>
                 )}
               </div>
+            ) : walletAddress ? (
+              <div className="connected-state">
+                <div className="identity-line"><span className="wallet-led" /><div><small>Connected wallet</small><code>{short(walletAddress, 9)}</code></div><WalletCards size={18} /></div>
+                <p><ShieldCheck size={13} /> Connection is read-only. No Mainnet transaction was created, signed, or sent.</p>
+                <button className="primary-button" onClick={authenticate} disabled={phase === "authenticating"}>
+                  <LockKeyhole size={16} /> {phase === "authenticating" ? "Waiting for Freighter…" : "Verify wallet — no broadcast"}
+                </button>
+                <button className="disconnect-button" onClick={disconnect} disabled={phase === "authenticating"}>
+                  <Power size={15} /> Disconnect wallet
+                </button>
+              </div>
             ) : (
               <>
-                <p className="panel-copy">Connect your Freighter wallet to begin. Ackrate never sees your secret phrase.</p>
+                <p className="panel-copy">Connect your Freighter wallet to display its public address. Connecting does not create, sign, or send a Mainnet transaction.</p>
                 <button className="primary-button" onClick={connect} disabled={!config || phase === "authenticating"}><WalletCards size={16} /> {phase === "authenticating" ? "Waiting for Freighter…" : "Connect wallet"}</button>
               </>
             )}

@@ -27,6 +27,22 @@ test("wallet browser calls stay inside the isolated API namespace", () => {
   assert.match(thread, /api: "\/api\/wallet\/chat"/);
 });
 
+test("connecting Freighter never creates or signs a Mainnet transaction", () => {
+  const app = read("components/wallet/WalletChatApp.tsx");
+  const connectStart = app.indexOf("const connect = async () =>");
+  const authenticateStart = app.indexOf("const authenticate = async () =>");
+  const activateStart = app.indexOf("const activate = async () =>");
+
+  assert.ok(connectStart >= 0 && authenticateStart > connectStart && activateStart > authenticateStart);
+  const connectSource = app.slice(connectStart, authenticateStart);
+  const authenticateSource = app.slice(authenticateStart, activateStart);
+  assert.match(connectSource, /connectFreighter/);
+  assert.doesNotMatch(connectSource, /auth\/challenge|signFreighterTransaction/);
+  assert.match(authenticateSource, /auth\/challenge/);
+  assert.match(authenticateSource, /signFreighterTransaction/);
+  assert.match(app, /Connecting does not create, sign, or send a Mainnet transaction/);
+});
+
 test("wallet transaction assembly uses authenticated same-origin Stellar relays", () => {
   const config = read("lib/wallet/app-config.ts");
   const account = read("lib/wallet/horizon-account.ts");
@@ -109,6 +125,7 @@ test("wallet card exposes an obvious site disconnect control", () => {
   assert.match(app, /onClick=\{\(\) => setDisconnectOpen\(true\)\}/);
   assert.match(app, /method: "DELETE"/);
   assert.match(app, /setSession\(emptySession\)/);
+  assert.match(app, /session\.authenticated \? \(\) => setDisconnectOpen\(true\) : disconnect/);
 });
 
 test("wallet disconnect is blocked until the on-chain mandate is off", () => {
@@ -116,7 +133,7 @@ test("wallet disconnect is blocked until the on-chain mandate is off", () => {
 
   assert.match(app, /mandate\?\.status === "Active" && mandate\.expiry > Math\.floor\(Date\.now\(\) \/ 1_000\)/);
   assert.match(app, /First tap Turn off spending below\. Then disconnect your wallet/);
-  assert.match(app, /className="wallet-pill" onClick=\{\(\) => setDisconnectOpen\(true\)\}/);
+  assert.match(app, /className="wallet-pill" onClick=\{session\.authenticated \? \(\) => setDisconnectOpen\(true\) : disconnect\}/);
   assert.match(app, /Tap Disconnect wallet\. Ackrate will guide you through both steps/);
   assert.match(app, /Spending is off\. Now click Disconnect wallet/);
   assert.match(app, /const spendingOff = Boolean\(stored\?\.revokeTx && mandate\?\.status !== "Active"\)/);
@@ -128,7 +145,7 @@ test("wallet disconnect is blocked until the on-chain mandate is off", () => {
 test("wallet labels reflect the connected and spending-off states", () => {
   const app = read("components/wallet/WalletChatApp.tsx");
 
-  assert.match(app, /session\.authenticated \? "Connected" : "Connect your wallet"/);
+  assert.match(app, /session\.authenticated \? "Verified" : walletAddress \? "Connected — verify next" : "Connect — no transaction"/);
   assert.match(app, /spendingOff \? "Turned off"/);
   assert.match(app, /session\.authenticated \? "Your wallet is connected\." : "Connect your wallet first\."/);
 });
