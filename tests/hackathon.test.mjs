@@ -35,9 +35,14 @@ test("the landing page leads with a human outcome and keeps technical depth on l
     read("app/express/page.tsx"),
   ]);
   for (const line of [
-    "Ackrate is building the",
-    "delegation and enforcement layer for autonomous agents.",
+    ">Ackrate</h1>",
+    "A delegation and enforcement layer for autonomous agents",
+    ">AAA</div>",
     "Find Maya a birthday gift. Spend up to $75 at the bookshop before 8 PM.",
+    "Ackrate is building the",
+    "delegation and enforcement layer for",
+    "autonomous <strong",
+    ">agents</strong>.",
     "AI agents are becoming capable of spending money",
     "buying services, calling paid APIs, and coordinating with other agents.",
     "today, giving an agent the ability to act often means giving it access to credentials",
@@ -52,8 +57,9 @@ test("the landing page leads with a human outcome and keeps technical depth on l
   assert.match(home, /freedoms/);
   assert.match(home, /The old way/);
   assert.match(home, /With Ackrate/);
-  assert.match(home, /href="\/express"/);
+  assert.match(home, /mailto:consumer-contact@ackrate\.com/);
   assert.match(home, /href="\/docs"/);
+  assert.doesNotMatch(home, /href="\/express"|live demo|live flow/i);
   assert.doesNotMatch(home, /MandateRegistry|Circle USDC|Stellar Mainnet|agent\.fetch|MAINNET_REGISTRY/);
   assert.match(express, /From HTTP 402 to paid delivery/);
   for (const sentence of [
@@ -69,6 +75,30 @@ test("the landing page leads with a human outcome and keeps technical depth on l
     "how much it can spend, where it can spend it, what resources it can access, how long the authority lasts, and whether it can delegate part of that authority further.",
     "Those constraints are enforced independently of the agent itself.",
   ]) assert.ok(docs.includes(sentence), sentence);
+});
+
+test("the landing brand has a portable logo, contact path, copyright, and persistent themes", async () => {
+  const [logo, nav, footer, theme, layout, styles] = await Promise.all([
+    read("public/logo.svg"),
+    read("components/Nav.tsx"),
+    read("components/SiteFooter.tsx"),
+    read("components/ThemeToggle.tsx"),
+    read("app/layout.tsx"),
+    read("app/globals.css"),
+  ]);
+  assert.match(logo, /viewBox="0 0 64 64"/);
+  assert.match(logo, /rotate\(45 32 32\)/);
+  assert.match(styles, /url\("\/logo\.svg"\)/);
+  assert.match(nav, /href: "#contact", label: "Contact"/);
+  assert.doesNotMatch(nav, /href: "\/express", label: "Live demo"/);
+  assert.match(footer, /mailto:consumer-contact@ackrate\.com/);
+  assert.match(footer, /All rights reserved/);
+  assert.doesNotMatch(footer, /Delegation and enforcement for autonomous agents/);
+  assert.match(theme, /"system" \| "light" \| "dark"/);
+  assert.match(theme, /localStorage\.setItem\(THEME_KEY, next\)/);
+  assert.match(theme, /prefers-color-scheme: dark/);
+  assert.match(layout, /ackrate_theme/);
+  assert.match(styles, /@custom-variant dark/);
 });
 
 test("the intro plays at double speed and remembers completion across pages", async () => {
