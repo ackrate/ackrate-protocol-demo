@@ -3,7 +3,6 @@
 import { usePathname } from "next/navigation";
 
 const links = [
-  { href: "https://ackrate.network/", label: "Agentic payments research" },
   { href: "https://github.com/ackrate/ackrate-protocol", label: "Protocol source" },
   { href: "https://www.npmjs.com/package/@ackrate/core", label: "SDK on npm" },
   { href: "/llms.txt", label: "LLM context" },
@@ -19,10 +18,7 @@ export default function SiteFooter() {
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-300">ACKRATE · live protocol</p>
           <p className="mt-3 max-w-xl text-sm leading-relaxed text-emerald-50/60">
             Open-source agent payment infrastructure with bounded mandates, Circle USDC settlement on Stellar Mainnet,
-            and transaction evidence anyone can inspect. The independent field guide and ecosystem map live at{" "}
-            <a className="text-emerald-300 underline decoration-emerald-400/40 underline-offset-4 hover:text-emerald-200" href="https://ackrate.network/">
-              ackrate.network
-            </a>.
+            and transaction evidence anyone can inspect.
           </p>
         </div>
         <nav className="grid content-start gap-2 sm:grid-cols-2" aria-label="ACKRATE ecosystem links">
