@@ -88,7 +88,7 @@ const controls = [
   ["Wallet custody", "Funds remain under the user’s Freighter account."],
   ["Contract authority", "The agent can spend only within the signed mandate."],
   ["Merchant scope", "Payment cannot be redirected to another recipient."],
-  ["Auditable settlement", "Each completed purchase links to its Mainnet transaction."],
+  ["Traceable settlement", "Each completed purchase links to its Mainnet transaction."],
 ];
 
 export default function ExpressPage() {

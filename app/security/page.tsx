@@ -1,1 +1,5 @@
-export { default } from "../merchants/page";
+import SecurityEvidenceClient from "./SecurityEvidenceClient";
+
+export default function SecurityPage() {
+  return <SecurityEvidenceClient />;
+}

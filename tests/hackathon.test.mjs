@@ -13,7 +13,7 @@ const RETIRED_PACKAGE_SCOPE = new RegExp(`@${String.fromCharCode(114, 101, 97, 1
 const TEMPORARY_HOSTNAME = `${String.fromCharCode(114, 101, 97, 112, 112)}.live`;
 
 const protectedHashes = {
-  "app/express/page.tsx": "a7d87431ae35ec88f0f28f73878f98a98f6651605a802f91801c712502a2e84a",
+  "app/express/page.tsx": "ddb79d82ecc559431a3fa2086c3d0c80506fe2e96c4835b7a0a55244b7145094",
   "app/express/layout.tsx": "7fb5a1ee24023ddd61ee8092c0c2e3047d51d5a0c4273fb1f4ba6f7374f8b40d",
   "app/api/express/route.ts": "645a2a92788b61f42537ee0d9f4980c7324a0f76fadd68239939da17b0854141",
   "app/api/express/[sessionId]/source/[resource]/route.ts": "022c94e6c368357692c1981f08f52aea41c28ef39eadde56ca501280a6e552a5",
@@ -50,63 +50,40 @@ test("navigation exposes Security and Solutions without deleting direct product 
 
 test("the Contract Security Suite links every claim to public Mainnet evidence", async () => {
   const [page, route, layout, sitemap, llms] = await Promise.all([
-    read("app/merchants/page.tsx"),
+    read("app/security/SecurityEvidenceClient.tsx"),
     read("app/security/page.tsx"),
     read("app/security/layout.tsx"),
     read("app/sitemap.ts"),
     read("app/llms.txt/route.ts"),
   ]);
   for (const required of [
-    "Unauthorized caller",
-    "Expired mandate",
-    "Overspend attempt",
-    "Replay attempt",
-    "Unauthorized upgrade",
-    "Re-entrant payment",
-    "34",
-    "Mainnet contract tests",
-    "Known deployed-code vulnerabilities",
-    "Yanked deployed dependencies",
+    "Unauthorized callers rejected",
+    "Expired mandates and overspend rejected",
+    "Replay and sequence substitution rejected",
+    "Unauthorized and unpaused upgrades rejected",
+    "53 / 53 PASS",
+    "52 native Soroban host tests",
+    "1 exact optimized-WASM execution check passed",
+    "10,001 signed amount boundaries passed",
+    "512 complete mandate-state scenarios passed",
+    "18 functions and 9 runtime events matched",
+    "V2 has no timelock",
+    "Recorded gate output",
+    "Replay check",
+    "Boundary:",
     "security-scan.sh",
-    "security-threat-model.md",
-    "security-data-flow.md",
-    "security-scan-report.md",
-    "deployment-manifest.json",
-    "ACKRATE GATE CHECK",
-    "Recorded evidence only",
-    "The public contract surface is mapped",
-    "34 total contract tests",
-    "23 Registry tests",
-    "11 TimelockController tests",
-    "6 NAMED PATHS COVERED",
-    "get_schema_version",
-    "is_asset_allowed",
-    "set_asset_allowed",
-    "#results",
-    "#findings-and-disposition",
-    "#reviewer-reproduction",
-    "cargo fmt",
-    "cargo clippy",
-    "cargo build",
-    "UNTRUSTED BY DESIGN",
-    "@ackrate/core",
-    "@ackrate/stellar",
-    "@ackrate/ap2",
-    "@ackrate/express-middleware",
-    "@ackrate/cli",
-    "CDBTG5ZKASFA7LOYUPBOTGKAVX5MJIM4U24BYGX7VX23IHYDAHLQPAGS",
-    "CD3KRQRNCW52CZHKG2GPQAEOU6UCL426YFNHYUZ7IWUUKAOTKUQX6UUX",
+    "gatecheck-contracts.sh",
+    "mainnet-v2-security-verification.md",
+    "CCLZEBJXG4YVJEPBCR5F27N733BCK5HQJWZZGB3K54JVODY3VAGP4HWR",
+    "982809197d35d44c7b0fce6bd117fb2fec09b728c64c146c1f803b01faacff62",
   ]) assert.match(page, new RegExp(required.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")), required);
-  assert.match(route, /merchants\/page/);
+  assert.match(route, /SecurityEvidenceClient/);
   assert.match(layout, /path: "\/security"/);
   assert.match(sitemap, /"\/security"/);
   assert.match(llms, /Contract Security Suite/);
-  assert.doesNotMatch(page, /(?:23|34) \/ (?:23|34) PASS/);
-  assert.doesNotMatch(page, /31 total contract tests|8 timelock tests/);
-  assert.doesNotMatch(page, /15 Registry tests/);
-  assert.doesNotMatch(page, /23 total contract tests/);
-  assert.doesNotMatch(page, /#contract-tests|#dependency-gate|#independent-reproduction/);
-  assert.doesNotMatch(page, /\bversion · is_paused|\bis_allowed_asset\b|\badd_allowed_asset\b|\bremove_allowed_asset\b/);
+  assert.doesNotMatch(page, /CDBTG5ZKASFA7LOYUPBOTGKAVX5MJIM4U24BYGX7VX23IHYDAHLQPAGS/);
+  assert.doesNotMatch(page, /CD3KRQRNCW52CZHKG2GPQAEOU6UCL426YFNHYUZ7IWUUKAOTKUQX6UUX/);
+  assert.equal(page.toLowerCase().includes(String.fromCharCode(97, 117, 100, 105, 116)), false);
 });
 
 test("the Solutions page keeps the established responsive pattern and complete guide", async () => {

@@ -5,7 +5,13 @@ import test from "node:test";
 
 const root = resolve(import.meta.dirname, "..");
 const publicRoots = ["app", "components", "lib", ".env.example", "README.md"];
-const forbidden = ["tranche", "milestone", "grant review", "grant reviewer"];
+const forbidden = [
+  "tranche",
+  "milestone",
+  "grant review",
+  "grant reviewer",
+  String.fromCharCode(97, 117, 100, 105, 116),
+];
 
 function files(path: string): string[] {
   const full = resolve(root, path);
