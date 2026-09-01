@@ -137,6 +137,7 @@ export default function SecurityEvidenceClient() {
 
   return (
     <main className="mx-auto w-full max-w-6xl px-4 pb-16 pt-12 sm:px-6 lg:pt-20">
+      {/* Production deployment marker for the Mainnet V2 evidence surface. */}
       <header className="max-w-3xl">
         <p className="text-xs font-bold uppercase tracking-[0.16em] text-emerald-300">MandateRegistry V2 · Stellar Mainnet</p>
         <h1 className="mt-4 text-4xl font-black tracking-[-0.04em] text-white sm:text-6xl">Four checks. Direct evidence.</h1>
