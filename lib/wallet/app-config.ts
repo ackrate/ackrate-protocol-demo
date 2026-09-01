@@ -104,27 +104,24 @@ export function loadAppConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     if (env.ACKRATE_ENABLE_MAINNET !== MAINNET_CONFIRMATION) {
       blockers.push(`ACKRATE_ENABLE_MAINNET must equal ${MAINNET_CONFIRMATION}`);
     }
-    const manifestJson = present(env.ACKRATE_MAINNET_DEPLOYMENT_MANIFEST_JSON)
-      ?? JSON.stringify(mainnetReleaseManifest);
-    if (!manifestJson) {
-      blockers.push("completed mainnet deployment manifest is missing");
-    } else {
-      try {
-        const release = mainnetNetworkFromDeploymentManifest(JSON.parse(manifestJson));
-        network = release;
-        asset = release.settlementAsset;
-        releaseFingerprint = createHash("sha256")
-          .update(JSON.stringify({
-            registry: release.mandateRegistryId,
-            asset: release.settlementAsset.contractId,
-            commit: release.release.sourceCommit,
-            registryWasm: release.release.registryWasmSha256,
-            deploymentLedger: release.release.deploymentLedger,
-          }))
-          .digest("hex");
-      } catch (error) {
-        blockers.push(`mainnet deployment manifest rejected: ${error instanceof Error ? error.message : String(error)}`);
-      }
+    try {
+      const release = mainnetNetworkFromDeploymentManifest(mainnetReleaseManifest);
+      network = release;
+      asset = release.settlementAsset;
+      releaseFingerprint = createHash("sha256")
+        .update(JSON.stringify({
+          registry: release.mandateRegistryId,
+          authority: release.release.authorityAccount,
+          asset: release.settlementAsset.contractId,
+          commit: release.release.sourceCommit,
+          registryWasm: release.release.registryWasmSha256,
+          registryInterface: release.release.registryInterfaceSha256,
+          deploymentLedger: release.release.deploymentLedger,
+          deploymentTransaction: release.release.deploymentTransactionHash,
+        }))
+        .digest("hex");
+    } catch (error) {
+      blockers.push(`mainnet deployment manifest rejected: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 

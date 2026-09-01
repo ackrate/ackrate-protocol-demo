@@ -22,6 +22,7 @@ export default function DiagnosticsPage() {
   const fields = [
     ["Release state", config.releaseState],
     ["Network", config.networkLabel],
+    ["Release", config.network === "mainnet" ? "MandateRegistry V2 · 2-of-3 administrator" : "Testnet"],
     ["Registry", config.mandateRegistryId],
     ["Settlement asset", `${config.asset.code} · ${config.asset.contractId}`],
     ["Wallet path", `${config.wallet.name} · ${config.wallet.signingMode}`],

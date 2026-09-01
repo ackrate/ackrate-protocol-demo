@@ -34,7 +34,11 @@ import { AssistantThread, PurchaseReport, type PurchaseResult } from "./Assistan
 type Phase = "idle" | "authenticating" | "adding-asset" | "registering" | "approving" | "active" | "revoking";
 
 interface StoredMandate {
+  schemaVersion: 2;
   id: string;
+  credentialHash: string;
+  registryId: string;
+  releaseFingerprint: string | null;
   user: string;
   agent: string;
   merchant: string;
@@ -48,6 +52,14 @@ interface StoredMandate {
 }
 
 const emptySession: SessionView = { authenticated: false, address: null, network: null, expiresAt: null };
+
+function mandateStorageKey(config: SafeAppConfig, address: string): string {
+  return `ackrate:mandate:v2:${config.network}:${config.mandateRegistryId}:${address}`;
+}
+
+function legacyMandateStorageKey(config: SafeAppConfig, address: string): string {
+  return `ackrate:mandate:${config.network}:${address}`;
+}
 
 async function api<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, {
@@ -141,12 +153,20 @@ export function WalletChatApp() {
 
   useEffect(() => {
     if (!config || !session.authenticated || !session.address) return;
-    const key = `ackrate:mandate:${config.network}:${session.address}`;
+    const key = mandateStorageKey(config, session.address);
+    localStorage.removeItem(legacyMandateStorageKey(config, session.address));
     const raw = localStorage.getItem(key);
     if (!raw) return;
     try {
       const parsed = JSON.parse(raw) as StoredMandate;
-      if (parsed.user !== session.address || !/^[0-9a-f]{64}$/.test(parsed.id)) throw new Error("invalid stored mandate");
+      if (
+        parsed.schemaVersion !== 2
+        || parsed.user !== session.address
+        || parsed.registryId !== config.mandateRegistryId
+        || parsed.releaseFingerprint !== config.releaseFingerprint
+        || !/^[0-9a-f]{64}$/.test(parsed.id)
+        || !/^[0-9a-f]{64}$/.test(parsed.credentialHash)
+      ) throw new Error("invalid stored mandate");
       setStored(parsed);
       if (parsed.registrationTx) void refreshMandate(parsed).catch(() => undefined);
     } catch {
@@ -162,7 +182,7 @@ export function WalletChatApp() {
 
   const saveStored = useCallback((value: StoredMandate) => {
     if (!config) return;
-    localStorage.setItem(`ackrate:mandate:${config.network}:${value.user}`, JSON.stringify(value));
+    localStorage.setItem(mandateStorageKey(config, value.user), JSON.stringify(value));
     setStored(value);
   }, [config]);
 
@@ -220,7 +240,11 @@ export function WalletChatApp() {
       const expiry = Math.floor(Date.now() / 1_000) + Number(duration) * 60;
       const intent = buildMandate(config, session.address, { budget, expiry });
       let next: StoredMandate = {
+        schemaVersion: 2,
         id: intent.id,
+        credentialHash: intent.id,
+        registryId: config.mandateRegistryId,
+        releaseFingerprint: config.releaseFingerprint,
         user: intent.user,
         agent: intent.agent,
         merchant: intent.merchant,
@@ -232,12 +256,15 @@ export function WalletChatApp() {
       saveStored(next);
       setPhase("registering");
       setNotice("Approve your spending limit in Freighter.");
-      const registrationTx = await registerWithFreighter(config, intent);
-      next = { ...next, registrationTx };
+      const registration = await registerWithFreighter(config, intent, (mandateId) => {
+        next = { ...next, id: mandateId };
+        saveStored(next);
+      });
+      next = { ...next, id: registration.mandateId, registrationTx: registration.transactionHash };
       saveStored(next);
       setPhase("approving");
       setNotice("One more Freighter approval lets Ackrate use USDC within your limit.");
-      const allowanceTx = await approveWithFreighter(config, intent);
+      const allowanceTx = await approveWithFreighter(config, storedToIntent(next));
       next = { ...next, allowanceTx };
       saveStored(next);
       await refreshMandate(next);
@@ -324,7 +351,8 @@ export function WalletChatApp() {
     }
 
     if (config && session.address) {
-      localStorage.removeItem(`ackrate:mandate:${config.network}:${session.address}`);
+      localStorage.removeItem(mandateStorageKey(config, session.address));
+      localStorage.removeItem(legacyMandateStorageKey(config, session.address));
     }
     localStorage.removeItem("ackrate:mainnet:last-payment");
     setSession(emptySession);
@@ -370,7 +398,7 @@ export function WalletChatApp() {
 
       <section className="hero shell">
         <div>
-          <div className="status-chip"><Sparkles size={13} /> SAFE AGENT PAYMENTS</div>
+          <div className="status-chip"><Sparkles size={13} /> {config?.network === "mainnet" ? "MAINNET V2 · 2-OF-3 CONTROL" : "BOUNDED AGENT PAYMENTS"}</div>
           <h1>Choose what the agent can spend.<br /><span>Stay in control.</span></h1>
           <p>You choose the limit. Ackrate checks it before every payment.</p>
         </div>
@@ -380,8 +408,15 @@ export function WalletChatApp() {
             <b className={config?.ready ? "online" : "blocked"}>{config?.ready ? "READY" : "NOT READY"}</b>
           </div>
           <strong>{config?.networkLabel ?? "Loading network…"}</strong>
-          <code>{short(config?.mandateRegistryId, 9)}</code>
-          <div className="network-meta"><ShieldCheck size={14} /> {config?.asset.code ?? "Asset"} · $0.01 per purchase</div>
+          <a
+            className="network-contract-link"
+            href={config?.mandateRegistryId ? `${explorer}/contract/${config.mandateRegistryId}` : "#"}
+            target="_blank"
+            rel="noreferrer"
+          >
+            <code>{short(config?.mandateRegistryId, 9)}</code><ArrowUpRight size={12} />
+          </a>
+          <div className="network-meta"><ShieldCheck size={14} /> V2 contract · {config?.asset.code ?? "Asset"} · $0.01 per purchase</div>
         </div>
       </section>
 

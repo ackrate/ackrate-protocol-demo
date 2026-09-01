@@ -107,7 +107,9 @@
 .wallet-preview .network-card-top b.online { background: rgba(52,211,153,.11); color: #71eab8; }
 .wallet-preview .network-card-top b.blocked { background: rgba(251,113,133,.11); color: #fb9bac; }
 .wallet-preview .network-card > strong { display: block; font-size: 15px; letter-spacing: -.02em; }
-.wallet-preview .network-card > code { display: block; margin-top: 5px; color: #70847b; font-size: 10px; }
+.wallet-preview .network-contract-link { display: inline-flex; align-items: center; gap: 5px; margin-top: 6px; color: #70847b; transition: color .2s; }
+.wallet-preview .network-contract-link code { color: inherit; font-size: 10px; }
+.wallet-preview .network-contract-link:hover { color: #8ce7c0; }
 .wallet-preview .network-meta { display: flex; gap: 7px; align-items: center; border-top: 1px solid var(--line); margin-top: 14px; padding-top: 12px; color: #72867e; font-size: 10px; }
 
 .wallet-preview .steps { display: grid; grid-template-columns: repeat(3, 1fr); padding: 14px 20px; margin-bottom: 16px; border-block: 1px solid rgba(255,255,255,.06); background: rgba(255,255,255,.012); }

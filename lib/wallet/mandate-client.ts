@@ -14,6 +14,7 @@ import { ackrate, type IntentMandate } from "@ackrate/core";
 import type { SafeAppConfig } from "./types";
 import { freighterSigner } from "./freighter";
 import { loadAccountSequence } from "./horizon-account";
+import { registeredMandateIdHex } from "./mandate-id";
 import { installMainnetRpcRetry } from "./rpc-retry";
 
 if (typeof window !== "undefined" && !window.Buffer) window.Buffer = Buffer;
@@ -24,6 +25,11 @@ const sleep = (milliseconds: number) => new Promise((resolve) => setTimeout(reso
 export interface CreateMandateForm {
   budget: string;
   expiry: number;
+}
+
+export interface RegistrationResult {
+  mandateId: string;
+  transactionHash: string;
 }
 
 export function publicNetwork(config: SafeAppConfig): NetworkConfig {
@@ -82,7 +88,11 @@ function transactionHash(sent: { sendTransactionResponse?: { hash?: string } }):
   return hash;
 }
 
-export async function registerWithFreighter(config: SafeAppConfig, mandate: IntentMandate): Promise<string> {
+export async function registerWithFreighter(
+  config: SafeAppConfig,
+  mandate: IntentMandate,
+  onPrepared?: (mandateId: string) => void,
+): Promise<RegistrationResult> {
   const client = walletClient(config, mandate.user);
   const assembled = await client.register_mandate({
     user: mandate.user,
@@ -93,9 +103,20 @@ export async function registerWithFreighter(config: SafeAppConfig, mandate: Inte
     expiry: BigInt(mandate.expiry),
     vc_hash: mandate.idBuffer,
   });
+  const preparedMandateId = registeredMandateIdHex(assembled.result.unwrap());
+  if (config.network === "mainnet" && preparedMandateId === mandate.id) {
+    throw new Error("Mainnet registration returned the legacy credential identifier instead of a V2 mandate id");
+  }
+  onPrepared?.(preparedMandateId);
   const sent = await assembled.signAndSend();
-  sent.result.unwrap();
-  return transactionHash(sent);
+  const submittedMandateId = registeredMandateIdHex(sent.result.unwrap());
+  if (submittedMandateId !== preparedMandateId) {
+    throw new Error("MandateRegistry returned different identifiers before and after submission");
+  }
+  return {
+    mandateId: submittedMandateId,
+    transactionHash: transactionHash(sent),
+  };
 }
 
 async function settle(server: rpc.Server, hash: string): Promise<void> {

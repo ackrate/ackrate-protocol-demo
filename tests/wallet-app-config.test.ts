@@ -40,7 +40,7 @@ test("mainnet loads only the verified USDC release and never falls back to testn
   assert.equal(config.public.ready, false);
   assert(config.public.blockers.some((item) => item.includes(MAINNET_CONFIRMATION)));
   assert(config.public.blockers.includes("durable DATABASE_URL is required on mainnet"));
-  assert.equal(config.public.mandateRegistryId, "CDBTG5ZKASFA7LOYUPBOTGKAVX5MJIM4U24BYGX7VX23IHYDAHLQPAGS");
+  assert.equal(config.public.mandateRegistryId, "CCLZEBJXG4YVJEPBCR5F27N733BCK5HQJWZZGB3K54JVODY3VAGP4HWR");
   assert.equal(config.public.asset.code, "USDC");
   assert.equal(config.public.asset.contractId, "CCW67TSZV3SSS2HXMBQ5JFGCKJNXKZM7UQUWUZPUTHXSTZLEO7SJMI75");
   assert.equal(config.public.catalog[0]?.price, "0.01");

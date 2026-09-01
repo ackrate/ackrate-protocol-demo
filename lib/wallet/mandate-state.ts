@@ -50,15 +50,22 @@ export async function readMandate(network: NetworkConfig, source: string, id: st
   return mandateView(id, read.result.unwrap());
 }
 
-export function assertMandateBindings(
+export function assertMandateIdentityBindings(
   mandate: MandateView,
   expected: { user: string; agent: string; merchant: string; asset: string },
-  now = Math.floor(Date.now() / 1_000),
 ): void {
   if (mandate.user !== expected.user) throw new Error("mandate user does not match the authenticated wallet");
   if (mandate.agent !== expected.agent) throw new Error("mandate agent does not match this application");
   if (mandate.merchant !== expected.merchant) throw new Error("mandate merchant does not match the configured fulfillment agent");
   if (mandate.asset !== expected.asset) throw new Error("mandate asset does not match the configured settlement asset");
+}
+
+export function assertMandateBindings(
+  mandate: MandateView,
+  expected: { user: string; agent: string; merchant: string; asset: string },
+  now = Math.floor(Date.now() / 1_000),
+): void {
+  assertMandateIdentityBindings(mandate, expected);
   if (mandate.status !== "Active") throw new Error(`mandate is ${mandate.status.toLowerCase()}`);
   if (mandate.expiry <= now) throw new Error("mandate has expired");
 }

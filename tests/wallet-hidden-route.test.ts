@@ -172,10 +172,27 @@ test("confirmed disconnect clears only Ackrate wallet setup and purchase state",
   const app = read("components/wallet/WalletChatApp.tsx");
 
   assert.doesNotMatch(app, /auth\/session"[\s\S]{0,100}\.catch\(\(\) => undefined\)/);
-  assert.match(app, /localStorage\.removeItem\(`ackrate:mandate:\$\{config\.network\}:\$\{session\.address\}`\)/);
+  assert.match(app, /localStorage\.removeItem\(mandateStorageKey\(config, session\.address\)\)/);
+  assert.match(app, /localStorage\.removeItem\(legacyMandateStorageKey\(config, session\.address\)\)/);
   assert.match(app, /localStorage\.removeItem\("ackrate:mainnet:last-payment"\)/);
   assert.match(app, /Wallet disconnected\. Connect a wallet to start again/);
   assert.match(app, /Could not disconnect\. Please try again/);
+});
+
+test("wallet stores the V2 contract-returned id and rejects stale release state", () => {
+  const app = read("components/wallet/WalletChatApp.tsx");
+  const client = read("lib/wallet/mandate-client.ts");
+  const mandateId = read("lib/wallet/mandate-id.ts");
+
+  assert.match(client, /preparedMandateId = registeredMandateIdHex\(assembled\.result\.unwrap\(\)\)/);
+  assert.match(mandateId, /bytes\.length !== 32/);
+  assert.match(client, /submittedMandateId !== preparedMandateId/);
+  assert.match(client, /legacy credential identifier instead of a V2 mandate id/);
+  assert.match(app, /schemaVersion: 2/);
+  assert.match(app, /registryId: config\.mandateRegistryId/);
+  assert.match(app, /releaseFingerprint: config\.releaseFingerprint/);
+  assert.match(app, /id: registration\.mandateId/);
+  assert.match(app, /credentialHash: intent\.id/);
 });
 
 test("every wallet transaction has a visible explorer link", () => {
