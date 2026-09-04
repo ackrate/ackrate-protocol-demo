@@ -7,8 +7,8 @@ Project guidance for agents working in `ackrate-protocol-demo`.
 A Next.js 15 (App Router) demo of [`@ackrate/core`](https://www.npmjs.com/package/@ackrate/core).
 An AI agent makes pay-per-use payments that are enforced on-chain by the ACKRATE
 MandateRegistry Soroban contract. Public demos run on Stellar testnet; the
-unlisted `/wallet` canary uses the manifest-pinned mainnet contract and Circle
-USDC with Freighter authorization. The SDK runs server-side in
+navigation-listed `/wallet` canary uses the manifest-pinned mainnet contract and
+Circle USDC with Freighter authorization. The SDK runs server-side in
 Next.js API routes — the contract enforces the budget on-chain, so the SDK can't exceed the mandate.
 
 ## Run
@@ -19,7 +19,7 @@ npm run dev        # http://localhost:3000
 ```
 
 The public research, video, composite, and starter flows run on Stellar **testnet**
-with ephemeral keys. The unlisted wallet canary runs on Stellar **mainnet** with
+with ephemeral keys. The wallet canary runs on Stellar **mainnet** with
 Circle USDC and the manifest-pinned registry. The research agent
 additionally needs an LLM API key in `.env.local` (gitignored). It supports two
 providers and fails over between them so a run never goes dark if one is out of
@@ -50,7 +50,7 @@ video demo still works and the research page shows a notice.
   testnet deployment; id pinned in `lib/composites-client.ts`). Source: `app/composites/page.tsx`.
 
 Nav order is defined in `components/Nav.tsx` (`links` array): Docs · CLI ·
-Express · AP2 · Research · Solutions. The `/consumer` and `/video` routes remain
+Express · Wallet · Security · AP2 · Research · Solutions. The `/consumer` and `/video` routes remain
 available by direct link. The toolkit and composite surfaces are UNLISTED (not
 in the nav): `/toolkit` and `/composites` are reachable by direct link only;
 the `/toolkit` hub links to `/composites`.

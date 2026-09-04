@@ -4,13 +4,13 @@ import test from "node:test";
 
 const read = (path: string) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
 
-test("wallet route is unlisted and excluded from discovery surfaces", () => {
+test("wallet route is listed in the primary nav but excluded from search discovery", () => {
   const navigation = read("components/Nav.tsx");
   const sitemap = read("app/sitemap.ts");
   const robots = read("app/robots.ts");
   const layout = read("app/wallet/layout.tsx");
 
-  assert.equal(navigation.includes('{ href: "/wallet"'), false);
+  assert.equal(navigation.includes('{ href: "/wallet"'), true);
   assert.equal(sitemap.includes('"/wallet"'), false);
   assert.match(robots, /disallow: \["\/api\/", "\/wallet"\]/);
   assert.match(layout, /index: false/);
@@ -41,6 +41,19 @@ test("connecting Freighter never creates or signs a Mainnet transaction", () => 
   assert.match(authenticateSource, /auth\/challenge/);
   assert.match(authenticateSource, /signFreighterTransaction/);
   assert.match(app, /Connecting does not create, sign, or send a Mainnet transaction/);
+});
+
+test("wallet keeps the contract governance multisig separate from consumer setup", () => {
+  const app = read("components/wallet/WalletChatApp.tsx");
+  const config = read("lib/wallet/app-config.ts");
+
+  assert.match(config, /contractAuthorityAddress = release\.release\.authorityAccount/);
+  assert.match(app, /walletAddress === config\.contractAuthorityAddress/);
+  assert.match(app, /session\.address === config\.contractAuthorityAddress/);
+  assert.match(app, /Contract account detected/);
+  assert.match(app, /This 2-of-3 account protects the contract/);
+  assert.match(app, /Use a separate personal Mainnet wallet/);
+  assert.match(app, /mandateBusy \|\| governanceWalletConnected/);
 });
 
 test("wallet transaction assembly uses authenticated same-origin Stellar relays", () => {

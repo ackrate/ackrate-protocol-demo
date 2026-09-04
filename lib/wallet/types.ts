@@ -17,8 +17,10 @@ export interface SafeAppConfig {
   rpcUrl: string;
   networkPassphrase: string;
   mandateRegistryId: string;
+  contractAuthorityAddress: string | null;
   asset: {
     code: string;
+    issuer?: string;
     contractId: string;
     decimals: number;
   };

@@ -24,6 +24,7 @@ test("testnet becomes ready only with complete matching configuration", () => {
   assert.equal(config.public.releaseState, "testnet-ready");
   assert.equal(config.public.wallet.name, "Freighter");
   assert.equal(config.public.wallet.authEntrySigning, false);
+  assert.equal(config.public.contractAuthorityAddress, null);
 });
 
 test("agent secret mismatch fails closed without exposing the secret", () => {
@@ -41,6 +42,7 @@ test("mainnet loads only the verified USDC release and never falls back to testn
   assert(config.public.blockers.some((item) => item.includes(MAINNET_CONFIRMATION)));
   assert(config.public.blockers.includes("durable DATABASE_URL is required on mainnet"));
   assert.equal(config.public.mandateRegistryId, "CCLZEBJXG4YVJEPBCR5F27N733BCK5HQJWZZGB3K54JVODY3VAGP4HWR");
+  assert.equal(config.public.contractAuthorityAddress, "GCIURCX7JHEKQLRTW6RDZU7OJUVCDM7WWNQPIKRERIHQOHSLW7UY7TXG");
   assert.equal(config.public.asset.code, "USDC");
   assert.equal(config.public.asset.contractId, "CCW67TSZV3SSS2HXMBQ5JFGCKJNXKZM7UQUWUZPUTHXSTZLEO7SJMI75");
   assert.equal(config.public.catalog[0]?.price, "0.01");

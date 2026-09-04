@@ -91,6 +91,7 @@ export function loadAppConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   let network: NetworkConfig = TESTNET;
   let asset = { code: "XLM", contractId: TESTNET.nativeSac, decimals: 7 };
   let releaseFingerprint: string | null = null;
+  let contractAuthorityAddress: string | null = null;
   const blockers: string[] = [];
 
   if (networkName === "mainnet") {
@@ -108,6 +109,7 @@ export function loadAppConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
       const release = mainnetNetworkFromDeploymentManifest(mainnetReleaseManifest);
       network = release;
       asset = release.settlementAsset;
+      contractAuthorityAddress = release.release.authorityAccount;
       releaseFingerprint = createHash("sha256")
         .update(JSON.stringify({
           registry: release.mandateRegistryId,
@@ -199,6 +201,7 @@ export function loadAppConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     rpcUrl: appOrigin ? `${appOrigin}/api/wallet/rpc` : network.rpcUrl,
     networkPassphrase: network.networkPassphrase,
     mandateRegistryId: network.mandateRegistryId,
+    contractAuthorityAddress,
     asset,
     agentAddress: gAddress(agentAddress) ? agentAddress : null,
     merchant: {

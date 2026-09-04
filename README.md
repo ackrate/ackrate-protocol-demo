@@ -153,7 +153,7 @@ npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000). The public demos remain on
-Stellar testnet. The unlisted `/wallet` canary is separately pinned to the
+Stellar testnet. The navigation-listed `/wallet` canary is separately pinned to the
 verified mainnet MandateRegistry and Circle USDC, uses Freighter, charges 0.01
 USDC per purchase, and stays gated unless every production variable is present.
 

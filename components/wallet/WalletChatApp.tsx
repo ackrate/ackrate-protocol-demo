@@ -116,7 +116,7 @@ export function WalletChatApp() {
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [stored, setStored] = useState<StoredMandate | null>(null);
   const [mandate, setMandate] = useState<MandateView | null>(null);
-  const [budget, setBudget] = useState("0.03");
+  const [budget, setBudget] = useState("0.10");
   const [duration, setDuration] = useState("60");
   const [phase, setPhase] = useState<Phase>("idle");
   const [notice, setNotice] = useState<string | null>(null);
@@ -206,6 +206,12 @@ export function WalletChatApp() {
   const authenticate = async () => {
     if (!config || !walletAddress) return;
     setError(null);
+    if (walletAddress === config.contractAuthorityAddress) {
+      setError("This is the contract's 2-of-3 governance account. Use a separate personal Mainnet wallet here.");
+      setNotice("The V2 contract stays protected by multisig; the consumer wallet signs only its own spending limit.");
+      setPhase("idle");
+      return;
+    }
     setPhase("authenticating");
     try {
       const challenge = await api<{ transactionXdr: string }>("/api/wallet/auth/challenge", {
@@ -236,6 +242,12 @@ export function WalletChatApp() {
     if (!config || !session.address || !config.ready) return;
     setError(null);
     setCompletedPurchase(null);
+    if (session.address === config.contractAuthorityAddress) {
+      setError("This is the contract's 2-of-3 governance account. It cannot finish consumer setup in one Freighter window.");
+      setNotice("Disconnect it and connect a separate personal Mainnet wallet. The V2 contract stays protected by 2-of-3.");
+      setPhase("idle");
+      return;
+    }
     try {
       const expiry = Math.floor(Date.now() / 1_000) + Number(duration) * 60;
       const intent = buildMandate(config, session.address, { budget, expiry });
@@ -379,6 +391,9 @@ export function WalletChatApp() {
   const expires = currentMandate?.expiry ?? (storedFresh ? stored?.expiry : undefined);
   const explorer = config ? `https://stellar.expert/explorer/${config.explorerNetwork}` : "#";
   const mandateBusy = phase === "registering" || phase === "approving";
+  const governanceWalletConnected = Boolean(
+    config?.contractAuthorityAddress && walletAddress === config.contractAuthorityAddress,
+  );
 
   return (
     <main className="wallet-preview app-frame">
@@ -398,7 +413,7 @@ export function WalletChatApp() {
 
       <section className="hero shell">
         <div>
-          <div className="status-chip"><Sparkles size={13} /> {config?.network === "mainnet" ? "MAINNET V2 · 2-OF-3 CONTROL" : "BOUNDED AGENT PAYMENTS"}</div>
+          <div className="status-chip"><Sparkles size={13} /> {config?.network === "mainnet" ? "MAINNET V2 · MULTISIG-GOVERNED CONTRACT" : "BOUNDED AGENT PAYMENTS"}</div>
           <h1>Choose what the agent can spend.<br /><span>Stay in control.</span></h1>
           <p>You choose the limit. Ackrate checks it before every payment.</p>
         </div>
@@ -455,12 +470,21 @@ export function WalletChatApp() {
             ) : walletAddress ? (
               <div className="connected-state">
                 <div className="identity-line"><span className="wallet-led" /><div><small>Connected wallet</small><code>{short(walletAddress, 9)}</code></div><WalletCards size={18} /></div>
-                <p><ShieldCheck size={13} /> Connection is read-only. No Mainnet transaction was created, signed, or sent.</p>
-                <button className="primary-button" onClick={authenticate} disabled={phase === "authenticating"}>
-                  <LockKeyhole size={16} /> {phase === "authenticating" ? "Waiting for Freighter…" : "Verify wallet — no broadcast"}
-                </button>
+                {governanceWalletConnected ? (
+                  <div className="governance-warning" role="alert">
+                    <TriangleAlert size={16} />
+                    <div><strong>Contract account detected</strong><p>This 2-of-3 account protects the contract. Connect a separate personal Mainnet wallet to buy research.</p></div>
+                  </div>
+                ) : (
+                  <>
+                    <p><ShieldCheck size={13} /> Connection is read-only. No Mainnet transaction was created, signed, or sent.</p>
+                    <button className="primary-button" onClick={authenticate} disabled={phase === "authenticating"}>
+                      <LockKeyhole size={16} /> {phase === "authenticating" ? "Waiting for Freighter…" : "Verify wallet — no broadcast"}
+                    </button>
+                  </>
+                )}
                 <button className="disconnect-button" onClick={disconnect} disabled={phase === "authenticating"}>
-                  <Power size={15} /> Disconnect wallet
+                  <Power size={15} /> {governanceWalletConnected ? "Use a personal wallet" : "Disconnect wallet"}
                 </button>
               </div>
             ) : (
@@ -488,7 +512,7 @@ export function WalletChatApp() {
                 {stored?.registrationTx && !stored.allowanceTx ? (
                   <button className="primary-button" onClick={retryAllowance} disabled={phase === "approving"}><RefreshCw size={16} /> {phase === "approving" ? "Waiting for Freighter…" : "Finish setup"}</button>
                 ) : (
-                  <button className={`primary-button ${mandateBusy ? "busy" : ""}`} onClick={activate} disabled={!session.authenticated || !config?.ready || mandateBusy}>
+                  <button className={`primary-button ${mandateBusy ? "busy" : ""}`} onClick={activate} disabled={!session.authenticated || !config?.ready || mandateBusy || governanceWalletConnected}>
                     {mandateBusy ? <LoaderCircle className="activation-spinner" size={17} /> : <Zap size={16} />}
                     {phase === "registering" ? "Saving your limit…" : phase === "approving" ? "Finishing setup…" : "Approve spending limit"}
                   </button>
