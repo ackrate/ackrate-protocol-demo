@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   Activity,
   ArrowUpRight,
@@ -14,6 +15,7 @@ import {
   Database,
   ExternalLink,
   Fingerprint,
+  Globe2,
   LockKeyhole,
   LoaderCircle,
   Power,
@@ -30,6 +32,7 @@ import { approveWithFreighter, buildMandate, registerWithFreighter, revokeWithFr
 import type { MandateView, SafeAppConfig, SessionView } from "@/lib/wallet/types";
 import { addTokenToFreighter, connectFreighter, signFreighterTransaction } from "@/lib/wallet/freighter";
 import { AssistantThread, PurchaseReport, type PurchaseResult } from "./AssistantThread";
+import { MarketplaceOrb } from "./MarketplaceOrb";
 
 type Phase = "idle" | "authenticating" | "adding-asset" | "registering" | "approving" | "active" | "revoking";
 
@@ -52,6 +55,8 @@ interface StoredMandate {
 }
 
 const emptySession: SessionView = { authenticated: false, address: null, network: null, expiresAt: null };
+const MARKETPLACE_URL = "https://agent402.tools/stellar";
+const MARKETPLACE_SERVICE_ID = "agent402:web-search";
 
 function mandateStorageKey(config: SafeAppConfig, address: string): string {
   return `ackrate:mandate:v2:${config.network}:${config.mandateRegistryId}:${address}`;
@@ -111,6 +116,7 @@ function storedToIntent(stored: StoredMandate): IntentMandate {
 }
 
 export function WalletChatApp() {
+  const reduceMotion = useReducedMotion();
   const [config, setConfig] = useState<SafeAppConfig | null>(null);
   const [session, setSession] = useState<SessionView>(emptySession);
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
@@ -125,6 +131,7 @@ export function WalletChatApp() {
   const [usdcReady, setUsdcReady] = useState(false);
   const [nowSeconds, setNowSeconds] = useState(() => Math.floor(Date.now() / 1_000));
   const [completedPurchase, setCompletedPurchase] = useState<PurchaseResult | null>(null);
+  const [marketplaceSelected, setMarketplaceSelected] = useState(false);
 
   const refreshMandate = useCallback(async (current: StoredMandate) => {
     const body = await api<{ mandate: MandateView }>("/api/wallet/mandate/status", {
@@ -179,6 +186,14 @@ export function WalletChatApp() {
     window.addEventListener("ackrate-mandate-updated", refresh);
     return () => window.removeEventListener("ackrate-mandate-updated", refresh);
   }, [refreshMandate, stored]);
+
+  useEffect(() => {
+    if (!session.authenticated || !session.address) {
+      setMarketplaceSelected(false);
+      return;
+    }
+    setMarketplaceSelected(localStorage.getItem(`ackrate:marketplace:${session.address}`) === MARKETPLACE_SERVICE_ID);
+  }, [session.address, session.authenticated]);
 
   const saveStored = useCallback((value: StoredMandate) => {
     if (!config) return;
@@ -373,9 +388,18 @@ export function WalletChatApp() {
     setStored(null);
     setUsdcReady(false);
     setCompletedPurchase(null);
+    setMarketplaceSelected(false);
     setPhase("idle");
     setDisconnectOpen(false);
     setNotice("Wallet disconnected. Connect a wallet to start again.");
+  };
+
+  const chooseMarketplaceService = () => {
+    if (!session.address) return;
+    localStorage.setItem(`ackrate:marketplace:${session.address}`, MARKETPLACE_SERVICE_ID);
+    setMarketplaceSelected(true);
+    setError(null);
+    setNotice("Web search selected. No payment was made.");
   };
 
   const mandateOnline = Boolean(mandate?.status === "Active" && mandate.expiry > nowSeconds);
@@ -652,15 +676,23 @@ export function WalletChatApp() {
 
         <nav className="flow-progress" aria-label="Workflow progress">
           <div className={connected ? "done" : "current"}><span>{connected ? <Check size={14} /> : 1}</span><strong>Connect</strong><ChevronRight size={15} /></div>
-          <div><span>2</span><strong>Marketplace</strong><ChevronRight size={15} /></div>
+          <div className={connected ? marketplaceSelected ? "done" : "current" : ""}><span>{marketplaceSelected ? <Check size={14} /> : 2}</span><strong>Marketplace</strong><ChevronRight size={15} /></div>
           <div><span>3</span><strong>Limit</strong><ChevronRight size={15} /></div>
           <div><span>4</span><strong>Research</strong><ChevronRight size={15} /></div>
           <div><span>5</span><strong>Verify</strong></div>
         </nav>
 
         <section className="flow-card">
+          <AnimatePresence mode="wait" initial={false}>
           {!connected ? (
-            <div className="flow-stage connect-stage">
+            <motion.div
+              key="connect"
+              className="flow-stage connect-stage"
+              initial={reduceMotion ? false : { opacity: 0, y: 10, scale: 0.99 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={reduceMotion ? undefined : { opacity: 0, y: -8 }}
+              transition={{ duration: reduceMotion ? 0 : 0.28, ease: "easeOut" }}
+            >
               <div className="flow-stage-icon"><WalletCards size={25} /></div>
               <p className="flow-kicker">STEP 1 OF 5</p>
               <h2>Connect your wallet</h2>
@@ -678,17 +710,84 @@ export function WalletChatApp() {
                 {phase === "authenticating" ? "Waiting for Freighter…" : walletAddress ? "Verify wallet" : "Connect Freighter"}
               </button>
               <small className="flow-footnote"><LockKeyhole size={12} />Freighter may show a connection prompt and a verification signature.</small>
-            </div>
+            </motion.div>
+          ) : !marketplaceSelected ? (
+            <motion.div
+              key="marketplace"
+              className="flow-stage marketplace-stage"
+              initial={reduceMotion ? false : { opacity: 0, y: 10, scale: 0.99 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={reduceMotion ? undefined : { opacity: 0, y: -8 }}
+              transition={{ duration: reduceMotion ? 0 : 0.28, ease: "easeOut" }}
+            >
+              <div className="flow-stage-heading">
+                <div>
+                  <p className="flow-kicker">STEP 2 OF 5</p>
+                  <h2>Choose the research source</h2>
+                  <p className="flow-description">Pick the external service the agent will use to gather current evidence.</p>
+                </div>
+                <span className="flow-wallet-chip"><WalletCards size={13} />{short(session.address, 5)}</span>
+              </div>
+
+              <div className="marketplace-source">
+                <span className="marketplace-source-icon"><Globe2 size={18} /></span>
+                <span><small>STELLAR x402 MARKETPLACE</small><strong>Agent402</strong></span>
+                <MarketplaceOrb />
+                <a className="marketplace-source-link" href={MARKETPLACE_URL} target="_blank" rel="noreferrer">Open marketplace <ArrowUpRight size={13} /></a>
+              </div>
+
+              <div className="service-label"><span>AVAILABLE FOR THIS WORKFLOW</span><small>1 service</small></div>
+              <motion.button
+                className="service-option selected"
+                type="button"
+                onClick={chooseMarketplaceService}
+                aria-pressed="true"
+                whileHover={reduceMotion ? undefined : { y: -2 }}
+                whileTap={reduceMotion ? undefined : { scale: 0.99 }}
+              >
+                <span className="service-radio"><Check size={14} /></span>
+                <span><strong>Web search</strong><small>Current web results for a sourced research report.</small></span>
+                <span className="service-price">0.02 <small>USDC</small></span>
+              </motion.button>
+
+              <div className="service-facts" aria-label="Service details">
+                <span><Check size={12} />Stellar Mainnet</span>
+                <span><Check size={12} />x402 payment</span>
+                <span><Check size={12} />No marketplace account</span>
+              </div>
+
+              <motion.button
+                className="flow-primary"
+                type="button"
+                onClick={chooseMarketplaceService}
+                whileHover={reduceMotion ? undefined : { y: -1 }}
+                whileTap={reduceMotion ? undefined : { scale: 0.985 }}
+              >Use Web Search <ChevronRight size={16} /></motion.button>
+              <small className="flow-footnote"><LockKeyhole size={12} />Choosing a service does not move funds. Payment happens only when research runs.</small>
+            </motion.div>
           ) : (
-            <div className="flow-stage connect-stage flow-success">
+            <motion.div
+              key="marketplace-complete"
+              className="flow-stage connect-stage flow-success"
+              initial={reduceMotion ? false : { opacity: 0, y: 10, scale: 0.99 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={reduceMotion ? undefined : { opacity: 0, y: -8 }}
+              transition={{ duration: reduceMotion ? 0 : 0.28, ease: "easeOut" }}
+            >
               <div className="flow-stage-icon success"><Check size={25} /></div>
-              <p className="flow-kicker">STEP 1 COMPLETE</p>
-              <h2>Wallet connected</h2>
-              <p className="flow-description">Your wallet is verified and ready for the next step. No transaction was broadcast and no funds moved.</p>
-              <div className="connected-address"><span>CONNECTED WALLET</span><code>{short(session.address, 10)}</code><ShieldCheck size={17} /></div>
-              <div className="next-step-placeholder"><span>Next</span><strong>Choose a marketplace service</strong><small>Step 2 is intentionally not live yet.</small></div>
-            </div>
+              <p className="flow-kicker">STEP 2 COMPLETE</p>
+              <h2>Web search selected</h2>
+              <p className="flow-description">The research agent will purchase current web evidence through Agent402 on Stellar Mainnet.</p>
+              <div className="selected-service-summary">
+                <span className="marketplace-source-icon"><Globe2 size={17} /></span>
+                <span><small>SELECTED SERVICE</small><strong>Agent402 · Web search</strong></span>
+                <span className="service-price">0.02 <small>USDC</small></span>
+              </div>
+              <div className="next-step-placeholder"><span>Next</span><strong>Set the agent's spending limit</strong><small>Step 3 is intentionally not live yet.</small></div>
+              <button className="change-service" type="button" onClick={() => setMarketplaceSelected(false)}>Change service</button>
+            </motion.div>
           )}
+          </AnimatePresence>
         </section>
 
         <div className="flow-under-card">
