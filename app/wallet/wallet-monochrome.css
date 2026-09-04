@@ -1,0 +1,242 @@
+.wallet-preview {
+  --bg: #000;
+  --panel: #0a0a0a;
+  --line: #262626;
+  --line-strong: #525252;
+  --text: #ededed;
+  --muted: #888;
+  --emerald: #fff;
+  --emerald-strong: #e5e5e5;
+  --cyan: #a3a3a3;
+  background: #000;
+  color: var(--text);
+}
+
+.wallet-preview::before {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+  mask-image: linear-gradient(to bottom, #000 0%, transparent 72%);
+}
+
+.wallet-preview::selection {
+  color: #000;
+  background: #fff;
+}
+
+.wallet-preview ::-webkit-scrollbar-thumb {
+  background: #333;
+  background-clip: padding-box;
+}
+
+.wallet-preview .aurora {
+  background: rgba(255, 255, 255, 0.055);
+  filter: blur(110px);
+}
+
+.wallet-preview .glass {
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.012));
+  border-color: #262626;
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.035), 0 22px 70px rgba(0, 0, 0, 0.38);
+  backdrop-filter: blur(20px);
+}
+
+.wallet-preview .topbar {
+  border-color: #1f1f1f;
+  background: rgba(0, 0, 0, 0.82);
+}
+
+.wallet-preview .brand span,
+.wallet-preview .step.complete > span,
+.wallet-preview .active-banner > span,
+.wallet-preview .report-ready-notice > span,
+.wallet-preview .report-rail-heading > span,
+.wallet-preview .tool-check,
+.wallet-preview .toast > span {
+  color: #000;
+  background: #fff;
+  border-color: #fff;
+  box-shadow: none;
+}
+
+.wallet-preview .pulse-dot,
+.wallet-preview .wallet-led,
+.wallet-preview .activation-orbit i:nth-child(3) {
+  background: #fff;
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.28);
+}
+
+.wallet-preview .wallet-pill,
+.wallet-preview .status-chip,
+.wallet-preview .network-card-top b.online,
+.wallet-preview .active-banner,
+.wallet-preview .active-banner.mandate-off,
+.wallet-preview .identity-line,
+.wallet-preview .activation-progress,
+.wallet-preview .quick-purchase,
+.wallet-preview .report-ready-notice,
+.wallet-preview .quick-purchase-notice,
+.wallet-preview .quick-purchase-evidence,
+.wallet-preview .chat-prompt,
+.wallet-preview .tool-card,
+.wallet-preview .authority-card,
+.wallet-preview .toast {
+  color: #d4d4d4;
+  border-color: #333;
+  background: rgba(255, 255, 255, 0.035);
+  box-shadow: none;
+}
+
+.wallet-preview .wallet-pill:hover:not(:disabled),
+.wallet-preview .proof-evidence button:hover,
+.wallet-preview .proof-evidence a:hover,
+.wallet-preview .tool-actions button:hover,
+.wallet-preview .tool-actions a:hover {
+  color: #fff;
+  border-color: #666;
+  background: rgba(255, 255, 255, 0.075);
+}
+
+.wallet-preview .status-chip,
+.wallet-preview .eyebrow,
+.wallet-preview .eyebrow.success,
+.wallet-preview .network-card-top b.online,
+.wallet-preview .network-contract-link:hover,
+.wallet-preview .icon-tile.live,
+.wallet-preview .identity-line > svg,
+.wallet-preview .money-input span,
+.wallet-preview .agent-status.online,
+.wallet-preview .report-link.primary,
+.wallet-preview .brief-finding > span,
+.wallet-preview .brief-takeaway span,
+.wallet-preview .report-source-rail li > svg,
+.wallet-preview .quick-purchase-evidence a,
+.wallet-preview .quick-purchase-evidence a:hover,
+.wallet-preview .chat-prompt strong,
+.wallet-preview .assistant-message .message-avatar,
+.wallet-preview .tool-card > svg,
+.wallet-preview .tool-actions button,
+.wallet-preview .tool-actions a,
+.wallet-preview .remaining small,
+.wallet-preview .authority-card .panel-heading > svg,
+.wallet-preview .proof-evidence button,
+.wallet-preview .proof-evidence a,
+.wallet-preview .proof-evidence button:hover,
+.wallet-preview .proof-evidence a:hover {
+  color: #d4d4d4;
+}
+
+.wallet-preview .hero h1 span {
+  color: #fff;
+  background: none;
+  -webkit-text-fill-color: currentColor;
+}
+
+.wallet-preview .primary-button,
+.wallet-preview .quick-purchase > button,
+.wallet-preview .composer-send {
+  color: #000;
+  background: #fff;
+  border: 1px solid #fff;
+  box-shadow: none;
+}
+
+.wallet-preview .primary-button:hover:not(:disabled),
+.wallet-preview .quick-purchase > button:hover:not(:disabled),
+.wallet-preview .composer-send:hover:not(:disabled) {
+  color: #000;
+  background: #e5e5e5;
+  border-color: #e5e5e5;
+  box-shadow: 0 8px 30px rgba(255, 255, 255, 0.08);
+}
+
+.wallet-preview .primary-button.busy {
+  background: linear-gradient(90deg, #d4d4d4, #fff, #d4d4d4);
+  background-size: 220% 100%;
+}
+
+.wallet-preview .activation-orbit i {
+  border-color: #333;
+  border-top-color: #fff;
+}
+
+.wallet-preview .activation-orbit i:nth-child(2) {
+  border-top-color: #a3a3a3;
+}
+
+.wallet-preview .agent-orb,
+.wallet-preview .lock-rings {
+  color: #fff;
+  border-color: #333;
+  background: rgba(255, 255, 255, 0.035);
+  box-shadow: none;
+}
+
+.wallet-preview .icon-tile.live,
+.wallet-preview .assistant-message .message-avatar {
+  border-color: #333;
+  background: #111;
+}
+
+.wallet-preview .brief-header {
+  background: radial-gradient(circle at 88% 0%, rgba(255, 255, 255, 0.09), transparent 37%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.045), transparent 65%);
+}
+
+.wallet-preview .brief-kicker span,
+.wallet-preview .meter span {
+  background: #fff;
+  box-shadow: none;
+}
+
+.wallet-preview .brief-opening::first-letter,
+.wallet-preview .brief-opening,
+.wallet-preview .brief-finding h3,
+.wallet-preview .brief-takeaway p,
+.wallet-preview .report-sources-head strong,
+.wallet-preview .remaining strong {
+  color: #ededed;
+}
+
+.wallet-preview .brief-finding {
+  background: #0a0a0a;
+}
+
+.wallet-preview .brief-takeaway {
+  border-left-color: #fff;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.015));
+}
+
+.wallet-preview .composer-wrap {
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.98) 22%);
+}
+
+.wallet-preview .composer-root {
+  border-color: #333;
+  background: rgba(10, 10, 10, 0.96);
+}
+
+.wallet-preview .tool-actions button,
+.wallet-preview .tool-actions a,
+.wallet-preview .proof-evidence button,
+.wallet-preview .proof-evidence a {
+  border-color: #333;
+  background: #111;
+}
+
+.wallet-preview .diagnostic-grid > div {
+  background: #0a0a0a;
+}
+
+.wallet-preview .footer {
+  color: #737373;
+}
+
+.wallet-preview .footer a:hover {
+  color: #fff;
+}
+
+@media (prefers-contrast: more) {
+  .wallet-preview {
+    --line: #404040;
+    --muted: #a3a3a3;
+  }
+}
