@@ -251,6 +251,13 @@
   background: #fff;
 }
 
+/* Override the legacy wallet button inheritance until the remaining stages move
+   to this flow. The primary action must stay readable in every button state. */
+.wallet-preview.wallet-flow .flow-primary,
+.wallet-preview.wallet-flow .research-button {
+  color: #000;
+}
+
 .flow-primary:hover:not(:disabled),
 .research-button:hover:not(:disabled) {
   background: #e5e5e5;
