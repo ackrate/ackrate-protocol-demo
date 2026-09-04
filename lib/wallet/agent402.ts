@@ -29,6 +29,14 @@ export const AGENT402_NETWORK = "stellar:pubnet" as const;
 export const AGENT402_AMOUNT_ATOMIC = "200000" as const;
 export const AGENT402_PRICE = "0.02" as const;
 
+const Agent402SearchInputSchema = z.object({
+  q: z.string().transform((value) => value.replace(/\s+/g, " ").trim()).pipe(z.string().min(3).max(400)),
+  count: z.coerce.number().int().min(1).max(20).default(10),
+  freshness: z.enum(["pd", "pw", "pm", "py"]).optional(),
+}).strict();
+
+export type Agent402SearchInput = z.infer<typeof Agent402SearchInputSchema>;
+
 const DiscoverySeller = z.object({
   seller: z.string().min(1).max(200),
   sellerName: z.string().min(1).max(200),
@@ -77,6 +85,7 @@ const SearchResponse = z.object({
 
 export interface Agent402Preflight {
   question: string;
+  input: Agent402SearchInput;
   seller: z.infer<typeof DiscoverySeller>;
   paymentRequired: PaymentRequired;
   requirement: PaymentRequirements;
@@ -91,6 +100,19 @@ export function normalizeResearchQuestion(question: string): string {
     throw new Error("research question must contain between 3 and 400 characters");
   }
   return normalized;
+}
+
+export function normalizeAgent402SearchInput(value: unknown): Agent402SearchInput {
+  const candidate = typeof value === "object" && value !== null && !Array.isArray(value)
+    ? { ...value as Record<string, unknown> }
+    : value;
+  if (typeof candidate === "object" && candidate !== null) {
+    const record = candidate as Record<string, unknown>;
+    if (typeof record.q === "string") record.q = normalizeResearchQuestion(record.q);
+  }
+  const parsed = Agent402SearchInputSchema.safeParse(candidate);
+  if (!parsed.success) throw new Error("Agent402 web search inputs are invalid");
+  return parsed.data;
 }
 
 function timedFetch(fetcher: Fetcher, input: string | URL, init?: RequestInit): Promise<Response> {
@@ -156,11 +178,11 @@ async function discover(fetcher: Fetcher): Promise<z.infer<typeof DiscoverySelle
   return seller.data;
 }
 
-function requestUrl(question: string): string {
+function requestUrl(input: Agent402SearchInput): string {
   const url = new URL(AGENT402_SEARCH_URL);
-  url.searchParams.set("q", question);
-  url.searchParams.set("count", "10");
-  url.searchParams.set("freshness", "py");
+  url.searchParams.set("q", input.q);
+  url.searchParams.set("count", String(input.count));
+  if (input.freshness) url.searchParams.set("freshness", input.freshness);
   return url.toString();
 }
 
@@ -169,13 +191,13 @@ function parserOnlyClient(): x402HTTPClient {
 }
 
 export async function preflightAgent402Research(
-  question: string,
+  search: string | Agent402SearchInput,
   expectedAsset: string,
   fetcher: Fetcher = globalThis.fetch,
 ): Promise<Agent402Preflight> {
-  const normalized = normalizeResearchQuestion(question);
+  const input = normalizeAgent402SearchInput(typeof search === "string" ? { q: search } : search);
   const seller = await discover(fetcher);
-  const url = requestUrl(normalized);
+  const url = requestUrl(input);
   const unpaid = await timedFetch(fetcher, url, {
     headers: { Accept: "application/json" },
     cache: "no-store",
@@ -188,7 +210,7 @@ export async function preflightAgent402Research(
     body,
   );
   const requirement = selectAgent402StellarRequirement(paymentRequired, expectedAsset);
-  return { question: normalized, seller, paymentRequired, requirement, requestUrl: url };
+  return { question: input.q, input, seller, paymentRequired, requirement, requestUrl: url };
 }
 
 function paymentClient(config: AppConfig) {
@@ -225,13 +247,15 @@ function completedFromRecord(record: Awaited<ReturnType<typeof getMarketplaceRun
 export async function runAgent402Research(input: {
   config: AppConfig;
   question: string;
+  searchInput?: Agent402SearchInput;
   mandateId: string;
   contractTx: string;
   fetcher?: Fetcher;
 }) {
   const fetcher = input.fetcher ?? globalThis.fetch;
-  const question = normalizeResearchQuestion(input.question);
-  const questionHash = hash(question);
+  const searchInput = normalizeAgent402SearchInput(input.searchInput ?? { q: input.question });
+  const question = searchInput.q;
+  const questionHash = hash(JSON.stringify(searchInput));
   const existing = await getMarketplaceRun(input.contractTx);
   if (existing) {
     if (existing.mandateId !== input.mandateId || existing.questionHash !== questionHash) {
@@ -248,7 +272,7 @@ export async function runAgent402Research(input: {
     throw new Error("marketplace payment outcome requires review before another attempt");
   }
 
-  const preflight = await preflightAgent402Research(question, input.config.public.asset.contractId, fetcher);
+  const preflight = await preflightAgent402Research(searchInput, input.config.public.asset.contractId, fetcher);
   const trustlineTransaction = await ensureAgentUsdcTrustline(input.config);
   const client = paymentClient(input.config);
   const scopedRequired: PaymentRequired = { ...preflight.paymentRequired, accepts: [preflight.requirement] };

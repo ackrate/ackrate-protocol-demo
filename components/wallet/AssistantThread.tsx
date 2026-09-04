@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import type { MarketBrief } from "@/lib/wallet/market-brief";
 import type { Agent402Evidence } from "@/lib/wallet/marketplace-types";
+import { WEB_SEARCH_INPUTS, type MarketplaceInputField, type MarketplaceService } from "@/lib/wallet/marketplace-catalog";
 
 const EXAMPLES = [
   "What is Solana and what are its main risks?",
@@ -27,6 +28,37 @@ export interface PurchaseResult {
   source: { id: string; title: string };
   payment: { status: string; amount: string; asset: string; txHash: string; mandateId: string };
   delivered: unknown;
+}
+
+const DEFAULT_SEARCH_SERVICE: MarketplaceService = {
+  id: "search",
+  name: "Web search",
+  description: "Live web search",
+  category: "web",
+  categoryLabel: "Web",
+  method: "GET",
+  path: "/api/search",
+  price: "0.02",
+  docs: "https://agent402.tools/tools/search",
+  inputs: WEB_SEARCH_INPUTS,
+  schemaSource: "verified-docs",
+};
+
+function initialInputValues(service: MarketplaceService): Record<string, string> {
+  return Object.fromEntries(service.inputs.map((field) => {
+    const example = field.example;
+    const value = Array.isArray(example) ? example.join("\n") : example === null ? "" : String(example);
+    return [field.name, field.name === "q" ? EXAMPLES[0]! : value];
+  }));
+}
+
+function submittedInput(field: MarketplaceInputField, value: string): string | number | boolean | string[] | undefined {
+  const trimmed = value.trim();
+  if (!trimmed && !field.required) return undefined;
+  if (field.type === "number" || field.type === "integer") return Number(trimmed);
+  if (field.type === "boolean") return trimmed === "true";
+  if (field.type === "array") return trimmed.split(/\n|,/).map((item) => item.trim()).filter(Boolean);
+  return trimmed;
 }
 
 interface PendingRecovery {
@@ -43,6 +75,7 @@ export function AssistantThread({
   mandateId,
   asset,
   price = "0.02",
+  service = DEFAULT_SEARCH_SERVICE,
   explorerNetwork,
   marketplaceUrl = "https://agent402.tools/stellar",
   onPurchaseComplete,
@@ -50,6 +83,7 @@ export function AssistantThread({
   mandateId: string;
   asset: string;
   price?: string;
+  service?: MarketplaceService;
   explorerNetwork: "testnet" | "public";
   marketplaceUrl?: string;
   onPurchaseComplete: (result: PurchaseResult) => void;
@@ -69,6 +103,7 @@ export function AssistantThread({
             mandateId={mandateId}
             asset={asset}
             price={price}
+            service={service}
             explorerNetwork={explorerNetwork}
             marketplaceUrl={marketplaceUrl}
             onPurchaseComplete={onPurchaseComplete}
@@ -83,6 +118,7 @@ function ResearchPurchase({
   mandateId,
   asset,
   price,
+  service,
   explorerNetwork,
   marketplaceUrl,
   onPurchaseComplete,
@@ -90,16 +126,20 @@ function ResearchPurchase({
   mandateId: string;
   asset: string;
   price: string;
+  service: MarketplaceService;
   explorerNetwork: "testnet" | "public";
   marketplaceUrl: string;
   onPurchaseComplete: (result: PurchaseResult) => void;
 }) {
-  const [question, setQuestion] = useState(EXAMPLES[0]!);
+  const [inputValues, setInputValues] = useState<Record<string, string>>(() => initialInputValues(service));
   const [state, setState] = useState<"checking" | "idle" | "running" | "recovery" | "recovering" | "success" | "error">("checking");
   const [result, setResult] = useState<PurchaseResult | null>(null);
   const [recovery, setRecovery] = useState<PendingRecovery | null>(null);
   const [error, setError] = useState<string | null>(null);
   const publishedTx = useRef<string | null>(null);
+  const primaryField = service.inputs.find((field) => field.required && field.type === "string") ?? service.inputs[0];
+  const question = primaryField ? inputValues[primaryField.name] ?? "" : "";
+  const optionalFields = service.inputs.filter((field) => field.name !== primaryField?.name);
 
   useEffect(() => {
     if (!result || publishedTx.current === result.payment.txHash) return;
@@ -152,11 +192,15 @@ function ResearchPurchase({
     setRecovery(null);
     setError(null);
     try {
+      const parameters = Object.fromEntries(service.inputs.flatMap((field) => {
+        const value = submittedInput(field, inputValues[field.name] ?? "");
+        return value === undefined ? [] : [[field.name, value]];
+      }));
       const response = await fetch("/api/wallet/purchase", {
         method: "POST",
         credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mandateId, sourceId: "agent402-research", question: normalized }),
+        body: JSON.stringify({ mandateId, sourceId: "agent402-research", question: normalized, parameters }),
       });
       const body = await response.json() as { ok: boolean; result?: unknown; error?: string };
       if (!response.ok || !body.ok || !isPurchaseResult(body.result)) {
@@ -205,30 +249,55 @@ function ResearchPurchase({
   return (
     <div className="research-purchase">
       <div className="marketplace-line">
-        <div><span className="status-dot" /><strong>Agent402 marketplace</strong><small>Live Stellar x402 seller</small></div>
+        <div><span className="status-dot" /><strong>Agent402 · {service.name}</strong><small>Live Stellar x402 seller</small></div>
         <a href={marketplaceUrl} target="_blank" rel="noreferrer">Open marketplace <ArrowUpRight size={13} /></a>
       </div>
 
-      <div className="question-block">
-        <label htmlFor="research-question">What do you want to understand?</label>
-        <textarea
+      <div className="question-block agent402-composer">
+        <label htmlFor="research-question">What are you searching for?</label>
+        {primaryField && <textarea
           id="research-question"
           value={question}
-          onChange={(event) => setQuestion(event.target.value)}
-          maxLength={400}
-          rows={5}
+          onChange={(event) => setInputValues((current) => ({ ...current, [primaryField.name]: event.target.value }))}
+          maxLength={primaryField.name === "q" ? 400 : 2_000}
+          rows={4}
           disabled={busy || state === "recovery"}
-          placeholder="Ask a specific research question…"
-        />
+          placeholder={primaryField.example ? String(primaryField.example) : primaryField.description}
+        />}
         <div className="example-row" aria-label="Example research questions">
           {EXAMPLES.map((example, index) => (
-            <button type="button" key={example} onClick={() => setQuestion(example)} disabled={busy || state === "recovery"}>
+            <button type="button" key={example} onClick={() => primaryField && setInputValues((current) => ({ ...current, [primaryField.name]: example }))} disabled={busy || state === "recovery"}>
               {index + 1}
             </button>
           ))}
           <span>{question.length}/400</span>
         </div>
       </div>
+
+      {optionalFields.length > 0 && (
+        <details className="service-parameters">
+          <summary><span>Search options</span><small>{optionalFields.length} optional parameters</small></summary>
+          <div className="service-parameter-grid">
+            {optionalFields.map((field) => (
+              <label key={field.name}>
+                <span>{field.name}{field.required ? " *" : ""}</span>
+                {field.options.length > 0 ? (
+                  <select value={inputValues[field.name] ?? ""} onChange={(event) => setInputValues((current) => ({ ...current, [field.name]: event.target.value }))} disabled={busy || state === "recovery"}>
+                    {!field.required && <option value="">Default</option>}
+                    {field.options.map((option) => <option value={option} key={option}>{option}</option>)}
+                  </select>
+                ) : field.type === "boolean" ? (
+                  <select value={inputValues[field.name] ?? ""} onChange={(event) => setInputValues((current) => ({ ...current, [field.name]: event.target.value }))} disabled={busy || state === "recovery"}><option value="">Default</option><option value="true">Yes</option><option value="false">No</option></select>
+                ) : (
+                  <input type={field.type === "number" || field.type === "integer" ? "number" : "text"} value={inputValues[field.name] ?? ""} onChange={(event) => setInputValues((current) => ({ ...current, [field.name]: event.target.value }))} placeholder={field.example === null ? "Default" : String(field.example)} disabled={busy || state === "recovery"} />
+                )}
+                <small>{field.description}</small>
+              </label>
+            ))}
+          </div>
+          <p>Inputs loaded from Agent402&apos;s machine-readable schema.</p>
+        </details>
+      )}
 
       <div className="payment-path" aria-label="Payment and delivery path">
         <div><ShieldCheck size={16} /><span><small>01</small><strong>Contract checks mandate</strong></span></div>

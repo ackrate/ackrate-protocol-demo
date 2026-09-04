@@ -61,6 +61,8 @@ test("wallet marketplace step selects the external Stellar service without movin
   assert.match(app, /Switch to Web search/);
   assert.match(app, /Other Agent402 tools need different inputs/);
   assert.match(catalogRoute, /https:\/\/agent402\.tools\/api\/pricing/);
+  assert.match(catalogRoute, /https:\/\/agent402\.tools\/api\/find/);
+  assert.match(catalogRoute, /parseMarketplaceFind/);
   assert.match(catalogRoute, /stellar:pubnet/);
   assert.match(catalogRoute, /requireSession/);
   assert.match(catalogRoute, /verified-fallback/);
@@ -82,6 +84,7 @@ test("wallet marketplace step selects the external Stellar service without movin
   assert.match(styles, /min-height: calc\(100svh - 52px\)/);
   assert.match(styles, /marketplace-orb\.brand-orb/);
   assert.match(styles, /data-renderer="webgpu"/);
+  assert.match(app, /service-inputs/);
 });
 
 test("the guided wallet completes limit, research, and dual-proof verification stages", () => {
@@ -95,6 +98,30 @@ test("the guided wallet completes limit, research, and dual-proof verification s
   assert.match(app, /walletBalances\.usdcRaw/);
   assert.match(app, /activeMandateReady/);
   assert.match(styles, /flow-settlement-grid/);
+});
+
+test("wallet separates mandate registration and token allowance into two deliberate approvals", () => {
+  const app = read("components/wallet/WalletChatApp.tsx");
+  const activateStart = app.indexOf("const activate = async () =>");
+  const retryStart = app.indexOf("const retryAllowance = async () =>");
+  const activateSource = app.slice(activateStart, retryStart);
+
+  assert.match(activateSource, /registerWithFreighter/);
+  assert.doesNotMatch(activateSource, /approveWithFreighter/);
+  assert.match(app, /Approve \$\{formatUnits\(stored\.maxAmount, stored\.decimals\)\} USDC allowance/);
+  assert.match(app, /activeMandateReady = Boolean\(mandateOnline && mandateMatchesConfig && storedFresh && stored\?\.allowanceTx\)/);
+});
+
+test("research composer renders and submits Agent402's discovered input schema", () => {
+  const app = read("components/wallet/WalletChatApp.tsx");
+  const thread = read("components/wallet/AssistantThread.tsx");
+  const purchase = read("app/api/wallet/purchase/route.ts");
+
+  assert.match(app, /service=\{marketplaceService\}/);
+  assert.match(thread, /service\.inputs\.map/);
+  assert.match(thread, /Inputs loaded from Agent402/);
+  assert.match(thread, /parameters/);
+  assert.match(purchase, /freshness: z\.enum\(\["pd", "pw", "pm", "py"\]\)/);
 });
 
 test("wallet keeps the contract governance multisig separate from consumer setup", () => {

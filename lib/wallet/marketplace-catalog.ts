@@ -1,5 +1,14 @@
 import { z } from "zod";
 
+export interface MarketplaceInputField {
+  name: string;
+  type: "string" | "number" | "integer" | "boolean" | "array" | "object";
+  description: string;
+  required: boolean;
+  options: string[];
+  example: string | number | boolean | string[] | null;
+}
+
 export interface MarketplaceService {
   id: string;
   name: string;
@@ -10,7 +19,15 @@ export interface MarketplaceService {
   path: string;
   price: string;
   docs: string;
+  inputs: MarketplaceInputField[];
+  schemaSource: "agent402-find" | "verified-docs" | "unavailable";
 }
+
+export const WEB_SEARCH_INPUTS: MarketplaceInputField[] = [
+  { name: "q", type: "string", description: "Search query (max 400 chars)", required: true, options: [], example: "What is Solana?" },
+  { name: "count", type: "number", description: "Results to return, 1-20 (default 10)", required: false, options: [], example: 10 },
+  { name: "freshness", type: "string", description: "Optional: pd, pw, pm, or py (past day/week/month/year)", required: false, options: [], example: null },
+];
 
 const EndpointSchema = z.object({
   method: z.enum(["GET", "POST"]),
@@ -30,6 +47,32 @@ const PricingSchema = z.object({
   categories: z.record(z.string(), z.string()),
   endpoints: z.array(EndpointSchema).min(1).max(1_200),
 });
+
+const FindPropertySchema = z.object({
+  type: z.enum(["string", "number", "integer", "boolean", "array", "object"]),
+  description: z.string().max(2_000).optional().default(""),
+  enum: z.array(z.union([z.string(), z.number(), z.boolean()])).max(100).optional(),
+}).passthrough();
+
+const FindResultSchema = z.object({
+  slug: z.string().regex(/^[a-z0-9][a-z0-9-]{0,95}$/),
+  name: z.string().min(1).max(200),
+  route: z.string().regex(/^(GET|POST) \/\S+$/).max(240),
+  price: z.string().regex(/^\$\d+(?:\.\d{1,7})?$/),
+  category: z.string().min(1).max(48),
+  description: z.string().min(1).max(4_000),
+  docs: z.string().url(),
+  inputSchema: z.object({
+    properties: z.record(z.string(), FindPropertySchema).default({}),
+    required: z.array(z.string()).max(100).optional().default([]),
+  }).passthrough(),
+  example: z.record(z.string(), z.unknown()).optional().default({}),
+}).passthrough();
+
+const FindResponseSchema = z.object({
+  count: z.number().int().nonnegative().max(10_000),
+  results: z.array(FindResultSchema).max(50),
+}).passthrough();
 
 const FEATURED_SLUGS = [
   "search",
@@ -52,6 +95,8 @@ export const FALLBACK_MARKETPLACE_SERVICES: MarketplaceService[] = [
     path: "/api/search",
     price: "0.02",
     docs: "https://agent402.tools/tools/search",
+    inputs: WEB_SEARCH_INPUTS,
+    schemaSource: "verified-docs",
   },
   {
     id: "extract",
@@ -63,6 +108,8 @@ export const FALLBACK_MARKETPLACE_SERVICES: MarketplaceService[] = [
     path: "/api/extract",
     price: "0.010",
     docs: "https://agent402.tools/tools/extract",
+    inputs: [],
+    schemaSource: "unavailable",
   },
   {
     id: "render",
@@ -74,6 +121,8 @@ export const FALLBACK_MARKETPLACE_SERVICES: MarketplaceService[] = [
     path: "/api/render",
     price: "0.02",
     docs: "https://agent402.tools/tools/render",
+    inputs: [],
+    schemaSource: "unavailable",
   },
   {
     id: "pdf",
@@ -85,6 +134,8 @@ export const FALLBACK_MARKETPLACE_SERVICES: MarketplaceService[] = [
     path: "/api/pdf",
     price: "0.01",
     docs: "https://agent402.tools/tools/pdf",
+    inputs: [],
+    schemaSource: "unavailable",
   },
   {
     id: "v1-chat-grounded",
@@ -96,6 +147,8 @@ export const FALLBACK_MARKETPLACE_SERVICES: MarketplaceService[] = [
     path: "/v1/grounded/chat/completions",
     price: "0.03",
     docs: "https://agent402.tools/tools/chat-grounded",
+    inputs: [],
+    schemaSource: "unavailable",
   },
   {
     id: "research",
@@ -107,6 +160,8 @@ export const FALLBACK_MARKETPLACE_SERVICES: MarketplaceService[] = [
     path: "/v1/research",
     price: "0.60",
     docs: "https://agent402.tools/tools/research",
+    inputs: [],
+    schemaSource: "unavailable",
   },
 ];
 
@@ -142,7 +197,53 @@ export function parseMarketplacePricing(value: unknown): MarketplaceService[] {
     path: endpoint.path,
     price: endpoint.price.slice(1),
     docs: safeDocs(endpoint.docs),
+    inputs: endpoint.slug === "search" ? WEB_SEARCH_INPUTS : [],
+    schemaSource: endpoint.slug === "search" ? "verified-docs" : "unavailable",
   }));
+}
+
+function fieldExample(value: unknown): MarketplaceInputField["example"] {
+  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") return value;
+  if (Array.isArray(value) && value.every((item) => typeof item === "string")) return value;
+  if (value === undefined || value === null) return null;
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return null;
+  }
+}
+
+export function parseMarketplaceFind(value: unknown): { services: MarketplaceService[]; totalMatches: number } {
+  const found = FindResponseSchema.parse(value);
+  const services = found.results.map((result) => {
+    const [method, path] = result.route.split(" ", 2) as ["GET" | "POST", string];
+    const required = new Set(result.inputSchema.required);
+    const inputs = Object.entries(result.inputSchema.properties).map(([name, property]) => ({
+      name,
+      type: property.type,
+      description: property.description,
+      required: required.has(name),
+      options: property.enum?.map(String) ?? [],
+      example: fieldExample(result.example[name]),
+    }));
+    if ([...required].some((name) => !inputs.some((field) => field.name === name))) {
+      throw new Error(`Agent402 schema for ${result.slug} omitted a required property`);
+    }
+    return {
+      id: result.slug,
+      name: result.name,
+      description: compactDescription(result.description),
+      category: result.category,
+      categoryLabel: result.category,
+      method,
+      path,
+      price: result.price.slice(1),
+      docs: safeDocs(result.docs),
+      inputs,
+      schemaSource: "agent402-find" as const,
+    };
+  });
+  return { services, totalMatches: found.count };
 }
 
 function searchable(service: MarketplaceService): string {

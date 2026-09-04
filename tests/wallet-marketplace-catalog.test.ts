@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   FALLBACK_MARKETPLACE_SERVICES,
+  parseMarketplaceFind,
   parseMarketplacePricing,
   searchMarketplaceServices,
 } from "../lib/wallet/marketplace-catalog";
@@ -32,6 +33,8 @@ test("marketplace pricing accepts only a catalog that advertises Stellar", () =>
     path: "/api/search",
     description: "Live web search.",
     docs: "https://agent402.tools/tools/search",
+    inputs: FALLBACK_MARKETPLACE_SERVICES[0]!.inputs,
+    schemaSource: "verified-docs",
   }]);
 
   assert.throws(() => parseMarketplacePricing({
@@ -48,6 +51,38 @@ test("marketplace pricing accepts only a catalog that advertises Stellar", () =>
       docs: "https://agent402.tools/tools/search",
     }],
   }), /Stellar/);
+});
+
+test("marketplace find data supplies the exact machine-readable service inputs", () => {
+  const result = parseMarketplaceFind({
+    count: 1,
+    results: [{
+      slug: "search",
+      name: "Web search",
+      route: "GET /api/search",
+      price: "$0.02",
+      category: "web",
+      description: "Live web search.",
+      docs: "https://agent402.tools/tools/search",
+      inputSchema: {
+        properties: {
+          q: { type: "string", description: "Search query" },
+          count: { type: "number", description: "Results to return" },
+          freshness: { type: "string", enum: ["pd", "pw", "pm", "py"], description: "Freshness" },
+        },
+        required: ["q"],
+      },
+      example: { q: "x402", count: 5 },
+    }],
+  });
+
+  assert.equal(result.totalMatches, 1);
+  assert.equal(result.services[0]?.schemaSource, "agent402-find");
+  assert.deepEqual(result.services[0]?.inputs, [
+    { name: "q", type: "string", description: "Search query", required: true, options: [], example: "x402" },
+    { name: "count", type: "number", description: "Results to return", required: false, options: [], example: 5 },
+    { name: "freshness", type: "string", description: "Freshness", required: false, options: ["pd", "pw", "pm", "py"], example: null },
+  ]);
 });
 
 test("marketplace search finds real service types and keeps a compact result set", () => {

@@ -3,6 +3,7 @@ import { loadAppConfig } from "@/lib/wallet/app-config";
 import { boundedResponseJson, jsonError, NO_STORE_HEADERS } from "@/lib/wallet/http";
 import {
   FALLBACK_MARKETPLACE_SERVICES,
+  parseMarketplaceFind,
   parseMarketplacePricing,
   searchMarketplaceServices,
   type MarketplaceService,
@@ -12,6 +13,7 @@ import { requireSession } from "@/lib/wallet/security";
 export const dynamic = "force-dynamic";
 
 const AGENT402_PRICING_URL = "https://agent402.tools/api/pricing";
+const AGENT402_FIND_URL = "https://agent402.tools/api/find";
 const CACHE_MS = 5 * 60 * 1_000;
 
 type CatalogCache = { services: MarketplaceService[]; fetchedAt: number };
@@ -33,6 +35,19 @@ async function liveCatalog(): Promise<CatalogCache> {
   return next;
 }
 
+async function liveSchemaSearch(query: string): Promise<{ services: MarketplaceService[]; totalMatches: number }> {
+  const url = new URL(AGENT402_FIND_URL);
+  const normalized = query.trim().toLowerCase();
+  url.searchParams.set("q", normalized === "scraper" || normalized === "scrape" ? "scrape a webpage" : query || "web search");
+  const response = await fetch(url, {
+    cache: "no-store",
+    headers: { Accept: "application/json" },
+    signal: AbortSignal.timeout(8_000),
+  });
+  if (!response.ok) throw new Error(`Agent402 schema discovery returned HTTP ${response.status}`);
+  return parseMarketplaceFind(await boundedResponseJson(response, 2 * 1024 * 1024));
+}
+
 export async function GET(request: NextRequest): Promise<Response> {
   try {
     const config = loadAppConfig();
@@ -42,20 +57,28 @@ export async function GET(request: NextRequest): Promise<Response> {
 
     let catalog = FALLBACK_MARKETPLACE_SERVICES;
     let source: "live" | "verified-fallback" = "verified-fallback";
+    let catalogSize = catalog.length;
+    let result = searchMarketplaceServices(catalog, query);
     try {
-      catalog = (await liveCatalog()).services;
+      const [pricing, discovered] = await Promise.all([
+        liveCatalog(),
+        liveSchemaSearch(query),
+      ]);
+      catalog = pricing.services;
+      catalogSize = catalog.length;
+      result = discovered;
       source = "live";
     } catch {
       // The verified fallback keeps the workflow usable during a short catalog outage.
+      result = searchMarketplaceServices(catalog, query);
     }
 
-    const result = searchMarketplaceServices(catalog, query);
     return NextResponse.json({
       ok: true,
       marketplace: "Agent402",
       network: "stellar:pubnet",
       source,
-      catalogSize: catalog.length,
+      catalogSize,
       totalMatches: result.totalMatches,
       services: result.services,
     }, { headers: NO_STORE_HEADERS });

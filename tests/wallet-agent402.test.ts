@@ -6,6 +6,7 @@ import {
   AGENT402_AMOUNT_ATOMIC,
   AGENT402_NETWORK,
   AGENT402_SEARCH_URL,
+  normalizeAgent402SearchInput,
   normalizeResearchQuestion,
   selectAgent402StellarRequirement,
 } from "../lib/wallet/agent402";
@@ -79,4 +80,14 @@ test("research questions are normalized and strictly bounded", () => {
   assert.equal(normalizeResearchQuestion("  What   is\nSolana?  "), "What is Solana?");
   assert.throws(() => normalizeResearchQuestion("  "), /between 3 and 400/);
   assert.throws(() => normalizeResearchQuestion("x".repeat(401)), /between 3 and 400/);
+});
+
+test("Agent402 web search accepts only the published query parameters", () => {
+  assert.deepEqual(normalizeAgent402SearchInput({ q: " Solana ", count: "5", freshness: "pw" }), {
+    q: "Solana",
+    count: 5,
+    freshness: "pw",
+  });
+  assert.throws(() => normalizeAgent402SearchInput({ q: "Solana", count: 21 }), /inputs are invalid/);
+  assert.throws(() => normalizeAgent402SearchInput({ q: "Solana", madeUp: true }), /inputs are invalid/);
 });

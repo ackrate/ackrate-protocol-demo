@@ -7,7 +7,7 @@ import { PostgresBoundRedemptionStore } from "./redemption-store";
 import { installMainnetAccountFallback } from "./rpc-account-fallback";
 import { installMainnetRpcRetry } from "./rpc-retry";
 import { MARKET_SIGNAL_BRIEF } from "./market-brief";
-import { normalizeResearchQuestion, runAgent402Research } from "./agent402";
+import { normalizeAgent402SearchInput, runAgent402Research } from "./agent402";
 
 type Runtime = { server: Server; origin: string; fingerprint: string };
 const globalRuntime = globalThis as typeof globalThis & { __ackrateMainnetFulfillment?: Promise<Runtime> };
@@ -50,10 +50,16 @@ async function startRuntime(config: AppConfig): Promise<Runtime> {
   }, async ({ request, payment }) => {
     const item = catalog.get(request.path);
     if (!item) throw new Error("validated catalog item disappeared before fulfillment");
-    const research = item.id === "agent402-research"
+    const searchInput = item.id === "agent402-research" ? normalizeAgent402SearchInput({
+      q: request.query.q,
+      count: request.query.count,
+      freshness: request.query.freshness || undefined,
+    }) : null;
+    const research = searchInput
       ? await runAgent402Research({
           config,
-          question: normalizeResearchQuestion(String(request.query.q ?? "")),
+          question: searchInput.q,
+          searchInput,
           mandateId: payment.mandateId,
           contractTx: payment.txHash,
         })

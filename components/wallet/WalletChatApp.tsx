@@ -32,7 +32,7 @@ import type { IntentMandate } from "@ackrate/core";
 import { approveWithFreighter, buildMandate, registerWithFreighter, revokeWithFreighter } from "@/lib/wallet/mandate-client";
 import type { MandateView, SafeAppConfig, SessionView } from "@/lib/wallet/types";
 import { addTokenToFreighter, connectFreighter, signFreighterTransaction } from "@/lib/wallet/freighter";
-import type { MarketplaceService } from "@/lib/wallet/marketplace-catalog";
+import { WEB_SEARCH_INPUTS, type MarketplaceService } from "@/lib/wallet/marketplace-catalog";
 import { AssistantThread, PurchaseReport, type PurchaseResult } from "./AssistantThread";
 import { MarketplaceOrb } from "./MarketplaceOrb";
 
@@ -78,6 +78,8 @@ const DEFAULT_MARKETPLACE_SERVICE: MarketplaceService = {
   path: "/api/search",
   price: "0.02",
   docs: "https://agent402.tools/tools/search",
+  inputs: WEB_SEARCH_INPUTS,
+  schemaSource: "verified-docs",
 };
 
 function marketplaceStorageKey(address: string): string {
@@ -98,7 +100,11 @@ function storedMarketplaceService(value: unknown): MarketplaceService | null {
     || typeof service.price !== "string"
     || typeof service.docs !== "string"
   ) return null;
-  return service as unknown as MarketplaceService;
+  const inputs = Array.isArray(service.inputs) ? service.inputs : [];
+  const restored = { ...service, inputs } as unknown as MarketplaceService;
+  return isGuidedResearchService(restored)
+    ? { ...restored, inputs: inputs.length ? inputs : WEB_SEARCH_INPUTS, schemaSource: inputs.length ? restored.schemaSource : "verified-docs" }
+    : restored;
 }
 
 function isGuidedResearchService(service: MarketplaceService): boolean {
@@ -438,13 +444,9 @@ export function WalletChatApp() {
       });
       next = { ...next, id: registration.mandateId, registrationTx: registration.transactionHash };
       saveStored(next);
-      setPhase("approving");
-      setNotice("One more Freighter approval lets Ackrate use USDC within your limit.");
-      const allowanceTx = await approveWithFreighter(config, storedToIntent(next));
-      next = { ...next, allowanceTx };
-      saveStored(next);
       await refreshMandate(next);
-      setNotice("Spending is on. The agent cannot spend more than your limit.");
+      setPhase("idle");
+      setNotice("Limit registered. Click the approval button once more to approve the USDC allowance.");
     } catch (cause) {
       setError("Could not finish setup. Open Freighter and follow the button on this screen.");
       setNotice("Setup stopped safely. Follow the button on the screen to continue.");
@@ -488,7 +490,7 @@ export function WalletChatApp() {
       await refreshMandate(next);
       setNotice("Spending limit approved. The agent is ready.");
     } catch (cause) {
-      setError("Could not finish the spending limit. Open Freighter and try again.");
+      setError("The limit is registered, but the USDC approval did not finish. Click the button and approve the single Freighter transaction.");
       setPhase("idle");
     }
   };
@@ -577,11 +579,11 @@ export function WalletChatApp() {
     && stored.merchant === config.merchant.address
     && stored.asset === config.asset.contractId,
   );
-  const activeMandateReady = mandateOnline && mandateMatchesConfig;
   const spendingOff = Boolean(stored?.revokeTx && mandate?.status !== "Active");
   const storedFresh = Boolean(stored && stored.expiry > nowSeconds);
+  const activeMandateReady = Boolean(mandateOnline && mandateMatchesConfig && storedFresh && stored?.allowanceTx);
   const currentMandate = mandateOnline ? mandate : null;
-  const progress = mandateOnline ? 3 : storedFresh && stored?.registrationTx ? 2 : walletAddress ? 1 : 0;
+  const progress = activeMandateReady ? 3 : storedFresh && stored?.registrationTx ? 2 : walletAddress ? 1 : 0;
   const remaining = currentMandate && config ? formatUnits(currentMandate.remaining, config.asset.decimals) : budget;
   const spent = currentMandate && config ? formatUnits(currentMandate.spent, config.asset.decimals) : "0";
   const usedPercent = currentMandate && BigInt(currentMandate.maxAmount) > 0n
@@ -985,6 +987,7 @@ export function WalletChatApp() {
                         <strong>{service.name}</strong>
                         <small>{service.description}</small>
                         <em>{service.method} · {service.categoryLabel} · {isGuidedResearchService(service) ? "READY FOR THIS FLOW" : "BROWSE ONLY"}</em>
+                        <span className="service-inputs">{service.inputs.length ? service.inputs.map((field) => <b key={field.name}>{field.name}{field.required ? " *" : ""}</b>) : <b>Schema unavailable</b>}</span>
                       </span>
                       <span className="service-price">{service.price} <small>USDC</small></span>
                     </motion.button>
@@ -1073,7 +1076,7 @@ export function WalletChatApp() {
                 </motion.button>
               ) : storedFresh && stored?.registrationTx && !stored.allowanceTx ? (
                 <motion.button className="flow-primary" type="button" onClick={retryAllowance} disabled={phase === "approving"} whileTap={reduceMotion ? undefined : { scale: 0.985 }}>
-                  {phase === "approving" ? <LoaderCircle className="spin" size={16} /> : <RefreshCw size={16} />}{phase === "approving" ? "Waiting for Freighter…" : "Finish USDC approval"}
+                  {phase === "approving" ? <LoaderCircle className="spin" size={16} /> : <LockKeyhole size={16} />}{phase === "approving" ? "Waiting for Freighter…" : `Approve ${formatUnits(stored.maxAmount, stored.decimals)} USDC allowance`}
                 </motion.button>
               ) : (
                 <motion.button className="flow-primary" type="button" onClick={activate} disabled={!canApproveLimit || mandateBusy} whileTap={reduceMotion ? undefined : { scale: 0.985 }}>
@@ -1081,7 +1084,7 @@ export function WalletChatApp() {
                   {phase === "registering" ? "Registering limit…" : phase === "approving" ? "Approving USDC…" : `Approve ${budget || "0"} USDC limit`}
                 </motion.button>
               )}
-              <small className="flow-footnote"><Fingerprint size={12} />Freighter asks twice: register the limit, then approve the contract allowance.</small>
+              <small className="flow-footnote"><Fingerprint size={12} />Two clear approvals: first register the limit, then approve the contract allowance.</small>
               <div className="flow-secondary-row"><button type="button" onClick={changeMarketplaceService}><Search size={12} />Change service</button><button type="button" onClick={() => setDisconnectOpen(true)}><Power size={12} />Disconnect</button></div>
 
               {(stored?.registrationTx || stored?.allowanceTx) && (
@@ -1105,7 +1108,7 @@ export function WalletChatApp() {
                 <span className="flow-budget"><span><small>REMAINING</small><strong>{remaining} USDC</strong></span></span>
               </div>
               {mandate && config && (
-                <AssistantThread mandateId={mandate.id} asset={config.asset.code} price={marketplaceService.price} explorerNetwork={config.explorerNetwork} marketplaceUrl={marketplaceService.docs} onPurchaseComplete={setCompletedPurchase} />
+                <AssistantThread mandateId={mandate.id} asset={config.asset.code} service={marketplaceService} price={marketplaceService.price} explorerNetwork={config.explorerNetwork} marketplaceUrl={marketplaceService.docs} onPurchaseComplete={setCompletedPurchase} />
               )}
               <details className="flow-evidence"><summary><span><ShieldCheck size={13} />Why the agent is allowed to pay</span><ChevronRight size={13} /></summary><div>
                 {stored?.registrationTx && <a className="flow-proof-link" href={`${explorer}/tx/${stored.registrationTx}`} target="_blank" rel="noreferrer"><span><Check size={12} />Limit registered</span><code>{short(stored.registrationTx, 6)}</code><ArrowUpRight size={12} /></a>}

@@ -705,6 +705,21 @@
 .service-option strong { font-size: 10px; }
 .service-option small { color: #737373; font-size: 8px; line-height: 1.35; }
 .service-option em { color: #525252; font-size: 7px; font-style: normal; }
+.service-inputs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.service-inputs b {
+  padding: 2px 5px;
+  border: 1px solid #2b2b2b;
+  border-radius: 999px;
+  color: #777;
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 6px;
+  font-weight: 650;
+}
 .service-price { font-size: 14px; font-weight: 700; letter-spacing: -0.03em; }
 .service-price small { font-size: 8px; letter-spacing: 0.08em; }
 
@@ -1002,6 +1017,78 @@
 .question-block label { color: #a3a3a3; font-size: 10px; font-weight: 650; }
 .question-block textarea { width: 100%; min-height: 126px; padding: 14px; resize: vertical; font-size: 13px; line-height: 1.6; }
 
+.agent402-composer {
+  padding: 12px;
+  border: 1px solid #383838;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #121212, #090909);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.045), 0 14px 45px rgba(0, 0, 0, 0.28);
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.agent402-composer:focus-within {
+  border-color: #737373;
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.055), 0 0 0 3px rgba(255, 255, 255, 0.045), 0 18px 55px rgba(0, 0, 0, 0.36);
+}
+
+.agent402-composer textarea {
+  min-height: 94px;
+  padding: 4px 2px;
+  border: 0;
+  border-radius: 0;
+  outline: 0;
+  background: transparent;
+  box-shadow: none;
+  resize: none;
+}
+
+.service-parameters {
+  border: 1px solid #262626;
+  border-radius: 11px;
+  background: #0b0b0b;
+}
+
+.service-parameters summary {
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #a3a3a3;
+  font-size: 9px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.service-parameters summary::-webkit-details-marker { display: none; }
+.service-parameters summary small { color: #5d5d5d; font-size: 7px; }
+
+.service-parameter-grid {
+  padding: 0 12px 11px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.service-parameter-grid label { display: grid; gap: 5px; }
+.service-parameter-grid label > span { color: #8a8a8a; font-family: "SFMono-Regular", Consolas, monospace; font-size: 7px; }
+.service-parameter-grid input,
+.service-parameter-grid select {
+  width: 100%;
+  height: 35px;
+  padding: 0 9px;
+  border: 1px solid #303030;
+  border-radius: 8px;
+  outline: 0;
+  color: #ededed;
+  background: #111;
+  font-size: 9px;
+}
+
+.service-parameter-grid input:focus,
+.service-parameter-grid select:focus { border-color: #737373; }
+.service-parameter-grid label > small { color: #555; font-size: 7px; line-height: 1.45; }
+.service-parameters > p { margin: -2px 12px 10px; color: #4f4f4f; font-size: 7px; }
+
 .example-row {
   display: flex;
   align-items: center;
@@ -1243,6 +1330,7 @@
   .flow-progress > div { gap: 5px; }
   .flow-progress > div > svg { display: none; }
   .flow-fields { grid-template-columns: 1fr; }
+  .service-parameter-grid { grid-template-columns: 1fr; }
   .flow-balance-grid { grid-template-columns: 1fr 1fr; }
   .flow-balance-grid > button { grid-column: 1 / -1; justify-content: center; min-height: 36px; }
   .flow-settlement-grid { grid-template-columns: 1fr; }
