@@ -47,12 +47,20 @@ test("wallet marketplace step selects the external Stellar service without movin
   const app = read("components/wallet/WalletChatApp.tsx");
   const orb = read("components/wallet/MarketplaceOrb.tsx");
   const styles = read("app/wallet/wallet-flow.css");
+  const catalogRoute = read("app/api/wallet/marketplace/services/route.ts");
 
   assert.match(app, /https:\/\/agent402\.tools\/stellar/);
   assert.match(app, /STEP 2 OF 5/);
-  assert.match(app, /Agent402 · Web search/);
-  assert.match(app, /0\.02 <small>USDC/);
+  assert.match(app, /Search web, research, scraper, PDF/);
+  assert.match(app, /marketplaceDraft\.name/);
+  assert.match(app, /changeMarketplaceService/);
+  assert.match(app, /JSON\.stringify\(marketplaceDraft\)/);
+  assert.match(app, /\/api\/wallet\/marketplace\/services\?q=/);
   assert.match(app, /Choosing a service does not move funds/);
+  assert.match(catalogRoute, /https:\/\/agent402\.tools\/api\/pricing/);
+  assert.match(catalogRoute, /stellar:pubnet/);
+  assert.match(catalogRoute, /requireSession/);
+  assert.match(catalogRoute, /verified-fallback/);
   assert.match(app, /AnimatePresence/);
   assert.match(app, /useReducedMotion/);
   assert.match(app, /MarketplaceOrb variant="brand"/);

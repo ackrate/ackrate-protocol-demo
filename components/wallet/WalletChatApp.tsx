@@ -20,6 +20,7 @@ import {
   LoaderCircle,
   Power,
   RefreshCw,
+  Search,
   ShieldCheck,
   Sparkles,
   TriangleAlert,
@@ -31,6 +32,7 @@ import type { IntentMandate } from "@ackrate/core";
 import { approveWithFreighter, buildMandate, registerWithFreighter, revokeWithFreighter } from "@/lib/wallet/mandate-client";
 import type { MandateView, SafeAppConfig, SessionView } from "@/lib/wallet/types";
 import { addTokenToFreighter, connectFreighter, signFreighterTransaction } from "@/lib/wallet/freighter";
+import type { MarketplaceService } from "@/lib/wallet/marketplace-catalog";
 import { AssistantThread, PurchaseReport, type PurchaseResult } from "./AssistantThread";
 import { MarketplaceOrb } from "./MarketplaceOrb";
 
@@ -57,6 +59,38 @@ interface StoredMandate {
 const emptySession: SessionView = { authenticated: false, address: null, network: null, expiresAt: null };
 const MARKETPLACE_URL = "https://agent402.tools/stellar";
 const MARKETPLACE_SERVICE_ID = "agent402:web-search";
+const DEFAULT_MARKETPLACE_SERVICE: MarketplaceService = {
+  id: "search",
+  name: "Web search",
+  description: "Find ranked, current web results with titles, links, snippets, and freshness metadata.",
+  category: "web",
+  categoryLabel: "Web & documents",
+  method: "GET",
+  path: "/api/search",
+  price: "0.02",
+  docs: "https://agent402.tools/tools/search",
+};
+
+function marketplaceStorageKey(address: string): string {
+  return `ackrate:marketplace:${address}`;
+}
+
+function storedMarketplaceService(value: unknown): MarketplaceService | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const service = value as Record<string, unknown>;
+  if (
+    typeof service.id !== "string"
+    || typeof service.name !== "string"
+    || typeof service.description !== "string"
+    || typeof service.category !== "string"
+    || typeof service.categoryLabel !== "string"
+    || (service.method !== "GET" && service.method !== "POST")
+    || typeof service.path !== "string"
+    || typeof service.price !== "string"
+    || typeof service.docs !== "string"
+  ) return null;
+  return service as unknown as MarketplaceService;
+}
 
 function mandateStorageKey(config: SafeAppConfig, address: string): string {
   return `ackrate:mandate:v2:${config.network}:${config.mandateRegistryId}:${address}`;
@@ -132,6 +166,12 @@ export function WalletChatApp() {
   const [nowSeconds, setNowSeconds] = useState(() => Math.floor(Date.now() / 1_000));
   const [completedPurchase, setCompletedPurchase] = useState<PurchaseResult | null>(null);
   const [marketplaceSelected, setMarketplaceSelected] = useState(false);
+  const [marketplaceService, setMarketplaceService] = useState<MarketplaceService>(DEFAULT_MARKETPLACE_SERVICE);
+  const [marketplaceDraft, setMarketplaceDraft] = useState<MarketplaceService>(DEFAULT_MARKETPLACE_SERVICE);
+  const [marketplaceQuery, setMarketplaceQuery] = useState("");
+  const [marketplaceServices, setMarketplaceServices] = useState<MarketplaceService[]>([DEFAULT_MARKETPLACE_SERVICE]);
+  const [marketplaceLoading, setMarketplaceLoading] = useState(false);
+  const [marketplaceCatalog, setMarketplaceCatalog] = useState({ source: "loading", size: 0, matches: 0 });
 
   const refreshMandate = useCallback(async (current: StoredMandate) => {
     const body = await api<{ mandate: MandateView }>("/api/wallet/mandate/status", {
@@ -192,8 +232,54 @@ export function WalletChatApp() {
       setMarketplaceSelected(false);
       return;
     }
-    setMarketplaceSelected(localStorage.getItem(`ackrate:marketplace:${session.address}`) === MARKETPLACE_SERVICE_ID);
+    const raw = localStorage.getItem(marketplaceStorageKey(session.address));
+    if (raw === MARKETPLACE_SERVICE_ID) {
+      setMarketplaceService(DEFAULT_MARKETPLACE_SERVICE);
+      setMarketplaceDraft(DEFAULT_MARKETPLACE_SERVICE);
+      setMarketplaceSelected(true);
+      return;
+    }
+    try {
+      const restored = storedMarketplaceService(JSON.parse(raw ?? "null"));
+      if (!restored) throw new Error("invalid marketplace service");
+      setMarketplaceService(restored);
+      setMarketplaceDraft(restored);
+      setMarketplaceSelected(true);
+    } catch {
+      localStorage.removeItem(marketplaceStorageKey(session.address));
+      setMarketplaceService(DEFAULT_MARKETPLACE_SERVICE);
+      setMarketplaceDraft(DEFAULT_MARKETPLACE_SERVICE);
+      setMarketplaceSelected(false);
+    }
   }, [session.address, session.authenticated]);
+
+  useEffect(() => {
+    if (!session.authenticated || !session.address || marketplaceSelected) return;
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => {
+      setMarketplaceLoading(true);
+      void api<{
+        source: "live" | "verified-fallback";
+        catalogSize: number;
+        totalMatches: number;
+        services: MarketplaceService[];
+      }>(`/api/wallet/marketplace/services?q=${encodeURIComponent(marketplaceQuery)}`, {
+        signal: controller.signal,
+      }).then((result) => {
+        setMarketplaceServices(result.services);
+        setMarketplaceCatalog({ source: result.source, size: result.catalogSize, matches: result.totalMatches });
+      }).catch((cause) => {
+        if (controller.signal.aborted) return;
+        setError(cause instanceof Error ? cause.message : "Could not load marketplace services");
+      }).finally(() => {
+        if (!controller.signal.aborted) setMarketplaceLoading(false);
+      });
+    }, 180);
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
+  }, [marketplaceQuery, marketplaceSelected, session.address, session.authenticated]);
 
   const saveStored = useCallback((value: StoredMandate) => {
     if (!config) return;
@@ -389,6 +475,9 @@ export function WalletChatApp() {
     setUsdcReady(false);
     setCompletedPurchase(null);
     setMarketplaceSelected(false);
+    setMarketplaceService(DEFAULT_MARKETPLACE_SERVICE);
+    setMarketplaceDraft(DEFAULT_MARKETPLACE_SERVICE);
+    setMarketplaceQuery("");
     setPhase("idle");
     setDisconnectOpen(false);
     setNotice("Wallet disconnected. Connect a wallet to start again.");
@@ -396,10 +485,19 @@ export function WalletChatApp() {
 
   const chooseMarketplaceService = () => {
     if (!session.address) return;
-    localStorage.setItem(`ackrate:marketplace:${session.address}`, MARKETPLACE_SERVICE_ID);
+    localStorage.setItem(marketplaceStorageKey(session.address), JSON.stringify(marketplaceDraft));
+    setMarketplaceService(marketplaceDraft);
     setMarketplaceSelected(true);
     setError(null);
-    setNotice("Web search selected. No payment was made.");
+    setNotice(`${marketplaceDraft.name} selected. No payment was made.`);
+  };
+
+  const changeMarketplaceService = () => {
+    setMarketplaceDraft(marketplaceService);
+    setMarketplaceQuery("");
+    setMarketplaceSelected(false);
+    setError(null);
+    setNotice(null);
   };
 
   const mandateOnline = Boolean(mandate?.status === "Active" && mandate.expiry > nowSeconds);
@@ -761,24 +859,61 @@ export function WalletChatApp() {
                 <a className="marketplace-source-link" href={MARKETPLACE_URL} target="_blank" rel="noreferrer">Open marketplace <ArrowUpRight size={13} /></a>
               </div>
 
-              <div className="service-label"><span>AVAILABLE FOR THIS WORKFLOW</span><small>1 service</small></div>
-              <motion.button
-                className="service-option selected"
-                type="button"
-                onClick={chooseMarketplaceService}
-                aria-pressed="true"
-                whileHover={reduceMotion ? undefined : { y: -2 }}
-                whileTap={reduceMotion ? undefined : { scale: 0.99 }}
-              >
-                <span className="service-radio"><Check size={14} /></span>
-                <span><strong>Web search</strong><small>Current web results for a sourced research report.</small></span>
-                <span className="service-price">0.02 <small>USDC</small></span>
-              </motion.button>
+              <label className="marketplace-search">
+                <Search size={15} />
+                <input
+                  type="search"
+                  value={marketplaceQuery}
+                  onChange={(event) => setMarketplaceQuery(event.target.value)}
+                  placeholder="Search web, research, scraper, PDF…"
+                  maxLength={80}
+                  aria-label="Search Agent402 services"
+                />
+                {marketplaceLoading && <LoaderCircle className="spin" size={14} />}
+              </label>
+
+              <div className="marketplace-suggestions" aria-label="Suggested marketplace searches">
+                {["Web search", "Research", "Scraper", "PDF"].map((suggestion) => (
+                  <button type="button" key={suggestion} onClick={() => setMarketplaceQuery(suggestion)}>{suggestion}</button>
+                ))}
+              </div>
+
+              <div className="service-label">
+                <span>{marketplaceQuery ? "MATCHING SERVICES" : "RECOMMENDED FOR RESEARCH"}</span>
+                <small>{marketplaceCatalog.source === "live" ? `${marketplaceCatalog.size} live tools` : "verified catalog"}</small>
+              </div>
+              <div className="marketplace-results" aria-live="polite" aria-busy={marketplaceLoading}>
+                {marketplaceServices.length ? marketplaceServices.map((service) => {
+                  const selected = marketplaceDraft.id === service.id;
+                  return (
+                    <motion.button
+                      className={`service-option ${selected ? "selected" : ""}`}
+                      type="button"
+                      key={service.id}
+                      onClick={() => setMarketplaceDraft(service)}
+                      aria-pressed={selected}
+                      whileHover={reduceMotion ? undefined : { x: 3 }}
+                      whileTap={reduceMotion ? undefined : { scale: 0.992 }}
+                    >
+                      <span className="service-radio">{selected ? <Check size={13} /> : <span />}</span>
+                      <span>
+                        <strong>{service.name}</strong>
+                        <small>{service.description}</small>
+                        <em>{service.method} · {service.categoryLabel}</em>
+                      </span>
+                      <span className="service-price">{service.price} <small>USDC</small></span>
+                    </motion.button>
+                  );
+                }) : (
+                  <div className="marketplace-empty"><Search size={17} /><strong>No exact match</strong><span>Try web, research, scraper, PDF, news, or data.</span></div>
+                )}
+              </div>
 
               <div className="service-facts" aria-label="Service details">
                 <span><Check size={12} />Stellar Mainnet</span>
                 <span><Check size={12} />x402 payment</span>
                 <span><Check size={12} />No marketplace account</span>
+                <span><Check size={12} />{marketplaceCatalog.matches || marketplaceServices.length} matches</span>
               </div>
 
               <motion.button
@@ -787,7 +922,7 @@ export function WalletChatApp() {
                 onClick={chooseMarketplaceService}
                 whileHover={reduceMotion ? undefined : { y: -1 }}
                 whileTap={reduceMotion ? undefined : { scale: 0.985 }}
-              >Use Web Search <ChevronRight size={16} /></motion.button>
+              >Use {marketplaceDraft.name} <ChevronRight size={16} /></motion.button>
               <small className="flow-footnote"><LockKeyhole size={12} />Choosing a service does not move funds. Payment happens only when research runs.</small>
             </motion.div>
           ) : (
@@ -801,15 +936,15 @@ export function WalletChatApp() {
             >
               <div className="flow-stage-icon success"><Check size={25} /></div>
               <p className="flow-kicker">STEP 2 COMPLETE</p>
-              <h2>Web search selected</h2>
-              <p className="flow-description">The research agent will purchase current web evidence through Agent402 on Stellar Mainnet.</p>
+              <h2>{marketplaceService.name} selected</h2>
+              <p className="flow-description">{marketplaceService.description}</p>
               <div className="selected-service-summary">
                 <span className="marketplace-source-icon"><Globe2 size={17} /></span>
-                <span><small>SELECTED SERVICE</small><strong>Agent402 · Web search</strong></span>
-                <span className="service-price">0.02 <small>USDC</small></span>
+                <span><small>SELECTED SERVICE</small><strong>Agent402 · {marketplaceService.name}</strong><em>{marketplaceService.method} · {marketplaceService.path}</em></span>
+                <span className="service-price">{marketplaceService.price} <small>USDC</small></span>
               </div>
               <div className="next-step-placeholder"><span>Next</span><strong>Set the agent's spending limit</strong><small>Step 3 is intentionally not live yet.</small></div>
-              <button className="change-service" type="button" onClick={() => setMarketplaceSelected(false)}>Change service</button>
+              <button className="change-service" type="button" onClick={changeMarketplaceService}><Search size={12} /> Change service</button>
             </motion.div>
           )}
           </AnimatePresence>
