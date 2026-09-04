@@ -12,6 +12,8 @@ import { attachMarketBriefToPurchaseResult } from "./market-brief";
 import { assertMandateBindings, readMandate } from "./mandate-state";
 import { installMainnetAccountFallback } from "./rpc-account-fallback";
 import { installMainnetRpcRetry } from "./rpc-retry";
+import { normalizeResearchQuestion, preflightAgent402Research } from "./agent402";
+import { ensureAgentUsdcTrustline } from "./trustline";
 
 export interface PurchaseInput {
   config: AppConfig;
@@ -20,6 +22,7 @@ export interface PurchaseInput {
   toolCallId: string;
   mandateId: string;
   sourceId: string;
+  question?: string;
 }
 
 export interface PendingPurchaseRecovery {
@@ -65,12 +68,21 @@ function catalogItemForReceipt(config: AppConfig, receipt: { url: string; method
   if (!config.merchantUrl || receipt.method !== "GET") {
     throw new Error("retained settlement receipt does not match an allowlisted purchase");
   }
+  const retained = new URL(receipt.url);
   const item = config.public.catalog.find((candidate) => (
-    new URL(candidate.path, config.merchantUrl!).toString() === receipt.url
+    new URL(candidate.path, config.merchantUrl!).origin === retained.origin
+    && new URL(candidate.path, config.merchantUrl!).pathname === retained.pathname
     && candidate.price === receipt.amount
   ));
   if (!item) throw new Error("retained settlement receipt does not match an allowlisted purchase");
-  return item;
+  const allowedParams = item.id === "agent402-research" ? new Set(["q"]) : new Set<string>();
+  if ([...retained.searchParams.keys()].some((key) => !allowedParams.has(key))) {
+    throw new Error("retained settlement receipt has unexpected query parameters");
+  }
+  const question = item.id === "agent402-research"
+    ? normalizeResearchQuestion(retained.searchParams.get("q") ?? "")
+    : null;
+  return { item, question };
 }
 
 function agentFor(config: AppConfig, context: PurchaseContext, receiptStore: DurableReceiptStore) {
@@ -158,7 +170,7 @@ export async function getPendingCatalogRecovery(input: Omit<PurchaseInput, "tool
   if (receipts.length !== 1) throw new Error("multiple retained settlements require operator review");
   const receipt = receipts[0]!;
   if (receipt.mandateId !== context.mandate.id) throw new Error("retained settlement mandate mismatch");
-  const item = catalogItemForReceipt(input.config, receipt);
+  const { item } = catalogItemForReceipt(input.config, receipt);
   return {
     pending: true,
     txHash: receipt.txHash,
@@ -182,7 +194,7 @@ export async function recoverPendingCatalogPurchase(input: Omit<PurchaseInput, "
   if (receipts.length !== 1) throw new Error("multiple retained settlements require operator review");
   const receipt = receipts[0]!;
   if (receipt.mandateId !== context.mandate.id) throw new Error("retained settlement mandate mismatch");
-  const item = catalogItemForReceipt(input.config, receipt);
+  const { item } = catalogItemForReceipt(input.config, receipt);
   if (item.id === "market-brief") {
     const result = builtInReportResult(input.config, item, receipt);
     await completePendingToolCalls({
@@ -216,6 +228,9 @@ export async function purchaseCatalogItem(input: PurchaseInput): Promise<unknown
   if (!config.merchantUrl) throw new Error("payment execution is not configured");
   const item = config.public.catalog.find((candidate) => candidate.id === input.sourceId);
   if (!item) throw new Error("the requested source is not in the server allowlist");
+  const question = item.id === "agent402-research"
+    ? normalizeResearchQuestion(input.question ?? "")
+    : null;
   const reservation = await reserveToolCall({
     sessionId: input.sessionId,
     toolCallId: input.toolCallId,
@@ -233,9 +248,17 @@ export async function purchaseCatalogItem(input: PurchaseInput): Promise<unknown
 
   const amount = toStroops(item.price, config.public.asset.decimals);
   if (BigInt(context.onChain.remaining) < amount) throw new Error("the contract mandate does not have enough remaining budget");
+  if (item.id === "agent402-research" && question) {
+    await preflightAgent402Research(question, config.public.asset.contractId);
+    // The contract pays the relay before fulfillment runs. Its Circle USDC
+    // trustline must therefore exist before execute_payment is submitted.
+    await ensureAgentUsdcTrustline(config);
+  }
   const receiptStore = new DurableReceiptStore(input.sessionId, input.mandateId);
   const consumer = agentFor(config, context, receiptStore);
-  const url = new URL(item.path, config.merchantUrl).toString();
+  const paidUrl = new URL(item.path, config.merchantUrl);
+  if (question) paidUrl.searchParams.set("q", question);
+  const url = paidUrl.toString();
   let deliveredReceipt: ReturnType<typeof getSettlementReceipt>;
 
   try {

@@ -43,14 +43,16 @@ export async function POST(request: Request) {
           description: "Purchase and retrieve exactly one server-allowlisted source through the mandate-enforced ACKRATE payment path.",
           inputSchema: z.object({
             sourceId: z.string().describe("Exact id from the server-provided source list"),
+            question: z.string().min(3).max(400).describe("The user's exact research question"),
           }).strict(),
-          execute: async ({ sourceId }, options) => purchaseCatalogItem({
+          execute: async ({ sourceId, question }, options) => purchaseCatalogItem({
             config,
             sessionAddress,
             sessionId: `${sessionAddress}:${mandateId}`,
             toolCallId: options.toolCallId,
             mandateId,
             sourceId,
+            question,
           }),
         }),
       },

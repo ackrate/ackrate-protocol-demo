@@ -29,6 +29,13 @@ export interface SafeAppConfig {
     address: string | null;
     name: string;
   };
+  marketplace: {
+    name: "Agent402";
+    homeUrl: string;
+    serviceUrl: string;
+    network: "stellar:pubnet";
+    price: string;
+  };
   catalog: CatalogItem[];
   explorerNetwork: "testnet" | "public";
   sourceCommit: string | null;

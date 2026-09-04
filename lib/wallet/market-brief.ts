@@ -6,6 +6,9 @@ export interface MarketBrief {
   findings: Array<{ number: string; title: string; body: string }>;
   takeaway: string;
   sources: Array<{ publisher: string; title: string; url: string }>;
+  question?: string;
+  generatedAt?: string;
+  methodology?: string;
 }
 
 export const MARKET_SIGNAL_BRIEF: MarketBrief = {
@@ -48,5 +51,5 @@ export function attachMarketBriefToPurchaseResult(value: unknown): unknown {
   const source = record(result?.source);
   if (!result || source?.id !== "market-brief") return value;
   const delivered = record(result.delivered) ?? {};
-  return { ...result, delivered: { ...delivered, brief: MARKET_SIGNAL_BRIEF } };
+  return { ...result, delivered: { ...delivered, brief: delivered.brief ?? MARKET_SIGNAL_BRIEF } };
 }

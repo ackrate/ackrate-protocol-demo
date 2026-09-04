@@ -9,11 +9,11 @@ export const MAINNET_CONFIRMATION = "ACTIVATE_VERIFIED_ACKRATE_MAINNET";
 
 const DEFAULT_CATALOG: CatalogItem[] = [
   {
-    id: "market-brief",
-    title: "Market signal brief",
-    description: "A compact, payment-gated research signal from the configured merchant.",
-    path: "/api/wallet/source/market-brief",
-    price: "0.01",
+    id: "agent402-research",
+    title: "Live research report",
+    description: "Current web evidence purchased from the Agent402 Stellar marketplace and synthesized into a cited report.",
+    path: "/api/wallet/source/agent402-research",
+    price: "0.02",
   },
 ];
 
@@ -128,7 +128,8 @@ export function loadAppConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   }
 
   const agentAddress = present(env.ACKRATE_CHAT_AGENT_PUBLIC_KEY);
-  const merchantAddress = present(env.ACKRATE_CHAT_MERCHANT_PUBLIC_KEY);
+  const configuredMerchantAddress = present(env.ACKRATE_CHAT_MERCHANT_PUBLIC_KEY);
+  const merchantAddress = networkName === "mainnet" ? agentAddress : configuredMerchantAddress;
   if (!gAddress(agentAddress)) blockers.push("valid agent G-address is missing");
   if (!gAddress(merchantAddress)) blockers.push("valid merchant G-address is missing");
 
@@ -206,7 +207,16 @@ export function loadAppConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     agentAddress: gAddress(agentAddress) ? agentAddress : null,
     merchant: {
       address: gAddress(merchantAddress) ? merchantAddress : null,
-      name: present(env.ACKRATE_CHAT_MERCHANT_NAME) ?? "Research Source",
+      name: networkName === "mainnet"
+        ? "Agent402 Research Relay"
+        : present(env.ACKRATE_CHAT_MERCHANT_NAME) ?? "Research Source",
+    },
+    marketplace: {
+      name: "Agent402",
+      homeUrl: "https://agent402.tools/stellar",
+      serviceUrl: "https://agent402.tools/api/search",
+      network: "stellar:pubnet",
+      price: "0.02",
     },
     catalog,
     explorerNetwork: networkName === "mainnet" ? "public" : "testnet",

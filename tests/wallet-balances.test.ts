@@ -38,12 +38,19 @@ test("returns Mainnet XLM and Circle USDC balances without caching", async () =>
   };
   try {
     const response = await GET(new NextRequest(`http://localhost/api/wallet/balances?address=${address}`));
-    const body = await response.json() as { ok: boolean; balances: { address: string; xlm: string; usdc: string } };
+    const body = await response.json() as { ok: boolean; balances: { address: string; xlm: string; usdc: string; xlmRaw: string; usdcRaw: string; hasUsdcTrustline: boolean } };
     assert.equal(response.status, 200);
     assert.match(response.headers.get("cache-control") ?? "", /\bno-store\b/);
     assert.deepEqual(body, {
       ok: true,
-      balances: { address, xlm: "60.2561044", usdc: "2.6761063" },
+      balances: {
+        address,
+        xlm: "60.2561044",
+        usdc: "2.6761063",
+        xlmRaw: "60.2561044",
+        usdcRaw: "2.6761063",
+        hasUsdcTrustline: true,
+      },
     });
   } finally {
     globalThis.fetch = originalFetch;

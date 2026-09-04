@@ -57,6 +57,9 @@ test("wallet marketplace step selects the external Stellar service without movin
   assert.match(app, /JSON\.stringify\(marketplaceDraft\)/);
   assert.match(app, /\/api\/wallet\/marketplace\/services\?q=/);
   assert.match(app, /Choosing a service does not move funds/);
+  assert.match(app, /isGuidedResearchService/);
+  assert.match(app, /Switch to Web search/);
+  assert.match(app, /Other Agent402 tools need different inputs/);
   assert.match(catalogRoute, /https:\/\/agent402\.tools\/api\/pricing/);
   assert.match(catalogRoute, /stellar:pubnet/);
   assert.match(catalogRoute, /requireSession/);
@@ -79,6 +82,19 @@ test("wallet marketplace step selects the external Stellar service without movin
   assert.match(styles, /min-height: calc\(100svh - 52px\)/);
   assert.match(styles, /marketplace-orb\.brand-orb/);
   assert.match(styles, /data-renderer="webgpu"/);
+});
+
+test("the guided wallet completes limit, research, and dual-proof verification stages", () => {
+  const app = read("components/wallet/WalletChatApp.tsx");
+  const styles = read("app/wallet/wallet-flow.css");
+
+  for (const copy of ["STEP 3 OF 5", "STEP 4 OF 5", "STEP 5 OF 5", "Your funds stay in your wallet", "ACKRATE CONTRACT", "AGENT402 x402", "Read the cited report"]) {
+    assert.match(app, new RegExp(copy));
+  }
+  assert.match(app, /walletBalances\?\.hasUsdcTrustline/);
+  assert.match(app, /walletBalances\.usdcRaw/);
+  assert.match(app, /activeMandateReady/);
+  assert.match(styles, /flow-settlement-grid/);
 });
 
 test("wallet keeps the contract governance multisig separate from consumer setup", () => {
@@ -114,12 +130,12 @@ test("wallet RPC relay bounds, compacts, and fails over Mainnet responses", () =
   assert.match(source, /MAINNET_RPC_FALLBACK/);
 });
 
-test("wallet exposes a deterministic real-payment control without an LLM dependency", () => {
+test("wallet exposes a direct real-payment control that does not let the chat model choose payment inputs", () => {
   const thread = read("components/wallet/AssistantThread.tsx");
   const purchase = read("app/api/wallet/purchase/route.ts");
   const recovery = read("app/api/wallet/purchase/recovery/route.ts");
 
-  assert.match(thread, /Pay \$0\.01 and get the report/);
+  assert.match(thread, /Create report · \$\{price\} \$\{asset\}/);
   assert.match(thread, /"\/api\/wallet\/purchase"/);
   assert.match(purchase, /purchaseCatalogItem/);
   assert.match(purchase, /requireSession/);
@@ -128,15 +144,29 @@ test("wallet exposes a deterministic real-payment control without an LLM depende
   assert.match(recovery, /recoverPendingCatalogPurchase/);
   assert.match(recovery, /requireSession/);
   assert.match(recovery, /requireSameOrigin/);
-  assert.match(thread, /Get my report — no new charge/);
-  assert.match(thread, /Pay \$0\.01 and get the report/);
-  assert.match(thread, /Checking your last payment/);
-  assert.match(thread, /View transaction/);
-  assert.match(thread, /You will not pay again/);
+  assert.match(thread, /Recover report — no new charge/);
+  assert.match(thread, /Checking previous payment/);
+  assert.match(thread, /No automatic second payment will be sent/);
   assert.match(thread, /parseRecovery/);
   assert.match(thread, /invalid retained settlement evidence/);
-  assert.match(thread, /Tap Check payment before trying to pay/);
+  assert.match(thread, /Check payment/);
   assert.match(read("components/wallet/WalletChatApp.tsx"), /View transaction/);
+});
+
+test("the real Agent402 path prepares the relay before the contract reimburses it", () => {
+  const appConfig = read("lib/wallet/app-config.ts");
+  const purchase = read("lib/wallet/purchase.ts");
+  const fulfillment = read("lib/wallet/fulfillment.ts");
+  const agent402 = read("lib/wallet/agent402.ts");
+
+  assert.match(appConfig, /networkName === "mainnet" \? agentAddress : configuredMerchantAddress/);
+  assert.ok(purchase.indexOf("await preflightAgent402Research") < purchase.indexOf("await ensureAgentUsdcTrustline"));
+  assert.ok(purchase.indexOf("await ensureAgentUsdcTrustline") < purchase.indexOf("await consumer.fetch"));
+  assert.match(fulfillment, /runAgent402Research/);
+  assert.match(agent402, /createPaymentPayload/);
+  assert.match(agent402, /encodePaymentSignatureHeader/);
+  assert.match(agent402, /markMarketplacePaid/);
+  assert.match(agent402, /stellar:pubnet/);
 });
 
 test("wallet closes an expired mandate locally and offers a fresh boundary", () => {
@@ -254,10 +284,11 @@ test("every wallet transaction has a visible explorer link", () => {
   assert.match(app, /TransactionEvidence label="USDC approval"/);
   assert.match(app, /TransactionEvidence label="Spending turned off"/);
   assert.match(app, /View transaction/);
-  assert.match(thread, /View transaction/);
+  assert.match(thread, /Stellar Explorer/);
+  assert.match(thread, /Agent402 x402/);
 });
 
-test("a paid report renders below the workspace with side rails for proof and sources", () => {
+test("a paid report renders below the flow with side rails for proof and purchased sources", () => {
   const app = read("components/wallet/WalletChatApp.tsx");
   const thread = read("components/wallet/AssistantThread.tsx");
   const fulfillment = read("lib/wallet/fulfillment.ts");
@@ -268,33 +299,32 @@ test("a paid report renders below the workspace with side rails for proof and so
   assert.match(thread, /Research sources/);
   assert.match(thread, /report-rail report-proof-rail/);
   assert.match(thread, /report-rail report-source-rail/);
-  assert.match(thread, /Your report is ready/);
-  assert.match(thread, /View spending limit/);
-  assert.match(thread, /View USDC approval/);
+  assert.match(thread, /REPORT COMPLETE/);
+  assert.match(thread, /Mandate registration/);
+  assert.match(thread, /USDC allowance/);
   assert.match(app, /<PurchaseReport/);
-  assert.ok(app.indexOf('className="workspace shell"') < app.indexOf("<PurchaseReport"));
-  assert.match(fulfillment, /brief: item\.id === "market-brief" \? MARKET_SIGNAL_BRIEF/);
-  assert.match(brief, /github\.com\/futurehelp\/query402-api/);
-  assert.match(brief, /developers\.stellar\.org\/docs\/tokens\/stellar-asset-contract/);
+  assert.ok(app.lastIndexOf('className={`flow-shell') < app.lastIndexOf("<PurchaseReport"));
+  assert.match(fulfillment, /runAgent402Research/);
+  assert.match(fulfillment, /marketplace: research\?\.marketplace/);
+  assert.match(brief, /attachMarketBriefToPurchaseResult/);
 });
 
-test("a retained paid report opens automatically without contacting the merchant again", () => {
+test("a retained paid report opens automatically and pending delivery reuses the paid receipt", () => {
   const thread = read("components/wallet/AssistantThread.tsx");
   const purchase = read("lib/wallet/purchase.ts");
 
-  assert.match(thread, /const paidResult = isPurchaseResult\(pendingRecovery\.result\)/);
-  assert.match(thread, /setResult\(paidResult\)[\s\S]*setState\("success"\)/);
-  assert.match(thread, /isPurchaseResult\(pendingRecovery\.result\)/);
-  assert.match(purchase, /if \(item\.id === "market-brief"\)/);
-  assert.match(purchase, /result: item\.id === "market-brief" \? builtInReportResult/);
-  assert.match(purchase, /await receiptStore\.clearPending\(receipt\.receiptId\)/);
+  assert.match(thread, /if \(isPurchaseResult\(pending\.result\)\)/);
+  assert.match(thread, /setResult\(pending\.result\)[\s\S]*setState\("success"\)/);
+  assert.match(purchase, /consumer\.retryDelivery\(receipt/);
+  assert.match(purchase, /await consumer\.acknowledgeDelivery\(receipt\)/);
+  assert.match(purchase, /latestSucceededToolCall/);
 });
 
 test("wallet journey uses plain action language", () => {
   const app = read("components/wallet/WalletChatApp.tsx");
   const thread = read("components/wallet/AssistantThread.tsx");
 
-  for (const label of ["Connect wallet", "Set a spending limit", "Approve spending limit", "Pay $0.01 and get the report", "Turn off spending", "Disconnect wallet"]) {
+  for (const label of ["Connect wallet", "Set the spending limit", "Approve ${budget || \"0\"} USDC limit", "Create report", "Turn off spending", "Disconnect wallet"]) {
     assert.match(`${app}\n${thread}`, new RegExp(label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
   }
   assert.doesNotMatch(app, /Mandate control room|Freighter authority|Authenticated account|Set the boundary|Active mandate|Revoke authority|Spending envelope|Verifiable by default/);

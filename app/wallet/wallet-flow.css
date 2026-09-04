@@ -856,6 +856,71 @@
 
 .flow-summary strong { color: #d4d4d4; font-size: 10px; }
 
+.flow-balance-grid {
+  margin: 12px 0 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 1px;
+  overflow: hidden;
+  border: 1px solid #262626;
+  border-radius: 10px;
+  background: #262626;
+}
+
+.flow-balance-grid > div,
+.flow-balance-grid > button {
+  min-height: 48px;
+  padding: 9px 12px;
+  border: 0;
+  color: #ededed;
+  background: #0d0d0d;
+}
+
+.flow-balance-grid > div { display: grid; align-content: center; gap: 4px; }
+.flow-balance-grid small { color: #5f5f5f; font-size: 7px; font-weight: 800; letter-spacing: 0.12em; }
+.flow-balance-grid strong { font-size: 12px; }
+.flow-balance-grid > button { display: inline-flex; align-items: center; gap: 6px; color: #888; font-size: 8px; cursor: pointer; }
+.flow-balance-grid > button:hover:not(:disabled) { color: #fff; background: #141414; }
+
+.flow-outline {
+  margin-bottom: 12px;
+  border-color: #3f3f3f;
+  color: #ededed !important;
+  background: #171717;
+}
+
+.flow-outline:hover:not(:disabled) { border-color: #666; background: #202020; }
+
+.flow-settlement-grid {
+  width: 100%;
+  margin: 18px 0 12px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  text-align: left;
+}
+
+.flow-settlement-grid > a,
+.flow-settlement-grid > div {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+  padding: 13px;
+  border: 1px solid #2b2b2b;
+  border-radius: 11px;
+  color: #a3a3a3;
+  background: #0d0d0d;
+  transition: border-color 160ms ease, transform 160ms ease;
+}
+
+.flow-settlement-grid > a:hover { border-color: #666; transform: translateY(-1px); }
+.flow-settlement-grid small { color: #666; font-size: 7px; font-weight: 800; letter-spacing: 0.12em; }
+.flow-settlement-grid strong { color: #ededed; font-size: 12px; }
+.flow-settlement-grid code { overflow: hidden; color: #737373; font-size: 8px; text-overflow: ellipsis; white-space: nowrap; }
+.flow-settlement-grid span { display: inline-flex; align-items: center; gap: 4px; color: #a3a3a3; font-size: 8px; }
+
+.flow-report-link { text-decoration: none; }
+
 .flow-secondary-row {
   margin-top: 12px;
   display: flex;
@@ -1178,6 +1243,9 @@
   .flow-progress > div { gap: 5px; }
   .flow-progress > div > svg { display: none; }
   .flow-fields { grid-template-columns: 1fr; }
+  .flow-balance-grid { grid-template-columns: 1fr 1fr; }
+  .flow-balance-grid > button { grid-column: 1 / -1; justify-content: center; min-height: 36px; }
+  .flow-settlement-grid { grid-template-columns: 1fr; }
   .flow-stage-heading { align-items: center; }
   .payment-path { grid-template-columns: 1fr; }
   .payment-path > svg { display: none; }

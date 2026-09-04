@@ -57,6 +57,9 @@ export async function GET(request: NextRequest) {
         address,
         xlm: displayAmount(native?.balance ?? "0"),
         usdc: displayAmount(usdc?.balance ?? "0"),
+        xlmRaw: native?.balance ?? "0",
+        usdcRaw: usdc?.balance ?? "0",
+        hasUsdcTrustline: Boolean(usdc),
       },
     }, { headers: NO_STORE_HEADERS });
   } catch (error) {

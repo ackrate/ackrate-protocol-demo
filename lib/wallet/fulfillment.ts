@@ -7,6 +7,7 @@ import { PostgresBoundRedemptionStore } from "./redemption-store";
 import { installMainnetAccountFallback } from "./rpc-account-fallback";
 import { installMainnetRpcRetry } from "./rpc-retry";
 import { MARKET_SIGNAL_BRIEF } from "./market-brief";
+import { normalizeResearchQuestion, runAgent402Research } from "./agent402";
 
 type Runtime = { server: Server; origin: string; fingerprint: string };
 const globalRuntime = globalThis as typeof globalThis & { __ackrateMainnetFulfillment?: Promise<Runtime> };
@@ -40,22 +41,31 @@ async function startRuntime(config: AppConfig): Promise<Runtime> {
     audience: config.appOrigin,
     challengeSecret: config.challengeSecret,
     redemptionStore: store,
-    amount: (request) => catalog.get(request.originalUrl)?.price ?? "",
+    amount: (request) => catalog.get(request.path)?.price ?? "",
     resource: (request) => request.originalUrl,
     networkConfig: config.network,
     network: config.public.network === "mainnet" ? "stellar-mainnet" : "stellar-testnet",
     asset: config.public.asset.contractId,
     decimals: config.public.asset.decimals,
-  }, ({ request, payment }) => {
-    const item = catalog.get(request.originalUrl);
+  }, async ({ request, payment }) => {
+    const item = catalog.get(request.path);
     if (!item) throw new Error("validated catalog item disappeared before fulfillment");
+    const research = item.id === "agent402-research"
+      ? await runAgent402Research({
+          config,
+          question: normalizeResearchQuestion(String(request.query.q ?? "")),
+          mandateId: payment.mandateId,
+          contractTx: payment.txHash,
+        })
+      : null;
     return {
       body: {
         ok: true,
         source: item.id,
         title: item.title,
         data: item.description,
-        brief: item.id === "market-brief" ? MARKET_SIGNAL_BRIEF : undefined,
+        brief: research?.brief ?? (item.id === "market-brief" ? MARKET_SIGNAL_BRIEF : undefined),
+        marketplace: research?.marketplace,
         settledTx: payment.txHash,
         mandateId: payment.mandateId,
         settledAmount: payment.amount,
@@ -67,7 +77,7 @@ async function startRuntime(config: AppConfig): Promise<Runtime> {
   app.get(
     "/api/wallet/source/:id",
     (request: Request, response: Response, next: NextFunction): void => {
-      if (!catalog.has(request.originalUrl)) {
+      if (!catalog.has(request.path)) {
         response.status(404).json({ error: "unknown paid source" });
         return;
       }

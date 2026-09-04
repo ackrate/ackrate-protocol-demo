@@ -45,7 +45,11 @@ test("mainnet loads only the verified USDC release and never falls back to testn
   assert.equal(config.public.contractAuthorityAddress, "GCIURCX7JHEKQLRTW6RDZU7OJUVCDM7WWNQPIKRERIHQOHSLW7UY7TXG");
   assert.equal(config.public.asset.code, "USDC");
   assert.equal(config.public.asset.contractId, "CCW67TSZV3SSS2HXMBQ5JFGCKJNXKZM7UQUWUZPUTHXSTZLEO7SJMI75");
-  assert.equal(config.public.catalog[0]?.price, "0.01");
+  assert.equal(config.public.catalog[0]?.price, "0.02");
+  assert.equal(config.public.catalog[0]?.id, "agent402-research");
+  assert.equal(config.public.marketplace?.name, "Agent402");
+  assert.equal(config.public.merchant.address, config.public.agentAddress);
+  assert.equal(config.public.merchant.name, "Agent402 Research Relay");
   assert.equal(config.public.networkPassphrase, Networks.PUBLIC);
   assert.equal(config.public.rpcUrl, "https://reapp.live/api/wallet/rpc");
   assert.equal(config.network.rpcUrl, "https://mainnet.sorobanrpc.com");
