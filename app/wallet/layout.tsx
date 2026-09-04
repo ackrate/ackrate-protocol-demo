@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./wallet.css";
 import "./wallet-monochrome.css";
+import "./wallet-flow.css";
 
 export const metadata: Metadata = {
   title: "Wallet & Agent Console",
