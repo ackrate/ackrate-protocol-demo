@@ -244,7 +244,7 @@ export function WalletChatApp() {
         body: JSON.stringify({ signedTransactionXdr }),
       });
       setSession(verified.session);
-      setNotice("Wallet verified. You can now choose a spending limit.");
+      setNotice("Wallet verified. You can now choose a marketplace service.");
       setPhase("idle");
     } catch (cause) {
       setError("Could not verify this wallet. No transaction was sent to Mainnet.");
