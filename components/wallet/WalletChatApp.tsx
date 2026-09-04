@@ -662,28 +662,39 @@ export function WalletChatApp() {
   return (
     <main className="wallet-preview wallet-flow">
       <header className="flow-header">
-        <Link href="/" className="flow-brand"><span>R</span><strong>ACKRATE</strong></Link>
+        <Link href="/" className="flow-brand"><span className="flow-brand-mark"><MarketplaceOrb variant="brand" /></span><strong>ACKRATE</strong></Link>
         <div className="flow-network"><span />{config?.networkLabel ?? "Loading Mainnet"}</div>
         <Link className="flow-text-button" href="/wallet/diagnostics">Verification <ArrowUpRight size={13} /></Link>
       </header>
 
       <section className="flow-shell">
-        <div className="flow-intro">
+        <motion.div
+          className="flow-intro"
+          initial={reduceMotion ? false : { opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: reduceMotion ? 0 : 0.42, ease: "easeOut" }}
+        >
           <p>MAINNET RESEARCH AGENT</p>
           <h1>Pay for better research.<br />Stay inside your limit.</h1>
           <span>One guided flow. Every payment is checked by the contract.</span>
-        </div>
+        </motion.div>
 
-        <nav className="flow-progress" aria-label="Workflow progress">
+        <motion.nav
+          className="flow-progress"
+          aria-label="Workflow progress"
+          initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: reduceMotion ? 0 : 0.38, delay: reduceMotion ? 0 : 0.08, ease: "easeOut" }}
+        >
           <div className={connected ? "done" : "current"}><span>{connected ? <Check size={14} /> : 1}</span><strong>Connect</strong><ChevronRight size={15} /></div>
           <div className={connected ? marketplaceSelected ? "done" : "current" : ""}><span>{marketplaceSelected ? <Check size={14} /> : 2}</span><strong>Marketplace</strong><ChevronRight size={15} /></div>
           <div><span>3</span><strong>Limit</strong><ChevronRight size={15} /></div>
           <div><span>4</span><strong>Research</strong><ChevronRight size={15} /></div>
           <div><span>5</span><strong>Verify</strong></div>
-        </nav>
+        </motion.nav>
 
         <section className="flow-card">
-          <AnimatePresence mode="wait" initial={false}>
+          <AnimatePresence mode="wait" initial={!reduceMotion}>
           {!connected ? (
             <motion.div
               key="connect"
@@ -693,7 +704,14 @@ export function WalletChatApp() {
               exit={reduceMotion ? undefined : { opacity: 0, y: -8 }}
               transition={{ duration: reduceMotion ? 0 : 0.28, ease: "easeOut" }}
             >
-              <div className="flow-stage-icon"><WalletCards size={25} /></div>
+              <motion.div
+                className="flow-stage-icon three-stage-icon"
+                whileHover={reduceMotion ? undefined : { scale: 1.06, rotateX: -8, rotateY: 10 }}
+                transition={{ type: "spring", stiffness: 260, damping: 18 }}
+              >
+                <MarketplaceOrb variant="stage" />
+                <span className="three-stage-glyph"><WalletCards size={20} /></span>
+              </motion.div>
               <p className="flow-kicker">STEP 1 OF 5</p>
               <h2>Connect your wallet</h2>
               <p className="flow-description">Use a personal Freighter wallet on Stellar Mainnet. We verify that you control it without broadcasting a transaction.</p>
@@ -705,10 +723,17 @@ export function WalletChatApp() {
               {walletAddress === config?.contractAuthorityAddress && (
                 <div className="flow-alert"><TriangleAlert size={16} />Use a personal wallet, not the contract governance account.</div>
               )}
-              <button className="flow-primary" type="button" onClick={walletAddress ? authenticate : connect} disabled={!config || phase === "authenticating"}>
+              <motion.button
+                className="flow-primary"
+                type="button"
+                onClick={walletAddress ? authenticate : connect}
+                disabled={!config || phase === "authenticating"}
+                whileHover={reduceMotion || !config || phase === "authenticating" ? undefined : { y: -2, scale: 1.005 }}
+                whileTap={reduceMotion || !config || phase === "authenticating" ? undefined : { scale: 0.985 }}
+              >
                 {phase === "authenticating" ? <LoaderCircle className="spin" size={17} /> : <WalletCards size={17} />}
                 {phase === "authenticating" ? "Waiting for Freighter…" : walletAddress ? "Verify wallet" : "Connect Freighter"}
-              </button>
+              </motion.button>
               <small className="flow-footnote"><LockKeyhole size={12} />Freighter may show a connection prompt and a verification signature.</small>
             </motion.div>
           ) : !marketplaceSelected ? (

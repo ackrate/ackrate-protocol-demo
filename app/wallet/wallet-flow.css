@@ -22,8 +22,8 @@
 
 .flow-header {
   width: 100%;
-  height: 64px;
-  padding: 0 30px;
+  height: 52px;
+  padding: 0 24px;
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
@@ -40,17 +40,20 @@
   color: #fff;
   font-size: 13px;
   letter-spacing: 0.08em;
+  transition: opacity 160ms ease;
 }
 
-.flow-brand span {
-  width: 28px;
-  height: 28px;
+.flow-brand:hover { opacity: 0.78; }
+
+.flow-brand-mark {
+  width: 31px;
+  height: 31px;
   display: grid;
   place-items: center;
-  border-radius: 7px;
-  background: #fff;
-  color: #000;
-  font-weight: 900;
+  overflow: hidden;
+  border: 1px solid #333;
+  border-radius: 9px;
+  background: radial-gradient(circle, #1f1f1f, #050505 68%);
 }
 
 .flow-network {
@@ -86,9 +89,11 @@
 .flow-text-button:hover { color: #fff; }
 
 .flow-shell {
-  width: min(760px, calc(100% - 40px));
+  width: min(720px, calc(100% - 40px));
+  min-height: calc(100svh - 52px);
   margin: 0 auto;
-  padding: 72px 0 80px;
+  padding: 28px 0 22px;
+  box-sizing: border-box;
 }
 
 .flow-intro {
@@ -105,9 +110,9 @@
 }
 
 .flow-intro h1 {
-  margin: 18px 0 17px;
+  margin: 10px 0 9px;
   color: #fafafa;
-  font-size: clamp(40px, 6.2vw, 64px);
+  font-size: clamp(34px, 4.2vw, 48px);
   font-weight: 700;
   line-height: 1.01;
   letter-spacing: -0.06em;
@@ -115,16 +120,16 @@
 
 .flow-intro > span {
   color: #888;
-  font-size: 14px;
-  line-height: 1.65;
+  font-size: 12px;
+  line-height: 1.5;
 }
 
 .flow-progress {
-  width: min(680px, 100%);
-  margin: 46px auto 20px;
+  width: min(650px, 100%);
+  margin: 20px auto 14px;
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  padding: 6px;
+  padding: 4px;
   border: 1px solid #262626;
   border-radius: 12px;
   background: #0a0a0a;
@@ -132,7 +137,7 @@
 
 .flow-progress > div {
   min-width: 0;
-  height: 38px;
+  height: 34px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -154,33 +159,36 @@
 
 .flow-progress > div > svg { color: #333; }
 .flow-progress > div.current { color: #fff; background: #171717; }
-.flow-progress > div.current > span { border-color: #737373; }
+.flow-progress > div.current > span {
+  border-color: #737373;
+  animation: flow-pulse 2.2s ease-in-out infinite;
+}
 .flow-progress > div.done { color: #a3a3a3; }
 .flow-progress > div.done > span { color: #000; border-color: #fff; background: #fff; }
 
 .flow-card {
   overflow: hidden;
   border: 1px solid #262626;
-  border-radius: 18px;
+  border-radius: 16px;
   background: #0a0a0a;
   box-shadow: 0 24px 90px rgba(0, 0, 0, 0.46), inset 0 1px rgba(255, 255, 255, 0.035);
 }
 
 .flow-stage {
-  padding: 42px;
+  padding: 30px 34px;
 }
 
 .connect-stage {
-  max-width: 590px;
+  max-width: 560px;
   margin: 0 auto;
-  padding-block: 54px;
+  padding-block: 28px;
   text-align: center;
 }
 
 .flow-stage-icon {
-  width: 54px;
-  height: 54px;
-  margin: 0 auto 24px;
+  width: 62px;
+  height: 62px;
+  margin: 0 auto 14px;
   display: grid;
   place-items: center;
   border: 1px solid #333;
@@ -191,23 +199,23 @@
 }
 
 .flow-stage h2 {
-  margin: 10px 0 0;
+  margin: 7px 0 0;
   color: #fafafa;
-  font-size: 27px;
+  font-size: 24px;
   font-weight: 650;
   letter-spacing: -0.04em;
 }
 
 .flow-description {
   max-width: 470px;
-  margin: 14px auto 0;
+  margin: 8px auto 0;
   color: #8a8a8a;
-  font-size: 13px;
-  line-height: 1.7;
+  font-size: 11px;
+  line-height: 1.55;
 }
 
 .flow-checklist {
-  margin: 25px 0;
+  margin: 16px 0;
   display: flex;
   justify-content: center;
   flex-wrap: wrap;
@@ -218,12 +226,12 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 7px 10px;
+  padding: 6px 8px;
   border: 1px solid #262626;
   border-radius: 999px;
   color: #a3a3a3;
   background: #0d0d0d;
-  font-size: 9px;
+  font-size: 8px;
 }
 
 .flow-checklist svg { color: #fff; }
@@ -231,7 +239,7 @@
 .flow-primary,
 .flow-danger,
 .research-button {
-  min-height: 46px;
+  min-height: 42px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -249,7 +257,23 @@
   border: 1px solid #fff;
   color: #000;
   background: #fff;
+  position: relative;
+  overflow: hidden;
 }
+
+.flow-primary::after,
+.research-button::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, transparent 20%, rgba(0, 0, 0, 0.1) 47%, transparent 74%);
+  transform: translateX(-115%);
+  transition: transform 420ms ease;
+  pointer-events: none;
+}
+
+.flow-primary:hover:not(:disabled)::after,
+.research-button:hover:not(:disabled)::after { transform: translateX(115%); }
 
 /* Override the legacy wallet button inheritance until the remaining stages move
    to this flow. The primary action must stay readable in every button state. */
@@ -274,7 +298,7 @@
 }
 
 .flow-footnote {
-  margin-top: 13px;
+  margin-top: 9px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -287,6 +311,30 @@
   color: #000;
   border-color: #fff;
   background: #fff;
+}
+
+.three-stage-icon {
+  position: relative;
+  border-color: #303030;
+  background: radial-gradient(circle, #202020, #070707 70%);
+  transform-style: preserve-3d;
+}
+
+.three-stage-glyph {
+  position: absolute;
+  z-index: 2;
+  inset: 50% auto auto 50%;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 10px;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.68);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  transform: translate(-50%, -50%) translateZ(16px);
+  backdrop-filter: blur(4px);
 }
 
 .connected-address {
@@ -417,9 +465,27 @@
 .marketplace-orb {
   width: 100%;
   height: 82px;
+  display: block;
   margin-block: -10px;
   overflow: hidden;
   cursor: crosshair;
+}
+
+.marketplace-orb.brand-orb {
+  width: 31px;
+  height: 31px;
+  margin: 0;
+  cursor: pointer;
+}
+
+.marketplace-orb.stage-orb {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  cursor: grab;
 }
 
 .marketplace-orb canvas {
@@ -826,13 +892,18 @@
 .flow-proof-link:hover { color: #fff; }
 
 .flow-under-card {
-  padding: 15px 5px 0;
+  padding: 9px 5px 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   color: #525252;
   font-size: 8px;
+}
+
+@keyframes flow-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); }
+  50% { box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.07); }
 }
 
 .flow-under-card span,

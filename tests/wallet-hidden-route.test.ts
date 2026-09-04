@@ -46,6 +46,7 @@ test("connecting Freighter never creates or signs a Mainnet transaction", () => 
 test("wallet marketplace step selects the external Stellar service without moving funds", () => {
   const app = read("components/wallet/WalletChatApp.tsx");
   const orb = read("components/wallet/MarketplaceOrb.tsx");
+  const styles = read("app/wallet/wallet-flow.css");
 
   assert.match(app, /https:\/\/agent402\.tools\/stellar/);
   assert.match(app, /STEP 2 OF 5/);
@@ -54,10 +55,15 @@ test("wallet marketplace step selects the external Stellar service without movin
   assert.match(app, /Choosing a service does not move funds/);
   assert.match(app, /AnimatePresence/);
   assert.match(app, /useReducedMotion/);
+  assert.match(app, /MarketplaceOrb variant="brand"/);
+  assert.match(app, /MarketplaceOrb variant="stage"/);
+  assert.doesNotMatch(app, /className="flow-brand"><span>R<\/span>/);
   assert.match(orb, /new THREE\.WebGLRenderer/);
   assert.match(orb, /ResizeObserver/);
   assert.match(orb, /prefers-reduced-motion: reduce/);
   assert.match(orb, /renderer\.dispose\(\)/);
+  assert.match(styles, /min-height: calc\(100svh - 52px\)/);
+  assert.match(styles, /marketplace-orb\.brand-orb/);
 });
 
 test("wallet keeps the contract governance multisig separate from consumer setup", () => {

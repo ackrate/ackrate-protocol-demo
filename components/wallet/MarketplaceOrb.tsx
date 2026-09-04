@@ -3,8 +3,8 @@
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
 
-export function MarketplaceOrb() {
-  const hostRef = useRef<HTMLDivElement>(null);
+export function MarketplaceOrb({ variant = "marketplace" }: { variant?: "marketplace" | "brand" | "stage" }) {
+  const hostRef = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
     const host = hostRef.current;
@@ -60,6 +60,7 @@ export function MarketplaceOrb() {
     });
 
     const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const rotationSpeed = variant === "brand" ? 0.009 : variant === "stage" ? 0.005 : 0.0025;
     let targetX = -0.12;
     let targetY = 0.18;
     let frame = 0;
@@ -88,9 +89,9 @@ export function MarketplaceOrb() {
       group.rotation.x += (targetX - group.rotation.x) * 0.045;
       group.rotation.y += (targetY - group.rotation.y) * 0.045;
       if (!prefersReducedMotion) {
-        globe.rotation.y += 0.0018;
-        nodes.rotation.y -= 0.0012;
-        rings.forEach((ring, index) => { ring.rotation.z += 0.0008 * (index + 1); });
+        globe.rotation.y += rotationSpeed;
+        nodes.rotation.y -= rotationSpeed * 0.72;
+        rings.forEach((ring, index) => { ring.rotation.z += rotationSpeed * 0.36 * (index + 1); });
       }
       renderer.render(scene, camera);
       frame = window.requestAnimationFrame(render);
@@ -116,7 +117,7 @@ export function MarketplaceOrb() {
       renderer.dispose();
       renderer.domElement.remove();
     };
-  }, []);
+  }, [variant]);
 
-  return <div className="marketplace-orb" ref={hostRef} aria-hidden="true" />;
+  return <span className={`marketplace-orb ${variant}-orb`} ref={hostRef} aria-hidden="true" />;
 }
