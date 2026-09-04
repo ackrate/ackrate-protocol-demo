@@ -66,12 +66,19 @@ test("wallet marketplace step selects the external Stellar service without movin
   assert.match(app, /MarketplaceOrb variant="brand"/);
   assert.match(app, /MarketplaceOrb variant="stage"/);
   assert.doesNotMatch(app, /className="flow-brand"><span>R<\/span>/);
+  assert.match(orb, /WebGPURenderer/);
+  assert.match(orb, /"gpu" in navigator/);
   assert.match(orb, /new THREE\.WebGLRenderer/);
   assert.match(orb, /ResizeObserver/);
+  assert.match(orb, /IntersectionObserver/);
+  assert.match(orb, /pointerdown/);
+  assert.match(orb, /setPointerCapture/);
   assert.match(orb, /prefers-reduced-motion: reduce/);
   assert.match(orb, /renderer\.dispose\(\)/);
+  assert.match(orb, /DRAG TO ORBIT/);
   assert.match(styles, /min-height: calc\(100svh - 52px\)/);
   assert.match(styles, /marketplace-orb\.brand-orb/);
+  assert.match(styles, /data-renderer="webgpu"/);
 });
 
 test("wallet keeps the contract governance multisig separate from consumer setup", () => {
