@@ -765,7 +765,7 @@ export function WalletChatApp() {
         <Link className="flow-text-button" href="/wallet/diagnostics">Verification <ArrowUpRight size={13} /></Link>
       </header>
 
-      <section className="flow-shell">
+      <section className={`flow-shell ${connected ? "flow-shell-active" : ""}`}>
         <motion.div
           className="flow-intro"
           initial={reduceMotion ? false : { opacity: 0, y: -8 }}

@@ -96,6 +96,10 @@
   box-sizing: border-box;
 }
 
+.flow-shell-active { padding-top: 18px; }
+.flow-shell-active .flow-intro { display: none; }
+.flow-shell-active .flow-progress { margin-top: 0; }
+
 .flow-intro {
   text-align: center;
 }
@@ -1108,6 +1112,7 @@
   .flow-header { grid-template-columns: 1fr auto; padding: 0 16px; }
   .flow-network { display: none; }
   .flow-shell { width: min(100% - 24px, 620px); padding-top: 48px; }
+  .flow-shell.flow-shell-active { padding-top: 20px; }
   .flow-intro h1 { font-size: clamp(38px, 12vw, 54px); }
   .flow-stage { padding: 26px 20px; }
   .connect-stage { padding-block: 40px; }
