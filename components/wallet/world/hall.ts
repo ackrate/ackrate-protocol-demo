@@ -230,7 +230,7 @@ export function buildHall({ floorMaterial, quality }: HallOptions): Hall {
   const naveLightA = new THREE.PointLight(0xdfe4ee, 6, 16, 1.7);
   naveLightA.position.set(0, 6.5, 6);
   const naveLightB = new THREE.PointLight(0xdfe4ee, 6, 16, 1.7);
-  naveLightB.position.set(0, 6.5, -0.5);
+  naveLightB.position.set(2.6, 6.2, 2.4);
   scene.add(naveLightA, naveLightB);
 
   /* Request console: a slab under a single beam. */
@@ -278,7 +278,8 @@ export function buildHall({ floorMaterial, quality }: HallOptions): Hall {
   gateHole.absarc(0, 3.2, 2.3, 0, Math.PI * 2, true);
   gateShape.holes.push(gateHole);
   const gateGeometry = track(new THREE.ExtrudeGeometry(gateShape, { depth: 0.5, bevelEnabled: false, curveSegments: 96 }));
-  const gateWall = new THREE.Mesh(gateGeometry, graphite);
+  const gateStone = track(new THREE.MeshStandardMaterial({ color: 0x0c0d11, metalness: 0.2, roughness: 0.82 }));
+  const gateWall = new THREE.Mesh(gateGeometry, gateStone);
   gateWall.position.set(0, 0, -10.25);
   scene.add(gateWall);
   const gateRim = new THREE.Mesh(track(new THREE.TorusGeometry(2.3, 0.035, 12, 128)), silver);
@@ -304,8 +305,8 @@ export function buildHall({ floorMaterial, quality }: HallOptions): Hall {
   }
   const apertureRing = new THREE.Mesh(track(new THREE.TorusGeometry(1, 0.022, 10, 128)), glow(1.4, 1.45, 1.6));
   iris.add(apertureRing);
-  const gateLight = new THREE.PointLight(0xe6ebf7, 2.5, 9, 1.8);
-  gateLight.position.set(0, 3.2, -9.2);
+  const gateLight = new THREE.PointLight(0xe6ebf7, 1.2, 7, 2);
+  gateLight.position.set(0, 3.2, -7.6);
   scene.add(gateLight);
 
   const expiryCount = 72;
@@ -367,7 +368,7 @@ export function buildHall({ floorMaterial, quality }: HallOptions): Hall {
     scratch.rotation.set(0, 0, 0);
     scratch.updateMatrix();
     tablets.setMatrixAt(index, scratch.matrix);
-    tabletBase[index] = 0.04 + random() * 0.05;
+    tabletBase[index] = 0.02 + random() * 0.03;
     tablets.setColorAt(index, slabColor.setScalar(tabletBase[index]!));
   }
   scene.add(tablets);
@@ -408,11 +409,11 @@ export function buildHall({ floorMaterial, quality }: HallOptions): Hall {
   /* ---------------------------------------------------------------- stations */
   const stations: Station[] = [
     { position: new THREE.Vector3(0, 1.75, 28.5), look: new THREE.Vector3(0, 4.6, 12) },
-    { position: new THREE.Vector3(-2.7, 2.3, 7.4), look: new THREE.Vector3(2.4, 3.3, -3.5) },
+    { position: new THREE.Vector3(-2.5, 2.2, 8.4), look: new THREE.Vector3(3.4, 3.4, -2.2) },
     { position: new THREE.Vector3(2.05, 1.45, -0.55), look: new THREE.Vector3(-0.3, 0.95, -2.75) },
-    { position: new THREE.Vector3(0, 2.45, -4.6), look: new THREE.Vector3(0, 3.2, -10) },
+    { position: new THREE.Vector3(0, 2.5, -3.2), look: new THREE.Vector3(0, 3.25, -10) },
     { position: new THREE.Vector3(0, 2.3, -13.3), look: new THREE.Vector3(0, 2.15, -23.5) },
-    { position: new THREE.Vector3(0, 2.75, -19.6), look: new THREE.Vector3(0, 3.9, -26.4) },
+    { position: new THREE.Vector3(0, 2.6, -16.6), look: new THREE.Vector3(0, 3.9, -26.4) },
   ];
 
   /* ---------------------------------------------------------------- state */
@@ -462,7 +463,7 @@ export function buildHall({ floorMaterial, quality }: HallOptions): Hall {
     }
     catalogWave += step * (reducedMotion ? 60 : 9);
     chosen = damp(chosen, signals.serviceChosen ? 1 : 0, ease, step);
-    const catalogActive = signals.stage === 2 ? 1 : signals.stage > 2 ? 0.55 : 0.25;
+    const catalogActive = signals.stage === 2 ? 1.7 : signals.stage > 2 ? 0.6 : 0.3;
     for (let index = 0; index < slabCount; index += 1) {
       const distance = Math.abs((9.4 - slabZ[index]!) - catalogWave);
       const wave = Math.max(0, 1 - distance / 1.6) * 0.9;
@@ -471,8 +472,8 @@ export function buildHall({ floorMaterial, quality }: HallOptions): Hall {
       slabs.setColorAt(index, slabColor.setScalar(level));
     }
     slabs.instanceColor!.needsUpdate = true;
-    naveLightA.intensity = 4 + catalogActive * 3;
-    naveLightB.intensity = 4 + catalogActive * 3 + chosen * 3;
+    naveLightA.intensity = 3 + catalogActive * 2;
+    naveLightB.intensity = 3 + catalogActive * 2 + chosen * 2;
 
     /* Console: field lines fill as the request is written. */
     requestFill = damp(requestFill, signals.requestFill, ease, step);
@@ -483,7 +484,7 @@ export function buildHall({ floorMaterial, quality }: HallOptions): Hall {
       fieldLines[index]!.material.color.setScalar(fieldLevels[index]! * (0.3 + consoleActive * 0.7));
     }
     (consoleGlow.material as THREE.MeshBasicMaterial).opacity = 0.04 + consoleActive * 0.12 * requestFill;
-    beam.intensity = 8 + consoleActive * 34;
+    beam.intensity = 6 + consoleActive * 22;
     (beamCone.material as THREE.MeshBasicMaterial).opacity = 0.012 + consoleActive * 0.03;
     beamCap.material = consoleActive > 0.5 ? white : brushed;
     consoleTop.material = graphite;
@@ -499,8 +500,8 @@ export function buildHall({ floorMaterial, quality }: HallOptions): Hall {
     registered = damp(registered, signals.limitRegistered ? 1 : 0, ease, step);
     armed = damp(armed, signals.limitArmed ? 1 : 0, ease, step);
     const gateActive = signals.stage === 4 ? 1 : signals.stage > 4 ? 0.7 : 0.2;
-    (apertureRing.material as THREE.MeshBasicMaterial).color.setScalar(0.35 + gateActive * 0.6 + armed * 1.2);
-    gateLight.intensity = 1.5 + gateActive * 3 + armed * 4;
+    (apertureRing.material as THREE.MeshBasicMaterial).color.setScalar(0.3 + gateActive * 0.5 + armed * 0.9);
+    gateLight.intensity = 0.5 + gateActive * 1.1 + armed * 1.6;
     expiryLit = damp(expiryLit, signals.expiry, ease, step);
     for (let index = 0; index < expiryCount; index += 1) {
       const lit = index / expiryCount < expiryLit;
@@ -549,7 +550,7 @@ export function buildHall({ floorMaterial, quality }: HallOptions): Hall {
     for (let index = 0; index < tabletColumns * tabletRows; index += 1) {
       const proof = proofTablets.includes(index) ? settled : 0;
       const breathe = reducedMotion ? 0 : Math.sin(elapsed * 1.1 + index) * 0.01;
-      tablets.setColorAt(index, slabColor.setScalar((tabletBase[index]! + breathe) * (0.5 + vaultActive) + proof * 1.7));
+      tablets.setColorAt(index, slabColor.setScalar((tabletBase[index]! + breathe * 0.5) * (0.5 + vaultActive) + proof * 1.7));
     }
     tablets.instanceColor!.needsUpdate = true;
     vaultLight.intensity = 1.2 + vaultActive * 3 + settled * 6;

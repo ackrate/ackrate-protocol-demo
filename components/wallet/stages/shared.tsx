@@ -36,10 +36,10 @@ export function Stage({ id, children, className = "" }: { id: string; children: 
       key={id}
       className={`stage ${className}`}
       data-stage={id}
-      initial={reduceMotion ? false : { opacity: 0, y: 18, filter: "blur(6px)" }}
-      animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-      exit={reduceMotion ? undefined : { opacity: 0, y: -14, filter: "blur(6px)" }}
-      transition={{ duration: reduceMotion ? 0 : 0.58, ease: stageEase }}
+      initial={reduceMotion ? false : { opacity: 0, y: 22 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={reduceMotion ? undefined : { opacity: 0, y: -12, transition: { duration: 0.5, ease: stageEase } }}
+      transition={{ duration: reduceMotion ? 0 : 1.1, delay: reduceMotion ? 0 : 0.45, ease: stageEase }}
     >
       {children}
     </motion.section>
@@ -55,13 +55,13 @@ export function StageHeading({ stage, place, title, children }: { stage: number;
           className="stage-kicker"
           initial={reduceMotion ? false : { opacity: 0, x: -8 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.4, delay: 0.1, ease: stageEase }}
+          transition={{ duration: 0.6, delay: 0.55, ease: stageEase }}
         >
           <span>STEP {stage} OF 6</span><i /><span>{place.toUpperCase()}</span>
         </motion.p>
       </Drift>
       <Drift depth={7}>
-        <h2><Reveal lines={title} delay={0.16} /></h2>
+        <h2><Reveal lines={title} delay={0.62} stagger={0.022} /></h2>
       </Drift>
       {children && (
         <Drift depth={5}>
@@ -69,7 +69,7 @@ export function StageHeading({ stage, place, title, children }: { stage: number;
             className="stage-lede"
             initial={reduceMotion ? false : { opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.42, ease: stageEase }}
+            transition={{ duration: 0.8, delay: 1.0, ease: stageEase }}
           >{children}</motion.p>
         </Drift>
       )}
@@ -89,9 +89,9 @@ export function Primary({ children, disabled, busy, tone = "light", ...rest }: H
       type="button"
       disabled={inert}
       style={{ x: magnet.x, y: magnet.y }}
-      whileHover={reduceMotion || inert ? undefined : { scale: 1.02 }}
-      whileTap={reduceMotion || inert ? undefined : { scale: 0.97 }}
-      transition={{ type: "spring", stiffness: 420, damping: 28 }}
+      whileHover={reduceMotion || inert ? undefined : { scale: 1.015 }}
+      whileTap={reduceMotion || inert ? undefined : { scale: 0.975 }}
+      transition={{ type: "spring", stiffness: 260, damping: 26 }}
       {...rest}
     >
       {children}

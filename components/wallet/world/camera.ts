@@ -90,7 +90,7 @@ export class CameraRig {
     const index = THREE.MathUtils.clamp(stage - 1, 0, this.stations.length - 1);
     const targetU = this.stationU[index]!;
     const distance = Math.abs(targetU - this.progress);
-    const lambda = reducedMotion ? 18 : 1.35 + Math.min(1.1, distance * 4);
+    const lambda = reducedMotion ? 18 : 0.85 + Math.min(0.55, distance * 2.2);
     this.progress += (targetU - this.progress) * (1 - Math.exp(-lambda * step));
     this.settled = Math.abs(targetU - this.progress) < 0.0005;
 
@@ -106,7 +106,7 @@ export class CameraRig {
     const span = Math.max(1e-5, this.stationU[to]! - this.stationU[from]!);
     const blend = THREE.MathUtils.smoothstep(THREE.MathUtils.clamp((u - this.stationU[from]!) / span, 0, 1), 0, 1);
     this.lookGoal.lerpVectors(this.stations[from]!.look, this.stations[to]!.look, blend);
-    this.look.lerp(this.lookGoal, 1 - Math.exp(-(reducedMotion ? 18 : 4.2) * step));
+    this.look.lerp(this.lookGoal, 1 - Math.exp(-(reducedMotion ? 18 : 2.8) * step));
 
     /* Pointer parallax and drag look. */
     this.pointer.lerp(pointer, 1 - Math.exp(-(reducedMotion ? 30 : 5) * step));

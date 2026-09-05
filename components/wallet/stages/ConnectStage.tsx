@@ -30,13 +30,13 @@ export function ConnectStage({ config, walletAddress, authenticating, governance
           className="hero-kicker"
           initial={reduceMotion ? false : { opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ duration: 0.6, delay: 0.25 }}
+          transition={{ duration: 0.8, delay: 0.5 }}
         >THE ENFORCEMENT LAYER FOR AGENT PAYMENTS</motion.p>
       </Drift>
 
       <Drift depth={9}>
         <h1 className="hero-title">
-          <Reveal lines={["Purchasing power.", "Not a blank check."]} delay={0.3} stagger={0.022} accentLast />
+          <Reveal lines={["Purchasing power.", "Not a blank check."]} delay={0.55} stagger={0.026} accentLast />
         </h1>
       </Drift>
 
@@ -45,7 +45,7 @@ export function ConnectStage({ config, walletAddress, authenticating, governance
           className="hero-lede"
           initial={reduceMotion ? false : { opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 1.0, ease: stageEase }}
+          transition={{ duration: 0.9, delay: 1.5, ease: stageEase }}
         >
           Agents discover live services on the x402 marketplace. You set who gets paid,
           how much, and for how long. ACKRATE enforces it on-chain, on every payment.
@@ -57,7 +57,7 @@ export function ConnectStage({ config, walletAddress, authenticating, governance
           className="hero-actions"
           initial={reduceMotion ? false : { opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 1.15, ease: stageEase }}
+          transition={{ duration: 0.9, delay: 1.75, ease: stageEase }}
         >
           {governanceWalletConnected && (
             <Alert>

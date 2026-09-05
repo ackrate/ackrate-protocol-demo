@@ -742,6 +742,7 @@ export function WalletChatApp() {
                 onDraftChange={setMarketplaceDraft}
                 isRunnable={isRunnableMarketplaceService}
                 onChoose={chooseMarketplaceService}
+                onDisconnect={() => setDisconnectOpen(true)}
               />
             )}
             {workflowStep === 3 && (

@@ -106,11 +106,11 @@ export function ProtocolWorld({ signals, reducedMotion, focus, onReady }: Protoc
       }
 
       host.dataset.renderer = activeBackend;
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, quality === "high" ? 1.6 : 1.35));
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, quality === "high" ? 1.5 : 1.2));
       renderer.setClearColor(0x000000, 1);
       renderer.outputColorSpace = THREE.SRGBColorSpace;
       renderer.toneMapping = THREE.AgXToneMapping;
-      renderer.toneMappingExposure = 1.05;
+      renderer.toneMappingExposure = 0.98;
       renderer.domElement.className = "protocol-world-canvas";
       renderer.domElement.setAttribute("aria-hidden", "true");
       host.append(renderer.domElement);
@@ -124,7 +124,7 @@ export function ProtocolWorld({ signals, reducedMotion, focus, onReady }: Protoc
       let floorMaterial: THREE.Material;
       let reflectorTarget: THREE.Object3D | undefined;
       if (webgpu && tsl) {
-        const reflection = tsl.reflector({ resolutionScale: quality === "high" ? 0.5 : 0.3, generateMipmaps: false });
+        const reflection = tsl.reflector({ resolutionScale: quality === "high" ? 0.4 : 0.28, generateMipmaps: false });
         reflection.target.rotateX(-Math.PI / 2);
         reflectorTarget = reflection.target;
         const material = new webgpu.MeshPhysicalNodeMaterial({
@@ -154,7 +154,7 @@ export function ProtocolWorld({ signals, reducedMotion, focus, onReady }: Protoc
       const hall: Hall = buildHall({ floorMaterial, quality });
       const { scene } = hall;
       scene.environment = environment;
-      scene.environmentIntensity = 0.55;
+      scene.environmentIntensity = 0.32;
       if (reflectorTarget) scene.add(reflectorTarget);
 
       const rig = new CameraRig(hall.stations, { after: 3, point: hall.gateCenter });
@@ -172,7 +172,7 @@ export function ProtocolWorld({ signals, reducedMotion, focus, onReady }: Protoc
           postProcessing = new (pipelines.RenderPipeline ?? webgpu.PostProcessing)(renderer);
           const scenePass = tsl.pass(scene, camera);
           const sceneColor = scenePass.getTextureNode("output");
-          const bloomPass = bloom(sceneColor, quality === "high" ? 0.55 : 0.4, 0.6, 0.86);
+          const bloomPass = bloom(sceneColor, quality === "high" ? 0.3 : 0.22, 0.38, 1.0);
           postProcessing.outputNode = sceneColor.add(bloomPass);
         } catch {
           postProcessing = undefined;

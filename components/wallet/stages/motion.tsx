@@ -28,8 +28,8 @@ export function Drift({ depth = 8, children, className, style, ...rest }: HTMLMo
   const reduceMotion = useReducedMotion();
   useEffect(bindPointer, []);
   const amount = reduceMotion ? 0 : depth;
-  const x = useSpring(useTransform(pointerX, (value) => value * amount), { stiffness: 60, damping: 18, mass: 0.9 });
-  const y = useSpring(useTransform(pointerY, (value) => value * amount * 0.7), { stiffness: 60, damping: 18, mass: 0.9 });
+  const x = useSpring(useTransform(pointerX, (value) => value * amount), { stiffness: 42, damping: 20, mass: 1 });
+  const y = useSpring(useTransform(pointerY, (value) => value * amount * 0.7), { stiffness: 42, damping: 20, mass: 1 });
   return (
     <motion.div className={className} style={{ ...(style as CSSProperties), x, y }} {...rest}>
       {children}
@@ -101,7 +101,7 @@ export function Reveal({ lines, delay = 0.12, stagger = 0.018, as: Tag = "span",
                       className="reveal-char"
                       initial={reduceMotion ? false : { y: "110%", rotate: 4, opacity: 0 }}
                       animate={{ y: "0%", rotate: 0, opacity: 1 }}
-                      transition={{ duration: reduceMotion ? 0 : 0.9, delay: reduceMotion ? 0 : delay + order * stagger, ease: hallEase }}
+                      transition={{ duration: reduceMotion ? 0 : 1.15, delay: reduceMotion ? 0 : delay + order * stagger, ease: hallEase }}
                     >{char}</motion.span>
                   </span>
                 );

@@ -1,9 +1,9 @@
 "use client";
 
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { ArrowRight, ArrowUpRight, Check, LoaderCircle, LockKeyhole, Search, TriangleAlert } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Check, LoaderCircle, LockKeyhole, Power, Search, TriangleAlert } from "lucide-react";
 import type { MarketplaceService } from "@/lib/wallet/marketplace-catalog";
-import { Alert, Primary, Stage, StageHeading, short } from "./shared";
+import { Alert, Primary, Quiet, Stage, StageHeading, short } from "./shared";
 
 export const MARKETPLACE_URL = "https://agent402.tools/stellar";
 
@@ -18,6 +18,7 @@ interface MarketplaceStageProps {
   onDraftChange: (service: MarketplaceService) => void;
   isRunnable: (service: MarketplaceService) => boolean;
   onChoose: () => void;
+  onDisconnect: () => void;
 }
 
 /**
@@ -35,6 +36,7 @@ export function MarketplaceStage({
   onDraftChange,
   isRunnable,
   onChoose,
+  onDisconnect,
 }: MarketplaceStageProps) {
   const reduceMotion = useReducedMotion();
   const runnable = isRunnable(draft);
@@ -45,12 +47,16 @@ export function MarketplaceStage({
         Live x402 services from Agent402, priced per call. Nothing moves until you say so.
       </StageHeading>
 
+      {sessionAddress && (
+        <div className="stage-session" aria-label="Connected wallet">
+          <span><i />Connected as <code>{short(sessionAddress, 5)}</code></span>
+          <Quiet onClick={onDisconnect}><Power size={11} /> Not you? Disconnect</Quiet>
+        </div>
+      )}
+
       <div className="catalog-source">
         <span className="catalog-source-name"><b>Agent402</b><small>STELLAR x402 MARKETPLACE</small></span>
-        <span className="catalog-source-meta">
-          {catalog.source === "live" ? `${catalog.size} live tools` : "verified catalog"}
-          {sessionAddress && <code>{short(sessionAddress, 4)}</code>}
-        </span>
+        <span className="catalog-source-meta">{catalog.source === "live" ? `${catalog.size} live tools` : "verified catalog"}</span>
         <a href={MARKETPLACE_URL} target="_blank" rel="noreferrer">Open <ArrowUpRight size={12} /></a>
       </div>
 
