@@ -5,15 +5,15 @@ import * as THREE from "three";
 import type { WebGPURenderer } from "three/webgpu";
 
 type WorldRenderer = THREE.WebGLRenderer | WebGPURenderer;
-type Dock = {
+type Gateway = {
   group: THREE.Group;
-  iris: THREE.Group;
-  pulse: THREE.Mesh<THREE.RingGeometry, THREE.MeshBasicMaterial>;
+  core: THREE.Mesh<THREE.CircleGeometry, THREE.MeshBasicMaterial>;
+  signal: THREE.Mesh<THREE.TorusGeometry, THREE.MeshStandardMaterial>;
+  aura: THREE.Mesh<THREE.RingGeometry, THREE.MeshBasicMaterial>;
   light: THREE.PointLight;
-  material: THREE.MeshStandardMaterial;
 };
 
-function randomFactory(seed: number): () => number {
+function seededRandom(seed: number): () => number {
   let value = seed >>> 0;
   return () => {
     value = (value * 1_664_525 + 1_013_904_223) >>> 0;
@@ -21,21 +21,63 @@ function randomFactory(seed: number): () => number {
   };
 }
 
-function createBladeGeometry(): THREE.ExtrudeGeometry {
-  const shape = new THREE.Shape();
-  shape.moveTo(0.42, -0.1);
-  shape.bezierCurveTo(0.76, -0.3, 1.42, -0.28, 1.74, -0.02);
-  shape.bezierCurveTo(1.42, 0.1, 0.87, 0.3, 0.47, 0.13);
-  shape.quadraticCurveTo(0.37, 0.02, 0.42, -0.1);
-  const geometry = new THREE.ExtrudeGeometry(shape, {
-    depth: 0.075,
-    bevelEnabled: true,
-    bevelSegments: 3,
-    bevelSize: 0.035,
-    bevelThickness: 0.035,
-    curveSegments: 18,
-  });
-  geometry.translate(0, 0, -0.0375);
+function canyonCenter(z: number): number {
+  return 4.8 + Math.sin(z * 0.31) * 1.15 + Math.sin(z * 0.12) * 0.55;
+}
+
+function terrainHeight(x: number, z: number): number {
+  const distanceFromRoute = Math.abs(x - canyonCenter(z));
+  const wall = Math.pow(Math.max(0, distanceFromRoute - 2.15), 1.48) * 0.16;
+  const broad = Math.sin(x * 0.42 + z * 0.17) * 0.22 + Math.cos(z * 0.37 - x * 0.12) * 0.18;
+  const detail = Math.sin(x * 1.38 - z * 0.71) * 0.07 + Math.cos(x * 0.74 + z * 1.12) * 0.055;
+  const routeBed = -Math.exp(-distanceFromRoute * distanceFromRoute * 0.48) * 0.28;
+  return Math.min(4.8, wall + broad + detail + routeBed - 0.38);
+}
+
+function buildTerrain(): THREE.BufferGeometry {
+  const xSegments = 124;
+  const zSegments = 138;
+  const xMin = -7;
+  const xMax = 17;
+  const zMin = -19;
+  const zMax = 10;
+  const positions: number[] = [];
+  const colors: number[] = [];
+  const indices: number[] = [];
+  const color = new THREE.Color();
+  const random = seededRandom(913_402);
+
+  for (let zIndex = 0; zIndex <= zSegments; zIndex += 1) {
+    const v = zIndex / zSegments;
+    const z = THREE.MathUtils.lerp(zMin, zMax, v);
+    for (let xIndex = 0; xIndex <= xSegments; xIndex += 1) {
+      const u = xIndex / xSegments;
+      const x = THREE.MathUtils.lerp(xMin, xMax, u);
+      const y = terrainHeight(x, z);
+      positions.push(x, y, z);
+      const ridge = THREE.MathUtils.clamp((y + 0.55) / 4.2, 0, 1);
+      const shimmer = (random() - 0.5) * 0.018;
+      color.setRGB(0.028 + ridge * 0.065 + shimmer, 0.032 + ridge * 0.072 + shimmer, 0.045 + ridge * 0.11 + shimmer);
+      colors.push(color.r, color.g, color.b);
+    }
+  }
+
+  const row = xSegments + 1;
+  for (let zIndex = 0; zIndex < zSegments; zIndex += 1) {
+    for (let xIndex = 0; xIndex < xSegments; xIndex += 1) {
+      const a = zIndex * row + xIndex;
+      const b = a + 1;
+      const c = a + row;
+      const d = c + 1;
+      indices.push(a, c, b, b, c, d);
+    }
+  }
+
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+  geometry.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
   return geometry;
 }
 
@@ -78,303 +120,291 @@ export function ProtocolWorld({ step, reducedMotion }: { step: number; reducedMo
       }
 
       host.dataset.renderer = backend;
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.65));
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.55));
       renderer.setClearColor(0x000000, 0);
       renderer.outputColorSpace = THREE.SRGBColorSpace;
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
-      renderer.toneMappingExposure = 0.92;
+      renderer.toneMappingExposure = 0.96;
       renderer.domElement.className = "protocol-world-canvas";
       renderer.domElement.setAttribute("aria-hidden", "true");
       host.append(renderer.domElement);
 
       const scene = new THREE.Scene();
-      scene.fog = new THREE.FogExp2(0x010103, 0.047);
-      const camera = new THREE.PerspectiveCamera(36, 1, 0.1, 120);
-      const cameraTarget = new THREE.Vector3();
-      const cameraLook = new THREE.Vector3(2.05, -0.06, -0.35);
-      camera.position.set(0.15, 0.08, 12.6);
+      scene.fog = new THREE.FogExp2(0x03040a, 0.049);
+      const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
+      camera.position.set(-0.35, 2.5, 11.3);
 
       const resources: Array<{ dispose: () => void }> = [];
-      const track = <T extends { dispose: () => void }>(value: T): T => {
-        resources.push(value);
-        return value;
+      const track = <T extends { dispose: () => void }>(resource: T): T => {
+        resources.push(resource);
+        return resource;
       };
 
-      const graphite = track(new THREE.MeshPhysicalMaterial({
-        color: 0x101116,
-        metalness: 0.94,
-        roughness: 0.17,
-        clearcoat: 0.78,
-        clearcoatRoughness: 0.1,
+      const terrainMaterial = track(new THREE.MeshPhysicalMaterial({
+        vertexColors: true,
+        metalness: 0.34,
+        roughness: 0.58,
+        clearcoat: 0.46,
+        clearcoatRoughness: 0.36,
       }));
-      const blackChrome = track(new THREE.MeshPhysicalMaterial({
-        color: 0x030407,
-        metalness: 1,
-        roughness: 0.07,
-        clearcoat: 1,
-        clearcoatRoughness: 0.025,
+      const obsidian = track(new THREE.MeshPhysicalMaterial({
+        color: 0x080a10,
+        metalness: 0.88,
+        roughness: 0.19,
+        clearcoat: 0.9,
+        clearcoatRoughness: 0.08,
       }));
-      const paleMetal = track(new THREE.MeshPhysicalMaterial({
-        color: 0xb8c1d2,
-        emissive: 0x1b2231,
-        emissiveIntensity: 0.3,
+      const silver = track(new THREE.MeshPhysicalMaterial({
+        color: 0xaab4c7,
+        emissive: 0x101728,
+        emissiveIntensity: 0.38,
         metalness: 0.92,
-        roughness: 0.12,
-        clearcoat: 0.8,
+        roughness: 0.13,
+        clearcoat: 0.76,
       }));
-      const spectralGlass = track(new THREE.MeshPhysicalMaterial({
-        color: 0xaabfff,
-        emissive: 0x273a73,
-        emissiveIntensity: 0.45,
-        transparent: true,
-        opacity: 0.66,
-        transmission: 0.46,
-        thickness: 1.7,
-        ior: 1.54,
-        iridescence: 0.82,
-        iridescenceIOR: 1.37,
-        roughness: 0.035,
-        metalness: 0.08,
-        depthWrite: false,
-      }));
-      const ghostLine = track(new THREE.MeshBasicMaterial({
-        color: 0x77859e,
-        transparent: true,
-        opacity: 0.18,
-        blending: THREE.AdditiveBlending,
-        depthWrite: false,
-      }));
-      const coldLight = track(new THREE.MeshBasicMaterial({
-        color: 0xeaf0ff,
-        transparent: true,
-        opacity: 0.78,
-        blending: THREE.AdditiveBlending,
-        depthWrite: false,
-      }));
-
-      const world = new THREE.Group();
-      world.position.set(2.4, -0.05, -0.4);
-      world.rotation.set(-0.06, -0.08, 0);
-      scene.add(world);
-
-      // One machine, six destinations: an on-chain payment observatory.
-      const observatory = new THREE.Group();
-      observatory.rotation.set(0.12, -0.12, 0.05);
-      world.add(observatory);
-
-      const iris = new THREE.Group();
-      observatory.add(iris);
-      const bladeGeometry = track(createBladeGeometry());
-      const bladeEdgeGeometry = track(new THREE.EdgesGeometry(bladeGeometry, 34));
-      const bladeEdgeMaterial = track(new THREE.LineBasicMaterial({
-        color: 0xaab4c6,
-        transparent: true,
-        opacity: 0.15,
-        blending: THREE.AdditiveBlending,
-      }));
-      const blades: THREE.Mesh[] = [];
-      for (let index = 0; index < 12; index += 1) {
-        const pivot = new THREE.Group();
-        pivot.rotation.z = (index / 12) * Math.PI * 2;
-        const blade = new THREE.Mesh(bladeGeometry, index % 3 === 0 ? paleMetal : graphite);
-        blade.rotation.z = 0.08;
-        blade.rotation.x = index % 2 === 0 ? 0.025 : -0.025;
-        blade.add(new THREE.LineSegments(bladeEdgeGeometry, bladeEdgeMaterial));
-        pivot.add(blade);
-        iris.add(pivot);
-        blades.push(blade);
-      }
-
-      const aperture = new THREE.Group();
-      aperture.position.z = 0.22;
-      observatory.add(aperture);
-      const apertureBack = new THREE.Mesh(track(new THREE.CylinderGeometry(0.69, 0.82, 0.22, 96)), blackChrome);
-      apertureBack.rotation.x = Math.PI / 2;
-      aperture.add(apertureBack);
-      const apertureRing = new THREE.Mesh(track(new THREE.TorusGeometry(0.66, 0.055, 16, 128)), paleMetal);
-      aperture.add(apertureRing);
-      const pearl = new THREE.Mesh(track(new THREE.SphereGeometry(0.48, 72, 54)), spectralGlass);
-      pearl.position.z = 0.18;
-      aperture.add(pearl);
-      const pearlHalo = new THREE.Mesh(track(new THREE.TorusGeometry(0.53, 0.011, 6, 96)), coldLight);
-      pearlHalo.position.z = 0.22;
-      aperture.add(pearlHalo);
-
-      const rail = new THREE.Group();
-      rail.position.z = -0.06;
-      observatory.add(rail);
-      rail.add(new THREE.Mesh(track(new THREE.TorusGeometry(2.22, 0.025, 10, 256)), graphite));
-      rail.add(new THREE.Mesh(track(new THREE.TorusGeometry(1.93, 0.009, 6, 220)), ghostLine));
-      const arcGeometry = track(new THREE.TorusGeometry(2.48, 0.038, 9, 72, 0.72));
-      for (let index = 0; index < 6; index += 1) {
-        const arc = new THREE.Mesh(arcGeometry, index === 0 ? paleMetal : graphite);
-        arc.rotation.z = (index / 6) * Math.PI * 2 + 0.15;
-        rail.add(arc);
-      }
-
-      const tickGeometry = track(new THREE.BoxGeometry(0.025, 0.1, 0.045));
-      const ticks = new THREE.InstancedMesh(tickGeometry, paleMetal, 96);
-      const tickMatrix = new THREE.Object3D();
-      for (let index = 0; index < 96; index += 1) {
-        const angle = (index / 96) * Math.PI * 2;
-        const radius = index % 4 === 0 ? 2.7 : 2.64;
-        tickMatrix.position.set(Math.cos(angle) * radius, Math.sin(angle) * radius, -0.03);
-        tickMatrix.rotation.z = angle;
-        tickMatrix.scale.set(1, index % 4 === 0 ? 1.8 : 0.72, 1);
-        tickMatrix.updateMatrix();
-        ticks.setMatrixAt(index, tickMatrix.matrix);
-      }
-      ticks.instanceMatrix.needsUpdate = true;
-      observatory.add(ticks);
-
-      const dockPoints = Array.from({ length: 6 }, (_, index) => {
-        const angle = Math.PI * 0.18 - (index / 6) * Math.PI * 2;
-        return new THREE.Vector3(Math.cos(angle) * 3.15, Math.sin(angle) * 3.15, -0.08 - (index % 2) * 0.12);
-      });
-      const routeCurve = new THREE.CatmullRomCurve3(dockPoints, true, "centripetal", 0.25);
-      observatory.add(new THREE.Mesh(track(new THREE.TubeGeometry(routeCurve, 540, 0.009, 5, true)), ghostLine));
-
-      const dockBodyGeometry = track(new THREE.CylinderGeometry(0.12, 0.17, 0.12, 32));
-      const dockRingGeometry = track(new THREE.TorusGeometry(0.31, 0.02, 8, 72));
-      const dockArcGeometry = track(new THREE.TorusGeometry(0.46, 0.026, 8, 48, 4.45));
-      const dockRailGeometry = track(new THREE.BoxGeometry(0.032, 0.2, 0.04));
-      const pulseGeometry = track(new THREE.RingGeometry(0.35, 0.37, 64));
-      const docks: Dock[] = dockPoints.map((point, index) => {
-        const group = new THREE.Group();
-        group.position.copy(point);
-        group.rotation.z = -Math.PI * 0.18 + (index / 6) * Math.PI * 2;
-        const material = track(new THREE.MeshStandardMaterial({
-          color: index === 0 ? 0xeaf0ff : 0x323743,
-          emissive: index === 0 ? 0x718bd6 : 0x090b10,
-          emissiveIntensity: index === 0 ? 1.15 : 0.16,
-          metalness: 0.92,
-          roughness: 0.14,
-        }));
-        const body = new THREE.Mesh(dockBodyGeometry, blackChrome);
-        body.rotation.x = Math.PI / 2;
-        const dockIris = new THREE.Group();
-        const ring = new THREE.Mesh(dockRingGeometry, material);
-        const arc = new THREE.Mesh(dockArcGeometry, material);
-        arc.rotation.z = 0.92;
-        const railLeft = new THREE.Mesh(dockRailGeometry, material);
-        railLeft.position.set(-0.43, 0.03, 0);
-        const railRight = new THREE.Mesh(dockRailGeometry, material);
-        railRight.position.set(0.43, -0.03, 0);
-        const pulseMaterial = track(coldLight.clone());
-        const pulse = new THREE.Mesh(pulseGeometry, pulseMaterial);
-        pulse.position.z = -0.035;
-        const light = new THREE.PointLight(0xa9bdff, index === 0 ? 5 : 0, 2.8, 2);
-        light.position.z = 0.55;
-        dockIris.add(ring, arc, railLeft, railRight);
-        group.add(body, dockIris, pulse, light);
-        observatory.add(group);
-        return { group, iris: dockIris, pulse, light, material };
-      });
-
-      const packetGeometry = track(new THREE.SphereGeometry(0.046, 18, 14));
-      const packets = [0, 0.33, 0.66].map((offset) => {
-        const packet = new THREE.Mesh(packetGeometry, coldLight);
-        packet.add(new THREE.PointLight(0xb8c8ff, 2.2, 1.5, 2));
-        observatory.add(packet);
-        return { mesh: packet, offset };
-      });
-
-      // The machine sits over a shallow spatial deck rather than inside a UI card.
-      const floor = new THREE.Group();
-      floor.position.set(0.2, -2.65, -1.35);
-      floor.rotation.x = Math.PI / 2.55;
-      world.add(floor);
-      floor.add(new THREE.Mesh(
-        track(new THREE.RingGeometry(1.1, 4.7, 160, 4)),
-        track(new THREE.MeshBasicMaterial({ color: 0x111522, transparent: true, opacity: 0.13, side: THREE.DoubleSide, depthWrite: false })),
-      ));
-      [1.35, 2.45, 3.65, 4.62].forEach((radius, index) => {
-        floor.add(new THREE.Mesh(track(new THREE.TorusGeometry(radius, index === 3 ? 0.018 : 0.008, 5, 180)), ghostLine));
-      });
-      const floorStrutGeometry = track(new THREE.BoxGeometry(3.35, 0.008, 0.008));
-      for (let index = 0; index < 12; index += 1) {
-        const strut = new THREE.Mesh(floorStrutGeometry, ghostLine);
-        strut.position.x = 2.05;
-        strut.rotation.z = (index / 12) * Math.PI * 2;
-        floor.add(strut);
-      }
-
-      const archGroup = new THREE.Group();
-      archGroup.position.set(0.15, 0, -1.2);
-      world.add(archGroup);
-      [3.75, 4.35, 5.1].forEach((radius, index) => {
-        const arch = new THREE.Mesh(
-          track(new THREE.TorusGeometry(radius, 0.012 - index * 0.002, 6, 180, Math.PI * (1.07 + index * 0.08))),
-          ghostLine,
-        );
-        arch.rotation.set(0.18 + index * 0.17, -0.32 + index * 0.21, 0.72 + index * 0.46);
-        archGroup.add(arch);
-      });
-
-      const random = randomFactory(40_206);
-      const starPositions = new Float32Array(1_650 * 3);
-      for (let index = 0; index < 1_650; index += 1) {
-        const radius = 5 + random() * 34;
-        const theta = random() * Math.PI * 2;
-        const phi = Math.acos(2 * random() - 1);
-        starPositions[index * 3] = Math.sin(phi) * Math.cos(theta) * radius;
-        starPositions[index * 3 + 1] = Math.cos(phi) * radius * 0.62;
-        starPositions[index * 3 + 2] = Math.sin(phi) * Math.sin(theta) * radius - 7;
-      }
-      const starGeometry = track(new THREE.BufferGeometry());
-      starGeometry.setAttribute("position", new THREE.BufferAttribute(starPositions, 3));
-      const stars = new THREE.Points(starGeometry, track(new THREE.PointsMaterial({
-        color: 0x9daac0,
-        size: 0.014,
+      const pathMaterial = track(new THREE.MeshBasicMaterial({
+        color: 0x8ba7ef,
         transparent: true,
         opacity: 0.48,
         blending: THREE.AdditiveBlending,
         depthWrite: false,
-        sizeAttenuation: true,
-      })));
-      scene.add(stars);
-
-      const hazePositions = new Float32Array(180 * 3);
-      for (let index = 0; index < 180; index += 1) {
-        hazePositions[index * 3] = (random() - 0.22) * 13;
-        hazePositions[index * 3 + 1] = (random() - 0.5) * 8;
-        hazePositions[index * 3 + 2] = random() * 8 - 1;
-      }
-      const hazeGeometry = track(new THREE.BufferGeometry());
-      hazeGeometry.setAttribute("position", new THREE.BufferAttribute(hazePositions, 3));
-      const haze = new THREE.Points(hazeGeometry, track(new THREE.PointsMaterial({
-        color: 0xdce5ff,
-        size: 0.025,
+      }));
+      const atmosphereMaterial = track(new THREE.MeshBasicMaterial({
+        color: 0x7188c6,
         transparent: true,
-        opacity: 0.22,
+        opacity: 0.08,
         blending: THREE.AdditiveBlending,
         depthWrite: false,
-      })));
-      scene.add(haze);
+        side: THREE.DoubleSide,
+      }));
 
-      scene.add(new THREE.HemisphereLight(0xb9c7e0, 0x010103, 0.58));
-      const keyLight = new THREE.SpotLight(0xe9efff, 32, 18, Math.PI / 5.2, 0.7, 1.6);
-      keyLight.position.set(3.8, 5.2, 7.5);
-      keyLight.target.position.set(2.3, 0, -0.5);
-      scene.add(keyLight, keyLight.target);
-      const rimLight = new THREE.PointLight(0x7186cf, 15, 10, 2);
-      rimLight.position.set(5.6, -2.8, 2.6);
-      scene.add(rimLight);
-      const cursorLight = new THREE.PointLight(0xc4d2ff, 10, 8, 2);
-      cursorLight.position.set(1.5, 0, 4);
+      const world = new THREE.Group();
+      scene.add(world);
+
+      const terrain = new THREE.Mesh(track(buildTerrain()), terrainMaterial);
+      world.add(terrain);
+
+      const water = new THREE.Mesh(
+        track(new THREE.PlaneGeometry(10, 34, 1, 1)),
+        track(new THREE.MeshPhysicalMaterial({
+          color: 0x050812,
+          emissive: 0x091127,
+          emissiveIntensity: 0.34,
+          metalness: 0.72,
+          roughness: 0.13,
+          clearcoat: 1,
+          transparent: true,
+          opacity: 0.82,
+          side: THREE.DoubleSide,
+        })),
+      );
+      water.rotation.x = -Math.PI / 2;
+      water.position.set(4.8, -0.55, -4.5);
+      world.add(water);
+
+      const routeCoordinates = [
+        [6.45, 3.35],
+        [4.1, 0.15],
+        [5.55, -3.2],
+        [3.85, -6.35],
+        [5.75, -9.55],
+        [4.35, -13.0],
+      ] as const;
+      const gatewayPoints = routeCoordinates.map(([x, z]) => new THREE.Vector3(x, terrainHeight(x, z) + 0.92, z));
+      const routePoints = [
+        new THREE.Vector3(4.1, terrainHeight(4.1, 7.4) + 0.055, 7.4),
+        ...gatewayPoints.map((point) => new THREE.Vector3(point.x, terrainHeight(point.x, point.z) + 0.065, point.z)),
+        new THREE.Vector3(5.1, terrainHeight(5.1, -17) + 0.055, -17),
+      ];
+      const routeCurve = new THREE.CatmullRomCurve3(routePoints, false, "centripetal", 0.34);
+      world.add(new THREE.Mesh(track(new THREE.TubeGeometry(routeCurve, 520, 0.023, 7, false)), pathMaterial));
+      world.add(new THREE.Mesh(
+        track(new THREE.TubeGeometry(routeCurve, 520, 0.19, 10, false)),
+        track(new THREE.MeshPhysicalMaterial({
+          color: 0x080b12,
+          metalness: 0.86,
+          roughness: 0.25,
+          clearcoat: 0.7,
+          transparent: true,
+          opacity: 0.9,
+        })),
+      ));
+
+      const markerGeometry = track(new THREE.CylinderGeometry(0.012, 0.012, 0.16, 8));
+      const markers = new THREE.InstancedMesh(markerGeometry, pathMaterial, 78);
+      const markerMatrix = new THREE.Object3D();
+      for (let index = 0; index < 78; index += 1) {
+        const point = routeCurve.getPointAt(index / 77);
+        markerMatrix.position.copy(point);
+        markerMatrix.position.y += 0.075;
+        markerMatrix.rotation.z = Math.PI / 2;
+        markerMatrix.updateMatrix();
+        markers.setMatrixAt(index, markerMatrix.matrix);
+      }
+      markers.instanceMatrix.needsUpdate = true;
+      world.add(markers);
+
+      const gatewayBodyGeometry = track(new THREE.TorusGeometry(0.77, 0.09, 12, 96, Math.PI * 1.62));
+      const gatewaySignalGeometry = track(new THREE.TorusGeometry(0.91, 0.022, 8, 96, Math.PI * 1.18));
+      const gatewayCoreGeometry = track(new THREE.CircleGeometry(0.57, 64));
+      const gatewayAuraGeometry = track(new THREE.RingGeometry(0.96, 0.99, 96));
+      const plinthGeometry = track(new THREE.CylinderGeometry(0.78, 1.08, 0.13, 48));
+      const pylonGeometry = track(new THREE.BoxGeometry(0.11, 0.78, 0.14, 2, 8, 2));
+      const gateways: Gateway[] = gatewayPoints.map((point, index) => {
+        const group = new THREE.Group();
+        group.position.copy(point);
+        const next = gatewayPoints[Math.min(index + 1, gatewayPoints.length - 1)]!;
+        const previous = gatewayPoints[Math.max(0, index - 1)]!;
+        group.rotation.y = Math.atan2(next.x - previous.x, next.z - previous.z) * 0.42;
+
+        const plinth = new THREE.Mesh(plinthGeometry, obsidian);
+        plinth.position.y = -0.88;
+        const arch = new THREE.Mesh(gatewayBodyGeometry, obsidian);
+        arch.rotation.z = Math.PI * 0.19;
+        const signalMaterial = track(new THREE.MeshStandardMaterial({
+          color: index === 0 ? 0xeaf0ff : 0x333b4d,
+          emissive: index === 0 ? 0x728dde : 0x080b14,
+          emissiveIntensity: index === 0 ? 1.8 : 0.16,
+          metalness: 0.91,
+          roughness: 0.12,
+        }));
+        const signal = new THREE.Mesh(gatewaySignalGeometry, signalMaterial);
+        signal.rotation.z = Math.PI * 0.4;
+        signal.position.z = 0.025;
+        const coreMaterial = track(new THREE.MeshBasicMaterial({
+          color: 0x9eb5ff,
+          transparent: true,
+          opacity: index === 0 ? 0.12 : 0.018,
+          blending: THREE.AdditiveBlending,
+          depthWrite: false,
+        }));
+        const core = new THREE.Mesh(gatewayCoreGeometry, coreMaterial);
+        core.position.z = -0.035;
+        const auraMaterial = track(new THREE.MeshBasicMaterial({
+          color: 0xc6d3ff,
+          transparent: true,
+          opacity: index === 0 ? 0.24 : 0.018,
+          blending: THREE.AdditiveBlending,
+          depthWrite: false,
+        }));
+        const aura = new THREE.Mesh(gatewayAuraGeometry, auraMaterial);
+        aura.position.z = -0.055;
+        const leftPylon = new THREE.Mesh(pylonGeometry, silver);
+        leftPylon.position.set(-0.72, -0.63, -0.02);
+        leftPylon.rotation.z = -0.11;
+        const rightPylon = new THREE.Mesh(pylonGeometry, silver);
+        rightPylon.position.set(0.72, -0.63, -0.02);
+        rightPylon.rotation.z = 0.11;
+        const light = new THREE.PointLight(0x91aaff, index === 0 ? 5.5 : 0.15, 4.3, 2);
+        light.position.set(0, 0.05, 0.6);
+        group.add(plinth, arch, signal, core, aura, leftPylon, rightPylon, light);
+        world.add(group);
+        return { group, core, signal, aura, light };
+      });
+
+      // Monumental ribs turn the route into a place with scale and depth.
+      const ribGeometry = track(new THREE.TorusGeometry(4.25, 0.055, 10, 120, Math.PI));
+      [-1.8, -6.0, -10.4].forEach((z, index) => {
+        const rib = new THREE.Mesh(ribGeometry, obsidian);
+        rib.position.set(canyonCenter(z), terrainHeight(canyonCenter(z), z) - 0.28, z);
+        rib.rotation.z = Math.PI;
+        rib.rotation.y = (index - 1) * 0.12;
+        rib.scale.set(1, 1.06 + index * 0.14, 1);
+        world.add(rib);
+        const innerRib = new THREE.Mesh(track(new THREE.TorusGeometry(4.06, 0.012, 6, 120, Math.PI)), atmosphereMaterial);
+        innerRib.position.copy(rib.position);
+        innerRib.rotation.copy(rib.rotation);
+        innerRib.scale.copy(rib.scale);
+        innerRib.position.z += 0.06;
+        world.add(innerRib);
+      });
+
+      const beacon = new THREE.Mesh(
+        track(new THREE.SphereGeometry(0.055, 18, 14)),
+        track(new THREE.MeshBasicMaterial({ color: 0xffffff, blending: THREE.AdditiveBlending, depthWrite: false })),
+      );
+      beacon.add(new THREE.PointLight(0x9db4ff, 3.5, 2.4, 2));
+      world.add(beacon);
+
+      const random = seededRandom(804_020);
+      const starPositions = new Float32Array(1_280 * 3);
+      for (let index = 0; index < 1_280; index += 1) {
+        starPositions[index * 3] = (random() - 0.5) * 46;
+        starPositions[index * 3 + 1] = 2.5 + random() * 17;
+        starPositions[index * 3 + 2] = 8 - random() * 55;
+      }
+      const starGeometry = track(new THREE.BufferGeometry());
+      starGeometry.setAttribute("position", new THREE.BufferAttribute(starPositions, 3));
+      world.add(new THREE.Points(starGeometry, track(new THREE.PointsMaterial({
+        color: 0xa5b0c8,
+        size: 0.022,
+        transparent: true,
+        opacity: 0.54,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+      }))));
+
+      const mistPositions = new Float32Array(240 * 3);
+      for (let index = 0; index < 240; index += 1) {
+        mistPositions[index * 3] = canyonCenter(-15 + random() * 23) + (random() - 0.5) * 7;
+        mistPositions[index * 3 + 1] = -0.15 + random() * 2.3;
+        mistPositions[index * 3 + 2] = 7 - random() * 25;
+      }
+      const mistGeometry = track(new THREE.BufferGeometry());
+      mistGeometry.setAttribute("position", new THREE.BufferAttribute(mistPositions, 3));
+      world.add(new THREE.Points(mistGeometry, track(new THREE.PointsMaterial({
+        color: 0x8ba6ea,
+        size: 0.034,
+        transparent: true,
+        opacity: 0.16,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+      }))));
+
+      const horizonDisc = new THREE.Mesh(
+        track(new THREE.CircleGeometry(4.2, 96)),
+        track(new THREE.MeshBasicMaterial({
+          color: 0x27345f,
+          transparent: true,
+          opacity: 0.08,
+          blending: THREE.AdditiveBlending,
+          depthWrite: false,
+        })),
+      );
+      horizonDisc.position.set(10.8, 8.1, -27);
+      world.add(horizonDisc);
+
+      scene.add(new THREE.HemisphereLight(0x9caed2, 0x010103, 0.62));
+      const moonLight = new THREE.DirectionalLight(0xd8e2ff, 2.8);
+      moonLight.position.set(7, 11, 4);
+      scene.add(moonLight);
+      const valleyLight = new THREE.PointLight(0x627cc4, 22, 25, 2);
+      valleyLight.position.set(5.8, 3.2, 1.8);
+      scene.add(valleyLight);
+      const cursorLight = new THREE.PointLight(0xd8e3ff, 8, 9, 2);
+      cursorLight.position.set(3, 2, 5);
       scene.add(cursorLight);
 
+      const cameraPositions = [
+        new THREE.Vector3(-0.35, 2.5, 11.3),
+        new THREE.Vector3(0.3, 2.25, 8.35),
+        new THREE.Vector3(0.8, 2.0, 5.0),
+        new THREE.Vector3(0.25, 1.9, 1.85),
+        new THREE.Vector3(0.95, 1.75, -1.45),
+        new THREE.Vector3(0.4, 1.65, -4.75),
+      ];
+      const lookTargets = gatewayPoints.map((point) => new THREE.Vector3(point.x, point.y - 0.04, point.z));
+      const cameraGoal = camera.position.clone();
+      const lookCurrent = lookTargets[0]!.clone();
+      const lookGoal = lookCurrent.clone();
       const pointer = new THREE.Vector2();
-      const targetPointer = new THREE.Vector2();
-      const stationScale = new THREE.Vector3();
+      const pointerGoal = new THREE.Vector2();
+      let dragYaw = 0;
+      let dragPitch = 0;
       let dragging = false;
       let pointerId = -1;
       let lastX = 0;
       let lastY = 0;
-      let dragX = 0;
-      let dragY = 0;
-      let velocityX = 0;
-      let velocityY = 0;
       let frame = 0;
       let visible = true;
       let disposed = false;
@@ -388,16 +418,11 @@ export function ProtocolWorld({ step, reducedMotion }: { step: number; reducedMo
         camera.aspect = width / height;
         camera.updateProjectionMatrix();
       };
-
       const move = (event: PointerEvent) => {
-        targetPointer.set((event.clientX / window.innerWidth - 0.5) * 2, (event.clientY / window.innerHeight - 0.5) * 2);
+        pointerGoal.set((event.clientX / window.innerWidth - 0.5) * 2, (event.clientY / window.innerHeight - 0.5) * 2);
         if (!dragging || event.pointerId !== pointerId) return;
-        const dx = event.clientX - lastX;
-        const dy = event.clientY - lastY;
-        dragY += dx * 0.0032;
-        dragX += dy * 0.0025;
-        velocityY = dx * 0.00065;
-        velocityX = dy * 0.0005;
+        dragYaw = THREE.MathUtils.clamp(dragYaw + (event.clientX - lastX) * 0.0022, -0.8, 0.8);
+        dragPitch = THREE.MathUtils.clamp(dragPitch - (event.clientY - lastY) * 0.0016, -0.32, 0.32);
         lastX = event.clientX;
         lastY = event.clientY;
       };
@@ -417,80 +442,49 @@ export function ProtocolWorld({ step, reducedMotion }: { step: number; reducedMo
         if (host.hasPointerCapture?.(event.pointerId)) host.releasePointerCapture(event.pointerId);
       };
 
-      const cameraByStep = [
-        new THREE.Vector3(0.15, 0.08, 12.6),
-        new THREE.Vector3(0.38, 0.22, 12.05),
-        new THREE.Vector3(0.72, -0.05, 11.52),
-        new THREE.Vector3(0.42, 0.32, 11.08),
-        new THREE.Vector3(0.76, -0.24, 10.55),
-        new THREE.Vector3(0.28, 0.02, 10.1),
-      ];
-
       const render = () => {
         frame = 0;
         if (!visible || document.hidden || disposed) return;
         timer.update();
         const elapsed = timer.getElapsed();
         const active = Math.min(5, Math.max(0, stepRef.current - 1));
-        pointer.lerp(targetPointer, 0.045);
+        pointer.lerp(pointerGoal, 0.042);
         if (!dragging) {
-          dragX *= 0.965;
-          dragY += velocityY;
-          dragX += velocityX;
-          velocityX *= 0.925;
-          velocityY *= 0.925;
+          dragYaw *= 0.972;
+          dragPitch *= 0.972;
         }
 
-        world.rotation.x += ((pointer.y * 0.055 + dragX - 0.06) - world.rotation.x) * 0.032;
-        world.rotation.y += ((pointer.x * 0.075 + dragY - 0.08) - world.rotation.y) * 0.032;
-        observatory.rotation.z += ((active * Math.PI / 3 * 0.12 + 0.05) - observatory.rotation.z) * 0.018;
-        const destination = cameraByStep[active]!;
-        cameraTarget.copy(destination);
-        cameraTarget.x += pointer.x * 0.14;
-        cameraTarget.y -= pointer.y * 0.1;
-        camera.position.lerp(cameraTarget, 0.025);
-        camera.lookAt(cameraLook);
-        cursorLight.position.x += ((pointer.x * 3.1) + 2.2 - cursorLight.position.x) * 0.05;
-        cursorLight.position.y += ((-pointer.y * 2.2) - cursorLight.position.y) * 0.05;
+        cameraGoal.copy(cameraPositions[active]!);
+        cameraGoal.x += pointer.x * 0.18;
+        cameraGoal.y -= pointer.y * 0.11;
+        camera.position.lerp(cameraGoal, reducedMotion ? 0.18 : 0.026);
+        lookGoal.copy(lookTargets[active]!);
+        lookGoal.x += pointer.x * 0.25 + dragYaw;
+        lookGoal.y -= pointer.y * 0.16 - dragPitch;
+        lookCurrent.lerp(lookGoal, reducedMotion ? 0.2 : 0.034);
+        camera.lookAt(lookCurrent);
+        cursorLight.position.x += ((pointer.x * 4) + 4.8 - cursorLight.position.x) * 0.04;
+        cursorLight.position.y += ((-pointer.y * 2.2) + 1.8 - cursorLight.position.y) * 0.04;
 
-        const open = reducedMotion ? 0.04 : 0.045 + Math.sin(elapsed * 0.58) * 0.018 + active * 0.006;
-        blades.forEach((blade, index) => {
-          const angle = (index / 12) * Math.PI * 2;
-          blade.position.set(Math.cos(angle) * open, Math.sin(angle) * open, 0);
-          blade.rotation.z = 0.08 + open * 0.72;
-        });
-
-        if (!reducedMotion) {
-          iris.rotation.z = elapsed * 0.035;
-          rail.rotation.z = -elapsed * 0.012;
-          aperture.rotation.z = elapsed * -0.055;
-          pearl.rotation.y = elapsed * 0.18;
-          pearl.rotation.x = elapsed * 0.09;
-          pearlHalo.scale.setScalar(1 + Math.sin(elapsed * 1.4) * 0.025);
-          archGroup.rotation.z = Math.sin(elapsed * 0.13) * 0.035;
-          floor.rotation.z = elapsed * 0.004;
-          stars.rotation.y = elapsed * -0.0026;
-          haze.rotation.y = elapsed * 0.005;
-          packets.forEach(({ mesh, offset }, index) => {
-            mesh.position.copy(routeCurve.getPointAt((elapsed * (0.018 + index * 0.002) + offset + active / 6) % 1));
-          });
-        } else {
-          packets.forEach(({ mesh }, index) => mesh.position.copy(dockPoints[(active + index) % 6]!));
-        }
-
-        docks.forEach((dock, index) => {
+        gateways.forEach((gateway, index) => {
           const selected = index === active;
-          dock.material.color.setHex(selected ? 0xeaf0ff : 0x323743);
-          dock.material.emissive.setHex(selected ? 0x718bd6 : 0x090b10);
-          dock.material.emissiveIntensity += ((selected ? 1.5 : 0.16) - dock.material.emissiveIntensity) * 0.075;
-          dock.light.intensity += ((selected ? 6.5 : 0) - dock.light.intensity) * 0.07;
-          const targetScale = selected ? 1.27 + Math.sin(elapsed * 1.9) * 0.025 : 0.84;
-          stationScale.setScalar(targetScale);
-          dock.group.scale.lerp(stationScale, 0.07);
-          dock.pulse.material.opacity = selected ? 0.26 + Math.sin(elapsed * 2) * 0.1 : 0.025;
-          dock.pulse.scale.setScalar(selected ? 1.1 + (Math.sin(elapsed * 1.2) + 1) * 0.18 : 0.86);
-          if (!reducedMotion) dock.iris.rotation.z += selected ? 0.007 : 0.0012;
+          gateway.signal.material.color.setHex(selected ? 0xeaf0ff : 0x333b4d);
+          gateway.signal.material.emissive.setHex(selected ? 0x728dde : 0x080b14);
+          gateway.signal.material.emissiveIntensity += ((selected ? 1.9 : 0.16) - gateway.signal.material.emissiveIntensity) * 0.07;
+          gateway.core.material.opacity += ((selected ? 0.12 : 0.018) - gateway.core.material.opacity) * 0.07;
+          gateway.aura.material.opacity += ((selected ? 0.19 : 0.012) - gateway.aura.material.opacity) * 0.07;
+          gateway.light.intensity += ((selected ? 5.5 : 0.15) - gateway.light.intensity) * 0.07;
+          const pulse = selected && !reducedMotion ? 1 + Math.sin(elapsed * 1.4) * 0.035 : 1;
+          gateway.aura.scale.setScalar(pulse);
         });
+
+        if (active >= 4 && !reducedMotion) {
+          beacon.position.copy(routeCurve.getPointAt((elapsed * 0.075) % 1));
+          beacon.visible = true;
+        } else {
+          beacon.position.copy(routeCurve.getPointAt((active + 0.8) / 7));
+          beacon.visible = active > 0;
+        }
 
         renderer!.render(scene, camera);
         frame = requestAnimationFrame(render);
@@ -540,6 +534,6 @@ export function ProtocolWorld({ step, reducedMotion }: { step: number; reducedMo
 
   return <div className="protocol-world" ref={hostRef} aria-hidden="true">
     <div className="protocol-world-vignette" />
-    <span className="world-renderer">{step.toString().padStart(2, "0")} / 06 · DRAG THE FIELD</span>
+    <span className="world-renderer">{step.toString().padStart(2, "0")} / 06 · DRAG TO LOOK</span>
   </div>;
 }
