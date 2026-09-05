@@ -4,8 +4,8 @@ import "./wallet-monochrome.css";
 import "./wallet-flow.css";
 
 export const metadata: Metadata = {
-  title: "Wallet & Agent Console",
-  description: "Freighter wallet signing, on-chain mandate registration, and contract-enforced agent payments.",
+  title: "Agent Commerce Wallet",
+  description: "Discover real x402 services and let AI agents pay with USDC inside contract-enforced spending rules.",
   alternates: { canonical: "/wallet" },
   robots: {
     index: false,

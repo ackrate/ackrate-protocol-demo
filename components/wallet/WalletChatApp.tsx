@@ -885,9 +885,9 @@ export function WalletChatApp() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: reduceMotion ? 0 : 0.42, ease: "easeOut" }}
         >
-          <p>MAINNET RESEARCH AGENT</p>
-          <h1>Pay for better research.<br />Stay inside your limit.</h1>
-          <span>One guided flow. Every payment is checked by the contract.</span>
+          <p>THE ENFORCEMENT LAYER FOR AGENT COMMERCE</p>
+          <h1>Let agents spend.<br />Never lose control.</h1>
+          <span>Explore real x402 services. Set the mandate once. Every USDC payment is enforced on-chain.</span>
         </motion.div>
 
         <motion.nav
