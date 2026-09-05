@@ -1,5 +1,6 @@
 import type { SettlementReceipt, SettlementReceiptStore } from "@ackrate/core";
 import { createPostgresClient, type PostgresQueryable } from "./postgres";
+import { restoreReceiptKeyOrder } from "./receipt-order";
 
 type Sql = PostgresQueryable;
 
@@ -56,6 +57,11 @@ async function initialize(): Promise<Sql | null> {
         receipt jsonb NOT NULL,
         created_at bigint NOT NULL
       )
+    `);
+    /* A receipt's id hashes JSON.stringify of its proof, so key order is part
+       of its identity and jsonb does not preserve it. Keep the exact bytes. */
+    await client.query(`
+      ALTER TABLE ackrate_payment_receipts ADD COLUMN IF NOT EXISTS receipt_text text
     `);
     await client.query(`
       CREATE TABLE IF NOT EXISTS ackrate_marketplace_runs (
@@ -231,11 +237,12 @@ export class DurableReceiptStore implements SettlementReceiptStore {
       memory.__ackrateReceipts!.set(receipt.receiptId, receipt);
       return;
     }
+    const exact = JSON.stringify(receipt);
     await client.query(
-      `INSERT INTO ackrate_payment_receipts (receipt_id, session_id, mandate_id, receipt, created_at)
-       VALUES ($1, $2, $3, $4::jsonb, $5)
-       ON CONFLICT (receipt_id) DO UPDATE SET receipt = EXCLUDED.receipt`,
-      [receipt.receiptId, this.sessionId, this.mandateId, JSON.stringify(receipt), Math.floor(Date.now() / 1_000)],
+      `INSERT INTO ackrate_payment_receipts (receipt_id, session_id, mandate_id, receipt, receipt_text, created_at)
+       VALUES ($1, $2, $3, $4::jsonb, $4, $5)
+       ON CONFLICT (receipt_id) DO UPDATE SET receipt = EXCLUDED.receipt, receipt_text = EXCLUDED.receipt_text`,
+      [receipt.receiptId, this.sessionId, this.mandateId, exact, Math.floor(Date.now() / 1_000)],
     );
   }
 
@@ -257,10 +264,24 @@ export class DurableReceiptStore implements SettlementReceiptStore {
       return [...memory.__ackrateReceipts!.values()].filter((receipt) => receipt.mandateId === this.mandateId);
     }
     const rows = await client.query(
-      `SELECT receipt FROM ackrate_payment_receipts WHERE session_id = $1 AND mandate_id = $2 ORDER BY created_at ASC`,
+      `SELECT receipt, receipt_text FROM ackrate_payment_receipts
+       WHERE session_id = $1 AND mandate_id = $2 ORDER BY created_at ASC`,
       [this.sessionId, this.mandateId],
     );
-    return rows.map((row) => (row as { receipt: SettlementReceipt }).receipt);
+    return rows.flatMap((row) => {
+      const record = row as { receipt: SettlementReceipt; receipt_text: string | null };
+      /* Exact bytes when this receipt was written after the text column
+         existed; otherwise repair the key order jsonb dropped. */
+      if (record.receipt_text) {
+        try {
+          return [JSON.parse(record.receipt_text) as SettlementReceipt];
+        } catch {
+          /* fall through to the jsonb copy */
+        }
+      }
+      const restored = restoreReceiptKeyOrder(record.receipt);
+      return restored ? [restored] : [record.receipt];
+    });
   }
 }
 
