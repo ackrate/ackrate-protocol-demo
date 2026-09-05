@@ -85,6 +85,23 @@
 
 .flow-text-button:hover { color: #fff; }
 
+.flow-header-actions {
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.flow-header-actions .flow-disconnect { color: #fff; min-height: 44px; }
+.flow-header-actions .flow-disconnect:disabled { opacity: 0.5; cursor: wait; }
+.flow-header-actions .flow-disconnect:focus-visible { outline: 2px solid #fff; outline-offset: 4px; }
+
+@media (max-width: 430px) {
+  .flow-header-actions { flex-direction: column; align-items: flex-end; gap: 0; }
+  .flow-header-actions > .flow-text-button { padding: 3px 0; }
+  .flow-header-actions .flow-disconnect { min-height: 28px; }
+}
+
 .flow-shell {
   position: relative;
   width: min(720px, calc(100% - 40px));

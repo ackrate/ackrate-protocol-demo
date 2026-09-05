@@ -37,7 +37,7 @@ import {
   submitPreparedAllowanceWithFreighter,
 } from "@/lib/wallet/mandate-client";
 import type { MandateView, SafeAppConfig, SessionView } from "@/lib/wallet/types";
-import { addTokenToFreighter, connectFreighter, signFreighterTransaction } from "@/lib/wallet/freighter";
+import { addTokenToFreighter, connectFreighter, freighterSessionState, signFreighterTransaction } from "@/lib/wallet/freighter";
 import { sourceIdForMarketplaceService, WEB_SEARCH_INPUTS, type MarketplaceService } from "@/lib/wallet/marketplace-catalog";
 import { AssistantThread, PurchaseReport, type PurchaseResult } from "./AssistantThread";
 import { MarketplaceOrb } from "./MarketplaceOrb";
@@ -226,6 +226,7 @@ export function WalletChatApp() {
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [disconnectOpen, setDisconnectOpen] = useState(false);
+  const [disconnecting, setDisconnecting] = useState(false);
   const [usdcReady, setUsdcReady] = useState(false);
   const [walletBalances, setWalletBalances] = useState<WalletBalances | null>(null);
   const [balancesLoading, setBalancesLoading] = useState(false);
@@ -267,6 +268,32 @@ export function WalletChatApp() {
       if (sessionResult.session.address) setWalletAddress(sessionResult.session.address);
     }).catch((cause) => setError(cause instanceof Error ? cause.message : String(cause)));
   }, []);
+
+  useEffect(() => {
+    if (!session.authenticated || !session.address) return;
+    let active = true;
+    let checking = false;
+    const checkConnection = async () => {
+      if (checking) return;
+      checking = true;
+      try {
+        const state = await freighterSessionState(session.address!);
+        if (!active || state !== "disconnected") return;
+        await api("/api/wallet/auth/session", { method: "DELETE", body: "{}" });
+        if (active) window.location.reload();
+      } catch {
+        // Keep the session when the extension or sign-out request is unavailable.
+      } finally {
+        checking = false;
+      }
+    };
+    void checkConnection();
+    window.addEventListener("focus", checkConnection);
+    return () => {
+      active = false;
+      window.removeEventListener("focus", checkConnection);
+    };
+  }, [session.address, session.authenticated]);
 
   useEffect(() => {
     if (!config || !session.authenticated || !session.address) return;
@@ -589,17 +616,20 @@ export function WalletChatApp() {
   };
 
   const disconnect = async () => {
+    if (disconnecting) return;
     if (mandate?.status === "Active" && mandate.expiry > Math.floor(Date.now() / 1_000)) {
       setNotice("First tap Turn off spending below. Then disconnect your wallet.");
       return;
     }
 
     setError(null);
+    setDisconnecting(true);
     try {
       await api("/api/wallet/auth/session", { method: "DELETE", body: "{}" });
     } catch (cause) {
       setError("Could not disconnect. Please try again.");
       setNotice("Your wallet is still connected.");
+      setDisconnecting(false);
       return;
     }
 
@@ -607,6 +637,7 @@ export function WalletChatApp() {
       localStorage.removeItem(mandateStorageKey(config, session.address));
       localStorage.removeItem(legacyMandateStorageKey(config, session.address));
     }
+    if (session.address) localStorage.removeItem(marketplaceStorageKey(session.address));
     localStorage.removeItem("ackrate:mainnet:last-payment");
     setSession(emptySession);
     setWalletAddress(null);
@@ -626,6 +657,8 @@ export function WalletChatApp() {
     setPhase("idle");
     setDisconnectOpen(false);
     setNotice("Wallet disconnected. Connect a wallet to start again.");
+    // Reload only after the cookie is cleared so pending requests cannot restore old setup.
+    window.location.reload();
   };
 
   const chooseMarketplaceService = () => {
@@ -927,7 +960,19 @@ export function WalletChatApp() {
       <header className="flow-header">
         <Link href="/" className="flow-brand"><span className="flow-brand-mark"><MarketplaceOrb variant="brand" /></span><strong>ACKRATE</strong></Link>
         <div className="flow-network"><span />{config?.networkLabel ?? "Loading Mainnet"}</div>
-        <Link className="flow-text-button" href="/wallet/diagnostics">Verification <ArrowUpRight size={13} /></Link>
+        <div className="flow-header-actions">
+          {(connected || walletAddress) && (
+            <button
+              className="flow-text-button flow-disconnect"
+              type="button"
+              onClick={connected ? () => setDisconnectOpen(true) : disconnect}
+              disabled={disconnecting || phase === "authenticating" || phase === "registering" || phase === "approving" || phase === "revoking"}
+            >
+              <Power size={13} />{disconnecting ? "Disconnecting…" : "Disconnect wallet"}
+            </button>
+          )}
+          <Link className="flow-text-button" href="/wallet/diagnostics">Verification <ArrowUpRight size={13} /></Link>
+        </div>
       </header>
 
       <section className={`flow-shell ${connected ? "flow-shell-active" : ""}`}>
@@ -1278,7 +1323,7 @@ export function WalletChatApp() {
                 <h2 id="flow-disconnect-title">Disconnect wallet</h2>
                 <p>Spending is off. This clears the saved setup from this browser; it does not delete wallet history.</p>
                 {stored?.revokeTx && <a className="flow-proof-link" href={`${explorer}/tx/${stored.revokeTx}`} target="_blank" rel="noreferrer"><span><Check size={12} />Spending turned off</span><code>{short(stored.revokeTx, 6)}</code><ArrowUpRight size={12} /></a>}
-                <button className="flow-primary" type="button" onClick={disconnect}><Power size={16} />Disconnect wallet</button>
+                <button className="flow-primary" type="button" onClick={disconnect} disabled={disconnecting}><Power size={16} />{disconnecting ? "Disconnecting…" : "Disconnect wallet"}</button>
               </>
             )}
           </section>
