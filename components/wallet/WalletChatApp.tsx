@@ -35,6 +35,7 @@ import { addTokenToFreighter, connectFreighter, signFreighterTransaction } from 
 import { sourceIdForMarketplaceService, WEB_SEARCH_INPUTS, type MarketplaceService } from "@/lib/wallet/marketplace-catalog";
 import { AssistantThread, PurchaseReport, type PurchaseResult } from "./AssistantThread";
 import { MarketplaceOrb } from "./MarketplaceOrb";
+import { ProtocolWorld } from "./ProtocolWorld";
 import { initialServiceInputValues, ServiceConfigurator, type ServiceInputValues } from "./ServiceConfigurator";
 
 type Phase = "idle" | "authenticating" | "adding-asset" | "registering" | "approving" | "active" | "revoking";
@@ -869,7 +870,8 @@ export function WalletChatApp() {
   const navState = (step: number) => workflowStep > step ? "done" : workflowStep === step ? "current" : "";
 
   return (
-    <main className="wallet-preview wallet-flow">
+    <main className={`wallet-preview wallet-flow spatial-step-${workflowStep}`}>
+      <ProtocolWorld step={workflowStep} reducedMotion={Boolean(reduceMotion)} />
       <header className="flow-header">
         <Link href="/" className="flow-brand"><span className="flow-brand-mark"><MarketplaceOrb variant="brand" /></span><strong>ACKRATE</strong></Link>
         <div className="flow-network"><span />{config?.networkLabel ?? "Loading Mainnet"}</div>
@@ -895,12 +897,12 @@ export function WalletChatApp() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: reduceMotion ? 0 : 0.38, delay: reduceMotion ? 0 : 0.08, ease: "easeOut" }}
         >
-          <div className={navState(1)}><span>{workflowStep > 1 ? <Check size={14} /> : 1}</span><strong>Connect</strong><ChevronRight size={15} /></div>
-          <div className={navState(2)}><span>{workflowStep > 2 ? <Check size={14} /> : 2}</span><strong>Marketplace</strong><ChevronRight size={15} /></div>
-          <div className={navState(3)}><span>{workflowStep > 3 ? <Check size={14} /> : 3}</span><strong>Configure</strong><ChevronRight size={15} /></div>
-          <div className={navState(4)}><span>{workflowStep > 4 ? <Check size={14} /> : 4}</span><strong>Limit</strong><ChevronRight size={15} /></div>
-          <div className={navState(5)}><span>{workflowStep > 5 ? <Check size={14} /> : 5}</span><strong>Run</strong><ChevronRight size={15} /></div>
-          <div className={navState(6)}><span>6</span><strong>Proof</strong></div>
+          <div className={navState(1)}><span>{workflowStep > 1 ? <Check size={14} /> : 1}</span><strong>Connect</strong><small>IDENTITY</small></div>
+          <div className={navState(2)}><span>{workflowStep > 2 ? <Check size={14} /> : 2}</span><strong>Marketplace</strong><small>DISCOVER</small></div>
+          <div className={navState(3)}><span>{workflowStep > 3 ? <Check size={14} /> : 3}</span><strong>Configure</strong><small>PAYLOAD</small></div>
+          <div className={navState(4)}><span>{workflowStep > 4 ? <Check size={14} /> : 4}</span><strong>Limit</strong><small>BOUNDARY</small></div>
+          <div className={navState(5)}><span>{workflowStep > 5 ? <Check size={14} /> : 5}</span><strong>Run</strong><small>EXECUTE</small></div>
+          <div className={navState(6)}><span>6</span><strong>Proof</strong><small>VERIFY</small></div>
         </motion.nav>
 
         <section className="flow-card">
@@ -914,14 +916,6 @@ export function WalletChatApp() {
               exit={reduceMotion ? undefined : { opacity: 0, y: -8 }}
               transition={{ duration: reduceMotion ? 0 : 0.28, ease: "easeOut" }}
             >
-              <motion.div
-                className="flow-stage-icon three-stage-icon"
-                whileHover={reduceMotion ? undefined : { scale: 1.06, rotateX: -8, rotateY: 10 }}
-                transition={{ type: "spring", stiffness: 260, damping: 18 }}
-              >
-                <MarketplaceOrb variant="stage" />
-                <span className="three-stage-glyph"><WalletCards size={20} /></span>
-              </motion.div>
               <p className="flow-kicker">STEP 1 OF 6</p>
               <h2>Connect your wallet</h2>
               <p className="flow-description">Use a personal Freighter wallet on Stellar Mainnet. We verify that you control it without broadcasting a transaction.</p>
@@ -967,7 +961,6 @@ export function WalletChatApp() {
               <div className="marketplace-source">
                 <span className="marketplace-source-icon"><Globe2 size={18} /></span>
                 <span><small>STELLAR x402 MARKETPLACE</small><strong>Agent402</strong></span>
-                <MarketplaceOrb />
                 <a className="marketplace-source-link" href={MARKETPLACE_URL} target="_blank" rel="noreferrer">Open marketplace <ArrowUpRight size={13} /></a>
               </div>
 
