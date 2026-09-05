@@ -25,6 +25,9 @@ export interface PurchaseResult {
   delivered: unknown;
 }
 
+/** Lifecycle of the paid request; the world uses it to animate the rail. */
+export type ThreadState = "checking" | "idle" | "running" | "recovery" | "recovering" | "success" | "error";
+
 const DEFAULT_SEARCH_SERVICE: MarketplaceService = {
   id: "search",
   name: "Web search",
@@ -59,6 +62,8 @@ export function AssistantThread({
   marketplaceUrl = "https://agent402.tools/stellar",
   onEditConfiguration,
   onPurchaseComplete,
+  onStateChange,
+  spentOut = false,
 }: {
   mandateId: string;
   asset: string;
@@ -69,6 +74,8 @@ export function AssistantThread({
   marketplaceUrl?: string;
   onEditConfiguration?: () => void;
   onPurchaseComplete: (result: PurchaseResult) => void;
+  onStateChange?: (state: ThreadState) => void;
+  spentOut?: boolean;
 }) {
   const transport = useMemo(() => new AssistantChatTransport({
     api: "/api/wallet/chat",
@@ -91,6 +98,8 @@ export function AssistantThread({
             marketplaceUrl={marketplaceUrl}
             onEditConfiguration={onEditConfiguration}
             onPurchaseComplete={onPurchaseComplete}
+            onStateChange={onStateChange}
+            spentOut={spentOut}
           />
         </ThreadPrimitive.Viewport>
       </ThreadPrimitive.Root>
@@ -108,6 +117,8 @@ function ResearchPurchase({
   marketplaceUrl,
   onEditConfiguration,
   onPurchaseComplete,
+  onStateChange,
+  spentOut = false,
 }: {
   mandateId: string;
   asset: string;
@@ -118,15 +129,21 @@ function ResearchPurchase({
   marketplaceUrl: string;
   onEditConfiguration?: () => void;
   onPurchaseComplete: (result: PurchaseResult) => void;
+  onStateChange?: (state: ThreadState) => void;
+  spentOut?: boolean;
 }) {
   const inputValues = parameters ?? initialServiceInputValues(service);
-  const [state, setState] = useState<"checking" | "idle" | "running" | "recovery" | "recovering" | "success" | "error">("checking");
+  const [state, setState] = useState<ThreadState>("checking");
   const [result, setResult] = useState<PurchaseResult | null>(null);
   const [recovery, setRecovery] = useState<PendingRecovery | null>(null);
   const [error, setError] = useState<string | null>(null);
   const publishedTx = useRef<string | null>(null);
   const primaryField = service.inputs.find((field) => field.required && field.type === "string") ?? service.inputs[0];
   const question = primaryField ? inputValues[primaryField.name] ?? "" : "";
+
+  useEffect(() => {
+    onStateChange?.(state);
+  }, [onStateChange, state]);
 
   useEffect(() => {
     if (!result || publishedTx.current === result.payment.txHash) return;
@@ -143,7 +160,20 @@ function ResearchPurchase({
         cache: "no-store",
       });
       const body = await response.json() as { ok: boolean; recovery?: unknown; error?: string };
-      if (!response.ok || !body.ok) throw new Error(body.error ?? `Recovery check returned HTTP ${response.status}`);
+      if (!response.ok || !body.ok) {
+        if (sessionLost(body.error ?? "")) {
+          setState("error");
+          setError("Your wallet session ended. Connect and verify the wallet again; the saved limit resumes here.");
+          return;
+        }
+        if (/exhausted|expired|revoked/i.test(body.error ?? "")) {
+          setState("idle");
+          setRecovery(null);
+          window.dispatchEvent(new Event("ackrate-mandate-updated"));
+          return;
+        }
+        throw new Error(body.error ?? `Recovery check returned HTTP ${response.status}`);
+      }
       const pending = parseRecovery(body.recovery);
       if (!pending) {
         setState("idle");
@@ -209,7 +239,15 @@ function ResearchPurchase({
         await checkRecovery();
         return;
       }
-      if (/review/i.test(message)) {
+      if (sessionLost(message)) {
+        setState("error");
+        setError("Your wallet session ended before the request was sent. Connect and verify the wallet again; no payment was made.");
+        return;
+      }
+      window.dispatchEvent(new Event("ackrate-mandate-updated"));
+      if (/exhausted|not have enough remaining/i.test(message)) {
+        setError("This spending limit is fully spent. Set a new limit to run again. No payment was made.");
+      } else if (/review/i.test(message)) {
         setError("A payment response needs verification before any retry. No automatic second payment will be sent.");
       } else if (/Agent402|marketplace/i.test(message)) {
         setError("The marketplace is unavailable. No new marketplace payment was sent.");
@@ -266,6 +304,12 @@ function ResearchPurchase({
         <div><Search size={16} /><span><small>03</small><strong>{service.id === "search" ? "Cited report returns" : "Service output returns"}</strong></span></div>
       </div>
 
+      {spentOut && state !== "recovery" && state !== "success" && !busy ? (
+        <div className="research-spent" role="status">
+          <span><Check size={14} /></span>
+          <div><strong>This limit is fully spent.</strong><p>Every payment it allowed has been made. Set a new limit to run again.</p></div>
+        </div>
+      ) : (
       <button className="research-button" type="button" onClick={action} disabled={busy || (state !== "recovery" && question.trim().length < 3)}>
         {busy ? <LoaderCircle className="spin" size={16} /> : state === "recovery" ? <Check size={16} /> : <Search size={16} />}
         {state === "checking" && "Checking previous payment…"}
@@ -274,6 +318,7 @@ function ResearchPurchase({
         {state === "recovery" && "Recover report — no new charge"}
         {!busy && state !== "recovery" && `Run ${service.name} · ${price} ${asset}`}
       </button>
+      )}
 
       <p className="autonomy-note">No wallet popup is needed for each report. The agent can spend only inside the mandate you already approved.</p>
 
@@ -308,6 +353,15 @@ async function openPaidReport(mandateId: string): Promise<PurchaseResult> {
     throw new Error(body.error ?? `Report returned HTTP ${response.status}`);
   }
   return body.result;
+}
+
+/** Fired when a wallet API call reports that the verified session is gone. */
+export const SESSION_LOST_EVENT = "ackrate-session-lost";
+
+function sessionLost(message: string): boolean {
+  if (!/session required|session expired|sign in again/i.test(message)) return false;
+  window.dispatchEvent(new Event(SESSION_LOST_EVENT));
+  return true;
 }
 
 export function parseRecovery(value: unknown): PendingRecovery | null {
@@ -428,10 +482,6 @@ export function PurchaseReport({
     }));
     window.dispatchEvent(new Event("ackrate-mainnet-payment"));
   }, [explorerNetwork, marketplace?.settlement.transaction, result.payment.amount, result.payment.asset, result.payment.txHash]);
-
-  useEffect(() => {
-    briefRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }, [result.payment.txHash]);
 
   if (!marketplace) return null;
 

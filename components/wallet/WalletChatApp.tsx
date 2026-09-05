@@ -3,7 +3,31 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { ArrowUpRight, Check, LoaderCircle, Power, TriangleAlert, X } from "lucide-react";
+import {
+  Activity,
+  ArrowUpRight,
+  Bot,
+  Check,
+  ChevronRight,
+  CircleDollarSign,
+  Clock3,
+  Copy,
+  Database,
+  ExternalLink,
+  Fingerprint,
+  Globe2,
+  LockKeyhole,
+  LoaderCircle,
+  Power,
+  RefreshCw,
+  Search,
+  ShieldCheck,
+  Sparkles,
+  TriangleAlert,
+  WalletCards,
+  X,
+  Zap,
+} from "lucide-react";
 import type { IntentMandate } from "@ackrate/core";
 import {
   buildMandate,
@@ -13,22 +37,12 @@ import {
   submitPreparedAllowanceWithFreighter,
 } from "@/lib/wallet/mandate-client";
 import type { MandateView, SafeAppConfig, SessionView } from "@/lib/wallet/types";
-import { addTokenToFreighter, connectFreighter, freighterSessionState, signFreighterTransaction } from "@/lib/wallet/freighter";
+import { addTokenToFreighter, connectFreighter, signFreighterTransaction } from "@/lib/wallet/freighter";
 import { sourceIdForMarketplaceService, WEB_SEARCH_INPUTS, type MarketplaceService } from "@/lib/wallet/marketplace-catalog";
-import { PurchaseReport, SESSION_LOST_EVENT, type PurchaseResult, type ThreadState } from "./AssistantThread";
-import { HallCursor, HallEntry, HallGrain } from "./HallAtmosphere";
+import { AssistantThread, PurchaseReport, type PurchaseResult } from "./AssistantThread";
+import { MarketplaceOrb } from "./MarketplaceOrb";
 import { ProtocolWorld } from "./ProtocolWorld";
-import { RouteRail } from "./RouteRail";
-import { Drift } from "./stages/motion";
-import { initialServiceInputValues, type ServiceInputValues } from "./ServiceConfigurator";
-import { ConnectStage } from "./stages/ConnectStage";
-import { ConfigureStage } from "./stages/ConfigureStage";
-import { LimitStage, LIMIT_CEILING } from "./stages/LimitStage";
-import { MarketplaceStage } from "./stages/MarketplaceStage";
-import { ProofStage } from "./stages/ProofStage";
-import { RunStage } from "./stages/RunStage";
-import { formatUnits, ProofLink, short } from "./stages/shared";
-import { initialWorldSignals, type WorldSignals, type WorldStage } from "./world/signals";
+import { initialServiceInputValues, ServiceConfigurator, type ServiceInputValues } from "./ServiceConfigurator";
 
 type Phase = "idle" | "authenticating" | "adding-asset" | "registering" | "approving" | "active" | "revoking";
 
@@ -157,11 +171,38 @@ async function api<T>(url: string, init?: RequestInit): Promise<T> {
     headers: { "Content-Type": "application/json", ...init?.headers },
   });
   const body = await response.json() as { ok: boolean; error?: string } & T;
-  if (!response.ok || !body.ok) {
-    if (/session required|session expired/i.test(body.error ?? "")) window.dispatchEvent(new Event(SESSION_LOST_EVENT));
-    throw new Error(body.error ?? `Request failed with HTTP ${response.status}`);
-  }
+  if (!response.ok || !body.ok) throw new Error(body.error ?? `Request failed with HTTP ${response.status}`);
   return body;
+}
+
+const short = (value: string | null | undefined, size = 7) => value ? `${value.slice(0, size)}…${value.slice(-size)}` : "Not configured";
+
+function TransactionEvidence({ label, hash, explorer }: { label: string; hash: string; explorer: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <div className="proof-evidence">
+      <span>{label}</span>
+      <code>{short(hash, 6)}</code>
+      <button type="button" onClick={async () => {
+        await navigator.clipboard.writeText(hash);
+        setCopied(true);
+        window.setTimeout(() => setCopied(false), 1_500);
+      }} aria-label={`Copy ${label.toLowerCase()} transaction hash`} title="Copy transaction hash">
+        {copied ? <Check size={13} /> : <Copy size={13} />}
+      </button>
+      <a href={`${explorer}/tx/${hash}`} target="_blank" rel="noreferrer" aria-label={`Open ${label.toLowerCase()} transaction in Stellar Explorer`} title="Open in Stellar Explorer">
+        <ArrowUpRight size={13} /> View transaction
+      </a>
+    </div>
+  );
+}
+
+function formatUnits(value: string, decimals: number): string {
+  const raw = BigInt(value);
+  const base = 10n ** BigInt(decimals);
+  const whole = raw / base;
+  const fraction = (raw % base).toString().padStart(decimals, "0").replace(/0+$/, "");
+  return fraction ? `${whole}.${fraction}` : whole.toString();
 }
 
 function storedToIntent(stored: StoredMandate): IntentMandate {
@@ -171,21 +212,6 @@ function storedToIntent(stored: StoredMandate): IntentMandate {
     maxAmount: BigInt(stored.maxAmount),
   };
 }
-
-/** Below this width the hall reads as a bottom sheet over the world. */
-function useCompactLayout(): boolean {
-  const [compact, setCompact] = useState(false);
-  useEffect(() => {
-    const query = window.matchMedia("(max-width: 880px)");
-    const apply = () => setCompact(query.matches);
-    apply();
-    query.addEventListener("change", apply);
-    return () => query.removeEventListener("change", apply);
-  }, []);
-  return compact;
-}
-
-const EXPIRY_FRACTION: Record<string, number> = { "30": 0.2, "60": 0.4, "360": 0.7, "1440": 1 };
 
 export function WalletChatApp() {
   const reduceMotion = useReducedMotion();
@@ -216,10 +242,6 @@ export function WalletChatApp() {
   const [marketplaceCatalog, setMarketplaceCatalog] = useState({ source: "loading", size: 0, matches: 0 });
   const [preparedAllowance, setPreparedAllowance] = useState<{ mandateId: string; xdr: string } | null>(null);
   const [allowancePreparing, setAllowancePreparing] = useState(false);
-  const [catalogVersion, setCatalogVersion] = useState(0);
-  const [threadState, setThreadState] = useState<ThreadState>("idle");
-  const [worldReady, setWorldReady] = useState(false);
-  const compact = useCompactLayout();
 
   const refreshMandate = useCallback(async (current: StoredMandate) => {
     const body = await api<{ mandate: MandateView }>("/api/wallet/mandate/status", {
@@ -268,65 +290,6 @@ export function WalletChatApp() {
       localStorage.removeItem(key);
     }
   }, [config, session, refreshMandate]);
-
-  /* A verified session outlives Freighter's own connected-apps list. If the
-     site was removed there, drop the session so the journey restarts at the
-     threshold instead of claiming a wallet that is no longer attached. A
-     different account merely selected in Freighter is not a disconnect: the
-     verified wallet still signs, so only say so. Saved mandates stay in this
-     browser either way. */
-  useEffect(() => {
-    if (!session.authenticated || !session.address) return;
-    let active = true;
-    void freighterSessionState(session.address).then(async (state) => {
-      if (!active || state === "matches" || state === "unknown") return;
-      if (state === "different") {
-        setNotice(`Freighter has a different account selected. Switch back to ${short(session.address, 4)} before approving anything.`);
-        return;
-      }
-      try {
-        await api("/api/wallet/auth/session", { method: "DELETE", body: "{}" });
-      } catch {
-        return;
-      }
-      if (!active) return;
-      setSession(emptySession);
-      setWalletAddress(null);
-      setMandate(null);
-      setStored(null);
-      setPreparedAllowance(null);
-      setCompletedPurchase(null);
-      setMarketplaceSelected(false);
-      setServiceConfigured(false);
-      setPhase("idle");
-      setNotice("Freighter is no longer connected to this site. Connect a wallet to start again.");
-    });
-    return () => { active = false; };
-  }, [session.address, session.authenticated]);
-
-  /* Any wallet call that finds the verified session gone sends the journey
-     back to the threshold. The saved limit stays in this browser and resumes
-     after the wallet verifies again. */
-  useEffect(() => {
-    const lost = () => {
-      setSession((current) => {
-        if (!current.authenticated) return current;
-        setWalletAddress(null);
-        setMandate(null);
-        setPreparedAllowance(null);
-        setAllowancePreparing(false);
-        setCompletedPurchase(null);
-        setMarketplaceSelected(false);
-        setServiceConfigured(false);
-        setPhase("idle");
-        setError(null);
-        setNotice("Your wallet session ended. Connect and verify the wallet again; your saved limit resumes from there.");
-        return emptySession;
-      });
-    };
-    window.addEventListener(SESSION_LOST_EVENT, lost);
-    return () => window.removeEventListener(SESSION_LOST_EVENT, lost);
-  }, []);
 
   const refreshWalletBalances = useCallback(async () => {
     if (!session.authenticated || !session.address || config?.network !== "mainnet") return;
@@ -428,7 +391,6 @@ export function WalletChatApp() {
       }).then((result) => {
         setMarketplaceServices(result.services);
         setMarketplaceCatalog({ source: result.source, size: result.catalogSize, matches: result.totalMatches });
-        setCatalogVersion((version) => version + 1);
       }).catch((cause) => {
         if (controller.signal.aborted) return;
         setError(cause instanceof Error ? cause.message : "Could not load marketplace services");
@@ -711,209 +673,199 @@ export function WalletChatApp() {
     config?.contractAuthorityAddress && walletAddress === config.contractAuthorityAddress,
   );
 
-  /* ------------------------------------------------------------------ view */
-  const connected = session.authenticated && Boolean(session.address);
-  /* A limit that has been spent to zero stays on the rail so a paid delivery
-     can still be collected; "Set a new limit" forgets it and returns to the gate. */
-  const spentOut = Boolean(storedFresh && stored?.allowanceTx && mandateMatchesConfig && mandate?.status === "Exhausted");
-  const workflowStep = (!connected ? 1 : !marketplaceSelected ? 2 : !serviceConfigured ? 3 : !activeMandateReady && !spentOut ? 4 : !completedPurchase ? 5 : 6) as WorldStage;
-  const budgetNumber = Number(budget);
-  const minimumBudget = Number(marketplaceService.price);
-  const budgetValid = Number.isFinite(budgetNumber) && budgetNumber >= minimumBudget && budgetNumber > 0;
-  const hasEnoughUsdc = Boolean(walletBalances && Number(walletBalances.usdcRaw) >= budgetNumber);
-  const canApproveLimit = Boolean(config?.ready && !mandateOnline && budgetValid && walletBalances?.hasUsdcTrustline && hasEnoughUsdc);
-  const externalSettlement = completedPurchase ? marketplaceSettlement(completedPurchase) : null;
-  const guided = isGuidedResearchService(marketplaceService);
-  const requestFill = marketplaceService.inputs.length
-    ? marketplaceService.inputs.filter((field) => (serviceInputValues[field.name] ?? "").trim()).length / marketplaceService.inputs.length
-    : 0;
-
-  const worldSignals = useMemo<WorldSignals>(() => ({
-    ...initialWorldSignals,
-    stage: workflowStep,
-    connected: Boolean(walletAddress),
-    verified: connected,
-    catalogVersion,
-    serviceChosen: marketplaceSelected,
-    catalogFocus: workflowStep === 2 ? marketplaceServices.findIndex((service) => service.id === marketplaceDraft.id) : -1,
-    requestFill,
-    aperture: budgetValid ? Math.min(1, Math.max(0, (budgetNumber - minimumBudget) / (LIMIT_CEILING - minimumBudget))) : 0.1,
-    expiry: EXPIRY_FRACTION[duration] ?? 0.4,
-    limitRegistered: Boolean(storedFresh && stored?.registrationTx),
-    limitArmed: activeMandateReady,
-    running: threadState === "running" || threadState === "recovering",
-    settled: Boolean(completedPurchase),
-  }), [workflowStep, walletAddress, connected, catalogVersion, marketplaceSelected, marketplaceServices, marketplaceDraft.id, requestFill, budgetValid, budgetNumber, minimumBudget, duration, storedFresh, stored?.registrationTx, activeMandateReady, threadState, completedPurchase]);
-  const worldFocus = useMemo(() => (compact ? { x: 0, y: 0.17 } : { x: 0.18, y: 0.02 }), [compact]);
-
-  const reachable = useMemo(() => {
-    const stops: number[] = [];
-    if (workflowStep === 3 || workflowStep === 4) stops.push(2);
-    if (workflowStep === 4 || workflowStep === 5) stops.push(3);
-    if (workflowStep === 6) stops.push(5);
-    return stops;
-  }, [workflowStep]);
-  const startNewLimit = () => {
-    if (config && session.address) {
-      localStorage.removeItem(mandateStorageKey(config, session.address));
-    }
-    setStored(null);
-    setMandate(null);
-    setPreparedAllowance(null);
-    setCompletedPurchase(null);
-    setError(null);
-    setNotice("Set a fresh spending limit. The spent one stays on-chain as evidence.");
-  };
-  const navigate = (target: number) => {
-    if (target === 2) changeMarketplaceService();
-    else if (target === 3) setServiceConfigured(false);
-    else if (target === 5) setCompletedPurchase(null);
-  };
-
-  return (
-    <main className={`hall spatial-step-${workflowStep}`} data-stage={workflowStep}>
-      <ProtocolWorld signals={worldSignals} reducedMotion={Boolean(reduceMotion)} focus={worldFocus} onReady={() => setWorldReady(true)} />
-      <HallGrain />
-      <HallEntry ready={worldReady} />
-      <HallCursor />
-
-      <header className="hall-chrome">
-        <Link href="/" className="hall-brand" aria-label="ACKRATE home">ACKRATE</Link>
-        <div className="hall-status">
-          <span className={`hall-network ${config?.ready ? "is-ready" : ""}`}><i />{config?.networkLabel ?? "Loading Mainnet"}</span>
-          {connected && (
-            <button className="hall-wallet" type="button" onClick={() => setDisconnectOpen(true)} title="Disconnect wallet">
-              <code>{short(session.address, 4)}</code><Power size={11} />
-            </button>
-          )}
-          <Link className="hall-link" href="/wallet/diagnostics">Verification <ArrowUpRight size={12} /></Link>
-        </div>
-      </header>
-
-      <Drift depth={2} className="route-drift"><RouteRail stage={workflowStep} reachable={reachable} onNavigate={navigate} /></Drift>
-
-      <section className={`flow-shell hall-sheet ${workflowStep === 1 ? "is-hero" : ""}`} aria-live="polite">
-        <div className="hall-sheet-scroll">
-          <AnimatePresence mode="wait" initial={!reduceMotion}>
-            {workflowStep === 1 && (
-              <ConnectStage
-                key="connect"
-                config={config}
-                walletAddress={walletAddress}
-                authenticating={phase === "authenticating"}
-                governanceWalletConnected={governanceWalletConnected}
-                onConnect={connect}
-                onVerify={authenticate}
-              />
+  const showLegacyWorkflow: boolean = false;
+  if (showLegacyWorkflow) {
+    return (
+      <main className="wallet-preview app-frame">
+        <div className="aurora" aria-hidden />
+        <header className="topbar">
+          <Link href="/" className="brand"><span>R</span> ACKRATE</Link>
+          <div className="topbar-center"><span className="pulse-dot" /> Wallet & payments</div>
+          <div className="topbar-actions">
+            <Link href="/wallet/diagnostics" className="nav-link">Diagnostics</Link>
+            {walletAddress ? (
+              <button className="wallet-pill" onClick={session.authenticated ? () => setDisconnectOpen(true) : disconnect} title="Disconnect wallet"><Power size={13} /> Disconnect wallet</button>
+            ) : (
+              <button className="wallet-pill" onClick={connect} disabled={!config || phase === "authenticating"}><WalletCards size={14} /> Connect wallet</button>
             )}
-            {workflowStep === 2 && (
-              <MarketplaceStage
-                key="marketplace"
-                sessionAddress={session.address}
-                query={marketplaceQuery}
-                onQueryChange={setMarketplaceQuery}
-                loading={marketplaceLoading}
-                services={marketplaceServices}
-                catalog={marketplaceCatalog}
-                draft={marketplaceDraft}
-                onDraftChange={setMarketplaceDraft}
-                isRunnable={isRunnableMarketplaceService}
-                onChoose={chooseMarketplaceService}
-                onDisconnect={() => setDisconnectOpen(true)}
-              />
-            )}
-            {workflowStep === 3 && (
-              <ConfigureStage
-                key="configure"
-                service={marketplaceService}
-                values={serviceInputValues}
-                executable={isRunnableMarketplaceService(marketplaceService)}
-                guided={guided}
-                onChange={setServiceInputValues}
-                onBack={changeMarketplaceService}
-                onContinue={() => {
-                  setServiceConfigured(true);
-                  setNotice(`${marketplaceService.name} inputs locked. Set the agent's spending limit next.`);
-                }}
-              />
-            )}
-            {workflowStep === 4 && (
-              <LimitStage
-                key="limit"
-                service={marketplaceService}
-                assetCode={config?.asset.code ?? "USDC"}
-                configReady={Boolean(config?.ready)}
-                budget={budget}
-                onBudgetChange={setBudget}
-                duration={duration}
-                onDurationChange={setDuration}
-                balances={walletBalances}
-                balancesLoading={balancesLoading}
-                onRefreshBalances={() => void refreshWalletBalances()}
-                budgetValid={budgetValid}
-                hasEnoughUsdc={hasEnoughUsdc}
-                canApproveLimit={canApproveLimit}
-                mandateOnline={mandateOnline}
-                mandateMatchesConfig={mandateMatchesConfig}
-                evidence={storedFresh && stored ? { registrationTx: stored.registrationTx, allowanceTx: stored.allowanceTx, maxAmount: stored.maxAmount, decimals: stored.decimals } : null}
-                awaitingAllowance={Boolean(storedFresh && stored?.registrationTx && !stored.allowanceTx)}
-                phase={phase}
-                allowancePreparing={allowancePreparing}
-                usdcReady={usdcReady}
-                explorer={explorer}
-                onActivate={activate}
-                onRetryAllowance={retryAllowance}
-                onRevoke={revoke}
-                onAddUsdc={addUsdc}
-                onChangeService={changeMarketplaceService}
-                onDisconnect={() => setDisconnectOpen(true)}
-              />
-            )}
-            {workflowStep === 5 && mandate && config && (
-              <RunStage
-                spentOut={spentOut}
-                onNewLimit={startNewLimit}
-                key="run"
-                service={marketplaceService}
-                mandate={mandate}
-                config={config}
-                parameters={serviceInputValues}
-                remaining={remaining}
-                limit={currentMandate && config ? formatUnits(currentMandate.maxAmount, config.asset.decimals) : budget}
-                expires={expires}
-                registrationTx={stored?.registrationTx}
-                allowanceTx={stored?.allowanceTx}
-                explorer={explorer}
-                onEditConfiguration={() => setServiceConfigured(false)}
-                onPurchaseComplete={setCompletedPurchase}
-                onThreadState={setThreadState}
-                onTurnOff={() => setDisconnectOpen(true)}
-              />
-            )}
-            {workflowStep === 6 && completedPurchase && (
-              <ProofStage
-                key="proof"
-                service={marketplaceService}
-                guided={guided}
-                purchase={completedPurchase}
-                externalSettlement={externalSettlement}
-                explorer={explorer}
-                onAskAnother={() => setCompletedPurchase(null)}
-                onTurnOff={() => setDisconnectOpen(true)}
-              />
-            )}
-          </AnimatePresence>
-        </div>
-      </section>
+          </div>
+        </header>
 
-      <footer className="hall-foot">
-        <span>MandateRegistry V2 · 2-of-3 governed</span>
-        <a href={config?.mandateRegistryId ? `${explorer}/contract/${config.mandateRegistryId}` : "#"} target="_blank" rel="noreferrer">View contract <ArrowUpRight size={11} /></a>
-        <span className="hall-hint" aria-hidden>Drag to look around</span>
-      </footer>
+        <section className="hero shell">
+          <div>
+            <div className="status-chip"><Sparkles size={13} /> {config?.network === "mainnet" ? "MAINNET V2 · MULTISIG-GOVERNED CONTRACT" : "BOUNDED AGENT PAYMENTS"}</div>
+            <h1>Choose what the agent can spend.<br /><span>Stay in control.</span></h1>
+            <p>You choose the limit. Ackrate checks it before every payment.</p>
+          </div>
+          <div className="network-card glass">
+            <div className="network-card-top">
+              <span><Activity size={14} /> PAYMENT NETWORK</span>
+              <b className={config?.ready ? "online" : "blocked"}>{config?.ready ? "READY" : "NOT READY"}</b>
+            </div>
+            <strong>{config?.networkLabel ?? "Loading network…"}</strong>
+            <a
+              className="network-contract-link"
+              href={config?.mandateRegistryId ? `${explorer}/contract/${config.mandateRegistryId}` : "#"}
+              target="_blank"
+              rel="noreferrer"
+            >
+              <code>{short(config?.mandateRegistryId, 9)}</code><ArrowUpRight size={12} />
+            </a>
+            <div className="network-meta"><ShieldCheck size={14} /> V2 contract · {config?.asset.code ?? "Asset"} · $0.01 per purchase</div>
+          </div>
+        </section>
 
-      {completedPurchase && config && (
-        <div className="hall-report">
+        <section className="steps shell" aria-label="Activation progress">
+          {[
+            [1, "Wallet", session.authenticated ? "Verified" : walletAddress ? "Connected — verify next" : "Connect — no transaction"],
+            [2, "Spending", mandateOnline ? "Limit is on" : spendingOff ? "Turned off" : session.authenticated ? "Choose a limit" : "Not started"],
+            [3, "Buy", mandateOnline ? "Ready" : "Not ready"],
+          ].map(([number, title, caption], index) => (
+            <div className={`step ${progress >= Number(number) ? "complete" : ""}`} key={String(title)}>
+              <span>{progress > Number(number) ? <Check size={15} /> : number}</span>
+              <div><strong>{title}</strong><small>{caption}</small></div>
+              {index < 2 && <ChevronRight className="step-chevron" size={17} />}
+            </div>
+          ))}
+        </section>
+
+        <section className="workspace shell">
+          <aside className="control-column">
+            <div className="panel glass wallet-panel">
+              <div className="panel-heading"><div><p className="eyebrow">01 · WALLET</p><h2>Your wallet</h2></div><div className={`icon-tile ${walletAddress ? "live" : ""}`}><WalletCards size={19} /></div></div>
+              {session.authenticated ? (
+                <div className="connected-state">
+                  <div className="identity-line"><span className="wallet-led" /><div><small>Connected wallet</small><code>{short(session.address, 9)}</code></div><ShieldCheck size={18} /></div>
+                  <p><LockKeyhole size={13} /> Your wallet is connected.</p>
+                  <button className="disconnect-button" onClick={() => setDisconnectOpen(true)}>
+                    <Power size={15} /> Disconnect wallet
+                  </button>
+                  {mandateOnline && <p className="disconnect-help">Tap Disconnect wallet. Ackrate will guide you through both steps.</p>}
+                  {config?.network === "mainnet" && (
+                    <button className="secondary-button" onClick={addUsdc} disabled={phase === "adding-asset" || usdcReady}>
+                      <CircleDollarSign size={15} /> {phase === "adding-asset" ? "Waiting for Freighter…" : usdcReady ? "USDC is ready" : "Add USDC to wallet"}
+                    </button>
+                  )}
+                </div>
+              ) : walletAddress ? (
+                <div className="connected-state">
+                  <div className="identity-line"><span className="wallet-led" /><div><small>Connected wallet</small><code>{short(walletAddress, 9)}</code></div><WalletCards size={18} /></div>
+                  {governanceWalletConnected ? (
+                    <div className="governance-warning" role="alert">
+                      <TriangleAlert size={16} />
+                      <div><strong>Contract account detected</strong><p>This 2-of-3 account protects the contract. Connect a separate personal Mainnet wallet to buy research.</p></div>
+                    </div>
+                  ) : (
+                    <>
+                      <p><ShieldCheck size={13} /> Connection is read-only. No Mainnet transaction was created, signed, or sent.</p>
+                      <button className="primary-button" onClick={authenticate} disabled={phase === "authenticating"}>
+                        <LockKeyhole size={16} /> {phase === "authenticating" ? "Waiting for Freighter…" : "Verify wallet — no broadcast"}
+                      </button>
+                    </>
+                  )}
+                  <button className="disconnect-button" onClick={disconnect} disabled={phase === "authenticating"}>
+                    <Power size={15} /> {governanceWalletConnected ? "Use a personal wallet" : "Disconnect wallet"}
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <p className="panel-copy">Connect your Freighter wallet to display its public address. Connecting does not create, sign, or send a Mainnet transaction.</p>
+                  <button className="primary-button" onClick={connect} disabled={!config || phase === "authenticating"}><WalletCards size={16} /> {phase === "authenticating" ? "Waiting for Freighter…" : "Connect wallet"}</button>
+                </>
+              )}
+            </div>
+
+            <div className={`panel glass mandate-panel ${!session.authenticated ? "muted" : ""}`}>
+              <div className="panel-heading"><div><p className="eyebrow">02 · SPENDING</p><h2>Set a spending limit</h2></div><div className={`icon-tile ${mandateOnline ? "live" : ""}`}><Fingerprint size={19} /></div></div>
+              {spendingOff ? (
+                <div className="mandate-active">
+                  <div className="active-banner mandate-off"><span><Check size={15} /></span><div><small>Status</small><strong>Spending is off</strong></div></div>
+                  <p className="shutdown-copy">The agent cannot spend now.</p>
+                  <TransactionEvidence label="Spending turned off" hash={stored!.revokeTx!} explorer={explorer} />
+                  <button className="disconnect-button" onClick={disconnect}><Power size={15} /> Disconnect wallet</button>
+                </div>
+              ) : !currentMandate ? (
+                <>
+                  <label>How much can the agent spend?<div className="money-input"><span>{config?.asset.code ?? "ASSET"}</span><input value={budget} onChange={(event) => setBudget(event.target.value)} inputMode="decimal" disabled={!session.authenticated || Boolean(storedFresh && stored?.registrationTx)} /></div></label>
+                  <label>How long should it last?<select value={duration} onChange={(event) => setDuration(event.target.value)} disabled={!session.authenticated || Boolean(storedFresh && stored?.registrationTx)}><option value="30">30 minutes</option><option value="60">1 hour</option><option value="360">6 hours</option><option value="1440">24 hours</option></select></label>
+                  <div className="scope-box"><div><span>Agent wallet</span><code>{short(config?.agentAddress, 6)}</code></div><div><span>Who gets paid</span><code>{config?.merchant.name ?? "Not configured"}</code></div><div><span>Money used</span><code>{config?.asset.code ?? "—"}</code></div></div>
+                  {stored?.registrationTx && !stored.allowanceTx ? (
+                    <button className="primary-button" onClick={retryAllowance} disabled={phase === "approving"}><RefreshCw size={16} /> {phase === "approving" ? "Waiting for Freighter…" : "Finish setup"}</button>
+                  ) : (
+                    <button className={`primary-button ${mandateBusy ? "busy" : ""}`} onClick={activate} disabled={!session.authenticated || !config?.ready || mandateBusy || governanceWalletConnected}>
+                      {mandateBusy ? <LoaderCircle className="activation-spinner" size={17} /> : <Zap size={16} />}
+                      {phase === "registering" ? "Saving your limit…" : phase === "approving" ? "Finishing setup…" : "Approve spending limit"}
+                    </button>
+                  )}
+                  {mandateBusy && (
+                    <div className="activation-progress" role="status" aria-live="polite">
+                      <span className="activation-orbit" aria-hidden><i /><i /><i /></span>
+                      <span><strong>Preparing Freighter</strong><small>Keep this window open. Freighter will ask you to approve.</small></span>
+                    </div>
+                  )}
+                  <p className="fine-print"><ShieldCheck size={12} /> The agent cannot spend more than this limit.</p>
+                </>
+              ) : (
+                <div className="mandate-active">
+                  <div className="active-banner"><span><Check size={15} /></span><div><small>Status</small><strong>Spending is on</strong></div></div>
+                  <div className="mandate-id"><span>Spending limit ID</span><code>{short(currentMandate.id, 9)}</code></div>
+                  <p className="shutdown-copy">Turn off spending before you disconnect your wallet.</p>
+                  <button id="turn-off-mandate" className="danger-button" onClick={revoke} disabled={phase === "revoking"}><X size={15} /> {phase === "revoking" ? "Waiting for Freighter…" : "Turn off spending"}</button>
+                </div>
+              )}
+            </div>
+          </aside>
+
+          <section className="panel glass chat-panel">
+            <div className="chat-head">
+              <div className="agent-title"><div className="agent-orb"><Bot size={21} /></div><div><p className="eyebrow">03 · BUY</p><h2>Buy a research brief</h2></div></div>
+              <div className={`agent-status ${mandateOnline ? "online" : ""}`}><span /> {mandateOnline ? "READY TO BUY" : "SET UP FIRST"}</div>
+            </div>
+            {mandateOnline && mandate && config ? (
+              <AssistantThread mandateId={mandate.id} asset={config.asset.code} explorerNetwork={config.explorerNetwork} onPurchaseComplete={setCompletedPurchase} />
+            ) : (
+              <div className="chat-locked">
+                <div className="lock-rings"><LockKeyhole size={27} /></div>
+                <p className="eyebrow">{spendingOff ? "SPENDING IS OFF" : session.authenticated ? "SET YOUR LIMIT" : "NOT READY"}</p>
+                <h3>{spendingOff ? "Finish by disconnecting." : session.authenticated ? "Your wallet is connected." : "Connect your wallet first."}</h3>
+                <p>{spendingOff ? "Disconnect your wallet to clear this setup and start fresh." : session.authenticated ? "Choose and approve a spending limit on the left. Then you can buy." : "Connect your wallet and approve a spending limit. Then you can buy."}</p>
+                {spendingOff && (
+                  <button className="disconnect-button locked-action" onClick={() => setDisconnectOpen(true)}>
+                    <Power size={16} /> Disconnect wallet
+                  </button>
+                )}
+              </div>
+            )}
+          </section>
+
+          <aside className="evidence-column">
+            <div className="panel glass authority-card">
+              <div className="panel-heading"><div><p className="eyebrow">SPENDING</p><h2>Your limit</h2></div><CircleDollarSign size={20} /></div>
+              <div className="remaining"><span>Remaining</span><strong>{remaining} <small>{config?.asset.code ?? ""}</small></strong></div>
+              <div className="meter"><span style={{ width: `${Math.min(100, usedPercent)}%` }} /></div>
+              <div className="budget-row"><div><span>Spent</span><strong>{spent}</strong></div><div><span>Limit</span><strong>{currentMandate && config ? formatUnits(currentMandate.maxAmount, config.asset.decimals) : budget}</strong></div></div>
+              <div className="authority-list">
+                <div><Clock3 size={14} /><span>Expires</span><strong>{expires ? new Date(expires * 1_000).toLocaleString() : "Not signed"}</strong></div>
+                <div><Fingerprint size={14} /><span>Payments made</span><strong>{currentMandate?.seq ?? 0}</strong></div>
+                <div><Database size={14} /><span>Saved</span><strong>{config?.durableState ? "Yes" : "Not yet"}</strong></div>
+              </div>
+            </div>
+
+            <div className="panel glass proof-card">
+              <div className="panel-heading"><div><p className="eyebrow">TRANSACTIONS</p><h2>View on Stellar</h2></div><ExternalLink size={18} /></div>
+              <a href={config?.mandateRegistryId ? `${explorer}/contract/${config.mandateRegistryId}` : "#"} target="_blank" rel="noreferrer"><span>Payment contract</span><code>{short(config?.mandateRegistryId, 6)}</code><ArrowUpRight size={14} /></a>
+              {stored?.registrationTx && <TransactionEvidence label="Spending limit" hash={stored.registrationTx} explorer={explorer} />}
+              {stored?.allowanceTx && <TransactionEvidence label="USDC approval" hash={stored.allowanceTx} explorer={explorer} />}
+              {stored?.revokeTx && <TransactionEvidence label="Spending turned off" hash={stored.revokeTx} explorer={explorer} />}
+            </div>
+
+            {config && !config.ready && (
+              <div className="panel gate-card"><TriangleAlert size={18} /><div><strong>Not ready yet</strong><p>Please try again later.</p></div></div>
+            )}
+          </aside>
+        </section>
+
+        {completedPurchase && config && (
           <PurchaseReport
             result={completedPurchase}
             explorerNetwork={config.explorerNetwork}
@@ -921,71 +873,425 @@ export function WalletChatApp() {
             registrationTx={stored?.registrationTx}
             allowanceTx={stored?.allowanceTx}
           />
-        </div>
-      )}
+        )}
 
-      <AnimatePresence>
         {disconnectOpen && session.authenticated && (
-          <motion.div
-            key="disconnect"
-            className="hall-modal-backdrop"
-            role="presentation"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: reduceMotion ? 0 : 0.25 }}
-            onClick={(event) => { if (event.target === event.currentTarget) setDisconnectOpen(false); }}
-          >
-            <motion.section
-              className="hall-modal"
-              role="dialog" aria-modal="true"
-              aria-labelledby="flow-disconnect-title"
-              initial={reduceMotion ? false : { opacity: 0, y: 16, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={reduceMotion ? undefined : { opacity: 0, y: 10, scale: 0.98 }}
-              transition={{ duration: reduceMotion ? 0 : 0.32, ease: [0.22, 1, 0.36, 1] }}
-            >
-              <button className="hall-modal-close" type="button" onClick={() => setDisconnectOpen(false)} aria-label="Close"><X size={15} /></button>
-              <p className="stage-kicker"><span>{mandateOnline ? "SPENDING IS ON" : "SPENDING IS OFF"}</span></p>
+          <div className="disconnect-overlay" role="presentation">
+            <section className="disconnect-dialog glass" role="dialog" aria-modal="true" aria-labelledby="disconnect-title">
+              <button className="disconnect-close" type="button" onClick={() => setDisconnectOpen(false)} aria-label="Close"><X size={18} /></button>
+              <div className="disconnect-icon"><Power size={22} /></div>
+              <p className="eyebrow">DISCONNECT WALLET</p>
               {mandateOnline ? (
                 <>
-                  <h2 id="flow-disconnect-title">First, turn off spending</h2>
-                  <p>This revokes the mandate on Mainnet. Freighter will ask you to approve one final transaction; after it confirms, you can disconnect.</p>
-                  <button className="flow-primary tone-danger" type="button" onClick={revoke} disabled={phase === "revoking"}>
-                    {phase === "revoking" ? <LoaderCircle className="spin" size={16} /> : <X size={16} />}
-                    <span>{phase === "revoking" ? "Waiting for Freighter" : "Turn off spending"}</span>
+                  <h2 id="disconnect-title">First, turn off spending</h2>
+                  <p>This stops the agent from spending. Freighter will ask you to approve.</p>
+                  <button className="danger-button" onClick={revoke} disabled={phase === "revoking"}>
+                    <X size={16} /> {phase === "revoking" ? "Waiting for Freighter…" : "Turn off spending"}
                   </button>
+                  {error && <p className="disconnect-error">{error}</p>}
                 </>
               ) : (
                 <>
-                  <h2 id="flow-disconnect-title">Ready to disconnect</h2>
-                  <p>Spending is off. This clears the saved setup from this browser; it does not delete wallet history.</p>
-                  {stored?.revokeTx && <ProofLink label="Spending turned off" hash={stored.revokeTx} explorer={explorer} />}
-                  <button className="flow-primary" type="button" onClick={disconnect}><Power size={16} /><span>Disconnect wallet</span></button>
+                  <h2 id="disconnect-title">Ready to disconnect</h2>
+                  <p>Your saved setup will be cleared. Connecting again will start fresh.</p>
+                  {stored?.revokeTx && <TransactionEvidence label="Spending turned off" hash={stored.revokeTx} explorer={explorer} />}
+                  <button className="disconnect-button" onClick={disconnect}><Power size={16} /> Disconnect wallet</button>
+                  {error && <p className="disconnect-error">{error}</p>}
                 </>
               )}
-            </motion.section>
-          </motion.div>
+            </section>
+          </div>
         )}
-      </AnimatePresence>
 
-      <AnimatePresence>
-        {(notice || error) && (
-          <motion.div
-            key={error ? `error:${error}` : `notice:${notice}`}
-            className={`hall-toast ${error ? "is-error" : ""}`}
-            role={error ? "alert" : "status"}
-            initial={reduceMotion ? false : { opacity: 0, y: 14 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={reduceMotion ? undefined : { opacity: 0, y: 8 }}
-            transition={{ duration: reduceMotion ? 0 : 0.3, ease: [0.22, 1, 0.36, 1] }}
-          >
-            <span>{error ? <TriangleAlert size={14} /> : <Check size={14} />}</span>
-            <p>{error ?? notice}</p>
-            <button type="button" onClick={() => { setError(null); setNotice(null); }} aria-label="Dismiss"><X size={13} /></button>
-          </motion.div>
-        )}
-      </AnimatePresence>
+        {(notice || error) && <div className={`toast ${error ? "error" : ""}`}><span>{error ? <TriangleAlert size={16} /> : <Check size={16} />}</span><p>{error ?? notice}</p><button onClick={() => { setError(null); setNotice(null); }} aria-label="Dismiss"><X size={14} /></button></div>}
+
+        <footer className="footer shell"><div><ShieldCheck size={15} /> Your spending limit is checked every time</div><p>Ackrate decides if a payment is allowed.</p><Link href="/wallet/diagnostics">Technical details <ArrowUpRight size={13} /></Link></footer>
+      </main>
+    );
+  }
+
+  const connected = session.authenticated && Boolean(session.address);
+  const stepOneExplorer = config ? `https://stellar.expert/explorer/${config.explorerNetwork}` : "#";
+  const workflowStep = !connected ? 1 : !marketplaceSelected ? 2 : !serviceConfigured ? 3 : !activeMandateReady ? 4 : !completedPurchase ? 5 : 6;
+  const budgetNumber = Number(budget);
+  const minimumBudget = Number(marketplaceService.price);
+  const budgetValid = Number.isFinite(budgetNumber) && budgetNumber >= minimumBudget && budgetNumber > 0;
+  const hasEnoughUsdc = Boolean(walletBalances && Number(walletBalances.usdcRaw) >= budgetNumber);
+  const canApproveLimit = Boolean(config?.ready && !mandateOnline && budgetValid && walletBalances?.hasUsdcTrustline && hasEnoughUsdc);
+  const externalSettlement = completedPurchase ? marketplaceSettlement(completedPurchase) : null;
+  const navState = (step: number) => workflowStep > step ? "done" : workflowStep === step ? "current" : "";
+
+  return (
+    <main className={`wallet-preview wallet-flow spatial-step-${workflowStep}`}>
+      <ProtocolWorld step={workflowStep} reducedMotion={Boolean(reduceMotion)} />
+      <header className="flow-header">
+        <Link href="/" className="flow-brand"><span className="flow-brand-mark"><MarketplaceOrb variant="brand" /></span><strong>ACKRATE</strong></Link>
+        <div className="flow-network"><span />{config?.networkLabel ?? "Loading Mainnet"}</div>
+        <Link className="flow-text-button" href="/wallet/diagnostics">Verification <ArrowUpRight size={13} /></Link>
+      </header>
+
+      <section className={`flow-shell ${connected ? "flow-shell-active" : ""}`}>
+        <motion.div
+          className="flow-intro"
+          initial={reduceMotion ? false : { opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: reduceMotion ? 0 : 0.42, ease: "easeOut" }}
+        >
+          <p>THE ENFORCEMENT LAYER FOR AGENT PAYMENTS</p>
+          <h1>Give agents buying power.<br />Not a blank check.</h1>
+          <span>One mandate unlocks real x402 services. ACKRATE enforces who gets paid, how much, and when—on-chain.</span>
+        </motion.div>
+
+        <motion.nav
+          className="flow-progress"
+          aria-label="Workflow progress"
+          initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: reduceMotion ? 0 : 0.38, delay: reduceMotion ? 0 : 0.08, ease: "easeOut" }}
+        >
+          <div className={navState(1)}><span>{workflowStep > 1 ? <Check size={14} /> : 1}</span><strong>Connect</strong><small>IDENTITY</small></div>
+          <div className={navState(2)}><span>{workflowStep > 2 ? <Check size={14} /> : 2}</span><strong>Marketplace</strong><small>DISCOVER</small></div>
+          <div className={navState(3)}><span>{workflowStep > 3 ? <Check size={14} /> : 3}</span><strong>Configure</strong><small>PAYLOAD</small></div>
+          <div className={navState(4)}><span>{workflowStep > 4 ? <Check size={14} /> : 4}</span><strong>Limit</strong><small>BOUNDARY</small></div>
+          <div className={navState(5)}><span>{workflowStep > 5 ? <Check size={14} /> : 5}</span><strong>Run</strong><small>EXECUTE</small></div>
+          <div className={navState(6)}><span>6</span><strong>Proof</strong><small>VERIFY</small></div>
+        </motion.nav>
+
+        <section className="flow-card">
+          <AnimatePresence mode="wait" initial={!reduceMotion}>
+          {!connected ? (
+            <motion.div
+              key="connect"
+              className="flow-stage connect-stage"
+              initial={reduceMotion ? false : { opacity: 0, y: 10, scale: 0.99 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={reduceMotion ? undefined : { opacity: 0, y: -8 }}
+              transition={{ duration: reduceMotion ? 0 : 0.28, ease: "easeOut" }}
+            >
+              <p className="flow-kicker">STEP 1 OF 6</p>
+              <h2>Connect your wallet</h2>
+              <p className="flow-description">Use a personal Freighter wallet on Stellar Mainnet. We verify that you control it without broadcasting a transaction.</p>
+              <div className="flow-checklist">
+                <span><Check size={14} />Mainnet wallet</span>
+                <span><Check size={14} />Circle USDC</span>
+                <span><Check size={14} />No charge to connect</span>
+              </div>
+              {walletAddress === config?.contractAuthorityAddress && (
+                <div className="flow-alert"><TriangleAlert size={16} />Use a personal wallet, not the contract governance account.</div>
+              )}
+              <motion.button
+                className="flow-primary"
+                type="button"
+                onClick={walletAddress ? authenticate : connect}
+                disabled={!config || phase === "authenticating"}
+                whileHover={reduceMotion || !config || phase === "authenticating" ? undefined : { y: -2, scale: 1.005 }}
+                whileTap={reduceMotion || !config || phase === "authenticating" ? undefined : { scale: 0.985 }}
+              >
+                {phase === "authenticating" ? <LoaderCircle className="spin" size={17} /> : <WalletCards size={17} />}
+                {phase === "authenticating" ? "Waiting for Freighter…" : walletAddress ? "Verify wallet" : "Connect Freighter"}
+              </motion.button>
+              <small className="flow-footnote"><LockKeyhole size={12} />Freighter may show a connection prompt and a verification signature.</small>
+            </motion.div>
+          ) : !marketplaceSelected ? (
+            <motion.div
+              key="marketplace"
+              className="flow-stage marketplace-stage"
+              initial={reduceMotion ? false : { opacity: 0, y: 10, scale: 0.99 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={reduceMotion ? undefined : { opacity: 0, y: -8 }}
+              transition={{ duration: reduceMotion ? 0 : 0.28, ease: "easeOut" }}
+            >
+              <div className="flow-stage-heading">
+                <div>
+                  <p className="flow-kicker">STEP 2 OF 6</p>
+                  <h2>Choose the research source</h2>
+                  <p className="flow-description">Pick the external service the agent will use to gather current evidence.</p>
+                </div>
+                <span className="flow-wallet-chip"><WalletCards size={13} />{short(session.address, 5)}</span>
+              </div>
+
+              <div className="marketplace-source">
+                <span className="marketplace-source-icon"><Globe2 size={18} /></span>
+                <span><small>STELLAR x402 MARKETPLACE</small><strong>Agent402</strong></span>
+                <a className="marketplace-source-link" href={MARKETPLACE_URL} target="_blank" rel="noreferrer">Open marketplace <ArrowUpRight size={13} /></a>
+              </div>
+
+              <label className="marketplace-search">
+                <Search size={15} />
+                <input
+                  type="search"
+                  value={marketplaceQuery}
+                  onChange={(event) => setMarketplaceQuery(event.target.value)}
+                  placeholder="Search web, research, scraper, PDF…"
+                  maxLength={80}
+                  aria-label="Search Agent402 services"
+                />
+                {marketplaceLoading && <LoaderCircle className="spin" size={14} />}
+              </label>
+
+              <div className="marketplace-suggestions" aria-label="Suggested marketplace searches">
+                {["Web search", "Research", "Scraper", "PDF"].map((suggestion) => (
+                  <button type="button" key={suggestion} onClick={() => setMarketplaceQuery(suggestion)}>{suggestion}</button>
+                ))}
+              </div>
+
+              <div className="service-label">
+                <span>{marketplaceQuery ? "MATCHING SERVICES" : "RECOMMENDED FOR RESEARCH"}</span>
+                <small>{marketplaceCatalog.source === "live" ? `${marketplaceCatalog.size} live tools` : "verified catalog"}</small>
+              </div>
+              <div className="marketplace-results" aria-live="polite" aria-busy={marketplaceLoading}>
+                {marketplaceServices.length ? marketplaceServices.map((service) => {
+                  const selected = marketplaceDraft.id === service.id;
+                  return (
+                    <motion.button
+                      className={`service-option ${selected ? "selected" : ""}`}
+                      type="button"
+                      key={service.id}
+                      onClick={() => setMarketplaceDraft(service)}
+                      aria-pressed={selected}
+                      whileHover={reduceMotion ? undefined : { x: 3 }}
+                      whileTap={reduceMotion ? undefined : { scale: 0.992 }}
+                    >
+                      <span className="service-radio">{selected ? <Check size={13} /> : <span />}</span>
+                      <span>
+                        <strong>{service.name}</strong>
+                        <small>{service.description}</small>
+                        <em>{service.method} · {service.categoryLabel} · {isRunnableMarketplaceService(service) ? "LIVE PAYMENT READY" : "SCHEMA PREVIEW"}</em>
+                        <span className="service-inputs">{service.inputs.length ? service.inputs.map((field) => <b key={field.name}>{field.name}{field.required ? " *" : ""}</b>) : <b>Schema unavailable</b>}</span>
+                      </span>
+                      <span className="service-price">{service.price} <small>USDC</small></span>
+                    </motion.button>
+                  );
+                }) : (
+                  <div className="marketplace-empty"><Search size={17} /><strong>No exact match</strong><span>Try web, research, scraper, PDF, news, or data.</span></div>
+                )}
+              </div>
+
+              <div className="service-facts" aria-label="Service details">
+                <span><Check size={12} />Stellar Mainnet</span>
+                <span><Check size={12} />x402 payment</span>
+                <span><Check size={12} />No marketplace account</span>
+                <span><Check size={12} />{marketplaceCatalog.matches || marketplaceServices.length} matches</span>
+              </div>
+
+              {!isRunnableMarketplaceService(marketplaceDraft) && (
+                <div className="flow-alert"><TriangleAlert size={16} /><span><strong>{marketplaceDraft.name} is visible from the live catalog.</strong> Its schema can be inspected, but this release executes Web Search, PDF to Text, and PDF Info.</span></div>
+              )}
+              <motion.button
+                className="flow-primary"
+                type="button"
+                onClick={chooseMarketplaceService}
+                disabled={!isRunnableMarketplaceService(marketplaceDraft)}
+                whileHover={reduceMotion ? undefined : { y: -1 }}
+                whileTap={reduceMotion ? undefined : { scale: 0.985 }}
+              >Configure {marketplaceDraft.name} <ChevronRight size={16} /></motion.button>
+              <small className="flow-footnote"><LockKeyhole size={12} />Choosing a service does not move funds. Payment happens only when research runs.</small>
+            </motion.div>
+          ) : !serviceConfigured ? (
+            <motion.div
+              key="configure"
+              className="flow-stage configure-stage"
+              initial={reduceMotion ? false : { opacity: 0, rotateY: -4, x: 16 }}
+              animate={{ opacity: 1, rotateY: 0, x: 0 }}
+              exit={reduceMotion ? undefined : { opacity: 0, rotateY: 4, x: -16 }}
+              transition={{ duration: reduceMotion ? 0 : 0.32, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <div className="flow-stage-heading">
+                <div>
+                  <p className="flow-kicker">STEP 3 OF 6</p>
+                  <h2>{isGuidedResearchService(marketplaceService) ? "What do you want to know?" : `Configure ${marketplaceService.name}`}</h2>
+                  <p className="flow-description">These fields come directly from the live Agent402 service schema.</p>
+                </div>
+                <span className="flow-wallet-chip"><Globe2 size={13} />LIVE SCHEMA</span>
+              </div>
+              <ServiceConfigurator
+                service={marketplaceService}
+                values={serviceInputValues}
+                executable={isRunnableMarketplaceService(marketplaceService)}
+                onChange={setServiceInputValues}
+                onBack={changeMarketplaceService}
+                onContinue={() => {
+                  setServiceConfigured(true);
+                  setNotice(`${marketplaceService.name} inputs locked. Set the agent's spending limit next.`);
+                }}
+              />
+            </motion.div>
+          ) : !activeMandateReady ? (
+            <motion.div
+              key="limit"
+              className="flow-stage"
+              initial={reduceMotion ? false : { opacity: 0, y: 10, scale: 0.99 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={reduceMotion ? undefined : { opacity: 0, y: -8 }}
+              transition={{ duration: reduceMotion ? 0 : 0.28, ease: "easeOut" }}
+            >
+              <div className="flow-stage-heading">
+                <div><p className="flow-kicker">STEP 4 OF 6</p><h2>Set the spending limit</h2><p className="flow-description">Choose the maximum this agent may spend before the limit expires.</p></div>
+                <span className="flow-wallet-chip"><WalletCards size={13} />{short(session.address, 5)}</span>
+              </div>
+
+              {mandateOnline && !mandateMatchesConfig && (
+                <div className="flow-alert"><TriangleAlert size={16} /><span><strong>A previous spending limit is still active.</strong> Turn it off before creating the Agent402 limit. This prevents an old payment scope from being mistaken for the new one.</span></div>
+              )}
+
+              <div className="selected-service-summary">
+                <span className="marketplace-source-icon"><Globe2 size={17} /></span>
+                <span><small>REAL x402 SERVICE</small><strong>Agent402 · {marketplaceService.name}</strong><em>{marketplaceService.method} · {marketplaceService.path}</em></span>
+                <span className="service-price">{marketplaceService.price} <small>USDC / REPORT</small></span>
+              </div>
+
+              <div className="flow-balance-grid">
+                <div><small>WALLET USDC</small><strong>{balancesLoading ? "Reading…" : walletBalances ? walletBalances.usdc : "Unavailable"}</strong></div>
+                <div><small>WALLET XLM</small><strong>{balancesLoading ? "Reading…" : walletBalances ? walletBalances.xlm : "Unavailable"}</strong></div>
+                <button type="button" onClick={() => void refreshWalletBalances()} disabled={balancesLoading}><RefreshCw className={balancesLoading ? "spin" : ""} size={13} /> Refresh</button>
+              </div>
+
+              <div className="flow-fields">
+                <label><span>MAXIMUM SPEND</span><div className="flow-input"><input value={budget} onChange={(event) => setBudget(event.target.value)} inputMode="decimal" aria-label="Maximum USDC spend" disabled={mandateOnline} /><strong>USDC</strong></div></label>
+                <label><span>EXPIRES AFTER</span><select value={duration} onChange={(event) => setDuration(event.target.value)} disabled={mandateOnline}><option value="30">30 minutes</option><option value="60">1 hour</option><option value="360">6 hours</option><option value="1440">24 hours</option></select></label>
+              </div>
+
+              <div className="flow-summary">
+                <span><ShieldCheck size={15} /></span>
+                <p><strong>Your funds stay in your wallet.</strong>Ackrate gives the MandateRegistry contract a capped USDC allowance. The agent never receives the full limit upfront; each payment must pass the on-chain checks.</p>
+              </div>
+
+              {!walletBalances?.hasUsdcTrustline && !balancesLoading && (
+                <button className="flow-primary flow-outline" type="button" onClick={addUsdc} disabled={phase === "adding-asset"}><CircleDollarSign size={16} />{phase === "adding-asset" ? "Waiting for Freighter…" : "Add Circle USDC to wallet"}</button>
+              )}
+              {walletBalances?.hasUsdcTrustline && !hasEnoughUsdc && budgetValid && (
+                <div className="flow-alert"><TriangleAlert size={16} />Your wallet needs at least {budget} USDC for this limit. Lower the limit or add USDC.</div>
+              )}
+              {!budgetValid && (
+                <div className="flow-alert"><TriangleAlert size={16} />Enter at least {marketplaceService.price} USDC—the exact price of one Agent402 report.</div>
+              )}
+
+              {mandateOnline && !mandateMatchesConfig ? (
+                <motion.button className="flow-primary flow-danger" type="button" onClick={revoke} disabled={phase === "revoking"} whileTap={reduceMotion ? undefined : { scale: 0.985 }}>
+                  {phase === "revoking" ? <LoaderCircle className="spin" size={16} /> : <X size={16} />}{phase === "revoking" ? "Waiting for Freighter…" : "Turn off previous spending limit"}
+                </motion.button>
+              ) : storedFresh && stored?.registrationTx && !stored.allowanceTx ? (
+                <motion.button className="flow-primary" type="button" onClick={retryAllowance} disabled={phase === "approving" || allowancePreparing} whileTap={reduceMotion ? undefined : { scale: 0.985 }}>
+                  {phase === "approving" || allowancePreparing ? <LoaderCircle className="spin" size={16} /> : <LockKeyhole size={16} />}
+                  {allowancePreparing ? "Preparing secure approval…" : phase === "approving" ? "Opening Freighter…" : `Open Freighter · Approve ${formatUnits(stored.maxAmount, stored.decimals)} USDC`}
+                </motion.button>
+              ) : (
+                <motion.button className="flow-primary" type="button" onClick={activate} disabled={!canApproveLimit || mandateBusy} whileTap={reduceMotion ? undefined : { scale: 0.985 }}>
+                  {mandateBusy ? <LoaderCircle className="spin" size={16} /> : <LockKeyhole size={16} />}
+                  {phase === "registering" ? "Registering limit…" : phase === "approving" ? "Approving USDC…" : `Approve ${budget || "0"} USDC limit`}
+                </motion.button>
+              )}
+              <small className="flow-footnote"><Fingerprint size={12} />Approval 1 registers the mandate. Approval 2 opens Freighter and caps the contract allowance.</small>
+              <div className="flow-secondary-row"><button type="button" onClick={changeMarketplaceService}><Search size={12} />Change service</button><button type="button" onClick={() => setDisconnectOpen(true)}><Power size={12} />Disconnect</button></div>
+
+              {(stored?.registrationTx || stored?.allowanceTx) && (
+                <details className="flow-evidence"><summary><span><Database size={13} />Setup transactions</span><ChevronRight size={13} /></summary><div>
+                  {stored.registrationTx && <a className="flow-proof-link" href={`${explorer}/tx/${stored.registrationTx}`} target="_blank" rel="noreferrer"><span><Check size={12} />Spending limit</span><code>{short(stored.registrationTx, 6)}</code><ArrowUpRight size={12} /></a>}
+                  {stored.allowanceTx && <a className="flow-proof-link" href={`${explorer}/tx/${stored.allowanceTx}`} target="_blank" rel="noreferrer"><span><Check size={12} />USDC approval</span><code>{short(stored.allowanceTx, 6)}</code><ArrowUpRight size={12} /></a>}
+                </div></details>
+              )}
+            </motion.div>
+          ) : !completedPurchase ? (
+            <motion.div
+              key="research"
+              className="flow-stage"
+              initial={reduceMotion ? false : { opacity: 0, y: 10, scale: 0.99 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={reduceMotion ? undefined : { opacity: 0, y: -8 }}
+              transition={{ duration: reduceMotion ? 0 : 0.28, ease: "easeOut" }}
+            >
+              <div className="flow-stage-heading">
+                <div><p className="flow-kicker">STEP 5 OF 6</p><h2>Run {marketplaceService.name}</h2><p className="flow-description">The agent will pass the contract checks, pay Agent402 in real USDC, and return the service output.</p></div>
+                <span className="flow-budget"><span><small>REMAINING</small><strong>{remaining} USDC</strong></span></span>
+              </div>
+              {mandate && config && (
+                <AssistantThread
+                  mandateId={mandate.id}
+                  asset={config.asset.code}
+                  service={marketplaceService}
+                  parameters={serviceInputValues}
+                  price={marketplaceService.price}
+                  explorerNetwork={config.explorerNetwork}
+                  marketplaceUrl={marketplaceService.docs}
+                  onEditConfiguration={() => setServiceConfigured(false)}
+                  onPurchaseComplete={setCompletedPurchase}
+                />
+              )}
+              <details className="flow-evidence"><summary><span><ShieldCheck size={13} />Why the agent is allowed to pay</span><ChevronRight size={13} /></summary><div>
+                {stored?.registrationTx && <a className="flow-proof-link" href={`${explorer}/tx/${stored.registrationTx}`} target="_blank" rel="noreferrer"><span><Check size={12} />Limit registered</span><code>{short(stored.registrationTx, 6)}</code><ArrowUpRight size={12} /></a>}
+                {stored?.allowanceTx && <a className="flow-proof-link" href={`${explorer}/tx/${stored.allowanceTx}`} target="_blank" rel="noreferrer"><span><Check size={12} />Contract allowance</span><code>{short(stored.allowanceTx, 6)}</code><ArrowUpRight size={12} /></a>}
+              </div></details>
+              <div className="flow-secondary-row"><span>Limit: {currentMandate && config ? formatUnits(currentMandate.maxAmount, config.asset.decimals) : budget} USDC · expires {expires ? new Date(expires * 1_000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "soon"}</span><button type="button" onClick={() => setDisconnectOpen(true)}><Power size={12} />Turn off</button></div>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="verify"
+              className="flow-stage connect-stage flow-success"
+              initial={reduceMotion ? false : { opacity: 0, y: 10, scale: 0.99 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ duration: reduceMotion ? 0 : 0.28, ease: "easeOut" }}
+            >
+              <div className="flow-stage-icon success"><Check size={25} /></div>
+              <p className="flow-kicker">STEP 6 OF 6</p>
+              <h2>{isGuidedResearchService(marketplaceService) ? "Research delivered" : `${marketplaceService.name} delivered`}</h2>
+              <p className="flow-description">The contract payment and the real Agent402 x402 payment are independently verifiable on Stellar Mainnet.</p>
+              <div className="flow-settlement-grid">
+                <a href={`${explorer}/tx/${completedPurchase.payment.txHash}`} target="_blank" rel="noreferrer"><small>01 · ACKRATE CONTRACT</small><strong>{completedPurchase.payment.amount} {completedPurchase.payment.asset}</strong><code>{short(completedPurchase.payment.txHash, 6)}</code><span>Verify <ArrowUpRight size={12} /></span></a>
+                {externalSettlement ? <a href={`${explorer}/tx/${externalSettlement.transaction}`} target="_blank" rel="noreferrer"><small>02 · AGENT402 x402</small><strong>{externalSettlement.amount} USDC</strong><code>{short(externalSettlement.transaction, 6)}</code><span>Verify <ArrowUpRight size={12} /></span></a> : <div><small>02 · AGENT402 x402</small><strong>Proof unavailable</strong><span>Do not treat this run as complete.</span></div>}
+              </div>
+              <a className="flow-primary flow-report-link" href="#paid-service-output"><Sparkles size={16} />{isGuidedResearchService(marketplaceService) ? "Read the cited report" : "Open service output"}</a>
+              <div className="flow-secondary-row"><button type="button" onClick={() => setCompletedPurchase(null)}><Search size={12} />Ask another question</button><button type="button" onClick={() => setDisconnectOpen(true)}><Power size={12} />Turn off spending</button></div>
+            </motion.div>
+          )}
+          </AnimatePresence>
+        </section>
+
+        <div className="flow-under-card">
+          <span><ShieldCheck size={14} />2-of-3 governed MandateRegistry V2</span>
+          <a href={config?.mandateRegistryId ? `${stepOneExplorer}/contract/${config.mandateRegistryId}` : "#"} target="_blank" rel="noreferrer">View contract <ArrowUpRight size={13} /></a>
+        </div>
+      </section>
+
+      {completedPurchase && config && (
+        <PurchaseReport
+          result={completedPurchase}
+          explorerNetwork={config.explorerNetwork}
+          registryId={config.mandateRegistryId}
+          registrationTx={stored?.registrationTx}
+          allowanceTx={stored?.allowanceTx}
+        />
+      )}
+
+      {disconnectOpen && session.authenticated && (
+        <div className="flow-modal-backdrop" role="presentation">
+          <section className="flow-modal" role="dialog" aria-modal="true" aria-labelledby="flow-disconnect-title">
+            <button className="flow-modal-close" type="button" onClick={() => setDisconnectOpen(false)} aria-label="Close"><X size={16} /></button>
+            <Power size={20} />
+            {mandateOnline ? (
+              <>
+                <h2 id="flow-disconnect-title">Turn off spending first</h2>
+                <p>This revokes the mandate on Mainnet. Freighter will ask you to approve one final transaction; after it confirms, you can disconnect.</p>
+                <button className="flow-primary flow-danger" type="button" onClick={revoke} disabled={phase === "revoking"}>{phase === "revoking" ? <LoaderCircle className="spin" size={16} /> : <X size={16} />}{phase === "revoking" ? "Waiting for Freighter…" : "Turn off spending"}</button>
+              </>
+            ) : (
+              <>
+                <h2 id="flow-disconnect-title">Disconnect wallet</h2>
+                <p>Spending is off. This clears the saved setup from this browser; it does not delete wallet history.</p>
+                {stored?.revokeTx && <a className="flow-proof-link" href={`${explorer}/tx/${stored.revokeTx}`} target="_blank" rel="noreferrer"><span><Check size={12} />Spending turned off</span><code>{short(stored.revokeTx, 6)}</code><ArrowUpRight size={12} /></a>}
+                <button className="flow-primary" type="button" onClick={disconnect}><Power size={16} />Disconnect wallet</button>
+              </>
+            )}
+          </section>
+        </div>
+      )}
+
+      {(notice || error) && (
+        <div className={`flow-toast ${error ? "error" : ""}`} role={error ? "alert" : "status"}>
+          <span>{error ? <TriangleAlert size={15} /> : <Check size={15} />}</span>
+          <p>{error ?? notice}</p>
+          <button type="button" onClick={() => { setError(null); setNotice(null); }} aria-label="Dismiss"><X size={14} /></button>
+        </div>
+      )}
     </main>
   );
 }
