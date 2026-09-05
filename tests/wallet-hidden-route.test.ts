@@ -133,6 +133,14 @@ test("wallet separates mandate registration and token allowance into two deliber
   assert.match(app, /prepareAllowanceTransaction/);
   assert.match(app, /submitPreparedAllowanceWithFreighter/);
   assert.match(client, /Keep signing as the first asynchronous action/);
+  /* The relay compacts getLatestLedger; the SDK's parsed getLatestLedger()
+     needs headerXdr and would fail before Freighter opens. */
+  const prepareStart = client.indexOf("export async function prepareAllowanceTransaction");
+  const prepareEnd = client.indexOf("export async function submitPreparedAllowanceWithFreighter");
+  assert.ok(prepareStart >= 0 && prepareEnd > prepareStart);
+  assert.doesNotMatch(client.slice(prepareStart, prepareEnd), /server\.getLatestLedger\(\)/);
+  assert.match(client.slice(prepareStart, prepareEnd), /latestLedgerSequence\(config\)/);
+  assert.match(client, /method: "getLatestLedger"/);
   assert.match(app, /activeMandateReady = Boolean\(mandateOnline && mandateMatchesConfig && storedFresh && stored\?\.allowanceTx\)/);
   assert.match(client, /APPROVAL_TIMEBOUND_SECONDS = 10 \* 60/);
   assert.match(client, /submitted\.status === "TRY_AGAIN_LATER"/);

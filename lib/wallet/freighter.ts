@@ -2,7 +2,9 @@
 
 import {
   addToken,
+  getAddress,
   getNetworkDetails,
+  isAllowed,
   requestAccess,
   signTransaction,
 } from "@stellar/freighter-api";
@@ -89,4 +91,23 @@ export async function addTokenToFreighter(contractId: string, networkPassphrase:
   const result = await addToken({ contractId, networkPassphrase });
   if (result.error) throw new Error(message(result.error, "Freighter could not add USDC"));
   if (result.contractId !== contractId) throw new Error("Freighter returned a different token contract");
+}
+
+/**
+ * Silent check used on load: is this site still allowed in Freighter, and
+ * does Freighter's selected account still match the verified session? Never
+ * prompts. Returns "unknown" when Freighter is unavailable so a missing
+ * extension never signs anyone out.
+ */
+export async function freighterSessionState(expectedAddress: string): Promise<"matches" | "disconnected" | "different" | "unknown"> {
+  try {
+    const allowed = await isAllowed();
+    if (allowed.error) return "unknown";
+    if (!allowed.isAllowed) return "disconnected";
+    const current = await getAddress();
+    if (current.error || !current.address) return "unknown";
+    return current.address === expectedAddress ? "matches" : "different";
+  } catch {
+    return "unknown";
+  }
 }

@@ -13,7 +13,7 @@ import {
   submitPreparedAllowanceWithFreighter,
 } from "@/lib/wallet/mandate-client";
 import type { MandateView, SafeAppConfig, SessionView } from "@/lib/wallet/types";
-import { addTokenToFreighter, connectFreighter, signFreighterTransaction } from "@/lib/wallet/freighter";
+import { addTokenToFreighter, connectFreighter, freighterSessionState, signFreighterTransaction } from "@/lib/wallet/freighter";
 import { sourceIdForMarketplaceService, WEB_SEARCH_INPUTS, type MarketplaceService } from "@/lib/wallet/marketplace-catalog";
 import { PurchaseReport, type PurchaseResult, type ThreadState } from "./AssistantThread";
 import { HallCursor, HallEntry, HallGrain } from "./HallAtmosphere";
@@ -265,6 +265,37 @@ export function WalletChatApp() {
       localStorage.removeItem(key);
     }
   }, [config, session, refreshMandate]);
+
+  /* A verified session outlives Freighter's own connected-apps list. If the
+     site was removed there, or a different account is selected, drop the
+     session so the journey restarts at the threshold instead of claiming a
+     wallet that is no longer attached. Saved mandates stay in this browser. */
+  useEffect(() => {
+    if (!session.authenticated || !session.address) return;
+    let active = true;
+    void freighterSessionState(session.address).then(async (state) => {
+      if (!active || state === "matches" || state === "unknown") return;
+      try {
+        await api("/api/wallet/auth/session", { method: "DELETE", body: "{}" });
+      } catch {
+        return;
+      }
+      if (!active) return;
+      setSession(emptySession);
+      setWalletAddress(null);
+      setMandate(null);
+      setStored(null);
+      setPreparedAllowance(null);
+      setCompletedPurchase(null);
+      setMarketplaceSelected(false);
+      setServiceConfigured(false);
+      setPhase("idle");
+      setNotice(state === "different"
+        ? "Freighter has a different account selected. Connect that wallet to continue."
+        : "Freighter is no longer connected to this site. Connect a wallet to start again.");
+    });
+    return () => { active = false; };
+  }, [session.address, session.authenticated]);
 
   const refreshWalletBalances = useCallback(async () => {
     if (!session.authenticated || !session.address || config?.network !== "mainnet") return;

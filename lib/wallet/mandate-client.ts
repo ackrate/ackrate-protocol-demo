@@ -15,7 +15,7 @@ import type { SafeAppConfig } from "./types";
 import { freighterSigner } from "./freighter";
 import { loadAccountSequence } from "./horizon-account";
 import { registeredMandateIdHex } from "./mandate-id";
-import { installMainnetRpcRetry } from "./rpc-retry";
+import { installMainnetRpcRetry, retryRateLimited } from "./rpc-retry";
 
 if (typeof window !== "undefined" && !window.Buffer) window.Buffer = Buffer;
 
@@ -155,10 +155,37 @@ async function submitAllowance(
   }
 }
 
+/**
+ * Read the latest ledger sequence through the same-origin relay directly.
+ * The relay compacts getLatestLedger to its identity fields (the upstream
+ * response carries megabytes of ledger metadata), and the SDK's parsed
+ * getLatestLedger() now insists on headerXdr/metadataXdr, so the parsed path
+ * fails before Freighter is ever opened. Only the sequence is needed here.
+ */
+export async function latestLedgerSequence(config: SafeAppConfig): Promise<number> {
+  return retryRateLimited(async () => {
+    const response = await fetch(config.rpcUrl, {
+      method: "POST",
+      credentials: "same-origin",
+      cache: "no-store",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ jsonrpc: "2.0", id: "latest-ledger", method: "getLatestLedger", params: {} }),
+    });
+    if (response.status === 429) throw Object.assign(new Error("Stellar RPC is rate limited"), { response });
+    if (!response.ok) throw new Error(`Stellar RPC returned HTTP ${response.status}`);
+    const body = await response.json() as { result?: { sequence?: unknown } };
+    const sequence = body.result?.sequence;
+    if (typeof sequence !== "number" || !Number.isInteger(sequence) || sequence <= 0) {
+      throw new Error("Stellar RPC did not return the latest ledger sequence");
+    }
+    return sequence;
+  });
+}
+
 export async function prepareAllowanceTransaction(config: SafeAppConfig, mandate: IntentMandate): Promise<string> {
   const server = walletRpcServer(config);
   const source = await server.getAccount(mandate.user);
-  const expirationLedger = (await server.getLatestLedger()).sequence + 17_280;
+  const expirationLedger = (await latestLedgerSequence(config)) + 17_280;
   const operation = new Contract(mandate.asset).call(
     "approve",
     new Address(mandate.user).toScVal(),
