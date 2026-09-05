@@ -200,7 +200,8 @@ export function MarketplaceOrb({ variant = "marketplace" }: { variant?: OrbVaria
       scene.add(rimLight);
 
       const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      const clock = new THREE.Clock();
+      const timer = new THREE.Timer();
+      timer.connect(document);
       let dragging = false;
       let pointerId = -1;
       let previousX = 0;
@@ -264,10 +265,11 @@ export function MarketplaceOrb({ variant = "marketplace" }: { variant?: OrbVaria
         targetTiltY = 0.14;
       };
 
-      const animate = () => {
+      const animate = (timestamp?: number) => {
         frame = 0;
         if (!visible || document.hidden || disposed) return;
-        const elapsed = clock.getElapsedTime();
+        timer.update(timestamp);
+        const elapsed = timer.getElapsed();
         interactionRig.rotation.x += (targetTiltX - interactionRig.rotation.x) * 0.055;
         interactionRig.rotation.y += (targetTiltY - interactionRig.rotation.y) * 0.055;
         if (!prefersReducedMotion) {
@@ -328,6 +330,7 @@ export function MarketplaceOrb({ variant = "marketplace" }: { variant?: OrbVaria
         host.removeEventListener("pointercancel", releasePointer);
         host.removeEventListener("pointerleave", onPointerLeave);
         document.removeEventListener("visibilitychange", onVisibility);
+        timer.dispose();
         resources.forEach((resource) => resource.dispose());
         renderer?.dispose();
         renderer?.domElement.remove();

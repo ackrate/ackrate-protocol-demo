@@ -102,6 +102,7 @@ test("the guided wallet completes limit, research, and dual-proof verification s
 
 test("wallet separates mandate registration and token allowance into two deliberate approvals", () => {
   const app = read("components/wallet/WalletChatApp.tsx");
+  const client = read("lib/wallet/mandate-client.ts");
   const activateStart = app.indexOf("const activate = async () =>");
   const retryStart = app.indexOf("const retryAllowance = async () =>");
   const activateSource = app.slice(activateStart, retryStart);
@@ -110,6 +111,10 @@ test("wallet separates mandate registration and token allowance into two deliber
   assert.doesNotMatch(activateSource, /approveWithFreighter/);
   assert.match(app, /Approve \$\{formatUnits\(stored\.maxAmount, stored\.decimals\)\} USDC allowance/);
   assert.match(app, /activeMandateReady = Boolean\(mandateOnline && mandateMatchesConfig && storedFresh && stored\?\.allowanceTx\)/);
+  assert.match(client, /APPROVAL_TIMEBOUND_SECONDS = 10 \* 60/);
+  assert.match(client, /submitted\.status === "TRY_AGAIN_LATER"/);
+  assert.match(client, /submitted\.status === "PENDING" \|\| submitted\.status === "DUPLICATE"/);
+  assert.match(app, /allowanceFailureMessage\(cause\)/);
 });
 
 test("research composer renders and submits Agent402's discovered input schema", () => {

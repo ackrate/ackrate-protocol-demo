@@ -20,6 +20,8 @@ import { installMainnetRpcRetry } from "./rpc-retry";
 if (typeof window !== "undefined" && !window.Buffer) window.Buffer = Buffer;
 
 const INCLUSION_FEE = "100000";
+const APPROVAL_TIMEBOUND_SECONDS = 10 * 60;
+const SUBMISSION_RETRY_DELAYS_MS = Object.freeze([750, 1_500, 2_500]);
 const sleep = (milliseconds: number) => new Promise((resolve) => setTimeout(resolve, milliseconds));
 
 export interface CreateMandateForm {
@@ -130,6 +132,29 @@ async function settle(server: rpc.Server, hash: string): Promise<void> {
   }
 }
 
+async function submitAllowance(
+  server: rpc.Server,
+  transaction: ReturnType<typeof TransactionBuilder.fromXDR>,
+): Promise<string> {
+  for (let attempt = 0; ; attempt += 1) {
+    const submitted = await server.sendTransaction(transaction);
+    if (submitted.status === "PENDING" || submitted.status === "DUPLICATE") {
+      await settle(server, submitted.hash);
+      return submitted.hash;
+    }
+    if (submitted.status === "TRY_AGAIN_LATER") {
+      const delay = SUBMISSION_RETRY_DELAYS_MS[attempt];
+      if (delay === undefined) {
+        throw new Error("the Stellar network stayed busy after three automatic retries");
+      }
+      await sleep(delay);
+      continue;
+    }
+    const resultCode = submitted.errorResult?.result().switch().name;
+    throw new Error(`allowance submission was rejected${resultCode ? ` (${resultCode})` : ""}`);
+  }
+}
+
 export async function approveWithFreighter(config: SafeAppConfig, mandate: IntentMandate): Promise<string> {
   const signer = freighterSigner(mandate.user, config.networkPassphrase);
   const server = walletRpcServer(config);
@@ -147,7 +172,10 @@ export async function approveWithFreighter(config: SafeAppConfig, mandate: Inten
     networkPassphrase: config.networkPassphrase,
   })
     .addOperation(operation)
-    .setTimeout(60)
+    // A short time bound can expire while somebody is reading Freighter's
+    // confirmation screen. Ten minutes still bounds replay while leaving ample
+    // time for an explicit human approval.
+    .setTimeout(APPROVAL_TIMEBOUND_SECONDS)
     .build();
   const prepared = await server.prepareTransaction(built);
   const signed = await signer.signTransaction(prepared.toXDR(), {
@@ -159,10 +187,7 @@ export async function approveWithFreighter(config: SafeAppConfig, mandate: Inten
     throw new Error("allowance signing failed: Freighter returned a different signer address");
   }
   const signedTransaction = TransactionBuilder.fromXDR(signed.signedTxXdr, config.networkPassphrase);
-  const submitted = await server.sendTransaction(signedTransaction);
-  if (submitted.errorResult) throw new Error(`allowance submission failed: ${submitted.status}`);
-  await settle(server, submitted.hash);
-  return submitted.hash;
+  return submitAllowance(server, signedTransaction);
 }
 
 export async function revokeWithFreighter(config: SafeAppConfig, mandate: IntentMandate): Promise<string> {

@@ -127,6 +127,23 @@ function marketplaceSettlement(result: PurchaseResult): { transaction: string; a
     : null;
 }
 
+function allowanceFailureMessage(cause: unknown): string {
+  const detail = cause instanceof Error ? cause.message : String(cause);
+  if (/declin|reject|cancel|closed/i.test(detail) && /freighter|sign/i.test(detail)) {
+    return "Nothing was sent. Click the button again, then confirm the one USDC approval in Freighter.";
+  }
+  if (/too late|expired|time.?bound/i.test(detail)) {
+    return "The approval window expired before submission. Click the button again; the new window lasts ten minutes.";
+  }
+  if (/different signer|different account/i.test(detail)) {
+    return "Freighter changed accounts. Select the same burner wallet, then click the approval button again.";
+  }
+  if (/network stayed busy|TRY_AGAIN_LATER|NOT_FOUND|transport|timeout|fetch/i.test(detail)) {
+    return "Stellar did not accept the approval yet. Your funds are safe—wait a few seconds, then click the button once more.";
+  }
+  return "The USDC approval did not finish. Your registered limit is safe; click the button and approve the one Freighter transaction again.";
+}
+
 function mandateStorageKey(config: SafeAppConfig, address: string): string {
   return `ackrate:mandate:v2:${config.network}:${config.mandateRegistryId}:${address}`;
 }
@@ -490,7 +507,8 @@ export function WalletChatApp() {
       await refreshMandate(next);
       setNotice("Spending limit approved. The agent is ready.");
     } catch (cause) {
-      setError("The limit is registered, but the USDC approval did not finish. Click the button and approve the single Freighter transaction.");
+      console.error("USDC allowance approval failed", cause);
+      setError(allowanceFailureMessage(cause));
       setPhase("idle");
     }
   };
