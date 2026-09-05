@@ -15,14 +15,9 @@ import {
   TriangleAlert,
 } from "lucide-react";
 import type { MarketBrief } from "@/lib/wallet/market-brief";
-import type { Agent402Evidence } from "@/lib/wallet/marketplace-types";
-import { WEB_SEARCH_INPUTS, type MarketplaceInputField, type MarketplaceService } from "@/lib/wallet/marketplace-catalog";
-
-const EXAMPLES = [
-  "What is Solana and what are its main risks?",
-  "How are AI agents using stablecoin payments?",
-  "What changed in the x402 ecosystem this year?",
-];
+import type { Agent402Evidence, Agent402ToolEvidence } from "@/lib/wallet/marketplace-types";
+import { sourceIdForMarketplaceService, WEB_SEARCH_INPUTS, type MarketplaceService } from "@/lib/wallet/marketplace-catalog";
+import { initialServiceInputValues, serializedServiceInputs, type ServiceInputValues } from "./ServiceConfigurator";
 
 export interface PurchaseResult {
   source: { id: string; title: string };
@@ -44,23 +39,6 @@ const DEFAULT_SEARCH_SERVICE: MarketplaceService = {
   schemaSource: "verified-docs",
 };
 
-function initialInputValues(service: MarketplaceService): Record<string, string> {
-  return Object.fromEntries(service.inputs.map((field) => {
-    const example = field.example;
-    const value = Array.isArray(example) ? example.join("\n") : example === null ? "" : String(example);
-    return [field.name, field.name === "q" ? EXAMPLES[0]! : value];
-  }));
-}
-
-function submittedInput(field: MarketplaceInputField, value: string): string | number | boolean | string[] | undefined {
-  const trimmed = value.trim();
-  if (!trimmed && !field.required) return undefined;
-  if (field.type === "number" || field.type === "integer") return Number(trimmed);
-  if (field.type === "boolean") return trimmed === "true";
-  if (field.type === "array") return trimmed.split(/\n|,/).map((item) => item.trim()).filter(Boolean);
-  return trimmed;
-}
-
 interface PendingRecovery {
   pending: true;
   txHash: string;
@@ -76,16 +54,20 @@ export function AssistantThread({
   asset,
   price = "0.02",
   service = DEFAULT_SEARCH_SERVICE,
+  parameters,
   explorerNetwork,
   marketplaceUrl = "https://agent402.tools/stellar",
+  onEditConfiguration,
   onPurchaseComplete,
 }: {
   mandateId: string;
   asset: string;
   price?: string;
   service?: MarketplaceService;
+  parameters?: ServiceInputValues;
   explorerNetwork: "testnet" | "public";
   marketplaceUrl?: string;
+  onEditConfiguration?: () => void;
   onPurchaseComplete: (result: PurchaseResult) => void;
 }) {
   const transport = useMemo(() => new AssistantChatTransport({
@@ -104,8 +86,10 @@ export function AssistantThread({
             asset={asset}
             price={price}
             service={service}
+            parameters={parameters}
             explorerNetwork={explorerNetwork}
             marketplaceUrl={marketplaceUrl}
+            onEditConfiguration={onEditConfiguration}
             onPurchaseComplete={onPurchaseComplete}
           />
         </ThreadPrimitive.Viewport>
@@ -119,19 +103,23 @@ function ResearchPurchase({
   asset,
   price,
   service,
+  parameters,
   explorerNetwork,
   marketplaceUrl,
+  onEditConfiguration,
   onPurchaseComplete,
 }: {
   mandateId: string;
   asset: string;
   price: string;
   service: MarketplaceService;
+  parameters?: ServiceInputValues;
   explorerNetwork: "testnet" | "public";
   marketplaceUrl: string;
+  onEditConfiguration?: () => void;
   onPurchaseComplete: (result: PurchaseResult) => void;
 }) {
-  const [inputValues, setInputValues] = useState<Record<string, string>>(() => initialInputValues(service));
+  const inputValues = parameters ?? initialServiceInputValues(service);
   const [state, setState] = useState<"checking" | "idle" | "running" | "recovery" | "recovering" | "success" | "error">("checking");
   const [result, setResult] = useState<PurchaseResult | null>(null);
   const [recovery, setRecovery] = useState<PendingRecovery | null>(null);
@@ -139,7 +127,6 @@ function ResearchPurchase({
   const publishedTx = useRef<string | null>(null);
   const primaryField = service.inputs.find((field) => field.required && field.type === "string") ?? service.inputs[0];
   const question = primaryField ? inputValues[primaryField.name] ?? "" : "";
-  const optionalFields = service.inputs.filter((field) => field.name !== primaryField?.name);
 
   useEffect(() => {
     if (!result || publishedTx.current === result.payment.txHash) return;
@@ -183,8 +170,13 @@ function ResearchPurchase({
 
   const createReport = async () => {
     const normalized = question.replace(/\s+/g, " ").trim();
-    if (normalized.length < 3 || normalized.length > 400) {
-      setError("Enter a question between 3 and 400 characters.");
+    if (!normalized || (service.id === "search" && (normalized.length < 3 || normalized.length > 400))) {
+      setError(service.id === "search" ? "Enter a question between 3 and 400 characters." : "Return to Configure and enter the required service input.");
+      return;
+    }
+    const sourceId = sourceIdForMarketplaceService(service);
+    if (!sourceId) {
+      setError("This marketplace service is not enabled for a live payment in this release.");
       return;
     }
     setState("running");
@@ -192,15 +184,17 @@ function ResearchPurchase({
     setRecovery(null);
     setError(null);
     try {
-      const parameters = Object.fromEntries(service.inputs.flatMap((field) => {
-        const value = submittedInput(field, inputValues[field.name] ?? "");
-        return value === undefined ? [] : [[field.name, value]];
-      }));
+      const submittedParameters = serializedServiceInputs(service, inputValues);
       const response = await fetch("/api/wallet/purchase", {
         method: "POST",
         credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mandateId, sourceId: "agent402-research", question: normalized, parameters }),
+        body: JSON.stringify({
+          mandateId,
+          sourceId,
+          question: service.id === "search" ? normalized : undefined,
+          parameters: submittedParameters,
+        }),
       });
       const body = await response.json() as { ok: boolean; result?: unknown; error?: string };
       if (!response.ok || !body.ok || !isPurchaseResult(body.result)) {
@@ -253,58 +247,23 @@ function ResearchPurchase({
         <a href={marketplaceUrl} target="_blank" rel="noreferrer">Open marketplace <ArrowUpRight size={13} /></a>
       </div>
 
-      <div className="question-block agent402-composer">
-        <label htmlFor="research-question">What are you searching for?</label>
-        {primaryField && <textarea
-          id="research-question"
-          value={question}
-          onChange={(event) => setInputValues((current) => ({ ...current, [primaryField.name]: event.target.value }))}
-          maxLength={primaryField.name === "q" ? 400 : 2_000}
-          rows={4}
-          disabled={busy || state === "recovery"}
-          placeholder={primaryField.example ? String(primaryField.example) : primaryField.description}
-        />}
-        <div className="example-row" aria-label="Example research questions">
-          {EXAMPLES.map((example, index) => (
-            <button type="button" key={example} onClick={() => primaryField && setInputValues((current) => ({ ...current, [primaryField.name]: example }))} disabled={busy || state === "recovery"}>
-              {index + 1}
-            </button>
+      <div className="question-block configured-request">
+        <span className="configured-request-label">CONFIGURED REQUEST</span>
+        <strong>{question}</strong>
+        <div>
+          {Object.entries(inputValues).filter(([, value]) => value.trim()).map(([name, value]) => (
+            <span key={name}><small>{name}</small><code>{value.length > 80 ? `${value.slice(0, 77)}…` : value}</code></span>
           ))}
-          <span>{question.length}/400</span>
         </div>
+        {onEditConfiguration && <button type="button" onClick={onEditConfiguration} disabled={busy || state === "recovery"}>Edit inputs</button>}
       </div>
-
-      {optionalFields.length > 0 && (
-        <details className="service-parameters">
-          <summary><span>Search options</span><small>{optionalFields.length} optional parameters</small></summary>
-          <div className="service-parameter-grid">
-            {optionalFields.map((field) => (
-              <label key={field.name}>
-                <span>{field.name}{field.required ? " *" : ""}</span>
-                {field.options.length > 0 ? (
-                  <select value={inputValues[field.name] ?? ""} onChange={(event) => setInputValues((current) => ({ ...current, [field.name]: event.target.value }))} disabled={busy || state === "recovery"}>
-                    {!field.required && <option value="">Default</option>}
-                    {field.options.map((option) => <option value={option} key={option}>{option}</option>)}
-                  </select>
-                ) : field.type === "boolean" ? (
-                  <select value={inputValues[field.name] ?? ""} onChange={(event) => setInputValues((current) => ({ ...current, [field.name]: event.target.value }))} disabled={busy || state === "recovery"}><option value="">Default</option><option value="true">Yes</option><option value="false">No</option></select>
-                ) : (
-                  <input type={field.type === "number" || field.type === "integer" ? "number" : "text"} value={inputValues[field.name] ?? ""} onChange={(event) => setInputValues((current) => ({ ...current, [field.name]: event.target.value }))} placeholder={field.example === null ? "Default" : String(field.example)} disabled={busy || state === "recovery"} />
-                )}
-                <small>{field.description}</small>
-              </label>
-            ))}
-          </div>
-          <p>Inputs loaded from Agent402&apos;s machine-readable schema.</p>
-        </details>
-      )}
 
       <div className="payment-path" aria-label="Payment and delivery path">
         <div><ShieldCheck size={16} /><span><small>01</small><strong>Contract checks mandate</strong></span></div>
         <ArrowRight size={14} />
         <div><CircleDollarSign size={16} /><span><small>02</small><strong>Agent pays marketplace</strong></span></div>
         <ArrowRight size={14} />
-        <div><Search size={16} /><span><small>03</small><strong>Cited report returns</strong></span></div>
+        <div><Search size={16} /><span><small>03</small><strong>{service.id === "search" ? "Cited report returns" : "Service output returns"}</strong></span></div>
       </div>
 
       <button className="research-button" type="button" onClick={action} disabled={busy || (state !== "recovery" && question.trim().length < 3)}>
@@ -313,7 +272,7 @@ function ResearchPurchase({
         {state === "running" && "Buying evidence and writing report…"}
         {state === "recovering" && "Recovering paid report…"}
         {state === "recovery" && "Recover report — no new charge"}
-        {!busy && state !== "recovery" && `Create report · ${price} ${asset}`}
+        {!busy && state !== "recovery" && `Run ${service.name} · ${price} ${asset}`}
       </button>
 
       <p className="autonomy-note">No wallet popup is needed for each report. The agent can spend only inside the mandate you already approved.</p>
@@ -332,7 +291,7 @@ function ResearchPurchase({
         </div>
       )}
 
-      {result && <a className="report-ready-notice" href="#paid-research-brief"><span><Check size={14} /></span><div><strong>Report ready</strong><p>View the report and both payment proofs below.</p></div><ArrowUpRight size={14} /></a>}
+      {result && <a className="report-ready-notice" href="#paid-service-output"><span><Check size={14} /></span><div><strong>Output ready</strong><p>View the result and both payment proofs below.</p></div><ArrowUpRight size={14} /></a>}
     </div>
   );
 }
@@ -382,6 +341,7 @@ function parseBrief(value: unknown): MarketBrief | null {
     || !Array.isArray(brief.sources)
     || brief.findings.length === 0
     || brief.sources.length === 0
+    || (brief.editorialPasses !== undefined && (!Number.isInteger(brief.editorialPasses) || brief.editorialPasses < 1 || brief.editorialPasses > 2))
   ) return null;
   const findingsValid = brief.findings.every((finding) => typeof finding?.number === "string" && typeof finding.title === "string" && typeof finding.body === "string");
   const sourcesValid = brief.sources.every((source) => {
@@ -391,7 +351,7 @@ function parseBrief(value: unknown): MarketBrief | null {
   return findingsValid && sourcesValid ? brief as MarketBrief : null;
 }
 
-function parseMarketplace(value: unknown): Agent402Evidence | null {
+function parseMarketplace(value: unknown): Agent402Evidence | Agent402ToolEvidence | null {
   if (typeof value !== "object" || value === null) return null;
   const marketplace = (value as { marketplace?: unknown }).marketplace;
   if (typeof marketplace !== "object" || marketplace === null) return null;
@@ -399,11 +359,25 @@ function parseMarketplace(value: unknown): Agent402Evidence | null {
   if (
     evidence.discovery?.marketplace !== "Agent402"
     || evidence.settlement?.network !== "stellar:pubnet"
-    || evidence.settlement.amount !== "0.02"
+    || typeof evidence.settlement.amount !== "string"
     || typeof evidence.settlement.transaction !== "string"
     || !/^[0-9a-f]{64}$/i.test(evidence.settlement.transaction)
   ) return null;
   return evidence as Agent402Evidence;
+}
+
+function parseToolDelivery(value: unknown): { service: Agent402ToolEvidence["service"]; output: unknown } | null {
+  if (typeof value !== "object" || value === null) return null;
+  const delivered = value as { service?: unknown; toolOutput?: unknown };
+  if (typeof delivered.service !== "object" || delivered.service === null || delivered.toolOutput === undefined) return null;
+  const service = delivered.service as Partial<Agent402ToolEvidence["service"]>;
+  if (
+    typeof service.slug !== "string"
+    || typeof service.name !== "string"
+    || (service.method !== "GET" && service.method !== "POST")
+    || typeof service.route !== "string"
+  ) return null;
+  return { service: service as Agent402ToolEvidence["service"], output: delivered.toolOutput };
 }
 
 function shortHash(value: string): string {
@@ -440,6 +414,7 @@ export function PurchaseReport({
 }) {
   const brief = parseBrief(result.delivered);
   const marketplace = parseMarketplace(result.delivered);
+  const toolDelivery = parseToolDelivery(result.delivered);
   const briefRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
@@ -458,10 +433,60 @@ export function PurchaseReport({
     briefRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [result.payment.txHash]);
 
-  if (!brief || !marketplace) return null;
+  if (!marketplace) return null;
+
+  if (!brief && toolDelivery) {
+    const outputRecord = typeof toolDelivery.output === "object" && toolDelivery.output !== null && !Array.isArray(toolDelivery.output)
+      ? toolDelivery.output as Record<string, unknown>
+      : null;
+    const textOutput = typeof outputRecord?.text === "string" ? outputRecord.text : null;
+    const download = () => {
+      const content = textOutput ?? JSON.stringify(toolDelivery.output, null, 2);
+      const blob = new Blob([content], { type: textOutput ? "text/plain;charset=utf-8" : "application/json" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${toolDelivery.service.slug}-result.${textOutput ? "txt" : "json"}`;
+      link.click();
+      URL.revokeObjectURL(url);
+    };
+    return (
+      <section id="paid-service-output" className="report-section shell tool-output-section" ref={briefRef} aria-labelledby="tool-output-title">
+        <header className="report-section-head">
+          <p className="eyebrow success">SERVICE COMPLETE</p>
+          <h2 id="tool-output-title">{toolDelivery.service.name} returned a verified result.</h2>
+          <p>The output and both Mainnet payment transactions are available in one receipt.</p>
+        </header>
+        <div className="tool-output-layout">
+          <aside className="report-rail report-proof-rail" aria-label="Payment proof">
+            <div className="report-rail-heading"><span><Check size={14} /></span><div><small>PAYMENT TRAIL</small><strong>2 of 2 settled</strong></div></div>
+            <div className="report-amount"><small>Contract-enforced price</small><strong>{result.payment.amount} <span>{result.payment.asset}</span></strong></div>
+            <ProofLink label="Mandate settlement" hash={result.payment.txHash} explorerNetwork={explorerNetwork} />
+            <ProofLink label="Agent402 x402" hash={marketplace.settlement.transaction} explorerNetwork="public" />
+            {registrationTx && <ProofLink label="Mandate registration" hash={registrationTx} explorerNetwork={explorerNetwork} />}
+            {allowanceTx && <ProofLink label="USDC allowance" hash={allowanceTx} explorerNetwork={explorerNetwork} />}
+          </aside>
+          <article className="tool-output-document">
+            <div className="tool-output-toolbar">
+              <span><small>LIVE AGENT402 OUTPUT</small><strong>{toolDelivery.service.method} {toolDelivery.service.route}</strong></span>
+              <button type="button" onClick={download}>Download {textOutput ? "text" : "JSON"}</button>
+            </div>
+            {outputRecord && <div className="tool-output-facts">
+              {Object.entries(outputRecord).filter(([key, value]) => key !== "text" && ["string", "number", "boolean"].includes(typeof value)).slice(0, 8).map(([key, value]) => (
+                <div key={key}><small>{key}</small><strong>{String(value)}</strong></div>
+              ))}
+            </div>}
+            <pre>{textOutput ?? JSON.stringify(toolDelivery.output, null, 2)}</pre>
+          </article>
+        </div>
+      </section>
+    );
+  }
+
+  if (!brief || !("count" in marketplace)) return null;
 
   return (
-    <section id="paid-research-brief" className="report-section shell" ref={briefRef} aria-labelledby="research-brief-title">
+    <section id="paid-service-output" className="report-section shell" ref={briefRef} aria-labelledby="research-brief-title">
       <header className="report-section-head">
         <p className="eyebrow success">REPORT COMPLETE</p>
         <h2>Research with a complete payment trail.</h2>
@@ -486,7 +511,7 @@ export function PurchaseReport({
             <div className="brief-kicker"><span />{brief.kicker}</div>
             <h2 id="research-brief-title">{brief.title}</h2>
             <p>{brief.subtitle}</p>
-            <div className="brief-meta"><span>LIVE WEB EVIDENCE</span><span>PAID IN {result.payment.asset}</span><span>VERIFIED ON STELLAR</span></div>
+            <div className="brief-meta"><span>LIVE WEB EVIDENCE</span><span>PAID IN {result.payment.asset}</span><span>{brief.editorialPasses === 2 ? "TWO-MODEL REVIEW" : "MODEL REVIEW"}</span><span>VERIFIED ON STELLAR</span></div>
           </header>
           <div className="brief-body">
             <p className="brief-opening">{brief.opening}</p>

@@ -154,8 +154,8 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000). The public demos remain on
 Stellar testnet. The navigation-listed `/wallet` canary is separately pinned to the
-verified mainnet MandateRegistry and Circle USDC, uses Freighter, charges 0.01
-USDC per purchase, and stays gated unless every production variable is present.
+verified mainnet MandateRegistry and Circle USDC, uses Freighter, charges 0.02
+USDC per web-search purchase, and stays gated unless every production variable is present.
 
 Run the hackathon gate check before changing the starter library:
 

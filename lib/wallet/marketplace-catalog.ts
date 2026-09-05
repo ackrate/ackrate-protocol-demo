@@ -23,10 +23,30 @@ export interface MarketplaceService {
   schemaSource: "agent402-find" | "verified-docs" | "unavailable";
 }
 
+const RUNNABLE_AGENT402_SERVICES = {
+  search: { method: "GET", path: "/api/search", price: "0.02", sourceId: "agent402-research" },
+  pdf: { method: "POST", path: "/api/pdf", price: "0.01", sourceId: "agent402-pdf" },
+  "pdf-info": { method: "POST", path: "/api/pdf-info", price: "0.002", sourceId: "agent402-pdf-info" },
+} as const;
+
+export function sourceIdForMarketplaceService(service: MarketplaceService): string | null {
+  const expected = RUNNABLE_AGENT402_SERVICES[service.id as keyof typeof RUNNABLE_AGENT402_SERVICES];
+  return expected
+    && service.method === expected.method
+    && service.path === expected.path
+    && service.price === expected.price
+    ? expected.sourceId
+    : null;
+}
+
 export const WEB_SEARCH_INPUTS: MarketplaceInputField[] = [
   { name: "q", type: "string", description: "Search query (max 400 chars)", required: true, options: [], example: "What is Solana?" },
   { name: "count", type: "number", description: "Results to return, 1-20 (default 10)", required: false, options: [], example: 10 },
   { name: "freshness", type: "string", description: "Optional: pd, pw, pm, or py (past day/week/month/year)", required: false, options: [], example: null },
+];
+
+export const PDF_URL_INPUTS: MarketplaceInputField[] = [
+  { name: "url", type: "string", description: "Public http(s) URL of a PDF", required: true, options: [], example: "https://bitcoin.org/bitcoin.pdf" },
 ];
 
 const EndpointSchema = z.object({
@@ -134,8 +154,21 @@ export const FALLBACK_MARKETPLACE_SERVICES: MarketplaceService[] = [
     path: "/api/pdf",
     price: "0.01",
     docs: "https://agent402.tools/tools/pdf",
-    inputs: [],
-    schemaSource: "unavailable",
+    inputs: PDF_URL_INPUTS,
+    schemaSource: "verified-docs",
+  },
+  {
+    id: "pdf-info",
+    name: "PDF info",
+    description: "Inspect a PDF's page count, title, encryption state, and byte size without loading the full document into a model.",
+    category: "web",
+    categoryLabel: "Web & documents",
+    method: "POST",
+    path: "/api/pdf-info",
+    price: "0.002",
+    docs: "https://agent402.tools/tools/pdf-info",
+    inputs: [{ ...PDF_URL_INPUTS[0]!, description: "Public URL of the PDF", example: "https://arxiv.org/pdf/1706.03762" }],
+    schemaSource: "verified-docs",
   },
   {
     id: "v1-chat-grounded",

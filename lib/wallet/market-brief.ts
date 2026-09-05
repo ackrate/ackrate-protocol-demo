@@ -9,6 +9,7 @@ export interface MarketBrief {
   question?: string;
   generatedAt?: string;
   methodology?: string;
+  editorialPasses?: number;
 }
 
 export const MARKET_SIGNAL_BRIEF: MarketBrief = {

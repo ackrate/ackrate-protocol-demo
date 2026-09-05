@@ -314,6 +314,17 @@ export class OpenAIProvider implements LlmProvider {
 // ---- failover wrapper ----
 
 export type ProviderSwitch = { from: string; to: string; reason: string };
+export type LlmCompletion = {
+  response: LlmResponse;
+  switches: ProviderSwitch[];
+  engine: string;
+  providerId: string;
+};
+
+export interface LlmCompletionOptions {
+  /** Skip a provider already used for an earlier editorial pass. */
+  excludeProviderId?: string;
+}
 
 export class FailoverLlm {
   constructor(private readonly providers: LlmProvider[]) {
@@ -332,20 +343,25 @@ export class FailoverLlm {
   async complete(
     req: LlmRequest,
     tier: Tier,
-  ): Promise<{ response: LlmResponse; switches: ProviderSwitch[]; engine: string }> {
+    options: LlmCompletionOptions = {},
+  ): Promise<LlmCompletion> {
     const switches: ProviderSwitch[] = [];
     let lastError: unknown;
+    const providers = this.providers.filter((provider) => provider.id !== options.excludeProviderId);
+    if (providers.length === 0) {
+      throw new AllProvidersExhausted(new Error("No distinct LLM provider is configured"));
+    }
 
-    for (let i = 0; i < this.providers.length; i++) {
-      const provider = this.providers[i];
+    for (let i = 0; i < providers.length; i++) {
+      const provider = providers[i];
       try {
         const response = await provider.complete(req, tier);
-        return { response, switches, engine: provider.engineName(tier) };
+        return { response, switches, engine: provider.engineName(tier), providerId: provider.id };
       } catch (err) {
         lastError = err;
         const { kind, failover } = classifyError(err);
         if (!failover) throw err;
-        const next = this.providers[i + 1];
+        const next = providers[i + 1];
         if (next) switches.push({ from: provider.engineName(tier), to: next.engineName(tier), reason: KIND_LABEL[kind] });
       }
     }

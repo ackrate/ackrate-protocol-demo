@@ -12,7 +12,12 @@ import { attachMarketBriefToPurchaseResult } from "./market-brief";
 import { assertMandateBindings, readMandate } from "./mandate-state";
 import { installMainnetAccountFallback } from "./rpc-account-fallback";
 import { installMainnetRpcRetry } from "./rpc-retry";
-import { normalizeAgent402SearchInput, normalizeResearchQuestion, preflightAgent402Research } from "./agent402";
+import { normalizeAgent402SearchInput, normalizeResearchQuestion, preflightAgent402Tool } from "./agent402";
+import {
+  agent402InternalQuery,
+  normalizeAgent402ToolInput,
+  supportedAgent402ToolForSource,
+} from "./agent402-tools";
 import { ensureAgentUsdcTrustline } from "./trustline";
 
 export interface PurchaseInput {
@@ -76,9 +81,13 @@ function catalogItemForReceipt(config: AppConfig, receipt: { url: string; method
     && candidate.price === receipt.amount
   ));
   if (!item) throw new Error("retained settlement receipt does not match an allowlisted purchase");
-  const allowedParams = item.id === "agent402-research" ? new Set(["q", "count", "freshness"]) : new Set<string>();
+  const tool = supportedAgent402ToolForSource(item.id);
+  const allowedParams = new Set(tool?.parameterNames ?? []);
   if ([...retained.searchParams.keys()].some((key) => !allowedParams.has(key))) {
     throw new Error("retained settlement receipt has unexpected query parameters");
+  }
+  if (tool) {
+    normalizeAgent402ToolInput(tool.slug, Object.fromEntries(retained.searchParams));
   }
   const question = item.id === "agent402-research"
     ? normalizeResearchQuestion(retained.searchParams.get("q") ?? "")
@@ -229,8 +238,12 @@ export async function purchaseCatalogItem(input: PurchaseInput): Promise<unknown
   if (!config.merchantUrl) throw new Error("payment execution is not configured");
   const item = config.public.catalog.find((candidate) => candidate.id === input.sourceId);
   if (!item) throw new Error("the requested source is not in the server allowlist");
-  const searchInput = item.id === "agent402-research"
-    ? normalizeAgent402SearchInput(input.parameters ?? { q: input.question ?? "" })
+  const tool = supportedAgent402ToolForSource(item.id);
+  const toolInput = tool
+    ? normalizeAgent402ToolInput(tool.slug, input.parameters ?? { q: input.question ?? "" })
+    : null;
+  const searchInput = tool?.slug === "search" && toolInput
+    ? normalizeAgent402SearchInput(toolInput)
     : null;
   const question = searchInput?.q ?? null;
   const reservation = await reserveToolCall({
@@ -250,8 +263,8 @@ export async function purchaseCatalogItem(input: PurchaseInput): Promise<unknown
 
   const amount = toStroops(item.price, config.public.asset.decimals);
   if (BigInt(context.onChain.remaining) < amount) throw new Error("the contract mandate does not have enough remaining budget");
-  if (item.id === "agent402-research" && searchInput) {
-    await preflightAgent402Research(searchInput, config.public.asset.contractId);
+  if (tool && toolInput) {
+    await preflightAgent402Tool(tool, toolInput, config.public.asset.contractId);
     // The contract pays the relay before fulfillment runs. Its Circle USDC
     // trustline must therefore exist before execute_payment is submitted.
     await ensureAgentUsdcTrustline(config);
@@ -259,10 +272,8 @@ export async function purchaseCatalogItem(input: PurchaseInput): Promise<unknown
   const receiptStore = new DurableReceiptStore(input.sessionId, input.mandateId);
   const consumer = agentFor(config, context, receiptStore);
   const paidUrl = new URL(item.path, config.merchantUrl);
-  if (searchInput) {
-    paidUrl.searchParams.set("q", searchInput.q);
-    paidUrl.searchParams.set("count", String(searchInput.count));
-    if (searchInput.freshness) paidUrl.searchParams.set("freshness", searchInput.freshness);
+  if (tool && toolInput) {
+    for (const [name, value] of agent402InternalQuery(tool, toolInput)) paidUrl.searchParams.set(name, value);
   }
   const url = paidUrl.toString();
   let deliveredReceipt: ReturnType<typeof getSettlementReceipt>;

@@ -15,6 +15,20 @@ const DEFAULT_CATALOG: CatalogItem[] = [
     path: "/api/wallet/source/agent402-research",
     price: "0.02",
   },
+  {
+    id: "agent402-pdf",
+    title: "PDF to text",
+    description: "Text extracted from a public PDF by the live Agent402 Stellar marketplace service.",
+    path: "/api/wallet/source/agent402-pdf",
+    price: "0.01",
+  },
+  {
+    id: "agent402-pdf-info",
+    title: "PDF information",
+    description: "Document metadata inspected by the live Agent402 Stellar marketplace service.",
+    path: "/api/wallet/source/agent402-pdf-info",
+    price: "0.002",
+  },
 ];
 
 export interface AppConfig {

@@ -46,20 +46,21 @@ test("connecting Freighter never creates or signs a Mainnet transaction", () => 
 test("wallet marketplace step selects the external Stellar service without moving funds", () => {
   const app = read("components/wallet/WalletChatApp.tsx");
   const orb = read("components/wallet/MarketplaceOrb.tsx");
+  const configurator = read("components/wallet/ServiceConfigurator.tsx");
   const styles = read("app/wallet/wallet-flow.css");
   const catalogRoute = read("app/api/wallet/marketplace/services/route.ts");
 
   assert.match(app, /https:\/\/agent402\.tools\/stellar/);
-  assert.match(app, /STEP 2 OF 5/);
+  assert.match(app, /STEP 2 OF 6/);
   assert.match(app, /Search web, research, scraper, PDF/);
   assert.match(app, /marketplaceDraft\.name/);
   assert.match(app, /changeMarketplaceService/);
   assert.match(app, /JSON\.stringify\(marketplaceDraft\)/);
   assert.match(app, /\/api\/wallet\/marketplace\/services\?q=/);
   assert.match(app, /Choosing a service does not move funds/);
-  assert.match(app, /isGuidedResearchService/);
-  assert.match(app, /Switch to Web search/);
-  assert.match(app, /Other Agent402 tools need different inputs/);
+  assert.match(app, /isRunnableMarketplaceService/);
+  assert.match(app, /Configure \{marketplaceDraft\.name\}/);
+  assert.match(app, /LIVE PAYMENT READY/);
   assert.match(catalogRoute, /https:\/\/agent402\.tools\/api\/pricing/);
   assert.match(catalogRoute, /https:\/\/agent402\.tools\/api\/find/);
   assert.match(catalogRoute, /parseMarketplaceFind/);
@@ -77,7 +78,12 @@ test("wallet marketplace step selects the external Stellar service without movin
   assert.match(orb, /ResizeObserver/);
   assert.match(orb, /IntersectionObserver/);
   assert.match(orb, /pointerdown/);
+  assert.match(orb, /pointerenter/);
   assert.match(orb, /setPointerCapture/);
+  assert.match(orb, /new THREE\.TorusKnotGeometry/);
+  assert.match(orb, /new THREE\.InstancedMesh/);
+  assert.match(orb, /new THREE\.EdgesGeometry/);
+  assert.match(orb, /new THREE\.PointLight/);
   assert.match(orb, /prefers-reduced-motion: reduce/);
   assert.match(orb, /renderer\.dispose\(\)/);
   assert.match(orb, /DRAG TO ORBIT/);
@@ -85,13 +91,15 @@ test("wallet marketplace step selects the external Stellar service without movin
   assert.match(styles, /marketplace-orb\.brand-orb/);
   assert.match(styles, /data-renderer="webgpu"/);
   assert.match(app, /service-inputs/);
+  assert.match(configurator, /service\.inputs\.map/);
+  assert.match(configurator, /LIVE AGENT402 SCHEMA/);
 });
 
 test("the guided wallet completes limit, research, and dual-proof verification stages", () => {
   const app = read("components/wallet/WalletChatApp.tsx");
   const styles = read("app/wallet/wallet-flow.css");
 
-  for (const copy of ["STEP 3 OF 5", "STEP 4 OF 5", "STEP 5 OF 5", "Your funds stay in your wallet", "ACKRATE CONTRACT", "AGENT402 x402", "Read the cited report"]) {
+  for (const copy of ["STEP 3 OF 6", "STEP 4 OF 6", "STEP 5 OF 6", "STEP 6 OF 6", "Your funds stay in your wallet", "ACKRATE CONTRACT", "AGENT402 x402", "Read the cited report"]) {
     assert.match(app, new RegExp(copy));
   }
   assert.match(app, /walletBalances\?\.hasUsdcTrustline/);
@@ -120,13 +128,15 @@ test("wallet separates mandate registration and token allowance into two deliber
 test("research composer renders and submits Agent402's discovered input schema", () => {
   const app = read("components/wallet/WalletChatApp.tsx");
   const thread = read("components/wallet/AssistantThread.tsx");
+  const configurator = read("components/wallet/ServiceConfigurator.tsx");
   const purchase = read("app/api/wallet/purchase/route.ts");
 
   assert.match(app, /service=\{marketplaceService\}/);
-  assert.match(thread, /service\.inputs\.map/);
-  assert.match(thread, /Inputs loaded from Agent402/);
+  assert.match(configurator, /service\.inputs\.map/);
+  assert.match(configurator, /LIVE AGENT402 SCHEMA/);
   assert.match(thread, /parameters/);
-  assert.match(purchase, /freshness: z\.enum\(\["pd", "pw", "pm", "py"\]\)/);
+  assert.match(purchase, /parameters: z\.record/);
+  assert.match(purchase, /z\.string\(\)\.max\(4_000\)/);
 });
 
 test("wallet keeps the contract governance multisig separate from consumer setup", () => {
@@ -167,7 +177,7 @@ test("wallet exposes a direct real-payment control that does not let the chat mo
   const purchase = read("app/api/wallet/purchase/route.ts");
   const recovery = read("app/api/wallet/purchase/recovery/route.ts");
 
-  assert.match(thread, /Create report · \$\{price\} \$\{asset\}/);
+  assert.match(thread, /Run \$\{service\.name\} · \$\{price\} \$\{asset\}/);
   assert.match(thread, /"\/api\/wallet\/purchase"/);
   assert.match(purchase, /purchaseCatalogItem/);
   assert.match(purchase, /requireSession/);
@@ -325,6 +335,7 @@ test("a paid report renders below the flow with side rails for proof and purchas
   const thread = read("components/wallet/AssistantThread.tsx");
   const fulfillment = read("lib/wallet/fulfillment.ts");
   const brief = read("lib/wallet/market-brief.ts");
+  const report = read("lib/wallet/marketplace-report.ts");
 
   assert.match(thread, /className="research-brief report-document"/);
   assert.match(thread, /THE TAKEAWAY/);
@@ -337,8 +348,11 @@ test("a paid report renders below the flow with side rails for proof and purchas
   assert.match(app, /<PurchaseReport/);
   assert.ok(app.lastIndexOf('className={`flow-shell') < app.lastIndexOf("<PurchaseReport"));
   assert.match(fulfillment, /runAgent402Research/);
-  assert.match(fulfillment, /marketplace: research\?\.marketplace/);
+  assert.match(fulfillment, /marketplace: marketplaceResult\?\.marketplace/);
   assert.match(brief, /attachMarketBriefToPurchaseResult/);
+  assert.match(report, /excludeProviderId: firstPass\.providerId/);
+  assert.match(report, /editorialPasses = 2/);
+  assert.match(thread, /TWO-MODEL REVIEW/);
 });
 
 test("a retained paid report opens automatically and pending delivery reuses the paid receipt", () => {
@@ -356,7 +370,7 @@ test("wallet journey uses plain action language", () => {
   const app = read("components/wallet/WalletChatApp.tsx");
   const thread = read("components/wallet/AssistantThread.tsx");
 
-  for (const label of ["Connect wallet", "Set the spending limit", "Approve ${budget || \"0\"} USDC limit", "Create report", "Turn off spending", "Disconnect wallet"]) {
+  for (const label of ["Connect wallet", "Configure {marketplaceDraft.name}", "Set the spending limit", "Approve ${budget || \"0\"} USDC limit", "Run ${service.name}", "Open service output", "Turn off spending", "Disconnect wallet"]) {
     assert.match(`${app}\n${thread}`, new RegExp(label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
   }
   assert.doesNotMatch(app, /Mandate control room|Freighter authority|Authenticated account|Set the boundary|Active mandate|Revoke authority|Spending envelope|Verifiable by default/);

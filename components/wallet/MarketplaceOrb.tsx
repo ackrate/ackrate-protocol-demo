@@ -70,7 +70,7 @@ export function MarketplaceOrb({ variant = "marketplace" }: { variant?: OrbVaria
 
       const scene = new THREE.Scene();
       const camera = new THREE.PerspectiveCamera(31, 1, 0.1, 100);
-      camera.position.z = variant === "brand" ? 4.1 : 4.4;
+      camera.position.z = variant === "brand" ? 5.45 : variant === "marketplace" ? 5.25 : 4.65;
 
       const interactionRig = new THREE.Group();
       const model = new THREE.Group();
@@ -83,28 +83,47 @@ export function MarketplaceOrb({ variant = "marketplace" }: { variant?: OrbVaria
         return resource;
       };
 
-      const coreGeometry = track(new THREE.IcosahedronGeometry(0.7, variant === "brand" ? 2 : 4));
+      const coreGeometry = track(new THREE.IcosahedronGeometry(0.55, variant === "brand" ? 2 : 4));
       const coreMaterial = track(new THREE.MeshPhysicalMaterial({
-        color: 0xeeeeee,
-        emissive: 0x141414,
-        metalness: 0.88,
-        roughness: 0.16,
+        color: 0x111111,
+        emissive: 0x202020,
+        emissiveIntensity: 0.7,
+        metalness: 0.96,
+        roughness: 0.1,
         clearcoat: 1,
-        clearcoatRoughness: 0.1,
+        clearcoatRoughness: 0.04,
       }));
       const core = new THREE.Mesh(coreGeometry, coreMaterial);
       model.add(core);
 
-      const innerGeometry = track(new THREE.OctahedronGeometry(0.34, 1));
+      const innerGeometry = track(new THREE.TorusKnotGeometry(0.39, 0.072, variant === "brand" ? 48 : 96, 10, 2, 3));
       const innerMaterial = track(new THREE.MeshStandardMaterial({
         color: 0xffffff,
-        emissive: 0x454545,
-        emissiveIntensity: 0.72,
+        emissive: 0x5f5f5f,
+        emissiveIntensity: 1.15,
         metalness: 1,
-        roughness: 0.08,
+        roughness: 0.06,
       }));
       const inner = new THREE.Mesh(innerGeometry, innerMaterial);
       model.add(inner);
+
+      const glassGeometry = track(new THREE.IcosahedronGeometry(0.78, variant === "brand" ? 1 : 2));
+      const glassMaterial = track(new THREE.MeshPhysicalMaterial({
+        color: 0xffffff,
+        transparent: true,
+        opacity: variant === "brand" ? 0.12 : 0.18,
+        transmission: variant === "brand" ? 0.15 : 0.34,
+        thickness: 0.38,
+        ior: 1.42,
+        iridescence: 0.35,
+        iridescenceIOR: 1.28,
+        roughness: 0.08,
+        metalness: 0.18,
+        side: THREE.DoubleSide,
+        depthWrite: false,
+      }));
+      const glass = new THREE.Mesh(glassGeometry, glassMaterial);
+      model.add(glass);
 
       const shellGeometry = track(new THREE.IcosahedronGeometry(1.02, variant === "brand" ? 2 : 3));
       const shellMaterial = track(new THREE.MeshBasicMaterial({
@@ -116,6 +135,18 @@ export function MarketplaceOrb({ variant = "marketplace" }: { variant?: OrbVaria
       }));
       const shell = new THREE.Mesh(shellGeometry, shellMaterial);
       model.add(shell);
+
+      const latticeSource = track(new THREE.IcosahedronGeometry(1.03, variant === "brand" ? 1 : 2));
+      const latticeGeometry = track(new THREE.EdgesGeometry(latticeSource, 10));
+      const latticeMaterial = track(new THREE.LineBasicMaterial({
+        color: 0xffffff,
+        transparent: true,
+        opacity: variant === "brand" ? 0.36 : 0.52,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+      }));
+      const lattice = new THREE.LineSegments(latticeGeometry, latticeMaterial);
+      model.add(lattice);
 
       const auraGeometry = track(new THREE.IcosahedronGeometry(1.11, 1));
       const auraMaterial = track(new THREE.MeshBasicMaterial({
@@ -166,6 +197,22 @@ export function MarketplaceOrb({ variant = "marketplace" }: { variant?: OrbVaria
       }
       model.add(beads);
 
+      const nodeCount = variant === "brand" ? 12 : 34;
+      const nodeGeometry = track(new THREE.SphereGeometry(variant === "brand" ? 0.032 : 0.024, 7, 7));
+      const nodeMaterial = track(new THREE.MeshBasicMaterial({ color: 0xffffff }));
+      const nodes = new THREE.InstancedMesh(nodeGeometry, nodeMaterial, nodeCount);
+      const latticePositions = latticeSource.getAttribute("position");
+      for (let index = 0; index < nodeCount; index += 1) {
+        const vertex = (index * 7) % latticePositions.count;
+        beadMatrix.makeTranslation(
+          latticePositions.getX(vertex),
+          latticePositions.getY(vertex),
+          latticePositions.getZ(vertex),
+        );
+        nodes.setMatrixAt(index, beadMatrix);
+      }
+      model.add(nodes);
+
       const random = seededRandom(4_021);
       const particleCount = variant === "brand" ? 44 : 150;
       const positions = new Float32Array(particleCount * 3);
@@ -198,6 +245,9 @@ export function MarketplaceOrb({ variant = "marketplace" }: { variant?: OrbVaria
       const rimLight = new THREE.PointLight(0x8a8a8a, 8, 7, 2);
       rimLight.position.set(-2.4, -1.1, 1.4);
       scene.add(rimLight);
+      const cursorLight = new THREE.PointLight(0xffffff, variant === "brand" ? 2 : 7, 5, 2);
+      cursorLight.position.set(0, 0, 2.4);
+      scene.add(cursorLight);
 
       const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
       const timer = new THREE.Timer();
@@ -210,6 +260,9 @@ export function MarketplaceOrb({ variant = "marketplace" }: { variant?: OrbVaria
       let velocityY = 0;
       let targetTiltX = -0.08;
       let targetTiltY = 0.14;
+      let targetLightX = 0;
+      let targetLightY = 0;
+      let hovered = false;
       let visible = true;
       let frame = 0;
 
@@ -240,6 +293,8 @@ export function MarketplaceOrb({ variant = "marketplace" }: { variant?: OrbVaria
         const y = (event.clientY - bounds.top) / Math.max(bounds.height, 1) - 0.5;
         targetTiltY = x * 0.45;
         targetTiltX = y * 0.32;
+        targetLightX = x * 3.4;
+        targetLightY = -y * 2.4;
         if (!dragging || event.pointerId !== pointerId) return;
         const dx = event.clientX - previousX;
         const dy = event.clientY - previousY;
@@ -261,9 +316,14 @@ export function MarketplaceOrb({ variant = "marketplace" }: { variant?: OrbVaria
 
       const onPointerLeave = () => {
         if (dragging) return;
+        hovered = false;
         targetTiltX = -0.08;
         targetTiltY = 0.14;
+        targetLightX = 0;
+        targetLightY = 0;
       };
+
+      const onPointerEnter = () => { hovered = true; };
 
       const animate = (timestamp?: number) => {
         frame = 0;
@@ -272,6 +332,12 @@ export function MarketplaceOrb({ variant = "marketplace" }: { variant?: OrbVaria
         const elapsed = timer.getElapsed();
         interactionRig.rotation.x += (targetTiltX - interactionRig.rotation.x) * 0.055;
         interactionRig.rotation.y += (targetTiltY - interactionRig.rotation.y) * 0.055;
+        cursorLight.position.x += (targetLightX - cursorLight.position.x) * 0.08;
+        cursorLight.position.y += (targetLightY - cursorLight.position.y) * 0.08;
+        const targetScale = hovered || dragging ? 1.055 : 1;
+        model.scale.x += (targetScale - model.scale.x) * 0.07;
+        model.scale.y += (targetScale - model.scale.y) * 0.07;
+        model.scale.z += (targetScale - model.scale.z) * 0.07;
         if (!prefersReducedMotion) {
           const baseSpeed = variant === "brand" ? 0.007 : 0.0032;
           if (!dragging) {
@@ -281,9 +347,13 @@ export function MarketplaceOrb({ variant = "marketplace" }: { variant?: OrbVaria
             velocityY *= 0.94;
           }
           core.rotation.y -= baseSpeed * 1.9;
-          inner.rotation.x += baseSpeed * 2.6;
-          inner.rotation.z -= baseSpeed * 1.7;
+          inner.rotation.x += baseSpeed * 3.1;
+          inner.rotation.z -= baseSpeed * 2.2;
+          glass.rotation.y -= baseSpeed * 0.8;
           shell.rotation.y += baseSpeed * 0.7;
+          lattice.rotation.x -= baseSpeed * 0.35;
+          lattice.rotation.y += baseSpeed * 0.52;
+          nodes.rotation.copy(lattice.rotation);
           aura.rotation.z -= baseSpeed * 0.35;
           rings.forEach((ring, index) => { ring.rotation.z += baseSpeed * (0.18 + index * 0.13); });
           particles.rotation.y -= baseSpeed * 0.22;
@@ -312,6 +382,7 @@ export function MarketplaceOrb({ variant = "marketplace" }: { variant?: OrbVaria
       observer.observe(host);
       intersection.observe(host);
       host.addEventListener("pointerdown", onPointerDown);
+      host.addEventListener("pointerenter", onPointerEnter);
       host.addEventListener("pointermove", onPointerMove);
       host.addEventListener("pointerup", releasePointer);
       host.addEventListener("pointercancel", releasePointer);
@@ -325,6 +396,7 @@ export function MarketplaceOrb({ variant = "marketplace" }: { variant?: OrbVaria
         observer.disconnect();
         intersection.disconnect();
         host.removeEventListener("pointerdown", onPointerDown);
+        host.removeEventListener("pointerenter", onPointerEnter);
         host.removeEventListener("pointermove", onPointerMove);
         host.removeEventListener("pointerup", releasePointer);
         host.removeEventListener("pointercancel", releasePointer);

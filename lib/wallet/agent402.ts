@@ -19,7 +19,12 @@ import {
   reserveMarketplaceRun,
 } from "./journal";
 import { createMarketplaceReport } from "./marketplace-report";
-import type { Agent402Evidence, Agent402SearchResult } from "./marketplace-types";
+import type { Agent402Evidence, Agent402SearchResult, Agent402ToolEvidence } from "./marketplace-types";
+import {
+  normalizeAgent402ToolInput,
+  type Agent402ToolInput,
+  type SupportedAgent402Tool,
+} from "./agent402-tools";
 import { ensureAgentUsdcTrustline } from "./trustline";
 
 export const AGENT402_MARKETPLACE_URL = "https://agent402.tools/stellar";
@@ -233,6 +238,253 @@ function paymentClient(config: AppConfig) {
       return requirements[0]!;
     },
   }));
+}
+
+export function selectAgent402StellarRequirementForTool(
+  paymentRequired: PaymentRequired,
+  expectedAsset: string,
+  tool: SupportedAgent402Tool,
+): PaymentRequirements {
+  if (paymentRequired.x402Version !== 2) throw new Error("Agent402 returned an unsupported x402 version");
+  const resource = new URL(paymentRequired.resource.url);
+  const expected = new URL(tool.url);
+  if (resource.origin !== expected.origin || resource.pathname !== expected.pathname) {
+    throw new Error("Agent402 returned a payment challenge for an unexpected resource");
+  }
+  const matches = paymentRequired.accepts.filter((candidate) => (
+    candidate.scheme === "exact"
+    && candidate.network === AGENT402_NETWORK
+    && candidate.asset === expectedAsset
+    && candidate.amount === tool.amountAtomic
+    && Number.isInteger(candidate.maxTimeoutSeconds)
+    && candidate.maxTimeoutSeconds > 0
+    && candidate.maxTimeoutSeconds <= 300
+    && StrKey.isValidEd25519PublicKey(candidate.payTo)
+    && candidate.extra?.areFeesSponsored === true
+  ));
+  if (matches.length !== 1) {
+    throw new Error("Agent402 did not return one exact sponsored Stellar Mainnet USDC payment option");
+  }
+  return matches[0]!;
+}
+
+async function discoverTool(fetcher: Fetcher, tool: SupportedAgent402Tool): Promise<z.infer<typeof DiscoveryCandidate>> {
+  const discoveryUrl = new URL(AGENT402_DISCOVERY_URL);
+  discoveryUrl.searchParams.set("q", tool.name);
+  discoveryUrl.searchParams.set("network", "stellar");
+  discoveryUrl.searchParams.set("include", "all");
+  const response = await timedFetch(fetcher, discoveryUrl, {
+    headers: { Accept: "application/json" },
+    cache: "no-store",
+    redirect: "error",
+  });
+  if (!response.ok) throw new Error(`Agent402 discovery returned HTTP ${response.status}`);
+  const parsed = DiscoveryResponse.parse(await boundedResponseJson(response));
+  const candidate = parsed.results.find((result) => result.seller === "self" && result.slug === tool.slug);
+  if (
+    !candidate
+    || candidate.name !== tool.name
+    || candidate.method !== tool.method
+    || candidate.route !== tool.path
+    || candidate.url !== tool.url
+    || candidate.priceUsd !== Number(tool.price)
+    || candidate.health !== 1
+    || !candidate.paymentNetworksKnown
+    || !candidate.routerDispatchEligible
+  ) throw new Error(`Agent402 discovery did not return the expected healthy ${tool.name} seller`);
+  return candidate;
+}
+
+function toolRequest(tool: SupportedAgent402Tool, input: Agent402ToolInput): { url: string; init: RequestInit } {
+  if (tool.method === "GET") {
+    const url = new URL(tool.url);
+    for (const [name, value] of Object.entries(input)) url.searchParams.set(name, String(value));
+    return { url: url.toString(), init: {} };
+  }
+  return {
+    url: tool.url,
+    init: {
+      body: JSON.stringify(input),
+      headers: { "Content-Type": "application/json" },
+    },
+  };
+}
+
+export async function preflightAgent402Tool(
+  tool: SupportedAgent402Tool,
+  rawInput: unknown,
+  expectedAsset: string,
+  fetcher: Fetcher = globalThis.fetch,
+) {
+  const input = normalizeAgent402ToolInput(tool.slug, rawInput);
+  const seller = await discoverTool(fetcher, tool);
+  const request = toolRequest(tool, input);
+  const unpaid = await timedFetch(fetcher, request.url, {
+    ...request.init,
+    method: tool.method,
+    headers: { Accept: "application/json", ...request.init.headers },
+    cache: "no-store",
+    redirect: "error",
+  });
+  if (unpaid.status !== 402) throw new Error(`Agent402 ${tool.name} did not return a payment challenge`);
+  const body = await boundedResponseJson(unpaid);
+  const paymentRequired = parserOnlyClient().getPaymentRequiredResponse((name) => unpaid.headers.get(name), body);
+  const requirement = selectAgent402StellarRequirementForTool(paymentRequired, expectedAsset, tool);
+  return { input, seller, paymentRequired, requirement, request };
+}
+
+function paymentClientForTool(config: AppConfig, tool: SupportedAgent402Tool) {
+  if (!config.agentSecret) throw new Error("research relay signer is not configured");
+  const signer = createEd25519Signer(config.agentSecret, AGENT402_NETWORK);
+  return new x402HTTPClient(x402Client.fromConfig({
+    schemes: [{
+      network: AGENT402_NETWORK,
+      client: new ExactStellarScheme(signer, { url: config.network.rpcUrl }),
+    }],
+    spendControls: { maxAmountPerPayment: `$${tool.price}` },
+    policies: [(_version, requirements) => requirements.filter((candidate) => (
+      candidate.scheme === "exact"
+      && candidate.network === AGENT402_NETWORK
+      && candidate.asset === config.public.asset.contractId
+      && candidate.amount === tool.amountAtomic
+    ))],
+    paymentRequirementsSelector: (_version, requirements) => {
+      if (requirements.length !== 1) throw new Error("Agent402 payment selection was ambiguous");
+      return requirements[0]!;
+    },
+  }));
+}
+
+function completedToolFromRecord(record: Awaited<ReturnType<typeof getMarketplaceRun>>) {
+  if (!record || record.status !== "complete" || !record.report || !record.evidence) return null;
+  const report = record.report as { kind?: unknown; service?: unknown; input?: unknown; output?: unknown };
+  if (report.kind !== "tool-output") return null;
+  return { service: report.service, parameters: report.input, toolOutput: report.output, marketplace: record.evidence };
+}
+
+export async function runAgent402Tool(input: {
+  config: AppConfig;
+  tool: SupportedAgent402Tool;
+  parameters: unknown;
+  mandateId: string;
+  contractTx: string;
+  fetcher?: Fetcher;
+}) {
+  const fetcher = input.fetcher ?? globalThis.fetch;
+  const parameters = normalizeAgent402ToolInput(input.tool.slug, input.parameters);
+  const requestHash = hash(JSON.stringify({ slug: input.tool.slug, parameters }));
+  const existing = await getMarketplaceRun(input.contractTx);
+  if (existing) {
+    if (existing.mandateId !== input.mandateId || existing.questionHash !== requestHash) {
+      throw new Error("contract settlement is already bound to different marketplace inputs");
+    }
+    const complete = completedToolFromRecord(existing);
+    if (complete) return complete;
+    const paidEvidence = existing.evidence as Agent402ToolEvidence | null;
+    if (existing.status === "marketplace_paid" && paidEvidence?.output !== undefined) {
+      const report = { kind: "tool-output", service: paidEvidence.service, input: paidEvidence.input, output: paidEvidence.output };
+      await completeMarketplaceRun(input.contractTx, report);
+      return { service: paidEvidence.service, parameters: paidEvidence.input, toolOutput: paidEvidence.output, marketplace: paidEvidence };
+    }
+    throw new Error("marketplace payment outcome requires review before another attempt");
+  }
+
+  const preflight = await preflightAgent402Tool(input.tool, parameters, input.config.public.asset.contractId, fetcher);
+  const trustlineTransaction = await ensureAgentUsdcTrustline(input.config);
+  const client = paymentClientForTool(input.config, input.tool);
+  const scopedRequired: PaymentRequired = { ...preflight.paymentRequired, accepts: [preflight.requirement] };
+  const paymentPayload = await client.createPaymentPayload(scopedRequired);
+  const paymentPayloadHash = hash(JSON.stringify(paymentPayload));
+  const idempotencyKey = hash(["ackrate-agent402-tool-v1", input.contractTx, input.mandateId, requestHash].join("\0"));
+  const reservation = await reserveMarketplaceRun({
+    contractTx: input.contractTx,
+    mandateId: input.mandateId,
+    question: `${input.tool.name}: ${JSON.stringify(parameters)}`,
+    questionHash: requestHash,
+    idempotencyKey,
+    paymentPayloadHash,
+  });
+  if (!reservation.created) {
+    const complete = completedToolFromRecord(reservation.record);
+    if (complete) return complete;
+    throw new Error("marketplace payment is already in progress or requires review");
+  }
+
+  let paid: Response;
+  try {
+    paid = await timedFetch(fetcher, preflight.request.url, {
+      ...preflight.request.init,
+      method: input.tool.method,
+      headers: {
+        Accept: "application/json",
+        ...preflight.request.init.headers,
+        "Idempotency-Key": idempotencyKey,
+        ...client.encodePaymentSignatureHeader(paymentPayload),
+      },
+      cache: "no-store",
+      redirect: "error",
+    });
+  } catch (error) {
+    await markMarketplaceReviewRequired(input.contractTx);
+    throw new Error("Agent402 payment response was interrupted and requires transaction review", { cause: error });
+  }
+
+  let settlement;
+  try {
+    settlement = client.getPaymentSettleResponse((name) => paid.headers.get(name));
+  } catch (error) {
+    await markMarketplaceReviewRequired(input.contractTx);
+    throw new Error("Agent402 did not return verifiable settlement evidence", { cause: error });
+  }
+  if (
+    !paid.ok
+    || !settlement.success
+    || settlement.network !== AGENT402_NETWORK
+    || !/^[0-9a-f]{64}$/i.test(settlement.transaction)
+    || (settlement.amount !== undefined && settlement.amount !== input.tool.amountAtomic)
+    || (settlement.payer !== undefined && settlement.payer !== input.config.public.agentAddress)
+  ) {
+    await markMarketplaceReviewRequired(input.contractTx);
+    throw new Error("Agent402 settlement did not match the approved Stellar payment");
+  }
+
+  const output = await boundedResponseJson(paid, 2 * 1024 * 1024);
+  const evidence: Agent402ToolEvidence = {
+    service: { slug: input.tool.slug, name: input.tool.name, method: input.tool.method, route: input.tool.path },
+    input: parameters,
+    output,
+    discovery: {
+      marketplace: "Agent402",
+      marketplaceUrl: AGENT402_MARKETPLACE_URL,
+      seller: preflight.seller.seller,
+      sellerName: preflight.seller.sellerName,
+      route: preflight.seller.route,
+      serviceUrl: preflight.seller.url,
+      health: preflight.seller.health,
+    },
+    settlement: {
+      transaction: settlement.transaction.toLowerCase(),
+      network: AGENT402_NETWORK,
+      amountAtomic: input.tool.amountAtomic,
+      amount: input.tool.price,
+      asset: preflight.requirement.asset,
+      payTo: preflight.requirement.payTo,
+      payer: settlement.payer ?? null,
+      idempotencyKey,
+    },
+    trustlineTransaction,
+  };
+  await markMarketplacePaid({
+    contractTx: input.contractTx,
+    marketplaceTx: evidence.settlement.transaction,
+    seller: evidence.discovery.sellerName,
+    sellerUrl: evidence.discovery.serviceUrl,
+    price: evidence.settlement.amount,
+    evidence,
+  });
+  const report = { kind: "tool-output", service: evidence.service, input: evidence.input, output };
+  await completeMarketplaceRun(input.contractTx, report);
+  return { service: evidence.service, parameters: evidence.input, toolOutput: output, marketplace: evidence };
 }
 
 function hash(value: string): string {

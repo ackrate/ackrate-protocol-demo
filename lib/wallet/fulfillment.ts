@@ -7,7 +7,8 @@ import { PostgresBoundRedemptionStore } from "./redemption-store";
 import { installMainnetAccountFallback } from "./rpc-account-fallback";
 import { installMainnetRpcRetry } from "./rpc-retry";
 import { MARKET_SIGNAL_BRIEF } from "./market-brief";
-import { normalizeAgent402SearchInput, runAgent402Research } from "./agent402";
+import { normalizeAgent402SearchInput, runAgent402Research, runAgent402Tool } from "./agent402";
+import { agent402InputFromQuery, supportedAgent402ToolForSource } from "./agent402-tools";
 
 type Runtime = { server: Server; origin: string; fingerprint: string };
 const globalRuntime = globalThis as typeof globalThis & { __ackrateMainnetFulfillment?: Promise<Runtime> };
@@ -50,12 +51,10 @@ async function startRuntime(config: AppConfig): Promise<Runtime> {
   }, async ({ request, payment }) => {
     const item = catalog.get(request.path);
     if (!item) throw new Error("validated catalog item disappeared before fulfillment");
-    const searchInput = item.id === "agent402-research" ? normalizeAgent402SearchInput({
-      q: request.query.q,
-      count: request.query.count,
-      freshness: request.query.freshness || undefined,
-    }) : null;
-    const research = searchInput
+    const tool = supportedAgent402ToolForSource(item.id);
+    const toolInput = tool ? agent402InputFromQuery(tool, request.query) : null;
+    const searchInput = tool?.slug === "search" && toolInput ? normalizeAgent402SearchInput(toolInput) : null;
+    const marketplaceResult = searchInput
       ? await runAgent402Research({
           config,
           question: searchInput.q,
@@ -63,6 +62,14 @@ async function startRuntime(config: AppConfig): Promise<Runtime> {
           mandateId: payment.mandateId,
           contractTx: payment.txHash,
         })
+      : tool && toolInput
+        ? await runAgent402Tool({
+            config,
+            tool,
+            parameters: toolInput,
+            mandateId: payment.mandateId,
+            contractTx: payment.txHash,
+          })
       : null;
     return {
       body: {
@@ -70,8 +77,11 @@ async function startRuntime(config: AppConfig): Promise<Runtime> {
         source: item.id,
         title: item.title,
         data: item.description,
-        brief: research?.brief ?? (item.id === "market-brief" ? MARKET_SIGNAL_BRIEF : undefined),
-        marketplace: research?.marketplace,
+        brief: marketplaceResult && "brief" in marketplaceResult ? marketplaceResult.brief : (item.id === "market-brief" ? MARKET_SIGNAL_BRIEF : undefined),
+        service: marketplaceResult && "service" in marketplaceResult ? marketplaceResult.service : undefined,
+        parameters: marketplaceResult && "parameters" in marketplaceResult ? marketplaceResult.parameters : undefined,
+        toolOutput: marketplaceResult && "toolOutput" in marketplaceResult ? marketplaceResult.toolOutput : undefined,
+        marketplace: marketplaceResult?.marketplace,
         settledTx: payment.txHash,
         mandateId: payment.mandateId,
         settledAmount: payment.amount,
