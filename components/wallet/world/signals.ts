@@ -18,6 +18,8 @@ export interface WorldSignals {
   catalogVersion: number;
   /** A marketplace service is highlighted in the catalog. */
   serviceChosen: boolean;
+  /** Index of the listing under consideration, -1 when none. */
+  catalogFocus: number;
   /** Share of the configured request fields that hold a value, 0..1. */
   requestFill: number;
   /** Spending limit mapped to 0..1 (drives the aperture). */
@@ -40,6 +42,7 @@ export const initialWorldSignals: WorldSignals = {
   verified: false,
   catalogVersion: 0,
   serviceChosen: false,
+  catalogFocus: -1,
   requestFill: 0,
   aperture: 0.35,
   expiry: 0.25,

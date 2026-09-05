@@ -713,7 +713,10 @@ export function WalletChatApp() {
 
   /* ------------------------------------------------------------------ view */
   const connected = session.authenticated && Boolean(session.address);
-  const workflowStep = (!connected ? 1 : !marketplaceSelected ? 2 : !serviceConfigured ? 3 : !activeMandateReady ? 4 : !completedPurchase ? 5 : 6) as WorldStage;
+  /* A limit that has been spent to zero stays on the rail so a paid delivery
+     can still be collected; "Set a new limit" forgets it and returns to the gate. */
+  const spentOut = Boolean(storedFresh && stored?.allowanceTx && mandateMatchesConfig && mandate?.status === "Exhausted");
+  const workflowStep = (!connected ? 1 : !marketplaceSelected ? 2 : !serviceConfigured ? 3 : !activeMandateReady && !spentOut ? 4 : !completedPurchase ? 5 : 6) as WorldStage;
   const budgetNumber = Number(budget);
   const minimumBudget = Number(marketplaceService.price);
   const budgetValid = Number.isFinite(budgetNumber) && budgetNumber >= minimumBudget && budgetNumber > 0;
@@ -732,6 +735,7 @@ export function WalletChatApp() {
     verified: connected,
     catalogVersion,
     serviceChosen: marketplaceSelected,
+    catalogFocus: workflowStep === 2 ? marketplaceServices.findIndex((service) => service.id === marketplaceDraft.id) : -1,
     requestFill,
     aperture: budgetValid ? Math.min(1, Math.max(0, (budgetNumber - minimumBudget) / (LIMIT_CEILING - minimumBudget))) : 0.1,
     expiry: EXPIRY_FRACTION[duration] ?? 0.4,
@@ -739,7 +743,7 @@ export function WalletChatApp() {
     limitArmed: activeMandateReady,
     running: threadState === "running" || threadState === "recovering",
     settled: Boolean(completedPurchase),
-  }), [workflowStep, walletAddress, connected, catalogVersion, marketplaceSelected, requestFill, budgetValid, budgetNumber, minimumBudget, duration, storedFresh, stored?.registrationTx, activeMandateReady, threadState, completedPurchase]);
+  }), [workflowStep, walletAddress, connected, catalogVersion, marketplaceSelected, marketplaceServices, marketplaceDraft.id, requestFill, budgetValid, budgetNumber, minimumBudget, duration, storedFresh, stored?.registrationTx, activeMandateReady, threadState, completedPurchase]);
   const worldFocus = useMemo(() => (compact ? { x: 0, y: 0.17 } : { x: 0.18, y: 0.02 }), [compact]);
 
   const reachable = useMemo(() => {
@@ -749,6 +753,17 @@ export function WalletChatApp() {
     if (workflowStep === 6) stops.push(5);
     return stops;
   }, [workflowStep]);
+  const startNewLimit = () => {
+    if (config && session.address) {
+      localStorage.removeItem(mandateStorageKey(config, session.address));
+    }
+    setStored(null);
+    setMandate(null);
+    setPreparedAllowance(null);
+    setCompletedPurchase(null);
+    setError(null);
+    setNotice("Set a fresh spending limit. The spent one stays on-chain as evidence.");
+  };
   const navigate = (target: number) => {
     if (target === 2) changeMarketplaceService();
     else if (target === 3) setServiceConfigured(false);
@@ -775,7 +790,7 @@ export function WalletChatApp() {
         </div>
       </header>
 
-      <Drift depth={4} className="route-drift"><RouteRail stage={workflowStep} reachable={reachable} onNavigate={navigate} /></Drift>
+      <Drift depth={2} className="route-drift"><RouteRail stage={workflowStep} reachable={reachable} onNavigate={navigate} /></Drift>
 
       <section className={`flow-shell hall-sheet ${workflowStep === 1 ? "is-hero" : ""}`} aria-live="polite">
         <div className="hall-sheet-scroll">
@@ -856,6 +871,8 @@ export function WalletChatApp() {
             )}
             {workflowStep === 5 && mandate && config && (
               <RunStage
+                spentOut={spentOut}
+                onNewLimit={startNewLimit}
                 key="run"
                 service={marketplaceService}
                 mandate={mandate}

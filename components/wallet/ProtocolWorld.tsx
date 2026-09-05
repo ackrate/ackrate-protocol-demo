@@ -204,8 +204,8 @@ export function ProtocolWorld({ signals, reducedMotion, focus, onReady }: Protoc
         if (event.pointerType === "touch" && !dragging) return;
         pointer.set((event.clientX / window.innerWidth - 0.5) * 2, (event.clientY / window.innerHeight - 0.5) * 2);
         if (!dragging || event.pointerId !== pointerId) return;
-        dragYaw = THREE.MathUtils.clamp(dragYaw + (event.clientX - lastX) * 0.0024, -0.9, 0.9);
-        dragPitch = THREE.MathUtils.clamp(dragPitch - (event.clientY - lastY) * 0.0018, -0.36, 0.36);
+        dragYaw = THREE.MathUtils.clamp(dragYaw + (event.clientX - lastX) * 0.0011, -0.55, 0.55);
+        dragPitch = THREE.MathUtils.clamp(dragPitch - (event.clientY - lastY) * 0.0008, -0.22, 0.22);
         lastX = event.clientX;
         lastY = event.clientY;
       };
@@ -235,8 +235,8 @@ export function ProtocolWorld({ signals, reducedMotion, focus, onReady }: Protoc
         const reduced = reducedRef.current;
         const current = signalsRef.current;
         if (!dragging) {
-          dragYaw *= reduced ? 0.6 : 0.965;
-          dragPitch *= reduced ? 0.6 : 0.965;
+          dragYaw *= reduced ? 0.6 : 0.988;
+          dragPitch *= reduced ? 0.6 : 0.988;
           if (Math.abs(dragYaw) < 0.0004) dragYaw = 0;
           if (Math.abs(dragPitch) < 0.0004) dragPitch = 0;
         }

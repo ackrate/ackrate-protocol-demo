@@ -63,6 +63,7 @@ export function AssistantThread({
   onEditConfiguration,
   onPurchaseComplete,
   onStateChange,
+  spentOut = false,
 }: {
   mandateId: string;
   asset: string;
@@ -74,6 +75,7 @@ export function AssistantThread({
   onEditConfiguration?: () => void;
   onPurchaseComplete: (result: PurchaseResult) => void;
   onStateChange?: (state: ThreadState) => void;
+  spentOut?: boolean;
 }) {
   const transport = useMemo(() => new AssistantChatTransport({
     api: "/api/wallet/chat",
@@ -97,6 +99,7 @@ export function AssistantThread({
             onEditConfiguration={onEditConfiguration}
             onPurchaseComplete={onPurchaseComplete}
             onStateChange={onStateChange}
+            spentOut={spentOut}
           />
         </ThreadPrimitive.Viewport>
       </ThreadPrimitive.Root>
@@ -115,6 +118,7 @@ function ResearchPurchase({
   onEditConfiguration,
   onPurchaseComplete,
   onStateChange,
+  spentOut = false,
 }: {
   mandateId: string;
   asset: string;
@@ -126,6 +130,7 @@ function ResearchPurchase({
   onEditConfiguration?: () => void;
   onPurchaseComplete: (result: PurchaseResult) => void;
   onStateChange?: (state: ThreadState) => void;
+  spentOut?: boolean;
 }) {
   const inputValues = parameters ?? initialServiceInputValues(service);
   const [state, setState] = useState<ThreadState>("checking");
@@ -159,6 +164,12 @@ function ResearchPurchase({
         if (sessionLost(body.error ?? "")) {
           setState("error");
           setError("Your wallet session ended. Connect and verify the wallet again; the saved limit resumes here.");
+          return;
+        }
+        if (/exhausted|expired|revoked/i.test(body.error ?? "")) {
+          setState("idle");
+          setRecovery(null);
+          window.dispatchEvent(new Event("ackrate-mandate-updated"));
           return;
         }
         throw new Error(body.error ?? `Recovery check returned HTTP ${response.status}`);
@@ -233,7 +244,10 @@ function ResearchPurchase({
         setError("Your wallet session ended before the request was sent. Connect and verify the wallet again; no payment was made.");
         return;
       }
-      if (/review/i.test(message)) {
+      window.dispatchEvent(new Event("ackrate-mandate-updated"));
+      if (/exhausted|not have enough remaining/i.test(message)) {
+        setError("This spending limit is fully spent. Set a new limit to run again. No payment was made.");
+      } else if (/review/i.test(message)) {
         setError("A payment response needs verification before any retry. No automatic second payment will be sent.");
       } else if (/Agent402|marketplace/i.test(message)) {
         setError("The marketplace is unavailable. No new marketplace payment was sent.");
@@ -290,6 +304,12 @@ function ResearchPurchase({
         <div><Search size={16} /><span><small>03</small><strong>{service.id === "search" ? "Cited report returns" : "Service output returns"}</strong></span></div>
       </div>
 
+      {spentOut && state !== "recovery" && state !== "success" && !busy ? (
+        <div className="research-spent" role="status">
+          <span><Check size={14} /></span>
+          <div><strong>This limit is fully spent.</strong><p>Every payment it allowed has been made. Set a new limit to run again.</p></div>
+        </div>
+      ) : (
       <button className="research-button" type="button" onClick={action} disabled={busy || (state !== "recovery" && question.trim().length < 3)}>
         {busy ? <LoaderCircle className="spin" size={16} /> : state === "recovery" ? <Check size={16} /> : <Search size={16} />}
         {state === "checking" && "Checking previous payment…"}
@@ -298,6 +318,7 @@ function ResearchPurchase({
         {state === "recovery" && "Recover report — no new charge"}
         {!busy && state !== "recovery" && `Run ${service.name} · ${price} ${asset}`}
       </button>
+      )}
 
       <p className="autonomy-note">No wallet popup is needed for each report. The agent can spend only inside the mandate you already approved.</p>
 

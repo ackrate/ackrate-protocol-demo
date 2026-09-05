@@ -200,33 +200,107 @@ export function buildHall({ floorMaterial, quality }: HallOptions): Hall {
     lineSegments.push(segment);
   });
 
-  /* Catalog nave: rows of light slabs on both walls. */
-  const slabRows = 4;
-  const slabsPerRow = quality === "high" ? 21 : 14;
-  const slabCount = slabRows * slabsPerRow * 2;
-  const slabGeometry = box(0.05, 1.28, 0.34);
-  const slabMaterial = track(new THREE.MeshBasicMaterial({ color: 0xffffff, toneMapped: false }));
-  const slabs = new THREE.InstancedMesh(slabGeometry, slabMaterial, slabCount);
-  const slabBase = new Float32Array(slabCount);
-  const slabZ = new Float32Array(slabCount);
-  const slabColor = new THREE.Color();
-  let slabIndex = 0;
-  for (let side = -1; side <= 1; side += 2) {
-    for (let row = 0; row < slabRows; row += 1) {
-      for (let column = 0; column < slabsPerRow; column += 1) {
-        const z = 9.4 - (column / (slabsPerRow - 1)) * 10.2;
-        scratch.position.set(side * 5.66, 1.35 + row * 1.72, z);
-        scratch.rotation.set(0, 0, 0);
-        scratch.updateMatrix();
-        slabs.setMatrixAt(slabIndex, scratch.matrix);
-        slabBase[slabIndex] = 0.05 + random() * 0.14 + (random() < 0.08 ? 0.35 : 0);
-        slabZ[slabIndex] = z;
-        slabs.setColorAt(slabIndex, slabColor.setScalar(slabBase[slabIndex]!));
-        slabIndex += 1;
-      }
-    }
+  /* The library: four shelves on each wall, packed with volumes of different
+     heights and thicknesses. Most are graphite and silver cloth; a few are
+     backlit, the live listings. Twelve slots on the right wall nearest the
+     catalog station are the featured shelf: the service under the cursor in
+     the list is pulled from that shelf. */
+  const shelfHeights = [1.05, 2.8, 4.55, 6.3];
+  const shelfFrom = 9.7;
+  const shelfTo = -0.9;
+  const shelfLength = shelfFrom - shelfTo;
+  const plankGeometry = box(0.5, 0.05, shelfLength);
+  const plankEdgeGeometry = box(0.02, 0.05, shelfLength);
+  const uprightGeometry = box(0.5, 6.9, 0.06);
+  const planks = new THREE.InstancedMesh(plankGeometry, graphite, shelfHeights.length * 2);
+  const plankEdges = new THREE.InstancedMesh(plankEdgeGeometry, silver, shelfHeights.length * 2);
+  shelfHeights.forEach((height, row) => {
+    [-1, 1].forEach((side, sideIndex) => {
+      scratch.position.set(side * 5.75, height - 0.025, (shelfFrom + shelfTo) / 2);
+      scratch.rotation.set(0, 0, 0);
+      scratch.scale.setScalar(1);
+      scratch.updateMatrix();
+      planks.setMatrixAt(row * 2 + sideIndex, scratch.matrix);
+      scratch.position.x = side * 5.51;
+      scratch.updateMatrix();
+      plankEdges.setMatrixAt(row * 2 + sideIndex, scratch.matrix);
+    });
+  });
+  scene.add(planks, plankEdges);
+  const uprightCount = 10;
+  const uprights = new THREE.InstancedMesh(uprightGeometry, graphite, uprightCount);
+  for (let index = 0; index < uprightCount; index += 1) {
+    const side = index % 2 === 0 ? -1 : 1;
+    scratch.position.set(side * 5.75, 0.6 + 6.9 / 2, shelfFrom - Math.floor(index / 2) * (shelfLength / 4));
+    scratch.updateMatrix();
+    uprights.setMatrixAt(index, scratch.matrix);
   }
-  scene.add(slabs);
+  scene.add(uprights);
+
+  const bookGeometry = box(1, 1, 1);
+  const bookMaterial = track(new THREE.MeshPhysicalMaterial({ color: 0xffffff, metalness: 0.35, roughness: 0.62, clearcoat: 0.2, clearcoatRoughness: 0.5 }));
+  const litMaterial = track(new THREE.MeshBasicMaterial({ color: 0xffffff, toneMapped: false }));
+  const spineTints = [0x101216, 0x15181e, 0x1c2027, 0x262b34, 0x343a44, 0x6d747f, 0xb7bcc5, 0xe4e6ea];
+  const spineWeights = [3, 3, 3, 2, 1.5, 0.8, 0.5, 0.3];
+  const pickTint = () => {
+    const total = spineWeights.reduce((sum, weight) => sum + weight, 0);
+    let roll = random() * total;
+    for (let index = 0; index < spineTints.length; index += 1) {
+      roll -= spineWeights[index]!;
+      if (roll <= 0) return spineTints[index]!;
+    }
+    return spineTints[0]!;
+  };
+  type Volume = { side: number; row: number; z: number; height: number; thickness: number; lean: number; lit: boolean };
+  const volumes: Volume[] = [];
+  const litShare = quality === "high" ? 0.11 : 0.09;
+  for (let side = -1; side <= 1; side += 2) {
+    shelfHeights.forEach((height, row) => {
+      let z = shelfFrom - 0.12;
+      while (z > shelfTo + 0.12) {
+        const thickness = 0.07 + random() * 0.2;
+        if (z - thickness < shelfTo + 0.1) break;
+        const bookHeight = 0.72 + random() * 0.62;
+        volumes.push({ side, row, z: z - thickness / 2, height: bookHeight, thickness, lean: random() < 0.07 ? (random() - 0.5) * 0.16 : 0, lit: random() < litShare });
+        z -= thickness + 0.012 + (random() < 0.06 ? 0.16 : 0);
+      }
+    });
+  }
+  const litVolumes = volumes.filter((volume) => volume.lit);
+  const matteVolumes = volumes.filter((volume) => !volume.lit);
+  const books = new THREE.InstancedMesh(bookGeometry, bookMaterial, matteVolumes.length);
+  const litBooks = new THREE.InstancedMesh(bookGeometry, litMaterial, litVolumes.length);
+  const slabColor = new THREE.Color();
+  const placeVolume = (volume: Volume, pull: number) => {
+    scratch.position.set(volume.side * (5.72 - pull), shelfHeights[volume.row]! + volume.height / 2, volume.z);
+    scratch.rotation.set(0, 0, volume.lean * volume.side);
+    scratch.scale.set(0.4, volume.height, volume.thickness);
+    scratch.updateMatrix();
+  };
+  matteVolumes.forEach((volume, index) => {
+    placeVolume(volume, 0);
+    books.setMatrixAt(index, scratch.matrix);
+    books.setColorAt(index, slabColor.setHex(pickTint()));
+  });
+  const litBase = new Float32Array(litVolumes.length);
+  const litZ = new Float32Array(litVolumes.length);
+  litVolumes.forEach((volume, index) => {
+    placeVolume(volume, 0);
+    litBooks.setMatrixAt(index, scratch.matrix);
+    litBase[index] = 0.16 + random() * 0.3;
+    litZ[index] = volume.z;
+    litBooks.setColorAt(index, slabColor.setScalar(litBase[index]!));
+  });
+  scratch.scale.setScalar(1);
+  scene.add(books, litBooks);
+  /* Featured shelf: right wall, second row, the twelve volumes nearest the
+     catalog station's line of sight. */
+  const featured = litVolumes
+    .map((volume, index) => ({ volume, index }))
+    .filter(({ volume }) => volume.side === 1 && volume.row === 1 && volume.z < 5.5 && volume.z > -0.6)
+    .slice(0, 12);
+  const featuredPull = new Float32Array(featured.length);
+  const slabCount = litVolumes.length;
   const naveLightA = new THREE.PointLight(0xdfe4ee, 6, 16, 1.7);
   naveLightA.position.set(0, 6.5, 6);
   const naveLightB = new THREE.PointLight(0xdfe4ee, 6, 16, 1.7);
@@ -455,8 +529,8 @@ export function buildHall({ floorMaterial, quality }: HallOptions): Hall {
       lineSegments[index]!.material.color.setScalar(lineLevels[index]!);
     }
 
-    /* Catalog: a wave rolls along the shelves when results arrive; the chosen
-       service pins the nave light. */
+    /* Library: a wave rolls along the shelves when results arrive; the volume
+       under the cursor in the list is pulled from the featured shelf. */
     if (signals.catalogVersion !== seenCatalogVersion) {
       seenCatalogVersion = signals.catalogVersion;
       catalogWave = 0;
@@ -464,14 +538,25 @@ export function buildHall({ floorMaterial, quality }: HallOptions): Hall {
     catalogWave += step * (reducedMotion ? 60 : 9);
     chosen = damp(chosen, signals.serviceChosen ? 1 : 0, ease, step);
     const catalogActive = signals.stage === 2 ? 1.7 : signals.stage > 2 ? 0.6 : 0.3;
+    const focusSlot = signals.catalogFocus >= 0 && featured.length > 0 ? signals.catalogFocus % featured.length : -1;
     for (let index = 0; index < slabCount; index += 1) {
-      const distance = Math.abs((9.4 - slabZ[index]!) - catalogWave);
+      const distance = Math.abs((shelfFrom - litZ[index]!) - catalogWave);
       const wave = Math.max(0, 1 - distance / 1.6) * 0.9;
       const shimmer = reducedMotion ? 0 : Math.sin(elapsed * 0.9 + index * 1.37) * 0.02;
-      const level = (slabBase[index]! + shimmer) * catalogActive * (1 + chosen * 0.35) + wave;
-      slabs.setColorAt(index, slabColor.setScalar(level));
+      const level = (litBase[index]! + shimmer) * catalogActive * (1 + chosen * 0.35) + wave;
+      litBooks.setColorAt(index, slabColor.setScalar(level));
     }
-    slabs.instanceColor!.needsUpdate = true;
+    featured.forEach(({ volume, index }, slot) => {
+      const target = slot === focusSlot ? 1 : 0;
+      featuredPull[slot] = damp(featuredPull[slot]!, target, reducedMotion ? 16 : 6, step);
+      const pull = featuredPull[slot]!;
+      placeVolume(volume, pull * 0.16);
+      litBooks.setMatrixAt(index, scratch.matrix);
+      litBooks.setColorAt(index, slabColor.setScalar(litBase[index]! * catalogActive + pull * 1.5));
+    });
+    scratch.scale.setScalar(1);
+    litBooks.instanceMatrix.needsUpdate = true;
+    litBooks.instanceColor!.needsUpdate = true;
     naveLightA.intensity = 3 + catalogActive * 2;
     naveLightB.intensity = 3 + catalogActive * 2 + chosen * 2;
 
@@ -485,7 +570,7 @@ export function buildHall({ floorMaterial, quality }: HallOptions): Hall {
     }
     (consoleGlow.material as THREE.MeshBasicMaterial).opacity = 0.04 + consoleActive * 0.12 * requestFill;
     beam.intensity = 6 + consoleActive * 22;
-    (beamCone.material as THREE.MeshBasicMaterial).opacity = 0.012 + consoleActive * 0.03;
+    (beamCone.material as THREE.MeshBasicMaterial).opacity = 0.005 + consoleActive * 0.03;
     beamCap.material = consoleActive > 0.5 ? white : brushed;
     consoleTop.material = graphite;
 
@@ -499,7 +584,7 @@ export function buildHall({ floorMaterial, quality }: HallOptions): Hall {
     apertureRing.scale.setScalar(apertureRadius);
     registered = damp(registered, signals.limitRegistered ? 1 : 0, ease, step);
     armed = damp(armed, signals.limitArmed ? 1 : 0, ease, step);
-    const gateActive = signals.stage === 4 ? 1 : signals.stage > 4 ? 0.7 : 0.2;
+    const gateActive = signals.stage === 4 ? 1 : signals.stage > 4 ? 0.7 : signals.stage === 3 ? 0.2 : 0.08;
     (apertureRing.material as THREE.MeshBasicMaterial).color.setScalar(0.3 + gateActive * 0.5 + armed * 0.9);
     gateLight.intensity = 0.5 + gateActive * 1.1 + armed * 1.6;
     expiryLit = damp(expiryLit, signals.expiry, ease, step);

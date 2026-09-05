@@ -25,7 +25,7 @@ export function ConnectStage({ config, walletAddress, authenticating, governance
 
   return (
     <Stage id="connect" className="stage-connect">
-      <Drift depth={3}>
+      <Drift depth={2}>
         <motion.p
           className="hero-kicker"
           initial={reduceMotion ? false : { opacity: 0 }}
@@ -34,13 +34,13 @@ export function ConnectStage({ config, walletAddress, authenticating, governance
         >THE ENFORCEMENT LAYER FOR AGENT PAYMENTS</motion.p>
       </Drift>
 
-      <Drift depth={9}>
+      <Drift depth={5}>
         <h1 className="hero-title">
           <Reveal lines={["Purchasing power.", "Not a blank check."]} delay={0.55} stagger={0.026} accentLast />
         </h1>
       </Drift>
 
-      <Drift depth={6}>
+      <Drift depth={4}>
         <motion.p
           className="hero-lede"
           initial={reduceMotion ? false : { opacity: 0, y: 10 }}
@@ -52,7 +52,7 @@ export function ConnectStage({ config, walletAddress, authenticating, governance
         </motion.p>
       </Drift>
 
-      <Drift depth={12}>
+      <Drift depth={6}>
         <motion.div
           className="hero-actions"
           initial={reduceMotion ? false : { opacity: 0, y: 10 }}

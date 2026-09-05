@@ -43,8 +43,8 @@ export function MarketplaceStage({
 
   return (
     <Stage id="marketplace" className="stage-marketplace">
-      <StageHeading stage={2} place="The catalog" title={["Pick what your", "agent can buy."]}>
-        Live x402 services from Agent402, priced per call. Nothing moves until you say so.
+      <StageHeading stage={2} place="The library" title={["Pick what your", "agent can buy."]}>
+        Every volume on these shelves is a live x402 service, priced per call. Nothing moves until you say so.
       </StageHeading>
 
       {sessionAddress && (
@@ -81,11 +81,11 @@ export function MarketplaceStage({
       </div>
 
       <div className="catalog-label">
-        <span>{query ? "MATCHING SERVICES" : "RECOMMENDED FOR RESEARCH"}</span>
-        <small>{catalog.matches || services.length} matches</small>
+        <span>{query ? "SHELF · MATCHING VOLUMES" : "SHELF · RECOMMENDED FOR RESEARCH"}</span>
+        <small>{catalog.matches || services.length} {(catalog.matches || services.length) === 1 ? "volume" : "volumes"}</small>
       </div>
 
-      <div className="catalog-list" role="listbox" aria-label="Marketplace services" aria-busy={loading}>
+      <div className="shelf" role="listbox" aria-label="Marketplace services" aria-busy={loading}>
         <AnimatePresence initial={false} mode="popLayout">
           {services.length ? services.map((service, index) => {
             const selected = draft.id === service.id;
@@ -96,32 +96,36 @@ export function MarketplaceStage({
                 key={service.id}
                 role="option"
                 aria-selected={selected}
-                className={`catalog-item ${selected ? "is-selected" : ""} ${live ? "" : "is-preview"}`}
+                className={`volume ${selected ? "is-selected" : ""} ${live ? "is-live" : "is-preview"}`}
                 type="button"
                 onClick={() => onDraftChange(service)}
-                initial={reduceMotion ? false : { opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
+                initial={reduceMotion ? false : { opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0, x: selected && !reduceMotion ? 10 : 0 }}
                 exit={reduceMotion ? undefined : { opacity: 0, y: -6 }}
-                transition={{ duration: 0.28, delay: reduceMotion ? 0 : Math.min(index, 6) * 0.035 }}
-                whileHover={reduceMotion ? undefined : { x: 3 }}
-                whileTap={reduceMotion ? undefined : { scale: 0.99 }}
+                transition={{ duration: 0.36, delay: reduceMotion ? 0 : Math.min(index, 6) * 0.04, ease: [0.22, 1, 0.36, 1] }}
+                whileHover={reduceMotion || selected ? undefined : { x: 4 }}
+                whileTap={reduceMotion ? undefined : { scale: 0.992 }}
               >
-                <span className="catalog-item-mark" aria-hidden>{selected && <motion.i layoutId="catalog-mark" transition={{ type: "spring", stiffness: 500, damping: 34 }} />}</span>
-                <span className="catalog-item-body">
+                <span className="volume-spine" aria-hidden>
+                  <small>{String(index + 1).padStart(2, "0")}</small>
+                  <i />
+                </span>
+                <span className="volume-body">
                   <strong>{service.name}</strong>
                   <small>{service.description}</small>
                   <em>{service.method} · {service.categoryLabel} · {live ? "LIVE PAYMENT READY" : "SCHEMA PREVIEW"}</em>
                   <span className="service-inputs">{service.inputs.length ? service.inputs.map((field) => <b key={field.name}>{field.name}{field.required ? " *" : ""}</b>) : <b>Schema unavailable</b>}</span>
                 </span>
-                <span className="catalog-item-price">{service.price}<small>USDC</small></span>
+                <span className="volume-tag"><b>{service.price}</b><small>USDC / CALL</small></span>
               </motion.button>
             );
           }) : (
             <motion.div key="empty" className="catalog-empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-              <Search size={16} /><strong>No exact match</strong><span>Try web, research, scraper, PDF, news, or data.</span>
+              <Search size={16} /><strong>No volume matches</strong><span>Try web, research, scraper, PDF, news, or data.</span>
             </motion.div>
           )}
         </AnimatePresence>
+        <span className="shelf-ledge" aria-hidden />
       </div>
 
       {!runnable && (

@@ -1,11 +1,11 @@
 "use client";
 
-import { ArrowRight, Power } from "lucide-react";
+import { ArrowRight, LockKeyhole, Power } from "lucide-react";
 import type { MarketplaceService } from "@/lib/wallet/marketplace-catalog";
 import type { MandateView, SafeAppConfig } from "@/lib/wallet/types";
 import { AssistantThread, type PurchaseResult, type ThreadState } from "../AssistantThread";
 import type { ServiceInputValues } from "../ServiceConfigurator";
-import { ProofLink, Quiet, Stage, StageHeading } from "./shared";
+import { Primary, ProofLink, Quiet, Stage, StageHeading } from "./shared";
 
 interface RunStageProps {
   service: MarketplaceService;
@@ -22,6 +22,8 @@ interface RunStageProps {
   onPurchaseComplete: (result: PurchaseResult) => void;
   onThreadState: (state: ThreadState) => void;
   onTurnOff: () => void;
+  spentOut: boolean;
+  onNewLimit: () => void;
 }
 
 /**
@@ -43,6 +45,8 @@ export function RunStage({
   onPurchaseComplete,
   onThreadState,
   onTurnOff,
+  spentOut,
+  onNewLimit,
 }: RunStageProps) {
   return (
     <Stage id="run" className="stage-run">
@@ -67,7 +71,14 @@ export function RunStage({
         onEditConfiguration={onEditConfiguration}
         onPurchaseComplete={onPurchaseComplete}
         onStateChange={onThreadState}
+        spentOut={spentOut}
       />
+
+      {spentOut && (
+        <div className="stage-actions">
+          <Primary onClick={onNewLimit}><LockKeyhole size={16} /><span>Set a new limit</span><ArrowRight size={16} className="flow-primary-arrow" /></Primary>
+        </div>
+      )}
 
       <details className="stage-evidence">
         <summary><span>Why the agent is allowed to pay</span><ArrowRight size={12} /></summary>

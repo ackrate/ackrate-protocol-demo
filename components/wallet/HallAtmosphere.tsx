@@ -14,8 +14,8 @@ export function HallCursor() {
   const [mode, setMode] = useState<"dot" | "ring" | "grab" | "text">("dot");
   const x = useMotionValue(-100);
   const y = useMotionValue(-100);
-  const ringX = useSpring(x, { stiffness: 380, damping: 32, mass: 0.6 });
-  const ringY = useSpring(y, { stiffness: 380, damping: 32, mass: 0.6 });
+  const ringX = useSpring(x, { stiffness: 240, damping: 30, mass: 0.7 });
+  const ringY = useSpring(y, { stiffness: 240, damping: 30, mass: 0.7 });
 
   useEffect(() => {
     const fine = window.matchMedia("(pointer: fine)");

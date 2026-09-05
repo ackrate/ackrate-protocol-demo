@@ -9,7 +9,7 @@ import type { AppConfig } from "./app-config";
 import { boundedResponseJson } from "./http";
 import { completePendingToolCalls, completeToolCall, DurableReceiptStore, latestSucceededToolCall, reserveToolCall } from "./journal";
 import { attachMarketBriefToPurchaseResult } from "./market-brief";
-import { assertMandateBindings, readMandate } from "./mandate-state";
+import { assertMandateBindings, assertMandateIdentityBindings, readMandate } from "./mandate-state";
 import { installMainnetAccountFallback } from "./rpc-account-fallback";
 import { installMainnetRpcRetry } from "./rpc-retry";
 import { normalizeAgent402SearchInput, normalizeResearchQuestion, preflightAgent402Tool } from "./agent402";
@@ -51,6 +51,38 @@ async function createPurchaseContext(config: AppConfig, sessionAddress: string, 
   }
   const onChain = await readMandate(config.network, sessionAddress, mandateId);
   assertMandateBindings(onChain, {
+    user: sessionAddress,
+    agent: config.public.agentAddress,
+    merchant: config.public.merchant.address,
+    asset: config.public.asset.contractId,
+  });
+  const mandate: IntentMandate = {
+    id: onChain.id,
+    idBuffer: Buffer.from(onChain.id, "hex"),
+    user: onChain.user,
+    agent: onChain.agent,
+    merchant: onChain.merchant,
+    asset: onChain.asset,
+    maxAmount: BigInt(onChain.maxAmount),
+    expiry: onChain.expiry,
+    decimals: config.public.asset.decimals,
+  };
+  return { onChain, mandate };
+}
+
+/**
+ * Recovery never spends. A mandate that is exhausted or expired after a paid
+ * delivery stalled must still let the buyer collect what was paid for, so
+ * only the identity bindings are checked here.
+ */
+async function createRecoveryContext(config: AppConfig, sessionAddress: string, mandateId: string) {
+  installMainnetRpcRetry(config.public.network);
+  installMainnetAccountFallback(config.public.network);
+  if (!config.agentSecret || !config.merchantUrl || !config.public.agentAddress || !config.public.merchant.address) {
+    throw new Error("payment execution is not configured");
+  }
+  const onChain = await readMandate(config.network, sessionAddress, mandateId);
+  assertMandateIdentityBindings(onChain, {
     user: sessionAddress,
     agent: config.public.agentAddress,
     merchant: config.public.merchant.address,
@@ -168,7 +200,7 @@ function builtInReportResult(
 }
 
 export async function getPendingCatalogRecovery(input: Omit<PurchaseInput, "toolCallId" | "sourceId">): Promise<PendingPurchaseRecovery> {
-  const context = await createPurchaseContext(input.config, input.sessionAddress, input.mandateId);
+  const context = await createRecoveryContext(input.config, input.sessionAddress, input.mandateId);
   const receiptStore = new DurableReceiptStore(input.sessionId, input.mandateId);
   const receipts = await receiptStore.listPending();
   if (receipts.length === 0) {
@@ -193,7 +225,7 @@ export async function getPendingCatalogRecovery(input: Omit<PurchaseInput, "tool
 }
 
 export async function recoverPendingCatalogPurchase(input: Omit<PurchaseInput, "toolCallId" | "sourceId">): Promise<unknown> {
-  const context = await createPurchaseContext(input.config, input.sessionAddress, input.mandateId);
+  const context = await createRecoveryContext(input.config, input.sessionAddress, input.mandateId);
   const receiptStore = new DurableReceiptStore(input.sessionId, input.mandateId);
   const receipts = await receiptStore.listPending();
   if (receipts.length === 0) {

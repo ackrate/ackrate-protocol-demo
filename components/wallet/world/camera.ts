@@ -109,7 +109,7 @@ export class CameraRig {
     this.look.lerp(this.lookGoal, 1 - Math.exp(-(reducedMotion ? 18 : 2.8) * step));
 
     /* Pointer parallax and drag look. */
-    this.pointer.lerp(pointer, 1 - Math.exp(-(reducedMotion ? 30 : 5) * step));
+    this.pointer.lerp(pointer, 1 - Math.exp(-(reducedMotion ? 30 : 1.6) * step));
     const parallax = reducedMotion ? 0 : 1;
     this.forward.subVectors(this.look, this.position).normalize();
     this.right.crossVectors(this.forward, this.up).normalize();
@@ -121,12 +121,12 @@ export class CameraRig {
     this.clock += step;
     const sway = reducedMotion ? 0 : 1;
     this.camera.position.copy(this.position)
-      .addScaledVector(this.right, this.pointer.x * 0.22 * parallax + Math.sin(this.clock * 0.42) * 0.028 * sway)
-      .addScaledVector(this.up, -this.pointer.y * 0.12 * parallax + Math.sin(this.clock * 0.61 + 1.3) * 0.018 * sway);
+      .addScaledVector(this.right, this.pointer.x * 0.08 * parallax + Math.sin(this.clock * 0.3) * 0.012 * sway)
+      .addScaledVector(this.up, -this.pointer.y * 0.045 * parallax + Math.sin(this.clock * 0.43 + 1.3) * 0.008 * sway);
 
     this.scratch.copy(this.look)
-      .addScaledVector(this.right, -focus.x * viewWidth + this.pointer.x * 0.3 * parallax)
-      .addScaledVector(this.up, -focus.y * viewHeight - this.pointer.y * 0.18 * parallax);
+      .addScaledVector(this.right, -focus.x * viewWidth + this.pointer.x * 0.11 * parallax)
+      .addScaledVector(this.up, -focus.y * viewHeight - this.pointer.y * 0.06 * parallax);
 
     /* Drag rotates the view around the camera itself. */
     if (dragYaw !== 0 || dragPitch !== 0) {

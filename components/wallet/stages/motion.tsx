@@ -28,8 +28,8 @@ export function Drift({ depth = 8, children, className, style, ...rest }: HTMLMo
   const reduceMotion = useReducedMotion();
   useEffect(bindPointer, []);
   const amount = reduceMotion ? 0 : depth;
-  const x = useSpring(useTransform(pointerX, (value) => value * amount), { stiffness: 42, damping: 20, mass: 1 });
-  const y = useSpring(useTransform(pointerY, (value) => value * amount * 0.7), { stiffness: 42, damping: 20, mass: 1 });
+  const x = useSpring(useTransform(pointerX, (value) => value * amount), { stiffness: 26, damping: 22, mass: 1.2 });
+  const y = useSpring(useTransform(pointerY, (value) => value * amount * 0.7), { stiffness: 26, damping: 22, mass: 1.2 });
   return (
     <motion.div className={className} style={{ ...(style as CSSProperties), x, y }} {...rest}>
       {children}
@@ -38,13 +38,13 @@ export function Drift({ depth = 8, children, className, style, ...rest }: HTMLMo
 }
 
 /** Magnetic: the element leans toward a nearby pointer and snaps back. */
-export function useMagnetic(strength = 0.28, radius = 90) {
+export function useMagnetic(strength = 0.14, radius = 70) {
   const reduceMotion = useReducedMotion();
   const ref = useRef<HTMLElement | null>(null);
   const x = useMotionValue(0);
   const y = useMotionValue(0);
-  const sx = useSpring(x, { stiffness: 260, damping: 22, mass: 0.5 });
-  const sy = useSpring(y, { stiffness: 260, damping: 22, mass: 0.5 });
+  const sx = useSpring(x, { stiffness: 180, damping: 24, mass: 0.6 });
+  const sy = useSpring(y, { stiffness: 180, damping: 24, mass: 0.6 });
   useEffect(() => {
     if (reduceMotion) return;
     const element = ref.current;

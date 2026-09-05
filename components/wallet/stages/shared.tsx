@@ -19,7 +19,7 @@ export function formatUnits(value: string, decimals: number): string {
 /** Six locations. The number is the stage; the place is what the camera sees. */
 export const LOCATIONS = [
   { stage: 1, name: "Connect", place: "The threshold" },
-  { stage: 2, name: "Marketplace", place: "The catalog" },
+  { stage: 2, name: "Marketplace", place: "The library" },
   { stage: 3, name: "Configure", place: "The console" },
   { stage: 4, name: "Limit", place: "The gate" },
   { stage: 5, name: "Run", place: "The rail" },
@@ -50,7 +50,7 @@ export function StageHeading({ stage, place, title, children }: { stage: number;
   const reduceMotion = useReducedMotion();
   return (
     <header className="stage-heading">
-      <Drift depth={3}>
+      <Drift depth={2}>
         <motion.p
           className="stage-kicker"
           initial={reduceMotion ? false : { opacity: 0, x: -8 }}
@@ -60,11 +60,11 @@ export function StageHeading({ stage, place, title, children }: { stage: number;
           <span>STEP {stage} OF 6</span><i /><span>{place.toUpperCase()}</span>
         </motion.p>
       </Drift>
-      <Drift depth={7}>
+      <Drift depth={4}>
         <h2><Reveal lines={title} delay={0.62} stagger={0.022} /></h2>
       </Drift>
       {children && (
-        <Drift depth={5}>
+        <Drift depth={3}>
           <motion.p
             className="stage-lede"
             initial={reduceMotion ? false : { opacity: 0, y: 8 }}
@@ -81,7 +81,7 @@ export function StageHeading({ stage, place, title, children }: { stage: number;
 export function Primary({ children, disabled, busy, tone = "light", ...rest }: HTMLMotionProps<"button"> & { busy?: boolean; tone?: "light" | "danger" | "outline" }) {
   const reduceMotion = useReducedMotion();
   const inert = disabled || busy;
-  const magnet = useMagnetic(inert ? 0 : 0.22, 70);
+  const magnet = useMagnetic(inert ? 0 : 0.1, 60);
   return (
     <motion.button
       ref={magnet.ref as React.Ref<HTMLButtonElement>}
