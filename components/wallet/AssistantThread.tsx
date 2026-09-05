@@ -155,7 +155,14 @@ function ResearchPurchase({
         cache: "no-store",
       });
       const body = await response.json() as { ok: boolean; recovery?: unknown; error?: string };
-      if (!response.ok || !body.ok) throw new Error(body.error ?? `Recovery check returned HTTP ${response.status}`);
+      if (!response.ok || !body.ok) {
+        if (sessionLost(body.error ?? "")) {
+          setState("error");
+          setError("Your wallet session ended. Connect and verify the wallet again; the saved limit resumes here.");
+          return;
+        }
+        throw new Error(body.error ?? `Recovery check returned HTTP ${response.status}`);
+      }
       const pending = parseRecovery(body.recovery);
       if (!pending) {
         setState("idle");
@@ -219,6 +226,11 @@ function ResearchPurchase({
       const message = cause instanceof Error ? cause.message : String(cause);
       if (/retained for recovery|delivery is pending/i.test(message)) {
         await checkRecovery();
+        return;
+      }
+      if (sessionLost(message)) {
+        setState("error");
+        setError("Your wallet session ended before the request was sent. Connect and verify the wallet again; no payment was made.");
         return;
       }
       if (/review/i.test(message)) {
@@ -320,6 +332,15 @@ async function openPaidReport(mandateId: string): Promise<PurchaseResult> {
     throw new Error(body.error ?? `Report returned HTTP ${response.status}`);
   }
   return body.result;
+}
+
+/** Fired when a wallet API call reports that the verified session is gone. */
+export const SESSION_LOST_EVENT = "ackrate-session-lost";
+
+function sessionLost(message: string): boolean {
+  if (!/session required|session expired|sign in again/i.test(message)) return false;
+  window.dispatchEvent(new Event(SESSION_LOST_EVENT));
+  return true;
 }
 
 export function parseRecovery(value: unknown): PendingRecovery | null {

@@ -15,7 +15,7 @@ import {
 import type { MandateView, SafeAppConfig, SessionView } from "@/lib/wallet/types";
 import { addTokenToFreighter, connectFreighter, freighterSessionState, signFreighterTransaction } from "@/lib/wallet/freighter";
 import { sourceIdForMarketplaceService, WEB_SEARCH_INPUTS, type MarketplaceService } from "@/lib/wallet/marketplace-catalog";
-import { PurchaseReport, type PurchaseResult, type ThreadState } from "./AssistantThread";
+import { PurchaseReport, SESSION_LOST_EVENT, type PurchaseResult, type ThreadState } from "./AssistantThread";
 import { HallCursor, HallEntry, HallGrain } from "./HallAtmosphere";
 import { ProtocolWorld } from "./ProtocolWorld";
 import { RouteRail } from "./RouteRail";
@@ -157,7 +157,10 @@ async function api<T>(url: string, init?: RequestInit): Promise<T> {
     headers: { "Content-Type": "application/json", ...init?.headers },
   });
   const body = await response.json() as { ok: boolean; error?: string } & T;
-  if (!response.ok || !body.ok) throw new Error(body.error ?? `Request failed with HTTP ${response.status}`);
+  if (!response.ok || !body.ok) {
+    if (/session required|session expired/i.test(body.error ?? "")) window.dispatchEvent(new Event(SESSION_LOST_EVENT));
+    throw new Error(body.error ?? `Request failed with HTTP ${response.status}`);
+  }
   return body;
 }
 
@@ -267,14 +270,20 @@ export function WalletChatApp() {
   }, [config, session, refreshMandate]);
 
   /* A verified session outlives Freighter's own connected-apps list. If the
-     site was removed there, or a different account is selected, drop the
-     session so the journey restarts at the threshold instead of claiming a
-     wallet that is no longer attached. Saved mandates stay in this browser. */
+     site was removed there, drop the session so the journey restarts at the
+     threshold instead of claiming a wallet that is no longer attached. A
+     different account merely selected in Freighter is not a disconnect: the
+     verified wallet still signs, so only say so. Saved mandates stay in this
+     browser either way. */
   useEffect(() => {
     if (!session.authenticated || !session.address) return;
     let active = true;
     void freighterSessionState(session.address).then(async (state) => {
       if (!active || state === "matches" || state === "unknown") return;
+      if (state === "different") {
+        setNotice(`Freighter has a different account selected. Switch back to ${short(session.address, 4)} before approving anything.`);
+        return;
+      }
       try {
         await api("/api/wallet/auth/session", { method: "DELETE", body: "{}" });
       } catch {
@@ -290,12 +299,34 @@ export function WalletChatApp() {
       setMarketplaceSelected(false);
       setServiceConfigured(false);
       setPhase("idle");
-      setNotice(state === "different"
-        ? "Freighter has a different account selected. Connect that wallet to continue."
-        : "Freighter is no longer connected to this site. Connect a wallet to start again.");
+      setNotice("Freighter is no longer connected to this site. Connect a wallet to start again.");
     });
     return () => { active = false; };
   }, [session.address, session.authenticated]);
+
+  /* Any wallet call that finds the verified session gone sends the journey
+     back to the threshold. The saved limit stays in this browser and resumes
+     after the wallet verifies again. */
+  useEffect(() => {
+    const lost = () => {
+      setSession((current) => {
+        if (!current.authenticated) return current;
+        setWalletAddress(null);
+        setMandate(null);
+        setPreparedAllowance(null);
+        setAllowancePreparing(false);
+        setCompletedPurchase(null);
+        setMarketplaceSelected(false);
+        setServiceConfigured(false);
+        setPhase("idle");
+        setError(null);
+        setNotice("Your wallet session ended. Connect and verify the wallet again; your saved limit resumes from there.");
+        return emptySession;
+      });
+    };
+    window.addEventListener(SESSION_LOST_EVENT, lost);
+    return () => window.removeEventListener(SESSION_LOST_EVENT, lost);
+  }, []);
 
   const refreshWalletBalances = useCallback(async () => {
     if (!session.authenticated || !session.address || config?.network !== "mainnet") return;
