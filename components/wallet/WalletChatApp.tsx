@@ -29,7 +29,13 @@ import {
   Zap,
 } from "lucide-react";
 import type { IntentMandate } from "@ackrate/core";
-import { approveWithFreighter, buildMandate, registerWithFreighter, revokeWithFreighter } from "@/lib/wallet/mandate-client";
+import {
+  buildMandate,
+  prepareAllowanceTransaction,
+  registerWithFreighter,
+  revokeWithFreighter,
+  submitPreparedAllowanceWithFreighter,
+} from "@/lib/wallet/mandate-client";
 import type { MandateView, SafeAppConfig, SessionView } from "@/lib/wallet/types";
 import { addTokenToFreighter, connectFreighter, signFreighterTransaction } from "@/lib/wallet/freighter";
 import { sourceIdForMarketplaceService, WEB_SEARCH_INPUTS, type MarketplaceService } from "@/lib/wallet/marketplace-catalog";
@@ -234,6 +240,8 @@ export function WalletChatApp() {
   const [marketplaceServices, setMarketplaceServices] = useState<MarketplaceService[]>([DEFAULT_MARKETPLACE_SERVICE]);
   const [marketplaceLoading, setMarketplaceLoading] = useState(false);
   const [marketplaceCatalog, setMarketplaceCatalog] = useState({ source: "loading", size: 0, matches: 0 });
+  const [preparedAllowance, setPreparedAllowance] = useState<{ mandateId: string; xdr: string } | null>(null);
+  const [allowancePreparing, setAllowancePreparing] = useState(false);
 
   const refreshMandate = useCallback(async (current: StoredMandate) => {
     const body = await api<{ mandate: MandateView }>("/api/wallet/mandate/status", {
@@ -305,6 +313,29 @@ export function WalletChatApp() {
     }
     void refreshWalletBalances();
   }, [refreshWalletBalances, session.address, session.authenticated]);
+
+  useEffect(() => {
+    if (
+      !config
+      || !stored?.registrationTx
+      || stored.allowanceTx
+      || stored.expiry <= Math.floor(Date.now() / 1_000)
+      || preparedAllowance?.mandateId === stored.id
+    ) return;
+    let active = true;
+    setAllowancePreparing(true);
+    void prepareAllowanceTransaction(config, storedToIntent(stored))
+      .then((xdr) => {
+        if (active) setPreparedAllowance({ mandateId: stored.id, xdr });
+      })
+      .catch((cause) => {
+        console.error("USDC allowance preparation failed", cause);
+      })
+      .finally(() => {
+        if (active) setAllowancePreparing(false);
+      });
+    return () => { active = false; };
+  }, [config, preparedAllowance?.mandateId, stored?.allowanceTx, stored?.expiry, stored?.id, stored?.registrationTx]);
 
   useEffect(() => {
     const refresh = () => { if (stored) void refreshMandate(stored); };
@@ -469,7 +500,7 @@ export function WalletChatApp() {
       saveStored(next);
       await refreshMandate(next);
       setPhase("idle");
-      setNotice("Limit registered. Click the approval button once more to approve the USDC allowance.");
+      setNotice("Limit registered. Preparing the final USDC approval now.");
     } catch (cause) {
       setError("Could not finish setup. Open Freighter and follow the button on this screen.");
       setNotice("Setup stopped safely. Follow the button on the screen to continue.");
@@ -505,11 +536,30 @@ export function WalletChatApp() {
   const retryAllowance = async () => {
     if (!config || !stored) return;
     setError(null);
+    const intent = storedToIntent(stored);
+    let prepared = preparedAllowance?.mandateId === stored.id ? preparedAllowance.xdr : null;
+    if (!prepared) {
+      setAllowancePreparing(true);
+      setNotice("Preparing the USDC approval. The Freighter button will unlock in a moment.");
+      try {
+        prepared = await prepareAllowanceTransaction(config, intent);
+        setPreparedAllowance({ mandateId: stored.id, xdr: prepared });
+        setNotice("Approval ready. Click Open Freighter to confirm it.");
+      } catch (cause) {
+        console.error("USDC allowance preparation failed", cause);
+        setError("The approval could not be prepared yet. Wait a moment and try again.");
+      } finally {
+        setAllowancePreparing(false);
+      }
+      return;
+    }
     setPhase("approving");
+    setNotice("Opening Freighter now. Approve the single USDC allowance transaction.");
     try {
-      const allowanceTx = await approveWithFreighter(config, storedToIntent(stored));
+      const allowanceTx = await submitPreparedAllowanceWithFreighter(config, intent, prepared);
       const next = { ...stored, allowanceTx };
       saveStored(next);
+      setPreparedAllowance(null);
       await refreshMandate(next);
       setNotice("Spending limit approved. The agent is ready.");
     } catch (cause) {
@@ -562,6 +612,8 @@ export function WalletChatApp() {
     setWalletAddress(null);
     setMandate(null);
     setStored(null);
+    setPreparedAllowance(null);
+    setAllowancePreparing(false);
     setUsdcReady(false);
     setWalletBalances(null);
     setCompletedPurchase(null);
@@ -885,9 +937,9 @@ export function WalletChatApp() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: reduceMotion ? 0 : 0.42, ease: "easeOut" }}
         >
-          <p>THE ENFORCEMENT LAYER FOR AGENT COMMERCE</p>
-          <h1>Let agents spend.<br />Never lose control.</h1>
-          <span>Explore real x402 services. Set the mandate once. Every USDC payment is enforced on-chain.</span>
+          <p>THE ENFORCEMENT LAYER FOR AGENT PAYMENTS</p>
+          <h1>Give agents buying power.<br />Not a blank check.</h1>
+          <span>One mandate unlocks real x402 services. ACKRATE enforces who gets paid, how much, and when—on-chain.</span>
         </motion.div>
 
         <motion.nav
@@ -1119,8 +1171,9 @@ export function WalletChatApp() {
                   {phase === "revoking" ? <LoaderCircle className="spin" size={16} /> : <X size={16} />}{phase === "revoking" ? "Waiting for Freighter…" : "Turn off previous spending limit"}
                 </motion.button>
               ) : storedFresh && stored?.registrationTx && !stored.allowanceTx ? (
-                <motion.button className="flow-primary" type="button" onClick={retryAllowance} disabled={phase === "approving"} whileTap={reduceMotion ? undefined : { scale: 0.985 }}>
-                  {phase === "approving" ? <LoaderCircle className="spin" size={16} /> : <LockKeyhole size={16} />}{phase === "approving" ? "Waiting for Freighter…" : `Approve ${formatUnits(stored.maxAmount, stored.decimals)} USDC allowance`}
+                <motion.button className="flow-primary" type="button" onClick={retryAllowance} disabled={phase === "approving" || allowancePreparing} whileTap={reduceMotion ? undefined : { scale: 0.985 }}>
+                  {phase === "approving" || allowancePreparing ? <LoaderCircle className="spin" size={16} /> : <LockKeyhole size={16} />}
+                  {allowancePreparing ? "Preparing secure approval…" : phase === "approving" ? "Opening Freighter…" : `Open Freighter · Approve ${formatUnits(stored.maxAmount, stored.decimals)} USDC`}
                 </motion.button>
               ) : (
                 <motion.button className="flow-primary" type="button" onClick={activate} disabled={!canApproveLimit || mandateBusy} whileTap={reduceMotion ? undefined : { scale: 0.985 }}>
@@ -1128,7 +1181,7 @@ export function WalletChatApp() {
                   {phase === "registering" ? "Registering limit…" : phase === "approving" ? "Approving USDC…" : `Approve ${budget || "0"} USDC limit`}
                 </motion.button>
               )}
-              <small className="flow-footnote"><Fingerprint size={12} />Two clear approvals: first register the limit, then approve the contract allowance.</small>
+              <small className="flow-footnote"><Fingerprint size={12} />Approval 1 registers the mandate. Approval 2 opens Freighter and caps the contract allowance.</small>
               <div className="flow-secondary-row"><button type="button" onClick={changeMarketplaceService}><Search size={12} />Change service</button><button type="button" onClick={() => setDisconnectOpen(true)}><Power size={12} />Disconnect</button></div>
 
               {(stored?.registrationTx || stored?.allowanceTx) && (

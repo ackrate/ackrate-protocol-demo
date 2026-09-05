@@ -155,8 +155,7 @@ async function submitAllowance(
   }
 }
 
-export async function approveWithFreighter(config: SafeAppConfig, mandate: IntentMandate): Promise<string> {
-  const signer = freighterSigner(mandate.user, config.networkPassphrase);
+export async function prepareAllowanceTransaction(config: SafeAppConfig, mandate: IntentMandate): Promise<string> {
   const server = walletRpcServer(config);
   const source = await server.getAccount(mandate.user);
   const expirationLedger = (await server.getLatestLedger()).sequence + 17_280;
@@ -178,7 +177,19 @@ export async function approveWithFreighter(config: SafeAppConfig, mandate: Inten
     .setTimeout(APPROVAL_TIMEBOUND_SECONDS)
     .build();
   const prepared = await server.prepareTransaction(built);
-  const signed = await signer.signTransaction(prepared.toXDR(), {
+  return prepared.toXDR();
+}
+
+export async function submitPreparedAllowanceWithFreighter(
+  config: SafeAppConfig,
+  mandate: IntentMandate,
+  preparedTransactionXdr: string,
+): Promise<string> {
+  const signer = freighterSigner(mandate.user, config.networkPassphrase);
+  // Keep signing as the first asynchronous action. Chrome can otherwise drop
+  // the click's user-activation context while RPC preparation is in flight,
+  // preventing Freighter from opening its confirmation window.
+  const signed = await signer.signTransaction(preparedTransactionXdr, {
     address: mandate.user,
     networkPassphrase: config.networkPassphrase,
   });
@@ -186,8 +197,14 @@ export async function approveWithFreighter(config: SafeAppConfig, mandate: Inten
   if (signed.signerAddress && signed.signerAddress !== mandate.user) {
     throw new Error("allowance signing failed: Freighter returned a different signer address");
   }
+  const server = walletRpcServer(config);
   const signedTransaction = TransactionBuilder.fromXDR(signed.signedTxXdr, config.networkPassphrase);
   return submitAllowance(server, signedTransaction);
+}
+
+export async function approveWithFreighter(config: SafeAppConfig, mandate: IntentMandate): Promise<string> {
+  const prepared = await prepareAllowanceTransaction(config, mandate);
+  return submitPreparedAllowanceWithFreighter(config, mandate, prepared);
 }
 
 export async function revokeWithFreighter(config: SafeAppConfig, mandate: IntentMandate): Promise<string> {

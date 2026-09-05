@@ -70,7 +70,7 @@ test("wallet marketplace step selects the external Stellar service without movin
   assert.match(app, /AnimatePresence/);
   assert.match(app, /useReducedMotion/);
   assert.match(app, /MarketplaceOrb variant="brand"/);
-  assert.match(app, /MarketplaceOrb variant="stage"/);
+  assert.match(app, /ProtocolWorld step=\{workflowStep\}/);
   assert.doesNotMatch(app, /className="flow-brand"><span>R<\/span>/);
   assert.match(orb, /WebGPURenderer/);
   assert.match(orb, /"gpu" in navigator/);
@@ -117,7 +117,10 @@ test("wallet separates mandate registration and token allowance into two deliber
 
   assert.match(activateSource, /registerWithFreighter/);
   assert.doesNotMatch(activateSource, /approveWithFreighter/);
-  assert.match(app, /Approve \$\{formatUnits\(stored\.maxAmount, stored\.decimals\)\} USDC allowance/);
+  assert.match(app, /Open Freighter · Approve \$\{formatUnits\(stored\.maxAmount, stored\.decimals\)\} USDC/);
+  assert.match(app, /prepareAllowanceTransaction/);
+  assert.match(app, /submitPreparedAllowanceWithFreighter/);
+  assert.match(client, /Keep signing as the first asynchronous action/);
   assert.match(app, /activeMandateReady = Boolean\(mandateOnline && mandateMatchesConfig && storedFresh && stored\?\.allowanceTx\)/);
   assert.match(client, /APPROVAL_TIMEBOUND_SECONDS = 10 \* 60/);
   assert.match(client, /submitted\.status === "TRY_AGAIN_LATER"/);
