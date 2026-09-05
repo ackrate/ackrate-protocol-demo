@@ -25,6 +25,9 @@ export interface PurchaseResult {
   delivered: unknown;
 }
 
+/** Lifecycle of the paid request; the world uses it to animate the rail. */
+export type ThreadState = "checking" | "idle" | "running" | "recovery" | "recovering" | "success" | "error";
+
 const DEFAULT_SEARCH_SERVICE: MarketplaceService = {
   id: "search",
   name: "Web search",
@@ -59,6 +62,7 @@ export function AssistantThread({
   marketplaceUrl = "https://agent402.tools/stellar",
   onEditConfiguration,
   onPurchaseComplete,
+  onStateChange,
 }: {
   mandateId: string;
   asset: string;
@@ -69,6 +73,7 @@ export function AssistantThread({
   marketplaceUrl?: string;
   onEditConfiguration?: () => void;
   onPurchaseComplete: (result: PurchaseResult) => void;
+  onStateChange?: (state: ThreadState) => void;
 }) {
   const transport = useMemo(() => new AssistantChatTransport({
     api: "/api/wallet/chat",
@@ -91,6 +96,7 @@ export function AssistantThread({
             marketplaceUrl={marketplaceUrl}
             onEditConfiguration={onEditConfiguration}
             onPurchaseComplete={onPurchaseComplete}
+            onStateChange={onStateChange}
           />
         </ThreadPrimitive.Viewport>
       </ThreadPrimitive.Root>
@@ -108,6 +114,7 @@ function ResearchPurchase({
   marketplaceUrl,
   onEditConfiguration,
   onPurchaseComplete,
+  onStateChange,
 }: {
   mandateId: string;
   asset: string;
@@ -118,15 +125,20 @@ function ResearchPurchase({
   marketplaceUrl: string;
   onEditConfiguration?: () => void;
   onPurchaseComplete: (result: PurchaseResult) => void;
+  onStateChange?: (state: ThreadState) => void;
 }) {
   const inputValues = parameters ?? initialServiceInputValues(service);
-  const [state, setState] = useState<"checking" | "idle" | "running" | "recovery" | "recovering" | "success" | "error">("checking");
+  const [state, setState] = useState<ThreadState>("checking");
   const [result, setResult] = useState<PurchaseResult | null>(null);
   const [recovery, setRecovery] = useState<PendingRecovery | null>(null);
   const [error, setError] = useState<string | null>(null);
   const publishedTx = useRef<string | null>(null);
   const primaryField = service.inputs.find((field) => field.required && field.type === "string") ?? service.inputs[0];
   const question = primaryField ? inputValues[primaryField.name] ?? "" : "";
+
+  useEffect(() => {
+    onStateChange?.(state);
+  }, [onStateChange, state]);
 
   useEffect(() => {
     if (!result || publishedTx.current === result.payment.txHash) return;
@@ -428,10 +440,6 @@ export function PurchaseReport({
     }));
     window.dispatchEvent(new Event("ackrate-mainnet-payment"));
   }, [explorerNetwork, marketplace?.settlement.transaction, result.payment.amount, result.payment.asset, result.payment.txHash]);
-
-  useEffect(() => {
-    briefRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }, [result.payment.txHash]);
 
   if (!marketplace) return null;
 
