@@ -23,6 +23,7 @@ import { sourceIdForMarketplaceService, WEB_SEARCH_INPUTS, type MarketplaceServi
 import { initialServiceInputValues, serializedServiceInputs, serviceInputProblem, type ServiceInputValues } from "./ServiceConfigurator";
 import { safeWalletError } from "../../lib/wallet/notifications";
 import { isSharedReportId } from "../../lib/wallet/shared-report";
+import { ReportEditorial, ReportSources } from "./ReportEditorial";
 
 export interface PurchaseResult {
   source: { id: string; title: string };
@@ -687,13 +688,6 @@ function saveDownload(download: ResultDownload) {
   window.setTimeout(() => URL.revokeObjectURL(url), 1_000);
 }
 
-function CitedText({ text, sources }: { text: string; sources: MarketBrief["sources"] }) {
-  return <>{text.split(/(\[\d+\])/).map((part, index) => {
-    const citation = /^\[(\d+)\]$/.exec(part);
-    const source = citation ? sources[Number(citation[1]) - 1] : undefined;
-    return source ? <a key={index} href={source.url} target="_blank" rel="noreferrer" aria-label={`Source ${citation![1]}: ${source.title}`}>{part}</a> : part;
-  })}</>;
-}
 
 function ProofLink({ label, hash, explorerNetwork }: { label: string; hash: string; explorerNetwork: "testnet" | "public" }) {
   const [copied, setCopied] = useState(false);
@@ -850,7 +844,8 @@ export function PurchaseReport({
         </header>
         <div className="tool-output-layout">
           <aside className="report-rail report-proof-rail" aria-label="Payment proof">
-            <div className="report-rail-heading"><span><Check size={14} /></span><div><small>PAYMENT TRAIL</small><strong>2 of 2 settled</strong></div></div>
+            <div className="report-rail-heading"><span><Check size={14} /></span><div><small>PAYMENT TRAIL</small><strong>Two payment receipts</strong></div></div>
+            <p className="report-settlement-note">Contract payment verified. Seller receipt reported by Agent402.</p>
             <div className="report-amount"><small>Contract-enforced price</small><strong>{result.payment.amount} <span>{result.payment.asset}</span></strong></div>
             <ProofLink label="Mandate settlement" hash={result.payment.txHash} explorerNetwork={explorerNetwork} />
             <ProofLink label="Agent402 x402" hash={marketplace.settlement.transaction} explorerNetwork="public" />
@@ -888,7 +883,8 @@ export function PurchaseReport({
 
       <div className="report-layout">
         <aside className="report-rail report-proof-rail" aria-label="Payment proof">
-          <div className="report-rail-heading"><span><Check size={14} /></span><div><small>PAYMENT TRAIL</small><strong>2 of 2 settled</strong></div></div>
+          <div className="report-rail-heading"><span><Check size={14} /></span><div><small>PAYMENT TRAIL</small><strong>Two payment receipts</strong></div></div>
+          <p className="report-settlement-note">Contract payment verified. Seller receipt reported by Agent402.</p>
           <div className="report-amount"><small>Contract-enforced price</small><strong>{result.payment.amount} <span>{result.payment.asset}</span></strong></div>
           <ProofLink label="Mandate settlement" hash={result.payment.txHash} explorerNetwork={explorerNetwork} />
           <ProofLink label="Agent402 x402" hash={marketplace.settlement.transaction} explorerNetwork="public" />
@@ -906,44 +902,12 @@ export function PurchaseReport({
             <button type="button" title="Download the saved payment receipt and service response as JSON" onClick={() => downloadResult("receipt")}>Receipt JSON</button>
           </div>
           {downloadStatus}
-          <header className="brief-header">
-            <div className="brief-kicker"><span />{brief.kicker}</div>
-            <h2 id="research-brief-title">{brief.title}</h2>
-            <p>{brief.subtitle}</p>
-            <div className="brief-meta"><span>LIVE WEB EVIDENCE</span><span>PAID IN {result.payment.asset}</span><span>{brief.editorialPasses === 2 ? "TWO-MODEL REVIEW" : brief.editorialPasses === 1 ? "MODEL REVIEW" : "SOURCE-ONLY BRIEF"}</span><span>PAYMENT VERIFIED ON STELLAR</span></div>
-          </header>
-          <div className="brief-body">
-            <p className="brief-opening"><CitedText text={brief.opening} sources={brief.sources} /></p>
-            <div className="brief-findings">
-              {brief.findings.map((finding) => (
-                <section className="brief-finding" key={`${finding.number}:${finding.title}`}>
-                  <span>{finding.number}</span>
-                  <div><h3>{finding.title}</h3><p><CitedText text={finding.body} sources={brief.sources} /></p></div>
-                </section>
-              ))}
-            </div>
-            <aside className="brief-takeaway"><span>THE TAKEAWAY</span><p><CitedText text={brief.takeaway} sources={brief.sources} /></p></aside>
-            {brief.summary && <section className="brief-plain-english" aria-label="Summary">
-              <h3>Summary</h3>
-              {brief.summary.map((paragraph, index) => <p key={index}><CitedText text={paragraph} sources={brief.sources} /></p>)}
-            </section>}
-            {brief.methodology && <p className="brief-methodology">Method: {brief.methodology}</p>}
+          <ReportEditorial brief={brief} titleId="research-brief-title" paymentLabel={<><span>PAID IN {result.payment.asset}</span><span>CONTRACT PAYMENT VERIFIED</span></>}>
             <ReportShareButton key={`${result.payment.mandateId}:${result.payment.txHash}`} mandateId={result.payment.mandateId} txHash={result.payment.txHash} />
-          </div>
+          </ReportEditorial>
         </article>
 
-        <aside className="report-rail report-source-rail" aria-label="Research sources">
-          <div className="report-sources-head"><small>SOURCES</small><strong>Purchased evidence</strong><p>{marketplace.count} live search results returned by Agent402.</p></div>
-          <ol>
-            {brief.sources.map((source, index) => (
-              <li key={source.url}>
-                <span>{String(index + 1).padStart(2, "0")}</span>
-                <a href={source.url} target="_blank" rel="noreferrer"><b>{source.publisher}</b><small>{source.title}</small></a>
-                <ArrowUpRight size={14} />
-              </li>
-            ))}
-          </ol>
-        </aside>
+        <ReportSources sources={brief.sources} description={`${marketplace.count} live search results returned by Agent402.`} />
       </div>
     </section>
   );

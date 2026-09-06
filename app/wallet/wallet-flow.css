@@ -2209,6 +2209,7 @@
   box-shadow: none;
 }
 .wallet-preview.wallet-flow .report-rail { position: static; min-width: 0; overflow: visible; padding: 18px; }
+.wallet-preview.wallet-flow .report-settlement-note { margin: 12px 0; color: #c9d1dd; font-size: 12px; line-height: 1.65; }
 .wallet-preview.wallet-flow .report-rail small,
 .wallet-preview.wallet-flow .report-proof-row small,
 .wallet-preview.wallet-flow .seller-detail small { color: #b6bfcd; font-size: 10px; line-height: 1.5; }

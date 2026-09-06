@@ -1,9 +1,12 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import { ReportEditorial, ReportSources } from "../components/wallet/ReportEditorial";
 import { SharedReport } from "../components/wallet/SharedReport";
 import type { MarketBrief } from "../lib/wallet/market-brief";
+import { sharedReportBrief } from "../lib/wallet/shared-report";
 
 const summary = [
   "Stellar connects people and services that move value. [1]",
@@ -34,24 +37,77 @@ function render(value: MarketBrief = brief) {
   return renderToStaticMarkup(createElement(SharedReport, { brief: value }));
 }
 
+function source(path: string) {
+  return readFileSync(new URL(path, import.meta.url), "utf8");
+}
+
 test("the public view contains the readable report, three-paragraph Summary, and original sources", () => {
   const markup = render();
   assert.match(markup, /<main class="shared-report-page">/);
   assert.match(markup, /<h1 id="shared-report-title">Stellar, explained simply<\/h1>/);
   assert.ok(markup.includes(brief.subtitle));
   for (const finding of brief.findings) assert.ok(markup.includes(`<h2>${finding.title}</h2>`));
-  const section = /<section class="shared-report-summary"[^>]*>([\s\S]*?)<\/section>/.exec(markup)?.[1];
+  const section = /<section class="brief-plain-english" aria-label="Summary">([\s\S]*?)<\/section>/.exec(markup)?.[1];
   assert.ok(section);
-  assert.match(section, /<h2 id="shared-report-summary-title">Summary<\/h2>/);
+  assert.match(section, /<h2>Summary<\/h2>/);
   assert.equal((section.match(/<p>/g) ?? []).length, 3);
-  assert.ok(markup.indexOf("shared-report-takeaway") < markup.indexOf("shared-report-summary"));
-  assert.ok(markup.indexOf("shared-report-summary") < markup.indexOf("shared-report-method"));
-  assert.ok(markup.indexOf("shared-report-method") < markup.indexOf("shared-report-sources"));
+  const orderedSections = ["brief-takeaway", "brief-plain-english", "brief-methodology", "report-source-rail"];
+  for (const className of orderedSections) assert.ok(markup.includes(className));
+  for (let index = 1; index < orderedSections.length; index++) {
+    assert.ok(markup.indexOf(orderedSections[index - 1]) < markup.indexOf(orderedSections[index]));
+  }
+  assert.match(markup, /<aside class="report-rail report-source-rail" aria-label="Research sources">/);
   for (const source of brief.sources) {
     assert.ok(markup.includes(`href="${source.url}"`));
     assert.ok(markup.includes(source.title));
     assert.ok(markup.includes(source.publisher));
   }
+});
+
+test("wallet and public reports reuse the same editorial and source-sidebar components", () => {
+  const markup = render();
+  const publicBrief = sharedReportBrief(brief);
+  assert.ok(publicBrief);
+  const editorial = renderToStaticMarkup(createElement(ReportEditorial, {
+    brief: publicBrief, titleId: "shared-report-title", standalone: true,
+  }));
+  const sources = renderToStaticMarkup(createElement(ReportSources, {
+    sources: brief.sources, description: `${brief.sources.length} sources behind this report.`,
+  }));
+  assert.ok(markup.includes(editorial));
+  assert.ok(markup.includes(sources));
+  assert.match(markup, /<div class="shared-report-layout"><article class="research-brief report-document"/);
+  assert.ok(markup.indexOf("</article>") < markup.indexOf('class="report-rail report-source-rail"'));
+
+  for (const path of ["../components/wallet/AssistantThread.tsx", "../components/wallet/SharedReport.tsx"]) {
+    const component = source(path);
+    assert.match(component, /import\s*\{\s*ReportEditorial,\s*ReportSources\s*\}\s*from\s*["']\.\/ReportEditorial["']/);
+    assert.match(component, /<ReportEditorial\s/);
+    assert.match(component, /<ReportSources\s/);
+  }
+});
+
+test("the public report loads its dark responsive stylesheet with a collapsing source sidebar", () => {
+  const page = source("../app/reports/[id]/page.tsx");
+  assert.match(page, /import\s*["']\.\.\/shared-report\.css["']/);
+  const stylesheet = source("../app/reports/shared-report.css");
+  const screenStyles = stylesheet.split("@media print")[0];
+  const pageStyle = /\.shared-report-page\s*\{([^}]+)\}/.exec(screenStyles)?.[1];
+  assert.ok(pageStyle);
+  assert.match(pageStyle, /color-scheme:\s*dark/);
+  assert.match(pageStyle, /background:\s*#000\b/);
+  assert.match(screenStyles, /geist-latin-wght-normal\.woff2/);
+  assert.match(screenStyles, /geist-mono-latin-wght-normal\.woff2/);
+  assert.match(pageStyle, /min-height:\s*100svh/);
+  assert.doesNotMatch(screenStyles, /\bbackground(?:-color)?:\s*(?:#fff(?:fff)?|white)\b/i);
+  assert.match(screenStyles, /\.shared-report-layout\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s+\d+px/);
+  const tabletStyles = screenStyles.split("@media (max-width: 900px)")[1]?.split("@media (max-width: 560px)")[0];
+  const mobileStyles = screenStyles.split("@media (max-width: 560px)")[1];
+  assert.ok(tabletStyles);
+  assert.ok(mobileStyles);
+  assert.match(tabletStyles, /\.shared-report-layout\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)/);
+  assert.match(tabletStyles, /\.report-source-rail ol\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/);
+  assert.match(mobileStyles, /\.report-source-rail ol\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)/);
 });
 
 test("citations link to their source without sending the report URL as a referrer", () => {
@@ -76,7 +132,7 @@ test("the read-only report never adds a wallet, receipt, chat, or payment surfac
   const markup = render(value);
   assert.doesNotMatch(markup, /private-transaction|private-mandate|private-wallet|private-seller|private-marketplace-transaction/);
   assert.doesNotMatch(markup, /<button\b|<form\b|<canvas\b|<iframe\b|Payment proof|Receipt JSON|Connect wallet|Payment verified/i);
-  assert.doesNotMatch(markup, /Written by|Reviewed by|Generated by|Published by/);
+  assert.doesNotMatch(markup, /Written by|Reviewed by|Generated by|Published by|SOURCE-ONLY BRIEF|MODEL REVIEW/);
 });
 
 test("source and report markup is escaped rather than interpreted as HTML", () => {
@@ -104,7 +160,7 @@ test("a legacy report remains readable without an invented summary and rendering
   const original = JSON.stringify(value);
   const markup = render(value);
   assert.ok(markup.includes(brief.title));
-  assert.doesNotMatch(markup, /shared-report-summary/);
-  assert.match(markup, /shared-report-sources/);
+  assert.doesNotMatch(markup, /brief-plain-english|aria-label="Summary"/);
+  assert.match(markup, /report-source-rail/);
   assert.equal(JSON.stringify(value), original);
 });

@@ -105,6 +105,10 @@ test("research result shows linked citations and downloads the report and full t
   const result = purchase({ brief, marketplace: evidence });
   const markup = renderToStaticMarkup(createElement(PurchaseReport, { result, explorerNetwork: "public", registryId: "fixture", registrationTx: "d".repeat(64), allowanceTx: "e".repeat(64) }));
   assert.match(markup, /aria-label="Source 1: Stellar overview"/);
+  assert.match(markup, /Two payment receipts/);
+  assert.match(markup, /Contract payment verified\. Seller receipt reported by Agent402\./);
+  assert.match(markup, /CONTRACT PAYMENT VERIFIED/);
+  assert.doesNotMatch(markup, /2 of 2 settled|PAYMENT VERIFIED ON STELLAR/);
   for (const label of ["Download report", "Receipt JSON", "Mandate settlement", "Agent402 x402", "Mandate registration", "USDC allowance"]) assert.ok(markup.includes(label));
   const report = purchaseResultDownload(result, "report");
   assert.match(report.filename, /-report\.md$/);

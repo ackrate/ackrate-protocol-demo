@@ -11,7 +11,7 @@ export const runtime = "nodejs";
 type ReportPageProps = { params: Promise<{ id: string }> };
 
 export const viewport: Viewport = {
-  width: "device-width", initialScale: 1, maximumScale: 5, userScalable: true, themeColor: "#f4f3ef",
+  width: "device-width", initialScale: 1, maximumScale: 5, userScalable: true, themeColor: "#000000",
 };
 
 export async function generateMetadata({ params }: ReportPageProps): Promise<Metadata> {
