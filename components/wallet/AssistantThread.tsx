@@ -653,7 +653,7 @@ export function purchaseResultDownload(result: PurchaseResult, format: "receipt"
       `# ${brief.title}`, brief.subtitle, brief.opening,
       ...brief.findings.flatMap((finding) => [`## ${finding.number}. ${finding.title}`, finding.body]),
       "## Takeaway", brief.takeaway,
-      ...(brief.summary ? ["## In plain English", ...brief.summary] : []),
+      ...(brief.summary ? ["## Summary", ...brief.summary] : []),
       "## Sources", ...brief.sources.map((source, index) => `[${index + 1}] ${source.title}\n${source.url}`),
       `Method: ${brief.methodology ?? "Purchased source evidence; editorial method not recorded."}`,
       `Generated: ${brief.generatedAt ?? "Not recorded"}`,
@@ -873,8 +873,8 @@ export function PurchaseReport({
               ))}
             </div>
             <aside className="brief-takeaway"><span>THE TAKEAWAY</span><p><CitedText text={brief.takeaway} sources={brief.sources} /></p></aside>
-            {brief.summary && <section className="brief-plain-english" aria-label="In plain English">
-              <h3>In plain English</h3>
+            {brief.summary && <section className="brief-plain-english" aria-label="Summary">
+              <h3>Summary</h3>
               {brief.summary.map((paragraph, index) => <p key={index}><CitedText text={paragraph} sources={brief.sources} /></p>)}
             </section>}
             {brief.methodology && <p className="brief-methodology">Method: {brief.methodology}</p>}

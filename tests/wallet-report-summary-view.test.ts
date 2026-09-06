@@ -55,7 +55,7 @@ test("a closing summary renders three separate cited paragraphs after takeaway a
   const markup = render(purchase({ summary }));
   const section = closingSection(markup);
   assert.ok(section);
-  assert.match(section, /<h3>In plain English<\/h3>/);
+  assert.match(section, /<h3>Summary<\/h3>/);
   assert.equal((section.match(/<p>/g) ?? []).length, 3);
   assert.equal((section.match(/aria-label="Source 1: Stellar overview"/g) ?? []).length, 3);
   assert.equal((section.match(/href="https:\/\/stellar.org\/learn"/g) ?? []).length, 3);
@@ -76,9 +76,9 @@ test("Markdown includes the same closing paragraphs under a separate heading", (
   const download = purchaseResultDownload(result, "report");
   assert.equal(download.mimeType, "text/markdown;charset=utf-8");
   assert.match(download.filename, /-report\.md$/);
-  assert.ok(download.content.includes(`## In plain English\n\n${summary.join("\n\n")}`));
-  assert.ok(download.content.indexOf("## Takeaway") < download.content.indexOf("## In plain English"));
-  assert.ok(download.content.indexOf("## In plain English") < download.content.indexOf("Method:"));
+  assert.ok(download.content.includes(`## Summary\n\n${summary.join("\n\n")}`));
+  assert.ok(download.content.indexOf("## Takeaway") < download.content.indexOf("## Summary"));
+  assert.ok(download.content.indexOf("## Summary") < download.content.indexOf("Method:"));
   assert.ok(download.content.includes(brief.sources[0].url));
   assert.ok(download.content.includes(result.payment.txHash));
 });
@@ -90,7 +90,7 @@ test("legacy reports without a summary keep the report and download without inve
   assert.ok(markup.includes(brief.findings[0].title));
   assert.match(markup, /Download report/);
   assert.equal(closingSection(markup), undefined);
-  assert.doesNotMatch(purchaseResultDownload(result, "report").content, /## In plain English/);
+  assert.doesNotMatch(purchaseResultDownload(result, "report").content, /## Summary/);
 });
 
 test("invalid optional summaries are ignored without hiding an otherwise valid paid report", () => {
@@ -109,7 +109,7 @@ test("invalid optional summaries are ignored without hiding an otherwise valid p
     assert.equal(closingSection(markup), undefined);
     const report = purchaseResultDownload(result, "report");
     assert.match(report.filename, /-report\.md$/);
-    assert.doesNotMatch(report.content, /## In plain English/);
+    assert.doesNotMatch(report.content, /## Summary/);
     assert.ok(report.content.includes(brief.takeaway));
     assert.equal(purchaseResultDownload(result, "receipt").content, original);
     assert.equal(JSON.stringify(result, null, 2), original);
@@ -131,7 +131,7 @@ test("presentation trimming never mutates the exact downloaded receipt", () => {
   const original = JSON.stringify(result, null, 2);
   render(result);
   const report = purchaseResultDownload(result, "report");
-  assert.ok(report.content.includes(`## In plain English\n\n${summary.join("\n\n")}`));
+  assert.ok(report.content.includes(`## Summary\n\n${summary.join("\n\n")}`));
   assert.equal(purchaseResultDownload(result, "receipt").content, original);
   assert.equal(JSON.stringify(result, null, 2), original);
 });

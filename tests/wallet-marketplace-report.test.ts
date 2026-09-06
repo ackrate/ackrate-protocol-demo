@@ -112,7 +112,7 @@ test("research result shows linked citations and downloads the report and full t
   assert.ok(report.content.includes(evidence.results[0].url));
   assert.ok(report.content.includes(result.payment.txHash));
   assert.ok(report.content.includes(evidence.settlement.transaction));
-  assert.ok(report.content.includes("## In plain English"));
+  assert.ok(report.content.includes("## Summary"));
   for (const paragraph of draft.summary) assert.ok(report.content.includes(paragraph));
   assert.deepEqual(JSON.parse(purchaseResultDownload(result, "receipt").content), result);
 });
