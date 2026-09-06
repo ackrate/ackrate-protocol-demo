@@ -22,6 +22,7 @@ import { createMarketplaceReport } from "./marketplace-report";
 import type { Agent402Evidence, Agent402SearchResult, Agent402ToolEvidence } from "./marketplace-types";
 import {
   normalizeAgent402ToolInput,
+  SUPPORTED_AGENT402_TOOLS,
   type Agent402ToolInput,
   type SupportedAgent402Tool,
 } from "./agent402-tools";
@@ -71,8 +72,30 @@ const DiscoveryCandidate = z.object({
 }).passthrough();
 
 const DiscoveryResponse = z.object({
-  results: z.array(DiscoveryCandidate).min(1).max(50),
+  results: z.array(z.unknown()).min(1).max(50),
 }).passthrough();
+
+function selectedDiscoverySeller(value: unknown, tool: SupportedAgent402Tool): z.infer<typeof DiscoveryCandidate> {
+  const envelope = DiscoveryResponse.safeParse(value);
+  if (!envelope.success) throw new Error("Agent402 discovery returned unreadable service details");
+  // Unrelated marketplace rows must not invalidate the exact seller selected by the user.
+  const matches = envelope.data.results.filter((value) => {
+    if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+    const candidate = value as Record<string, unknown>;
+    return candidate.seller === "self" && candidate.slug === tool.slug;
+  });
+  if (matches.length !== 1) throw new Error("Agent402 discovery did not return one matching first-party seller");
+  const parsed = DiscoveryCandidate.safeParse(matches[0]);
+  if (!parsed.success) throw new Error("Agent402 discovery returned invalid details for the selected seller");
+  const candidate = parsed.data;
+  if (candidate.name !== tool.name || candidate.method !== tool.method
+    || candidate.route !== tool.path || candidate.url !== tool.url
+    || candidate.priceUsd !== Number(tool.price) || candidate.health !== 1
+    || !candidate.paymentNetworksKnown || !candidate.routerDispatchEligible) {
+    throw new Error(`Agent402 discovery did not return the expected healthy ${tool.name} seller`);
+  }
+  return candidate;
+}
 
 const SearchResult = z.object({
   title: z.string().trim().min(1).max(500),
@@ -253,8 +276,7 @@ async function discover(fetcher: Fetcher): Promise<z.infer<typeof DiscoverySelle
     redirect: "error",
   });
   if (!response.ok) throw new Error(`Agent402 discovery returned HTTP ${response.status}`);
-  const parsed = DiscoveryResponse.parse(await boundedResponseJson(response));
-  const candidate = parsed.results.find((result) => result.seller === "self");
+  const candidate = selectedDiscoverySeller(await boundedResponseJson(response), SUPPORTED_AGENT402_TOOLS.search);
   const seller = candidate ? DiscoverySeller.safeParse(candidate) : null;
   if (!seller?.success || seller.data.priceUsd !== Number(AGENT402_PRICE)) {
     throw new Error("Agent402 discovery did not return the expected healthy web-search seller");
@@ -358,20 +380,7 @@ async function discoverTool(fetcher: Fetcher, tool: SupportedAgent402Tool): Prom
     redirect: "error",
   });
   if (!response.ok) throw new Error(`Agent402 discovery returned HTTP ${response.status}`);
-  const parsed = DiscoveryResponse.parse(await boundedResponseJson(response));
-  const candidate = parsed.results.find((result) => result.seller === "self" && result.slug === tool.slug);
-  if (
-    !candidate
-    || candidate.name !== tool.name
-    || candidate.method !== tool.method
-    || candidate.route !== tool.path
-    || candidate.url !== tool.url
-    || candidate.priceUsd !== Number(tool.price)
-    || candidate.health !== 1
-    || !candidate.paymentNetworksKnown
-    || !candidate.routerDispatchEligible
-  ) throw new Error(`Agent402 discovery did not return the expected healthy ${tool.name} seller`);
-  return candidate;
+  return selectedDiscoverySeller(await boundedResponseJson(response), tool);
 }
 
 function toolRequest(tool: SupportedAgent402Tool, input: Agent402ToolInput): { url: string; init: RequestInit } {
