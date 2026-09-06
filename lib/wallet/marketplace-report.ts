@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { buildFailoverLlm } from "../llm";
+import { buildFailoverLlm, type FailoverLlm } from "../llm";
 import type { MarketBrief } from "./market-brief";
 import type { Agent402Evidence, Agent402SearchResult } from "./marketplace-types";
 
@@ -44,6 +44,7 @@ function fallback(question: string, evidence: Agent402Evidence): MarketBrief {
     question,
     generatedAt: new Date().toISOString(),
     methodology: "Live Agent402 web search with a deterministic source-only fallback.",
+    editorialPasses: 0,
   };
 }
 
@@ -62,14 +63,27 @@ function sourcePacket(results: Agent402SearchResult[]): string {
   ].join("\n")).join("\n\n").slice(0, 30_000);
 }
 
-function parseDraft(text: string) {
-  return Draft.parse(parseJson(text));
+function parseDraft(text: string, sourceCount: number) {
+  const draft = Draft.parse(parseJson(text));
+  const sections = [draft.title, draft.subtitle, draft.opening, draft.takeaway, ...draft.findings.flatMap((finding) => [finding.title, finding.body])];
+  for (const section of sections) {
+    for (const citation of section.matchAll(/\[(\d+(?:\s*[,–-]\s*\d+)*)\]/g)) {
+      if (citation[1].split(/\s*[,–-]\s*/).some((number) => Number(number) < 1 || Number(number) > sourceCount)) {
+        throw new Error("The report cited a source outside the purchased evidence.");
+      }
+    }
+  }
+  return draft;
 }
 
-export async function createMarketplaceReport(question: string, evidence: Agent402Evidence): Promise<MarketBrief> {
+export async function createMarketplaceReport(
+  question: string,
+  evidence: Agent402Evidence,
+  dependencies: { llm?: Pick<FailoverLlm, "complete"> } = {},
+): Promise<MarketBrief> {
   const safeFallback = fallback(question, evidence);
   try {
-    const llm = buildFailoverLlm();
+    const llm = dependencies.llm ?? buildFailoverLlm();
     const packet = sourcePacket(evidence.results);
     const firstPass = await llm.complete({
       system: [
@@ -89,7 +103,7 @@ export async function createMarketplaceReport(question: string, evidence: Agent4
       }],
       maxTokens: 2_400,
     }, "main");
-    let draft = parseDraft(firstPass.response.text);
+    let draft = parseDraft(firstPass.response.text, evidence.results.length);
     let editorialPasses = 1;
 
     // When both provider keys are configured, a distinct second model acts as
@@ -116,7 +130,7 @@ export async function createMarketplaceReport(question: string, evidence: Agent4
         }],
         maxTokens: 2_400,
       }, "main", { excludeProviderId: firstPass.providerId });
-      draft = parseDraft(reviewed.response.text);
+      draft = parseDraft(reviewed.response.text, evidence.results.length);
       editorialPasses = 2;
     } catch {
       // One healthy provider still produces a complete, source-bounded report.
@@ -137,8 +151,8 @@ export async function createMarketplaceReport(question: string, evidence: Agent4
       question,
       generatedAt: new Date().toISOString(),
       methodology: editorialPasses === 2
-        ? "Live Agent402 web search followed by an independent two-model drafting and fact-checking pass constrained to the purchased evidence."
-        : "Live Agent402 web search followed by provider-failover synthesis constrained to the purchased evidence.",
+        ? "Live Agent402 web search followed by two-model drafting and review of the purchased titles and snippets. The report composer did not fetch the full cited pages."
+        : "Live Agent402 web search followed by model synthesis of the purchased titles and snippets. The report composer did not fetch the full cited pages.",
       editorialPasses,
     };
   } catch {

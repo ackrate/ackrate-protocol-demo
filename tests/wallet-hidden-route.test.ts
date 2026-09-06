@@ -77,11 +77,11 @@ for (const surface of surfaces) {
     const activate = section(app, "const activate = async () =>", "const retryAllowance = async () =>");
     assert.match(activate, /registerWithFreighter/);
     assert.doesNotMatch(activate, /approveWithFreighter|submitPreparedAllowanceWithFreighter/);
-    includes(app, ["prepareAllowanceTransaction", "submitPreparedAllowanceWithFreighter", "allowanceFailureMessage(cause)", "budgetNumber >= minimumBudget", "walletBalances?.hasUsdcTrustline", "walletBalances.usdcRaw"]);
-    assert.match(app, /activeMandateReady = Boolean\(mandateOnline && mandateMatchesConfig && storedFresh && stored\?\.allowanceTx\)/);
+    includes(app, ["prepareAllowanceTransaction", "submitPreparedAllowanceWithFreighter", "allowanceFailureMessage(cause)", "walletBalances?.hasUsdcTrustline", "walletBalances.usdcRaw"]);
+    assert.match(app, /activeMandateReady = Boolean\(mandateOnline && mandateMatchesConfig && storedFresh && stored\?\.allowanceTx(?: && enoughRemaining)?\)/);
     if (surface === "wallet") {
       assert.match(app, /!serviceConfigured \? 3 : !showRun \? 4 : !completedPurchase \? 5 : 6/);
-      includes(app, ["canRun={activeMandateReady}", "showRun = activeMandateReady || recoverableRun", "recoverableRun = Boolean(stored?.allowanceTx && mandateMatchesConfig && mandate?.id === stored.id"]);
+      includes(app, ["budgetAtomic >= minimumBudget", "canRun={activeMandateReady && quoteCurrent}", "showRun = activeMandateReady || recoverableRun", "recoverableRun = Boolean(stored?.allowanceTx && mandateMatchesConfig && mandate?.id === stored.id"]);
     }
     else {
       assert.match(app, /!serviceConfigured \? 3 : !activeMandateReady && !spentOut \? 4 : !completedPurchase \? 5 : 6/);
@@ -108,7 +108,7 @@ for (const surface of surfaces) {
     assert.match(ui, /Disconnect wallet/);
     assert.match(app, /onClick=\{(?:connected \? )?\(\) => setDisconnectOpen\(true\)/);
     assert.match(disconnect, /mandate\?\.status === "Active" && mandate\.expiry > Math\.floor\(Date\.now\(\) \/ 1_000\)/);
-    includes(disconnect, ["First tap Turn off spending below. Then disconnect your wallet", 'await api("/api/wallet/auth/session", { method: "DELETE"', "Could not disconnect. Please try again"]);
+    includes(disconnect, ["First tap Turn off spending below. Then disconnect your wallet", 'await api("/api/wallet/auth/session", { method: "DELETE"', surface === "wallet" ? "Disconnect did not finish. Your wallet is still connected" : "Could not disconnect. Please try again"]);
     assert.match(disconnect, /catch \(cause\) \{[\s\S]*?return;/);
     assert.ok(disconnect.indexOf('method: "DELETE"') < disconnect.indexOf("setSession(emptySession)"));
     includes(disconnect, ["setSession(emptySession)", "setWalletAddress(null)", "setMarketplaceSelected(false)", "setServiceConfigured(false)", "setCompletedPurchase(null)", "localStorage.removeItem(mandateStorageKey(config, session.address))", "localStorage.removeItem(legacyMandateStorageKey(config, session.address))", 'localStorage.removeItem("ackrate:mainnet:last-payment")', "Wallet disconnected. Connect a wallet to start again"]);
@@ -131,8 +131,14 @@ for (const surface of surfaces) {
   });
 
   test(`${surface}: recovery returns paid results without an automatic second payment`, () => {
-    includes(thread, ["Recover report — no new charge", "Checking previous payment", "No automatic second payment will be sent", "parseRecovery", "invalid retained settlement evidence", "Check payment", "if (isPurchaseResult(pending.result))"]);
-    assert.match(thread, /setResult\(pending\.result\)[\s\S]*setState\("success"\)/);
+    includes(thread, ["Checking previous payment", "No automatic second payment will be sent", "parseRecovery", "invalid retained settlement evidence", "Check payment"]);
+    if (surface === "wallet") {
+      includes(thread, ["Recover result — no new charge", "purchaseResultForMandate(pending.result, mandateId, pending.txHash)"]);
+      assert.match(thread, /setResult\(paidResult\)[\s\S]*setState\("success"\)/);
+    } else {
+      includes(thread, ["Recover report — no new charge", "if (isPurchaseResult(pending.result))"]);
+      assert.match(thread, /setResult\(pending\.result\)[\s\S]*setState\("success"\)/);
+    }
   });
 
   test(`${surface}: reports expose contract, marketplace, registration, and allowance proofs`, () => {

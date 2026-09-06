@@ -4,6 +4,7 @@ import { TESTNET, type NetworkConfig } from "@ackrate/stellar";
 import { mainnetNetworkFromDeploymentManifest } from "./release-manifest";
 import mainnetReleaseManifest from "./mainnet-release.json";
 import type { CatalogItem, NetworkName, SafeAppConfig } from "./types";
+import { configuredLlmProviders } from "../llm-policy";
 
 export const MAINNET_CONFIRMATION = "ACTIVATE_VERIFIED_ACKRATE_MAINNET";
 
@@ -41,6 +42,9 @@ export interface AppConfig {
   sessionSecret: string | null;
   openAiKey: string | null;
   openAiModel: string;
+  anthropicKey: string | null;
+  anthropicModel: string;
+  llmProviders: ("openai" | "anthropic")[];
   databaseUrl: string | null;
 }
 
@@ -190,8 +194,15 @@ export function loadAppConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   if (!challengeSecret || Buffer.byteLength(challengeSecret, "utf8") < 32) {
     blockers.push("fulfillment challenge secret must contain at least 32 bytes");
   }
-  const openAiKey = present(env.OPENAI_API_KEY);
-  if (!openAiKey) blockers.push("OpenAI API key is missing");
+  let llmProviders: ("openai" | "anthropic")[] = [];
+  try {
+    llmProviders = configuredLlmProviders(env);
+  } catch (error) {
+    blockers.push(error instanceof Error ? error.message : "invalid model provider policy");
+  }
+  const openAiKey = llmProviders.includes("openai") ? present(env.OPENAI_API_KEY) : null;
+  const anthropicKey = llmProviders.includes("anthropic") ? present(env.ANTHROPIC_API_KEY) : null;
+  if (!openAiKey && !anthropicKey) blockers.push("a chat model API key is missing");
   const databaseUrl = present(env.DATABASE_URL);
   if (networkName === "mainnet" && !databaseUrl) blockers.push("durable DATABASE_URL is required on mainnet");
 
@@ -254,6 +265,9 @@ export function loadAppConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     sessionSecret,
     openAiKey,
     openAiModel: present(env.OPENAI_MODEL) ?? "gpt-5-mini",
+    anthropicKey,
+    anthropicModel: present(env.ANTHROPIC_MODEL) ?? "claude-opus-4-8",
+    llmProviders,
     databaseUrl,
   };
 }

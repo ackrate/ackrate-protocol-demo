@@ -17,7 +17,7 @@ export function initialServiceInputValues(service: MarketplaceService): ServiceI
     const example = field.example;
     const value = Array.isArray(example)
       ? example.join("\n")
-      : example === null || typeof example === "object"
+      : example === null || example === undefined || typeof example === "object"
         ? ""
         : String(example);
     return [field.name, field.name === "q" && service.id === "search" ? "" : value];
@@ -35,13 +35,15 @@ export function submittedServiceInput(field: MarketplaceInputField, value: strin
 }
 
 export function serializedServiceInputs(service: MarketplaceService, values: ServiceInputValues): Record<string, unknown> {
+  const problem = serviceInputProblem(service, values);
+  if (problem) throw new Error(problem);
   return Object.fromEntries(service.inputs.flatMap((field) => {
     const value = submittedServiceInput(field, values[field.name] ?? "");
     return value === undefined ? [] : [[field.name, value]];
   }));
 }
 
-function inputProblem(service: MarketplaceService, values: ServiceInputValues): string | null {
+export function serviceInputProblem(service: MarketplaceService, values: ServiceInputValues): string | null {
   if (service.inputs.length === 0) return "Agent402 did not publish an input schema for this listing.";
   for (const field of service.inputs) {
     const value = values[field.name]?.trim() ?? "";
@@ -49,6 +51,16 @@ function inputProblem(service: MarketplaceService, values: ServiceInputValues): 
     if ((field.type === "number" || field.type === "integer") && value && !Number.isFinite(Number(value))) {
       return `${field.name} must be a number.`;
     }
+    if (field.type === "integer" && value && !Number.isSafeInteger(Number(value))) return `${field.name} must be a whole number.`;
+    if (field.options.length > 0 && value && !field.options.includes(value)) return `Choose one of the published options for ${field.name}.`;
+    if (field.type === "boolean" && value && value !== "true" && value !== "false") return `Choose Yes or No for ${field.name}.`;
+    if (field.type === "string" && /^(?:url|uri)$/i.test(field.name) && value) {
+      try {
+        const url = new URL(value);
+        if (!["http:", "https:"].includes(url.protocol) || url.username || url.password) return `${field.name} must be a public HTTP or HTTPS URL without credentials.`;
+      } catch { return `Enter a complete HTTP or HTTPS URL for ${field.name}.`; }
+    }
+    if (service.id === "search" && field.name === "q" && (value.length < 3 || value.length > 400)) return "Enter a search question between 3 and 400 characters.";
     if (field.type === "object" && value) {
       try {
         const parsed: unknown = JSON.parse(value);
@@ -147,7 +159,7 @@ export function ServiceConfigurator({
   busy?: boolean;
 }) {
   const reduceMotion = useReducedMotion();
-  const problem = inputProblem(service, values);
+  const problem = serviceInputProblem(service, values);
   const requiredFields = service.inputs.filter((field) => field.required);
   const optionalFields = service.inputs.filter((field) => !field.required);
 

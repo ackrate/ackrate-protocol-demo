@@ -6,9 +6,9 @@
  * fails over to the backup provider. Both providers are reached through one
  * neutral request/response contract so the agent loop has no provider knowledge.
  *
- * Order is configurable (LLM_PRIMARY=anthropic|openai); default primary is the
- * Anthropic SDK, backup is the OpenAI SDK. Either key alone works (no failover);
- * both keys give failover. If every provider is exhausted, complete() throws
+ * LLM_PROVIDER_MODE=openai-only (default) disables the alternate provider.
+ * Opt into failover to use LLM_PRIMARY ordering and both configured keys.
+ * If every enabled provider is exhausted, complete() throws
  * AllProvidersExhausted and the caller renders a degraded, source-only report.
  *
  * Anything logged or streamed stays vendor-agnostic ("primary LLM" /
@@ -19,6 +19,7 @@
  */
 import Anthropic from "@anthropic-ai/sdk";
 import OpenAI from "openai";
+import { configuredLlmProviders } from "./llm-policy";
 
 // ---- neutral, provider-agnostic contract ----
 
@@ -371,16 +372,12 @@ export class FailoverLlm {
 }
 
 /**
- * Build the failover chain from the environment. Default order is Anthropic →
- * OpenAI; set LLM_PRIMARY=openai to flip. Only providers whose key is present
- * are included; the first one added is labeled "primary LLM", the second
+ * Build only the providers explicitly enabled by the operator's policy.
+ * Only providers whose key is present are included; the first is "primary LLM", the second
  * "backup LLM".
  */
 export function buildFailoverLlm(): FailoverLlm {
-  const order =
-    (process.env.LLM_PRIMARY || "anthropic").toLowerCase() === "openai"
-      ? (["openai", "anthropic"] as const)
-      : (["anthropic", "openai"] as const);
+  const order = configuredLlmProviders();
 
   const labels = ["primary LLM", "backup LLM"];
   const providers: LlmProvider[] = [];

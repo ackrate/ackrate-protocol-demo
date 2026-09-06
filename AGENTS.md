@@ -21,11 +21,12 @@ npm run dev        # http://localhost:3000
 The public research, video, composite, and starter flows run on Stellar **testnet**
 with ephemeral keys. The wallet canary runs on Stellar **mainnet** with
 Circle USDC and the manifest-pinned registry. The research agent
-additionally needs an LLM API key in `.env.local` (gitignored). It supports two
-providers and fails over between them so a run never goes dark if one is out of
-credit or rate-limited: set `ANTHROPIC_API_KEY` and/or `OPENAI_API_KEY` (either
-alone works; both enable failover). `LLM_PRIMARY` (default `anthropic`) picks the
-primary and `OPENAI_MODEL` / `OPENAI_MODEL_SUB` set the OpenAI model ids. See
+additionally needs an LLM API key in `.env.local` (gitignored).
+`LLM_PROVIDER_MODE=openai-only` is the default and ignores the alternate key.
+Set `OPENAI_API_KEY` for chat and report formatting. Explicitly selecting
+`LLM_PROVIDER_MODE=failover` permits both configured provider keys;
+`LLM_PRIMARY` (default `openai`) picks their order.
+`OPENAI_MODEL` / `OPENAI_MODEL_SUB` set the model ids. See
 `.env.example`. The failover layer lives in `lib/llm.ts`. Without any key the
 video demo still works and the research page shows a notice.
 

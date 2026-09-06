@@ -36,6 +36,35 @@ test("agent secret mismatch fails closed without exposing the secret", () => {
   assert.equal(JSON.stringify(config.public).includes(env.ACKRATE_CHAT_AGENT_SECRET), false);
 });
 
+test("chat can use the configured fallback provider without exposing its key", () => {
+  const config = loadAppConfig({
+    ...validEnv(), OPENAI_API_KEY: undefined, LLM_PROVIDER_MODE: "failover",
+    ANTHROPIC_API_KEY: "test-only-alternate-key", ANTHROPIC_MODEL: "configured-editor-model",
+  });
+  assert.equal(config.public.ready, true);
+  assert.equal(config.openAiKey, null);
+  assert.equal(config.anthropicModel, "configured-editor-model");
+  assert.equal(JSON.stringify(config.public).includes("test-only-alternate-key"), false);
+});
+
+test("OpenAI-only policy never enables an exhausted alternate key", () => {
+  const env = { ...validEnv(), ANTHROPIC_API_KEY: "disabled-key", LLM_PRIMARY: "anthropic" };
+  for (const LLM_PROVIDER_MODE of [undefined, "openai-only"]) {
+    const config = loadAppConfig({ ...env, LLM_PROVIDER_MODE });
+    assert.equal(config.public.ready, true);
+    assert.deepEqual(config.llmProviders, ["openai"]);
+    assert.equal(config.anthropicKey, null);
+    assert.equal(loadAppConfig({ ...env, LLM_PROVIDER_MODE, OPENAI_API_KEY: undefined }).public.ready, false);
+  }
+  assert.equal(loadAppConfig({ ...env, LLM_PROVIDER_MODE: "typo" }).public.ready, false);
+});
+
+test("chat stays blocked if neither provider key is configured", () => {
+  const config = loadAppConfig({ ...validEnv(), OPENAI_API_KEY: undefined, ANTHROPIC_API_KEY: undefined });
+  assert.equal(config.public.ready, false);
+  assert(config.public.blockers.includes("a chat model API key is missing"));
+});
+
 test("mainnet loads only the verified USDC release and never falls back to testnet", () => {
   const config = loadAppConfig({ ...validEnv(), ACKRATE_WALLET_NETWORK: "mainnet", ACKRATE_APP_ORIGIN: "https://reapp.live" });
   assert.equal(config.public.ready, false);

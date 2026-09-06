@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type SetStateAction } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
@@ -16,6 +16,7 @@ import {
   ExternalLink,
   Fingerprint,
   Globe2,
+  Info,
   LockKeyhole,
   LoaderCircle,
   Power,
@@ -44,6 +45,8 @@ import { MarketplaceOrb } from "./MarketplaceOrb";
 import { ProtocolWorld } from "./ProtocolWorld";
 import { initialServiceInputValues, serializedServiceInputs, ServiceConfigurator, type ServiceInputValues } from "./ServiceConfigurator";
 import type { MarketplaceQuoteView } from "@/lib/wallet/marketplace-quote";
+import { allowanceTransactionIsFresh, mandateCanAfford, readAllowanceConfirmation, walletAmountAtomic, type PendingAllowance } from "@/lib/wallet/client-readiness";
+import { nextWalletNotification, safeWalletError, type WalletNotification } from "@/lib/wallet/notifications";
 
 type Phase = "idle" | "authenticating" | "adding-asset" | "registering" | "approving" | "active" | "revoking";
 
@@ -62,6 +65,7 @@ interface StoredMandate {
   decimals: number;
   registrationTx?: string;
   allowanceTx?: string;
+  pendingAllowance?: PendingAllowance;
   revokeTx?: string;
 }
 
@@ -142,19 +146,20 @@ function marketplaceSettlement(result: PurchaseResult): { transaction: string; a
 
 function allowanceFailureMessage(cause: unknown): string {
   const detail = cause instanceof Error ? cause.message : String(cause);
-  if (/declin|reject|cancel|closed/i.test(detail) && /freighter|sign/i.test(detail)) {
-    return "Nothing was sent. Click the button again, then confirm the one USDC approval in Freighter.";
-  }
   if (/too late|expired|time.?bound/i.test(detail)) {
-    return "The approval window expired before submission. Click the button again; the new window lasts ten minutes.";
+    return "The prepared approval expired. Prepare a fresh approval before opening Freighter.";
   }
-  if (/different signer|different account/i.test(detail)) {
-    return "Freighter changed accounts. Select the same burner wallet, then click the approval button again.";
-  }
-  if (/network stayed busy|TRY_AGAIN_LATER|NOT_FOUND|transport|timeout|fetch/i.test(detail)) {
-    return "Stellar did not accept the approval yet. Your funds are safe—wait a few seconds, then click the button once more.";
-  }
-  return "The USDC approval did not finish. Your registered limit is safe; click the button and approve the one Freighter transaction again.";
+  return safeWalletError(cause, "Freighter did not finish the allowance request. Open and unlock the extension, then use the approval button below.");
+}
+
+function WalletToast({ notification, busy, onDismiss, legacy = false }: { notification: WalletNotification | null; busy: boolean; onDismiss: () => void; legacy?: boolean }) {
+  if (!notification) return null;
+  const failed = notification.kind === "error";
+  return <div className={`${legacy ? "toast" : "flow-toast"}${failed ? " error" : ""}`} role={failed ? "alert" : "status"} aria-atomic="true" style={{ width: "min(440px, calc(100vw - 32px))", alignItems: "start" }}>
+    <span aria-hidden="true">{failed ? <TriangleAlert size={16} /> : busy ? <LoaderCircle className="spin" size={16} /> : <Info size={16} />}</span>
+    <p style={{ fontSize: 13, lineHeight: 1.55, overflowWrap: "anywhere" }}>{notification.message}</p>
+    <button type="button" onClick={onDismiss} aria-label="Dismiss notification" style={{ minWidth: 28, minHeight: 28, color: "#d4d4d4" }}><X size={16} /></button>
+  </div>;
 }
 
 function mandateStorageKey(config: SafeAppConfig, address: string): string {
@@ -224,8 +229,15 @@ export function WalletChatApp() {
   const [budget, setBudget] = useState("0.10");
   const [duration, setDuration] = useState("60");
   const [phase, setPhase] = useState<Phase>("idle");
-  const [notice, setNotice] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [notification, setNotification] = useState<WalletNotification | null>(null);
+  const error = notification?.kind === "error" ? notification.message : null;
+  const setNotice = useCallback((value: SetStateAction<string | null>) => {
+    setNotification((current) => nextWalletNotification(current, "notice", typeof value === "function"
+      ? value(current?.kind === "notice" ? current.message : null) : value));
+  }, []);
+  const setError = useCallback((value: string | null) => {
+    setNotification((current) => nextWalletNotification(current, "error", value));
+  }, []);
   const [disconnectOpen, setDisconnectOpen] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
   const [usdcReady, setUsdcReady] = useState(false);
@@ -247,6 +259,16 @@ export function WalletChatApp() {
   const [marketplaceQuote, setMarketplaceQuote] = useState<MarketplaceQuoteView | null>(null);
   const [quoteChecking, setQuoteChecking] = useState(false);
   const [runStarted, setRunStarted] = useState(false);
+  const approvalInFlight = useRef(false);
+  const preparedAllowanceReady = Boolean(config && stored && preparedAllowance?.mandateId === stored.id
+    && allowanceTransactionIsFresh(preparedAllowance.xdr, config.networkPassphrase, nowSeconds));
+  const notificationBusy = allowancePreparing || quoteChecking || disconnecting || !["idle", "active"].includes(phase);
+
+  useEffect(() => {
+    if (!notification || notification.kind === "error" || notificationBusy) return;
+    const timer = window.setTimeout(() => setNotification((current) => current === notification ? null : current), 8_000);
+    return () => window.clearTimeout(timer);
+  }, [notification, notificationBusy]);
 
   const refreshMandate = useCallback(async (current: StoredMandate) => {
     const body = await api<{ mandate: MandateView }>("/api/wallet/mandate/status", {
@@ -255,12 +277,20 @@ export function WalletChatApp() {
     });
     setMandate(body.mandate);
     setPhase(body.mandate.status === "Active" && body.mandate.expiry > Math.floor(Date.now() / 1_000) ? "active" : "idle");
+    return body.mandate;
   }, []);
 
   useEffect(() => {
     const timer = window.setInterval(() => setNowSeconds(Math.floor(Date.now() / 1_000)), 10_000);
     return () => window.clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    if (stored?.allowanceTx && stored.expiry <= nowSeconds) {
+      setNotice((current) => current === "Spending limit approved. The agent is ready."
+        ? "This spending limit has expired. Existing payment receipts are still recoverable." : current);
+    }
+  }, [nowSeconds, stored?.allowanceTx, stored?.expiry]);
 
   useEffect(() => {
     Promise.all([
@@ -270,7 +300,7 @@ export function WalletChatApp() {
       setConfig(configResult.config);
       setSession(sessionResult.session);
       if (sessionResult.session.address) setWalletAddress(sessionResult.session.address);
-    }).catch((cause) => setError(cause instanceof Error ? cause.message : String(cause)));
+    }).catch((cause) => setError(safeWalletError(cause, "Wallet setup could not load. Refresh the page to try again.")));
   }, []);
 
   useEffect(() => {
@@ -331,7 +361,7 @@ export function WalletChatApp() {
       setUsdcReady(result.balances.hasUsdcTrustline);
     } catch (cause) {
       setWalletBalances(null);
-      setError(cause instanceof Error ? cause.message : "Could not read wallet balances");
+      setError(safeWalletError(cause, "Wallet balances could not refresh. Use Refresh before setting a limit."));
     } finally {
       setBalancesLoading(false);
     }
@@ -350,8 +380,10 @@ export function WalletChatApp() {
       !config
       || !stored?.registrationTx
       || stored.allowanceTx
+      || stored.pendingAllowance
       || stored.expiry <= Math.floor(Date.now() / 1_000)
-      || preparedAllowance?.mandateId === stored.id
+      || preparedAllowanceReady
+      || approvalInFlight.current
     ) return;
     let active = true;
     setAllowancePreparing(true);
@@ -367,7 +399,7 @@ export function WalletChatApp() {
         if (active) setAllowancePreparing(false);
       });
     return () => { active = false; };
-  }, [config, preparedAllowance?.mandateId, stored?.allowanceTx, stored?.expiry, stored?.id, stored?.registrationTx]);
+  }, [config, preparedAllowanceReady, stored?.allowanceTx, stored?.pendingAllowance?.txHash, stored?.expiry, stored?.id, stored?.registrationTx]);
 
   useEffect(() => {
     const refresh = () => { if (stored) void refreshMandate(stored); };
@@ -425,7 +457,7 @@ export function WalletChatApp() {
         setMarketplaceCatalog({ source: result.source, size: result.catalogSize, matches: result.totalMatches });
       }).catch((cause) => {
         if (controller.signal.aborted) return;
-        setError(cause instanceof Error ? cause.message : "Could not load marketplace services");
+        setError(safeWalletError(cause, "Marketplace services could not load. Search again in a moment."));
       }).finally(() => {
         if (!controller.signal.aborted) setMarketplaceLoading(false);
       });
@@ -453,7 +485,7 @@ export function WalletChatApp() {
       setNotice("Wallet connected. No transaction was created, signed, or sent.");
       setPhase("idle");
     } catch (cause) {
-      setError("Could not connect. Open Freighter, choose Mainnet, and try again.");
+      setError(safeWalletError(cause, "Could not connect. Open and unlock Freighter, choose Mainnet, then connect again."));
       setNotice(null);
       setPhase("idle");
     }
@@ -464,7 +496,6 @@ export function WalletChatApp() {
     setError(null);
     if (walletAddress === config.contractAuthorityAddress) {
       setError("This is the contract's 2-of-3 governance account. Use a separate personal Mainnet wallet here.");
-      setNotice("The V2 contract stays protected by multisig; the consumer wallet signs only its own spending limit.");
       setPhase("idle");
       return;
     }
@@ -488,7 +519,7 @@ export function WalletChatApp() {
       setNotice("Wallet verified. You can now choose a marketplace service.");
       setPhase("idle");
     } catch (cause) {
-      setError("Could not verify this wallet. No transaction was sent to Mainnet.");
+      setError(safeWalletError(cause, "Wallet verification did not finish. Open Freighter to complete the sign-in request; it does not make a payment."));
       setNotice(null);
       setPhase("idle");
     }
@@ -501,11 +532,18 @@ export function WalletChatApp() {
       setError("Review the service inputs again to refresh its price and seller before approving.");
       return;
     }
+    const requested = walletAmountAtomic(budget, config.asset.decimals);
+    const minimum = walletAmountAtomic(marketplaceQuote.price, config.asset.decimals);
+    const available = walletBalances ? walletAmountAtomic(walletBalances.usdcRaw, config.asset.decimals) : null;
+    if (requested === null || minimum === null || requested <= 0n || requested < minimum
+      || available === null || requested > available || !walletBalances?.hasUsdcTrustline) {
+      setError(`Choose a valid limit of at least ${marketplaceQuote.price} USDC within your wallet balance.`);
+      return;
+    }
     setError(null);
     setCompletedPurchase(null);
     if (session.address === config.contractAuthorityAddress) {
-      setError("This is the contract's 2-of-3 governance account. It cannot finish consumer setup in one Freighter window.");
-      setNotice("Disconnect it and connect a separate personal Mainnet wallet. The V2 contract stays protected by 2-of-3.");
+      setError("This is the contract's governance account. Disconnect it and connect a separate personal Mainnet wallet.");
       setPhase("idle");
       return;
     }
@@ -539,8 +577,7 @@ export function WalletChatApp() {
       setPhase("idle");
       setNotice("Limit registered. Preparing the final USDC approval now.");
     } catch (cause) {
-      setError("Could not finish setup. Open Freighter and follow the button on this screen.");
-      setNotice("Setup stopped safely. Follow the button on the screen to continue.");
+      setError(safeWalletError(cause, "Limit registration did not finish. Check Freighter for a pending request before signing another registration."));
       setPhase("idle");
     }
   };
@@ -562,7 +599,7 @@ export function WalletChatApp() {
         setError(null);
         setNotice("USDC is already ready in your wallet.");
       } else {
-        setError("Could not add USDC. Open Freighter and try again.");
+        setError(safeWalletError(cause, "USDC setup did not finish. Open Freighter and check its pending request."));
         setNotice(null);
       }
     } finally {
@@ -571,11 +608,56 @@ export function WalletChatApp() {
   };
 
   const retryAllowance = async () => {
-    if (!config || !stored) return;
+    if (!config || !stored || approvalInFlight.current) return;
+    if (stored.pendingAllowance) {
+      approvalInFlight.current = true;
+      setPhase("approving");
+      setError(null);
+      setNotice("Checking the existing allowance transaction. No new wallet signature or fee is requested.");
+      try {
+        const status = await readAllowanceConfirmation(config.rpcUrl, config.networkPassphrase, {
+          user: stored.user, asset: stored.asset, spender: config.mandateRegistryId, maxAmount: stored.maxAmount,
+        }, stored.pendingAllowance);
+        if (status === "confirmed") {
+          const next = { ...stored, allowanceTx: stored.pendingAllowance.txHash, pendingAllowance: undefined };
+          saveStored(next);
+          const confirmed = await refreshMandate(next);
+          setNotice(confirmed.status === "Active" && confirmed.expiry > Math.floor(Date.now() / 1_000)
+            ? "Spending limit approved. The agent is ready."
+            : "Allowance confirmed, but this spending limit is no longer active. Existing receipts remain recoverable.");
+        } else if (status === "failed" || status === "expired") {
+          saveStored({ ...stored, pendingAllowance: undefined });
+          setPreparedAllowance(null);
+          setNotice("The previous allowance did not succeed. A fresh approval can now be prepared.");
+        } else {
+          setNotice("The allowance is still unconfirmed. Check again in a moment; no new transaction was sent.");
+        }
+      } catch (cause) {
+        console.error("USDC allowance confirmation check failed", cause);
+        setError("The existing allowance could not be confirmed yet. Check again; no new approval or fee was requested.");
+      } finally {
+        approvalInFlight.current = false;
+        setPhase("idle");
+      }
+      return;
+    }
+    if (stored.expiry <= Math.floor(Date.now() / 1_000)) {
+      setPreparedAllowance(null);
+      setError("The registered limit has expired. Set a new limit before approving an allowance.");
+      return;
+    }
+    if (!marketplaceQuote || marketplaceQuote.expiresAt <= Math.floor(Date.now() / 1_000)) {
+      setServiceConfigured(false);
+      setError("Review the service inputs again to refresh its price and seller before approving.");
+      return;
+    }
     setError(null);
     const intent = storedToIntent(stored);
-    let prepared = preparedAllowance?.mandateId === stored.id ? preparedAllowance.xdr : null;
+    let prepared = preparedAllowance?.mandateId === stored.id
+      && allowanceTransactionIsFresh(preparedAllowance.xdr, config.networkPassphrase) ? preparedAllowance.xdr : null;
+    approvalInFlight.current = true;
     if (!prepared) {
+      setPreparedAllowance(null);
       setAllowancePreparing(true);
       setNotice("Preparing the USDC approval. The Freighter button will unlock in a moment.");
       try {
@@ -587,23 +669,34 @@ export function WalletChatApp() {
         setError("The approval could not be prepared yet. Wait a moment and try again.");
       } finally {
         setAllowancePreparing(false);
+        approvalInFlight.current = false;
       }
       return;
     }
     setPhase("approving");
     setNotice("Opening Freighter now. Approve the single USDC allowance transaction.");
+    let submitted = stored;
     try {
-      const allowanceTx = await submitPreparedAllowanceWithFreighter(config, intent, prepared);
-      const next = { ...stored, allowanceTx };
+      const allowanceTx = await submitPreparedAllowanceWithFreighter(config, intent, prepared, (pendingAllowance) => {
+        submitted = { ...stored, pendingAllowance };
+        saveStored(submitted);
+      });
+      const next = { ...submitted, allowanceTx, pendingAllowance: undefined };
       saveStored(next);
       setPreparedAllowance(null);
-      await refreshMandate(next);
-      setNotice("Spending limit approved. The agent is ready.");
+      const confirmed = await refreshMandate(next);
+      setNotice(confirmed.status === "Active" && confirmed.expiry > Math.floor(Date.now() / 1_000)
+        ? "Spending limit approved. The agent is ready."
+        : "Allowance confirmed, but this spending limit is no longer active. Existing receipts remain recoverable.");
     } catch (cause) {
       console.error("USDC allowance approval failed", cause);
-      setError(allowanceFailureMessage(cause));
+      setError(submitted.pendingAllowance
+        ? "The allowance was signed, but confirmation has not finished. Check the existing approval below; do not approve another transaction."
+        : allowanceFailureMessage(cause));
       setPreparedAllowance(null);
       setPhase("idle");
+    } finally {
+      approvalInFlight.current = false;
     }
   };
 
@@ -613,6 +706,7 @@ export function WalletChatApp() {
     setQuoteChecking(true);
     setMarketplaceQuote(null);
     setError(null);
+    setNotice("Checking the service inputs, price, and seller. No payment is being made.");
     try {
       const { quote } = await api<{ quote: MarketplaceQuoteView }>("/api/wallet/marketplace/quote", {
         method: "POST",
@@ -622,7 +716,7 @@ export function WalletChatApp() {
       setServiceConfigured(true);
       setNotice(`Seller checked. ${quote.price} USDC per call. No payment was made.`);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Could not verify this service's payment details. Try again.");
+      setError(safeWalletError(cause, "The seller's payment details could not be verified. Check the price again; no payment was made."));
     } finally {
       setQuoteChecking(false);
     }
@@ -642,7 +736,7 @@ export function WalletChatApp() {
       await refreshMandate(next);
       setNotice("Spending is off. Now click Disconnect wallet.");
     } catch (cause) {
-      setError("Could not turn off spending. Open Freighter, select the same wallet, and try again.");
+      setError(safeWalletError(cause, "Spending could not be turned off. Check Freighter's pending request and keep the same wallet selected."));
       setPhase("active");
     }
   };
@@ -659,8 +753,7 @@ export function WalletChatApp() {
     try {
       await api("/api/wallet/auth/session", { method: "DELETE", body: "{}" });
     } catch (cause) {
-      setError("Could not disconnect. Please try again.");
-      setNotice("Your wallet is still connected.");
+      setError("Disconnect did not finish. Your wallet is still connected; try Disconnect again.");
       setDisconnecting(false);
       return;
     }
@@ -731,9 +824,12 @@ export function WalletChatApp() {
   );
   const spendingOff = Boolean(stored?.revokeTx && mandate?.status !== "Active");
   const storedFresh = Boolean(stored && stored.expiry > nowSeconds);
-  const activeMandateReady = Boolean(mandateOnline && mandateMatchesConfig && storedFresh && stored?.allowanceTx);
+  const servicePrice = marketplaceQuote?.price ?? marketplaceService.price;
+  const enoughRemaining = mandateCanAfford(mandate?.remaining, servicePrice, config?.asset.decimals ?? 7);
+  const quoteCurrent = Boolean(marketplaceQuote && marketplaceQuote.expiresAt > nowSeconds);
+  const activeMandateReady = Boolean(mandateOnline && mandateMatchesConfig && storedFresh && stored?.allowanceTx && enoughRemaining);
   const recoverableRun = Boolean(stored?.allowanceTx && mandateMatchesConfig && mandate?.id === stored.id
-    && (runStarted || mandate.status !== "Active" || !storedFresh));
+    && (runStarted || mandate.status !== "Active" || !storedFresh || !enoughRemaining));
   const showRun = activeMandateReady || recoverableRun || Boolean(completedPurchase);
   const currentMandate = mandateMatchesConfig ? mandate : null;
   const progress = activeMandateReady ? 3 : storedFresh && stored?.registrationTx ? 2 : walletAddress ? 1 : 0;
@@ -979,7 +1075,7 @@ export function WalletChatApp() {
           </div>
         )}
 
-        {(notice || error) && <div className={`toast ${error ? "error" : ""}`}><span>{error ? <TriangleAlert size={16} /> : <Check size={16} />}</span><p>{error ?? notice}</p><button onClick={() => { setError(null); setNotice(null); }} aria-label="Dismiss"><X size={14} /></button></div>}
+        <WalletToast notification={notification} busy={notificationBusy} legacy onDismiss={() => setNotification(null)} />
 
         <footer className="footer shell"><div><ShieldCheck size={15} /> Your spending limit is checked every time</div><p>Ackrate decides if a payment is allowed.</p><Link href="/wallet/diagnostics">Technical details <ArrowUpRight size={13} /></Link></footer>
       </main>
@@ -989,11 +1085,12 @@ export function WalletChatApp() {
   const connected = session.authenticated && Boolean(session.address);
   const stepOneExplorer = config ? `https://stellar.expert/explorer/${config.explorerNetwork}` : "#";
   const workflowStep = !connected ? 1 : !marketplaceSelected ? 2 : !serviceConfigured ? 3 : !showRun ? 4 : !completedPurchase ? 5 : 6;
-  const budgetNumber = Number(budget);
-  const minimumBudget = Number(marketplaceService.price);
-  const budgetValid = Number.isFinite(budgetNumber) && budgetNumber >= minimumBudget && budgetNumber > 0;
-  const hasEnoughUsdc = Boolean(walletBalances && Number(walletBalances.usdcRaw) >= budgetNumber);
-  const canApproveLimit = Boolean(config?.ready && !mandateOnline && budgetValid && walletBalances?.hasUsdcTrustline && hasEnoughUsdc);
+  const budgetAtomic = walletAmountAtomic(budget, config?.asset.decimals ?? 7);
+  const minimumBudget = walletAmountAtomic(servicePrice, config?.asset.decimals ?? 7);
+  const availableUsdc = walletBalances ? walletAmountAtomic(walletBalances.usdcRaw, config?.asset.decimals ?? 7) : null;
+  const budgetValid = budgetAtomic !== null && minimumBudget !== null && budgetAtomic >= minimumBudget && budgetAtomic > 0n;
+  const hasEnoughUsdc = budgetAtomic !== null && availableUsdc !== null && availableUsdc >= budgetAtomic;
+  const canApproveLimit = Boolean(config?.ready && !mandateOnline && !stored?.pendingAllowance && quoteCurrent && budgetValid && walletBalances?.hasUsdcTrustline && hasEnoughUsdc);
   const externalSettlement = completedPurchase ? marketplaceSettlement(completedPurchase) : null;
   const navState = (step: number) => workflowStep > step ? "done" : workflowStep === step ? "current" : "";
 
@@ -1226,6 +1323,8 @@ export function WalletChatApp() {
                 <span className="service-price">{marketplaceQuote?.price ?? marketplaceService.price} <small>USDC / CALL</small></span>
               </div>
 
+              {!quoteCurrent && !stored?.pendingAllowance && <div className="flow-alert"><TriangleAlert size={16} /><span>The service quote expired. <button type="button" onClick={() => setServiceConfigured(false)}>Review service inputs</button> to check the current price and seller before approving.</span></div>}
+
               {marketplaceQuote && <div className="flow-settlement-route">
                 <p><strong>One service purchase. Two settlement receipts.</strong> The contract enforces your wallet’s cap and pays the relay. The relay pays the marketplace seller below. Seller routing is enforced by this app, not by your mandate.</p>
                 <div><span>Contract recipient · relay</span><a href={`${explorer}/account/${marketplaceQuote.relay}`} target="_blank" rel="noreferrer" title={marketplaceQuote.relay}>{short(marketplaceQuote.relay, 8)} <ArrowUpRight size={12} /></a></div>
@@ -1255,17 +1354,17 @@ export function WalletChatApp() {
                 <div className="flow-alert"><TriangleAlert size={16} />Your wallet needs at least {budget} USDC for this limit. Lower the limit or add USDC.</div>
               )}
               {!budgetValid && (
-                <div className="flow-alert"><TriangleAlert size={16} />Enter at least {marketplaceService.price} USDC—the price of one service call.</div>
+                <div className="flow-alert"><TriangleAlert size={16} />Enter at least {servicePrice} USDC—the price of one service call—with no more than {config?.asset.decimals ?? 7} decimal places.</div>
               )}
 
               {mandateOnline && !mandateMatchesConfig ? (
                 <motion.button className="flow-primary flow-danger" type="button" onClick={revoke} disabled={phase === "revoking"} whileTap={reduceMotion ? undefined : { scale: 0.985 }}>
                   {phase === "revoking" ? <LoaderCircle className="spin" size={16} /> : <X size={16} />}{phase === "revoking" ? "Waiting for Freighter…" : "Turn off previous spending limit"}
                 </motion.button>
-              ) : storedFresh && stored?.registrationTx && !stored.allowanceTx ? (
+              ) : stored?.pendingAllowance || (storedFresh && stored?.registrationTx && !stored.allowanceTx) ? (
                 <motion.button className="flow-primary" type="button" onClick={retryAllowance} disabled={phase === "approving" || allowancePreparing} whileTap={reduceMotion ? undefined : { scale: 0.985 }}>
                   {phase === "approving" || allowancePreparing ? <LoaderCircle className="spin" size={16} /> : <LockKeyhole size={16} />}
-                  {allowancePreparing ? "Preparing secure approval…" : phase === "approving" ? "Opening Freighter…" : !preparedAllowance ? "Prepare approval" : `Open Freighter · Approve ${formatUnits(stored.maxAmount, stored.decimals)} USDC`}
+                  {stored.pendingAllowance ? phase === "approving" ? "Checking existing approval…" : "Check USDC approval — no new fee" : allowancePreparing ? "Preparing secure approval…" : phase === "approving" ? "Opening Freighter…" : !preparedAllowanceReady ? "Prepare approval" : `Open Freighter · Approve ${formatUnits(stored.maxAmount, stored.decimals)} USDC`}
                 </motion.button>
               ) : (
                 <motion.button className="flow-primary" type="button" onClick={activate} disabled={!canApproveLimit || mandateBusy} whileTap={reduceMotion ? undefined : { scale: 0.985 }}>
@@ -1280,6 +1379,7 @@ export function WalletChatApp() {
                 <details className="flow-evidence"><summary><span><Database size={13} />Setup transactions</span><ChevronRight size={13} /></summary><div>
                   {stored.registrationTx && <a className="flow-proof-link" href={`${explorer}/tx/${stored.registrationTx}`} target="_blank" rel="noreferrer"><span><Check size={12} />Spending limit</span><code>{short(stored.registrationTx, 6)}</code><ArrowUpRight size={12} /></a>}
                   {stored.allowanceTx && <a className="flow-proof-link" href={`${explorer}/tx/${stored.allowanceTx}`} target="_blank" rel="noreferrer"><span><Check size={12} />USDC approval</span><code>{short(stored.allowanceTx, 6)}</code><ArrowUpRight size={12} /></a>}
+                  {stored.pendingAllowance && <a className="flow-proof-link" href={`${explorer}/tx/${stored.pendingAllowance.txHash}`} target="_blank" rel="noreferrer"><span><Clock3 size={12} />Allowance awaiting confirmation</span><code>{short(stored.pendingAllowance.txHash, 6)}</code><ArrowUpRight size={12} /></a>}
                 </div></details>
               )}
             </motion.div>
@@ -1296,6 +1396,8 @@ export function WalletChatApp() {
                 <div><p className="flow-kicker">STEP 5 OF 6</p><h2>Run {marketplaceService.name}</h2><p className="flow-description">The agent will pass the contract checks, pay Agent402 in real USDC, and return the service output.</p></div>
                 <span className="flow-budget"><span><small>REMAINING</small><strong>{remaining} USDC</strong></span></span>
               </div>
+              {!quoteCurrent && <div className="flow-alert"><TriangleAlert size={16} />The service quote expired. Edit the inputs to refresh its price and seller before running.</div>}
+              {mandateOnline && !enoughRemaining && <div className="flow-alert"><TriangleAlert size={16} />This mandate has less than {servicePrice} USDC remaining. Existing receipts can still be recovered; turn off this limit before creating another.</div>}
               {mandate && config && (
                 <AssistantThread
                   mandateId={mandate.id}
@@ -1303,9 +1405,9 @@ export function WalletChatApp() {
                   service={marketplaceService}
                   parameters={serviceInputValues}
                   quoteToken={marketplaceQuote?.token}
-                  canRun={activeMandateReady}
-                  onRunStarted={() => setRunStarted(true)}
-                  price={marketplaceService.price}
+                  canRun={activeMandateReady && quoteCurrent}
+                  onRunStarted={() => { setNotification(null); setRunStarted(true); }}
+                  price={servicePrice}
                   explorerNetwork={config.explorerNetwork}
                   marketplaceUrl={marketplaceService.docs}
                   onEditConfiguration={() => setServiceConfigured(false)}
@@ -1380,13 +1482,7 @@ export function WalletChatApp() {
         </div>
       )}
 
-      {(notice || error) && (
-        <div className={`flow-toast ${error ? "error" : ""}`} role={error ? "alert" : "status"}>
-          <span>{error ? <TriangleAlert size={15} /> : <Check size={15} />}</span>
-          <p>{error ?? notice}</p>
-          <button type="button" onClick={() => { setError(null); setNotice(null); }} aria-label="Dismiss"><X size={14} /></button>
-        </div>
-      )}
+      <WalletToast notification={notification} busy={notificationBusy} onDismiss={() => setNotification(null)} />
     </main>
   );
 }

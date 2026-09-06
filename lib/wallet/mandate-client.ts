@@ -16,6 +16,7 @@ import { freighterSigner } from "./freighter";
 import { loadAccountSequence } from "./horizon-account";
 import { registeredMandateIdHex } from "./mandate-id";
 import { installMainnetRpcRetry, retryRateLimited } from "./rpc-retry";
+import { allowanceTransactionIsFresh, preparedAllowanceEvidence, type PendingAllowance } from "./client-readiness";
 
 if (typeof window !== "undefined" && !window.Buffer) window.Buffer = Buffer;
 
@@ -136,9 +137,11 @@ async function submitAllowance(
   server: rpc.Server,
   transaction: ReturnType<typeof TransactionBuilder.fromXDR>,
 ): Promise<string> {
+  const expectedHash = transaction.hash().toString("hex");
   for (let attempt = 0; ; attempt += 1) {
     const submitted = await server.sendTransaction(transaction);
     if (submitted.status === "PENDING" || submitted.status === "DUPLICATE") {
+      if (submitted.hash !== expectedHash) throw new Error("Stellar returned a different allowance transaction hash.");
       await settle(server, submitted.hash);
       return submitted.hash;
     }
@@ -211,7 +214,14 @@ export async function submitPreparedAllowanceWithFreighter(
   config: SafeAppConfig,
   mandate: IntentMandate,
   preparedTransactionXdr: string,
+  onPrepared?: (pending: PendingAllowance) => void,
 ): Promise<string> {
+  if (!allowanceTransactionIsFresh(preparedTransactionXdr, config.networkPassphrase)) {
+    throw new Error("The prepared allowance expired. Prepare a fresh approval before opening Freighter.");
+  }
+  const pending = preparedAllowanceEvidence(preparedTransactionXdr, config.networkPassphrase, {
+    user: mandate.user, asset: mandate.asset, spender: config.mandateRegistryId, maxAmount: mandate.maxAmount.toString(),
+  });
   const signer = freighterSigner(mandate.user, config.networkPassphrase);
   // Keep signing as the first asynchronous action. Chrome can otherwise drop
   // the click's user-activation context while RPC preparation is in flight,
@@ -226,6 +236,12 @@ export async function submitPreparedAllowanceWithFreighter(
   }
   const server = walletRpcServer(config);
   const signedTransaction = TransactionBuilder.fromXDR(signed.signedTxXdr, config.networkPassphrase);
+  const preparedTransaction = TransactionBuilder.fromXDR(preparedTransactionXdr, config.networkPassphrase);
+  if (!signedTransaction.hash().equals(preparedTransaction.hash())) {
+    throw new Error("allowance signing failed: Freighter changed the prepared transaction");
+  }
+  // Persist the exact unsigned body/hash before broadcast so a lost response only checks this receipt.
+  onPrepared?.(pending);
   return submitAllowance(server, signedTransaction);
 }
 

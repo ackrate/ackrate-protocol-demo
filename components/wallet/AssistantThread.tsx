@@ -10,15 +10,17 @@ import {
   Check,
   CircleDollarSign,
   Copy,
+  Info,
   LoaderCircle,
   Search,
   ShieldCheck,
   TriangleAlert,
 } from "lucide-react";
-import type { MarketBrief } from "@/lib/wallet/market-brief";
-import type { Agent402Evidence, Agent402ToolEvidence } from "@/lib/wallet/marketplace-types";
-import { sourceIdForMarketplaceService, WEB_SEARCH_INPUTS, type MarketplaceService } from "@/lib/wallet/marketplace-catalog";
-import { initialServiceInputValues, serializedServiceInputs, type ServiceInputValues } from "./ServiceConfigurator";
+import type { MarketBrief } from "../../lib/wallet/market-brief";
+import type { Agent402Evidence, Agent402ToolEvidence } from "../../lib/wallet/marketplace-types";
+import { sourceIdForMarketplaceService, WEB_SEARCH_INPUTS, type MarketplaceService } from "../../lib/wallet/marketplace-catalog";
+import { initialServiceInputValues, serializedServiceInputs, serviceInputProblem, type ServiceInputValues } from "./ServiceConfigurator";
+import { safeWalletError } from "../../lib/wallet/notifications";
 
 export interface PurchaseResult {
   source: { id: string; title: string };
@@ -48,6 +50,9 @@ interface PendingRecovery {
   sourceId?: string;
   sourceTitle?: string;
   result?: unknown;
+  deliveryState?: "pending" | "ready" | "reconciliation_required";
+  paymentConfirmed?: boolean;
+  message?: string;
 }
 
 interface ConfiguredRun {
@@ -173,6 +178,7 @@ function ResearchPurchase({
   const streamedResult = useRef<PurchaseResult | null>(null);
   const primaryField = service.inputs.find((field) => field.required && field.type === "string") ?? service.inputs[0];
   const question = primaryField ? inputValues[primaryField.name] ?? "" : "";
+  const inputProblem = serviceInputProblem(service, inputValues);
 
   useEffect(() => {
     if (!activeRun.current) return;
@@ -194,23 +200,24 @@ function ResearchPurchase({
       }
       else {
         setState("error");
-        setError("The agent run did not return a confirmed result. Check the existing payment before trying again. No automatic second payment will be sent.");
+        setError(safeWalletError(chatError, "The agent did not return a confirmed result. Check the payment below; another payment will not start automatically."));
       }
     }
-  }, [chatRunning, messages, mandateId, service]);
+  }, [chatRunning, messages, mandateId, service, chatError]);
 
   useEffect(() => {
-    if (!chatError || !activeRun.current) return;
+    if (!chatError || (!activeRun.current && state !== "error")) return;
     activeRun.current = false;
     setState(streamedResult.current ? "success" : "error");
     setError(streamedResult.current
       ? "Your service result is saved. The chat summary was interrupted; open the result below."
-      : "The agent connection did not finish. Check the existing payment before trying again. No automatic second payment will be sent.");
-  }, [chatError]);
+      : safeWalletError(chatError, "The agent connection did not finish. Check the payment below; another payment will not start automatically."));
+  }, [chatError, state]);
 
   const checkRecovery = async () => {
     setState("checking");
     setError(null);
+    setResult(null);
     try {
       const response = await fetch(`/api/wallet/purchase/recovery?mandateId=${encodeURIComponent(mandateId)}`, {
         credentials: "same-origin",
@@ -225,16 +232,21 @@ function ResearchPurchase({
         return;
       }
       setRecovery(pending);
-      if (isPurchaseResult(pending.result)) {
-        setResult(pending.result);
+      if (pending.result !== undefined) {
+        const paidResult = purchaseResultForMandate(pending.result, mandateId, pending.txHash);
+        if (!paidResult || pending.deliveryState !== "ready" || pending.paymentConfirmed !== true) throw new Error("The saved result does not match this mandate and confirmed payment.");
+        setResult(paidResult);
         setState("success");
         window.dispatchEvent(new Event("ackrate-mandate-updated"));
         return;
       }
       setState("recovery");
-    } catch {
+      if (pending.message) setError(pending.deliveryState === "reconciliation_required"
+        ? "This receipt needs operator review. Keep the transaction link below; do not make another payment."
+        : "Your existing payment is still being checked. Use the recovery action below; it does not start another purchase.");
+    } catch (cause) {
       setState("error");
-      setError("The last-payment check is unavailable. No new payment was sent.");
+      setError(safeWalletError(cause, "The last-payment check is unavailable. Check again below; no new payment was sent."));
     }
   };
 
@@ -244,9 +256,8 @@ function ResearchPurchase({
 
   const createReport = async () => {
     if (activeRun.current || chatRunning || state !== "idle" || !canRun) return;
-    const normalized = question.replace(/\s+/g, " ").trim();
-    if (!normalized || (service.id === "search" && (normalized.length < 3 || normalized.length > 400))) {
-      setError(service.id === "search" ? "Enter a question between 3 and 400 characters." : "Return to Configure and enter the required service input.");
+    if (inputProblem) {
+      setError(inputProblem);
       return;
     }
     const sourceId = sourceIdForMarketplaceService(service);
@@ -263,46 +274,51 @@ function ResearchPurchase({
       activeRun.current = true;
       sawStream.current = false;
       streamedResult.current = null;
-      onRun(sourceId, submittedParameters, service.id === "search" ? normalized : `Run ${service.name} for ${normalized}`);
+      onRun(sourceId, submittedParameters, service.id === "search" ? String(submittedParameters.q) : `Run ${service.name} with the configured inputs.`);
     } catch (cause) {
       activeRun.current = false;
       const message = cause instanceof Error ? cause.message : String(cause);
-      if (/retained for recovery|delivery is pending/i.test(message)) {
+      if (/retained for recovery|delivery is pending|reconciliation|do not (?:pay|make)/i.test(message)) {
         await checkRecovery();
         return;
       }
       if (/Review the service inputs/i.test(message)) {
-        setError(message);
+        setError("Review the service inputs to refresh its price and seller before continuing.");
       } else if (/review/i.test(message)) {
         setError("A payment response needs verification before any retry. No automatic second payment will be sent.");
       } else if (/Agent402|marketplace/i.test(message)) {
-        setError("The marketplace is unavailable. No new marketplace payment was sent.");
+        setError("The marketplace request did not finish. Check the existing payment before retrying.");
       } else if (/Contract,\s*#6|BudgetExceeded|budget.*(?:exceed|remaining|enough)/i.test(message)) {
-        setError("This spending limit has no room for another report. No payment was made.");
+        setError("This spending limit has no room for another service run. Check the payment before trying again.");
       } else {
-        setError("The report did not finish. Check the existing payment before trying again.");
+        setError(safeWalletError(cause, "The service did not finish. Check the existing payment before trying again."));
       }
       setState("error");
     }
   };
 
   const recover = async () => {
+    if (recovery?.deliveryState === "reconciliation_required") {
+      await checkRecovery();
+      return;
+    }
     setState("recovering");
     setError(null);
     try {
-      const paidResult = await openPaidReport(mandateId);
+      const paidResult = await openPaidReport(mandateId, recovery?.txHash);
       setResult(paidResult);
       setRecovery(null);
       setState("success");
       window.dispatchEvent(new Event("ackrate-mandate-updated"));
     } catch {
-      setState("recovery");
-      setError("The payment is confirmed. Report recovery did not finish, and no second payment was sent.");
+      // Re-read terminal/uncertain status without submitting another recovery or purchase.
+      await checkRecovery();
     }
   };
 
   const busy = chatRunning || state === "checking" || state === "running" || state === "recovering";
-  const action = state === "recovery" ? recover : state === "error" ? checkRecovery : createReport;
+  const reconciliationRequired = recovery?.deliveryState === "reconciliation_required";
+  const action = state === "recovery" ? reconciliationRequired ? checkRecovery : recover : state === "error" ? checkRecovery : createReport;
 
   return (
     <div className="research-purchase">
@@ -313,7 +329,7 @@ function ResearchPurchase({
 
       <div className="question-block configured-request">
         <span className="configured-request-label">CONFIGURED REQUEST</span>
-        <strong>{question}</strong>
+        <strong>{question || service.name}</strong>
         <div>
           {Object.entries(inputValues).filter(([, value]) => value.trim()).map(([name, value]) => (
             <span key={name}><small>{name}</small><code>{value.length > 80 ? `${value.slice(0, 77)}…` : value}</code></span>
@@ -330,19 +346,20 @@ function ResearchPurchase({
         <div><Search size={16} /><span><small>03</small><strong>{service.id === "search" ? "Cited report returns" : "Service output returns"}</strong></span></div>
       </div>
 
-      {state !== "success" && <button className="research-button" type="button" onClick={action} disabled={busy || (state === "idle" && (!canRun || question.trim().length < 3))}>
+      {state !== "success" && <button className="research-button" type="button" onClick={action} disabled={busy || (state === "idle" && (!canRun || Boolean(inputProblem)))}>
         {busy ? <LoaderCircle className="spin" size={16} /> : state === "recovery" ? <Check size={16} /> : <Search size={16} />}
         {state === "checking" && "Checking previous payment…"}
-        {state === "running" && "Buying evidence and writing report…"}
-        {state === "recovering" && "Recovering paid report…"}
-        {state === "recovery" && "Recover report — no new charge"}
+        {state === "running" && (service.id === "search" ? "Buying evidence and writing report…" : `Running ${service.name}…`)}
+        {state === "recovering" && "Recovering paid result…"}
+        {state === "recovery" && (reconciliationRequired ? "Check receipt status" : "Recover result — no new charge")}
         {state === "error" && "Check payment before retrying"}
         {!busy && state === "idle" && `Run ${service.name} · ${price} ${asset}`}
       </button>}
 
       {!canRun && <p className="autonomy-note">This limit cannot make another payment. Existing receipts remain recoverable.</p>}
+      {state === "idle" && inputProblem && <p className="autonomy-note">{inputProblem} Choose Edit inputs to correct the request.</p>}
 
-      <p className="autonomy-note">No wallet popup is needed for each report. The agent can spend only inside the mandate you already approved.</p>
+      <p className="autonomy-note">One service purchase per Run. The agent can spend only inside the mandate you already approved.</p>
 
       {messages.length > 0 && <div className="agent-conversation" aria-label="Conversation with your payment agent" aria-live="polite">
         <ThreadPrimitive.Messages>
@@ -354,20 +371,19 @@ function ResearchPurchase({
       </div>}
 
       {error && (
-        <div className="research-error" role="alert">
-          <TriangleAlert size={15} /><span>{error}</span>
-          {state === "error" && <button type="button" onClick={checkRecovery}>Check payment</button>}
+        <div className="research-error" role={result ? "status" : "alert"} aria-atomic="true">
+          {result ? <Info size={15} /> : <TriangleAlert size={15} />}<span>{error}</span>
         </div>
       )}
 
       {state === "recovery" && recovery && (
         <div className="recovery-proof">
-          <div><Check size={14} /><span><strong>Contract payment found</strong><code>{shortHash(recovery.txHash)}</code></span></div>
+          <div>{recovery.paymentConfirmed ? <Check size={14} /> : <TriangleAlert size={14} />}<span><strong>{reconciliationRequired ? "Operator review required" : recovery.paymentConfirmed ? "Contract payment found" : "Receipt awaiting verification"}</strong><code>{shortHash(recovery.txHash)}</code>{reconciliationRequired && <small>Keep this receipt for support. A new purchase is blocked; checking status does not charge you.</small>}</span></div>
           <a href={`https://stellar.expert/explorer/${explorerNetwork}/tx/${recovery.txHash}`} target="_blank" rel="noreferrer">Verify <ArrowUpRight size={12} /></a>
         </div>
       )}
 
-      {result && <button type="button" className="report-ready-notice" disabled={chatRunning || state === "running"} onClick={() => onPurchaseComplete(result)}><span><Check size={14} /></span><div><strong>Open result</strong><p>{chatRunning ? "The agent is finishing its response…" : "View the service output and both payment proofs."}</p></div><ArrowUpRight size={14} /></button>}
+      {result && <button type="button" className="report-ready-notice" onClick={() => onPurchaseComplete(result)}><span><Check size={14} /></span><div><strong>Open result</strong><p>{result.source.title} is saved. View the output and payment proofs without another charge.</p></div><ArrowUpRight size={14} /></button>}
     </div>
   );
 }
@@ -383,7 +399,7 @@ function PurchaseTool({ result, isError, status }: ToolCallMessagePartProps) {
   return <div className="agent-tool-status"><LoaderCircle className={status.type === "running" ? "spin" : undefined} size={14} /><span>Checking the mandate and running the selected service…</span></div>;
 }
 
-async function openPaidReport(mandateId: string): Promise<PurchaseResult> {
+async function openPaidReport(mandateId: string, txHash?: string): Promise<PurchaseResult> {
   const response = await fetch("/api/wallet/purchase/recovery", {
     method: "POST",
     credentials: "same-origin",
@@ -391,19 +407,27 @@ async function openPaidReport(mandateId: string): Promise<PurchaseResult> {
     body: JSON.stringify({ mandateId }),
   });
   const body = await response.json() as { ok: boolean; result?: unknown; error?: string };
-  if (!response.ok || !body.ok || !isPurchaseResult(body.result)) {
-    throw new Error(body.error ?? `Report returned HTTP ${response.status}`);
+  const paidResult = purchaseResultForMandate(body.result, mandateId, txHash);
+  if (!response.ok || !body.ok || !paidResult) {
+    throw new Error(body.error ?? `Result recovery returned HTTP ${response.status}`);
   }
-  return body.result;
+  return paidResult;
 }
 
 export function parseRecovery(value: unknown): PendingRecovery | null {
   if (typeof value !== "object" || value === null) throw new Error("invalid recovery status");
-  const candidate = value as { pending?: unknown; txHash?: unknown };
-  if (candidate.pending === false) return null;
+  const candidate = value as { pending?: unknown; txHash?: unknown; deliveryState?: unknown; paymentConfirmed?: unknown; message?: unknown };
+  if (candidate.pending === false) {
+    if (candidate.txHash !== undefined || candidate.deliveryState !== undefined || candidate.paymentConfirmed === true) throw new Error("invalid recovery status");
+    return null;
+  }
   if (candidate.pending !== true || typeof candidate.txHash !== "string" || !/^[0-9a-f]{64}$/i.test(candidate.txHash)) {
     throw new Error("invalid retained settlement evidence");
   }
+  if ((candidate.deliveryState !== undefined && !["pending", "ready", "reconciliation_required"].includes(String(candidate.deliveryState)))
+    || (candidate.paymentConfirmed !== undefined && typeof candidate.paymentConfirmed !== "boolean")
+    || (candidate.message !== undefined && typeof candidate.message !== "string")
+    || (candidate.deliveryState === "ready" && candidate.paymentConfirmed !== true)) throw new Error("invalid recovery status");
   return value as PendingRecovery;
 }
 
@@ -419,6 +443,12 @@ function isPurchaseResult(value: unknown): value is PurchaseResult {
     && typeof payment.mandateId === "string" && /^[0-9a-f]{64}$/i.test(payment.mandateId)
     && typeof payment.amount === "string" && /^\d+(?:\.\d+)?$/.test(payment.amount)
     && typeof payment.asset === "string" && "delivered" in value;
+}
+
+/** Recovery may return an earlier service, but never another mandate's receipt. */
+export function purchaseResultForMandate(value: unknown, mandateId: string, txHash?: string): PurchaseResult | null {
+  return isPurchaseResult(value) && value.payment.mandateId === mandateId
+    && (txHash === undefined || value.payment.txHash === txHash) ? value : null;
 }
 
 /** Only a matching server tool result from the current user turn can complete a run. */
@@ -456,12 +486,12 @@ function parseBrief(value: unknown): MarketBrief | null {
     || !Array.isArray(brief.sources)
     || brief.findings.length === 0
     || brief.sources.length === 0
-    || (brief.editorialPasses !== undefined && (!Number.isInteger(brief.editorialPasses) || brief.editorialPasses < 1 || brief.editorialPasses > 2))
+    || (brief.editorialPasses !== undefined && (!Number.isInteger(brief.editorialPasses) || brief.editorialPasses < 0 || brief.editorialPasses > 2))
   ) return null;
   const findingsValid = brief.findings.every((finding) => typeof finding?.number === "string" && typeof finding.title === "string" && typeof finding.body === "string");
   const sourcesValid = brief.sources.every((source) => {
     if (typeof source?.publisher !== "string" || typeof source.title !== "string" || typeof source.url !== "string") return false;
-    try { return new URL(source.url).protocol === "https:"; } catch { return false; }
+    try { const url = new URL(source.url); return url.protocol === "https:" && !url.username && !url.password; } catch { return false; }
   });
   return findingsValid && sourcesValid ? brief as MarketBrief : null;
 }
@@ -499,15 +529,73 @@ function shortHash(value: string): string {
   return `${value.slice(0, 8)}…${value.slice(-8)}`;
 }
 
+interface ResultDownload {
+  filename: string;
+  content: string;
+  mimeType: string;
+}
+
+export function purchaseResultDownload(result: PurchaseResult, format: "receipt" | "output" | "report"): ResultDownload {
+  const filename = result.source.id.replace(/[^a-z0-9_-]/gi, "-").slice(0, 64) || "service";
+  const brief = parseBrief(result.delivered);
+  if (format === "report" && brief) {
+    const marketplace = parseMarketplace(result.delivered);
+    const content = [
+      `# ${brief.title}`, brief.subtitle, brief.opening,
+      ...brief.findings.flatMap((finding) => [`## ${finding.number}. ${finding.title}`, finding.body]),
+      "## Takeaway", brief.takeaway,
+      "## Sources", ...brief.sources.map((source, index) => `[${index + 1}] ${source.title}\n${source.url}`),
+      `Method: ${brief.methodology ?? "Purchased source evidence; editorial method not recorded."}`,
+      `Generated: ${brief.generatedAt ?? "Not recorded"}`,
+      "## Payment receipt", `Service: ${result.source.title}`, `Amount: ${result.payment.amount} ${result.payment.asset}`,
+      `Mandate: ${result.payment.mandateId}`, `Contract transaction: ${result.payment.txHash}`,
+      ...(marketplace ? [`Marketplace transaction: ${marketplace.settlement.transaction}`] : []),
+    ].join("\n\n");
+    return { filename: `${filename}-report.md`, content, mimeType: "text/markdown;charset=utf-8" };
+  }
+  const tool = format === "output" ? parseToolDelivery(result.delivered) : null;
+  if (tool) {
+    const text = typeof tool.output === "string" ? tool.output
+      : typeof tool.output === "object" && tool.output !== null && "text" in tool.output && typeof tool.output.text === "string" ? tool.output.text : null;
+    return text !== null
+      ? { filename: `${filename}-result.txt`, content: text, mimeType: "text/plain;charset=utf-8" }
+      : { filename: `${filename}-result.json`, content: JSON.stringify(tool.output, null, 2), mimeType: "application/json" };
+  }
+  return { filename: `${filename}-receipt.json`, content: JSON.stringify(result, null, 2), mimeType: "application/json" };
+}
+
+function saveDownload(download: ResultDownload) {
+  const url = URL.createObjectURL(new Blob([download.content], { type: download.mimeType }));
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = download.filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1_000);
+}
+
+function CitedText({ text, sources }: { text: string; sources: MarketBrief["sources"] }) {
+  return <>{text.split(/(\[\d+\])/).map((part, index) => {
+    const citation = /^\[(\d+)\]$/.exec(part);
+    const source = citation ? sources[Number(citation[1]) - 1] : undefined;
+    return source ? <a key={index} href={source.url} target="_blank" rel="noreferrer" aria-label={`Source ${citation![1]}: ${source.title}`}>{part}</a> : part;
+  })}</>;
+}
+
 function ProofLink({ label, hash, explorerNetwork }: { label: string; hash: string; explorerNetwork: "testnet" | "public" }) {
   const [copied, setCopied] = useState(false);
   return (
     <div className="report-proof-row">
       <span><small>{label}</small><code>{shortHash(hash)}</code></span>
       <button type="button" onClick={async () => {
-        await navigator.clipboard.writeText(hash);
-        setCopied(true);
-        window.setTimeout(() => setCopied(false), 1_500);
+        try {
+          await navigator.clipboard.writeText(hash);
+          setCopied(true);
+          window.setTimeout(() => setCopied(false), 1_500);
+        } catch {
+          // The explorer link still exposes the full receipt if clipboard access is blocked.
+        }
       }} aria-label={`Copy ${label} transaction hash`}>{copied ? <Check size={12} /> : <Copy size={12} />}</button>
       <a href={`https://stellar.expert/explorer/${explorerNetwork}/tx/${hash}`} target="_blank" rel="noreferrer" aria-label={`Open ${label} in Stellar Explorer`}><ArrowUpRight size={13} /></a>
     </div>
@@ -534,13 +622,17 @@ export function PurchaseReport({
 
   useEffect(() => {
     if (explorerNetwork !== "public") return;
-    localStorage.setItem("ackrate:mainnet:last-payment", JSON.stringify({
-      contractTx: result.payment.txHash,
-      marketplaceTx: marketplace?.settlement.transaction ?? null,
-      amount: result.payment.amount,
-      asset: result.payment.asset,
-      recordedAt: new Date().toISOString(),
-    }));
+    try {
+      localStorage.setItem("ackrate:mainnet:last-payment", JSON.stringify({
+        contractTx: result.payment.txHash,
+        marketplaceTx: marketplace?.settlement.transaction ?? null,
+        amount: result.payment.amount,
+        asset: result.payment.asset,
+        recordedAt: new Date().toISOString(),
+      }));
+    } catch {
+      // The server receipt remains recoverable when browser storage is unavailable.
+    }
     window.dispatchEvent(new Event("ackrate-mainnet-payment"));
   }, [explorerNetwork, marketplace?.settlement.transaction, result.payment.amount, result.payment.asset, result.payment.txHash]);
 
@@ -548,28 +640,38 @@ export function PurchaseReport({
     briefRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [result.payment.txHash]);
 
-  if (!marketplace) return null;
+  if (!marketplace || (!brief && !toolDelivery) || (brief && !("count" in marketplace))) {
+    return <section id="paid-service-output" className="report-section shell tool-output-section" ref={briefRef} aria-labelledby="saved-output-title">
+      <header className="report-section-head">
+        <p className="eyebrow">SAVED SERVICE RESPONSE</p>
+        <h2 id="saved-output-title">Your result and receipt are available.</h2>
+        <p>The formatted view could not read this output. Download the saved response; do not run the service again to recover it.</p>
+      </header>
+      <div className="tool-output-layout">
+        <aside className="report-rail report-proof-rail" aria-label="Payment proof">
+          <ProofLink label="Mandate settlement" hash={result.payment.txHash} explorerNetwork={explorerNetwork} />
+          {marketplace && <ProofLink label="Agent402 x402" hash={marketplace.settlement.transaction} explorerNetwork="public" />}
+          {registrationTx && <ProofLink label="Mandate registration" hash={registrationTx} explorerNetwork={explorerNetwork} />}
+          {allowanceTx && <ProofLink label="USDC allowance" hash={allowanceTx} explorerNetwork={explorerNetwork} />}
+        </aside>
+        <article className="tool-output-document">
+          <div className="tool-output-toolbar"><strong>{result.source.title}</strong><button type="button" onClick={() => saveDownload(purchaseResultDownload(result, "receipt"))}>Download receipt JSON</button></div>
+          <pre>{JSON.stringify(result.delivered, null, 2)}</pre>
+        </article>
+      </div>
+    </section>;
+  }
 
   if (!brief && toolDelivery) {
     const outputRecord = typeof toolDelivery.output === "object" && toolDelivery.output !== null && !Array.isArray(toolDelivery.output)
       ? toolDelivery.output as Record<string, unknown>
       : null;
-    const textOutput = typeof outputRecord?.text === "string" ? outputRecord.text : null;
-    const download = () => {
-      const content = textOutput ?? JSON.stringify(toolDelivery.output, null, 2);
-      const blob = new Blob([content], { type: textOutput ? "text/plain;charset=utf-8" : "application/json" });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `${toolDelivery.service.slug}-result.${textOutput ? "txt" : "json"}`;
-      link.click();
-      URL.revokeObjectURL(url);
-    };
+    const textOutput = typeof toolDelivery.output === "string" ? toolDelivery.output : typeof outputRecord?.text === "string" ? outputRecord.text : null;
     return (
       <section id="paid-service-output" className="report-section shell tool-output-section" ref={briefRef} aria-labelledby="tool-output-title">
         <header className="report-section-head">
           <p className="eyebrow success">SERVICE COMPLETE</p>
-          <h2 id="tool-output-title">{toolDelivery.service.name} returned a verified result.</h2>
+          <h2 id="tool-output-title">{toolDelivery.service.name} is ready.</h2>
           <p>The output and both Mainnet payment transactions are available in one receipt.</p>
         </header>
         <div className="tool-output-layout">
@@ -584,7 +686,8 @@ export function PurchaseReport({
           <article className="tool-output-document">
             <div className="tool-output-toolbar">
               <span><small>LIVE AGENT402 OUTPUT</small><strong>{toolDelivery.service.method} {toolDelivery.service.route}</strong></span>
-              <button type="button" onClick={download}>Download {textOutput ? "text" : "JSON"}</button>
+              <button type="button" onClick={() => saveDownload(purchaseResultDownload(result, "output"))}>Download {textOutput !== null ? "text" : "JSON"}</button>
+              <button type="button" onClick={() => saveDownload(purchaseResultDownload(result, "receipt"))}>Receipt JSON</button>
             </div>
             {outputRecord && <div className="tool-output-facts">
               {Object.entries(outputRecord).filter(([key, value]) => key !== "text" && ["string", "number", "boolean"].includes(typeof value)).slice(0, 8).map(([key, value]) => (
@@ -622,23 +725,28 @@ export function PurchaseReport({
         </aside>
 
         <article className="research-brief report-document">
+          <div className="tool-output-toolbar">
+            <strong>Report &amp; evidence</strong>
+            <button type="button" onClick={() => saveDownload(purchaseResultDownload(result, "report"))}>Download report</button>
+            <button type="button" onClick={() => saveDownload(purchaseResultDownload(result, "receipt"))}>Receipt JSON</button>
+          </div>
           <header className="brief-header">
             <div className="brief-kicker"><span />{brief.kicker}</div>
             <h2 id="research-brief-title">{brief.title}</h2>
             <p>{brief.subtitle}</p>
-            <div className="brief-meta"><span>LIVE WEB EVIDENCE</span><span>PAID IN {result.payment.asset}</span><span>{brief.editorialPasses === 2 ? "TWO-MODEL REVIEW" : "MODEL REVIEW"}</span><span>VERIFIED ON STELLAR</span></div>
+            <div className="brief-meta"><span>LIVE WEB EVIDENCE</span><span>PAID IN {result.payment.asset}</span><span>{brief.editorialPasses === 2 ? "TWO-MODEL REVIEW" : brief.editorialPasses === 1 ? "MODEL REVIEW" : "SOURCE-ONLY BRIEF"}</span><span>PAYMENT VERIFIED ON STELLAR</span></div>
           </header>
           <div className="brief-body">
-            <p className="brief-opening">{brief.opening}</p>
+            <p className="brief-opening"><CitedText text={brief.opening} sources={brief.sources} /></p>
             <div className="brief-findings">
               {brief.findings.map((finding) => (
                 <section className="brief-finding" key={`${finding.number}:${finding.title}`}>
                   <span>{finding.number}</span>
-                  <div><h3>{finding.title}</h3><p>{finding.body}</p></div>
+                  <div><h3>{finding.title}</h3><p><CitedText text={finding.body} sources={brief.sources} /></p></div>
                 </section>
               ))}
             </div>
-            <aside className="brief-takeaway"><span>THE TAKEAWAY</span><p>{brief.takeaway}</p></aside>
+            <aside className="brief-takeaway"><span>THE TAKEAWAY</span><p><CitedText text={brief.takeaway} sources={brief.sources} /></p></aside>
             {brief.methodology && <p className="brief-methodology">Method: {brief.methodology}</p>}
           </div>
         </article>

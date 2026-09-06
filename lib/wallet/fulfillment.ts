@@ -2,6 +2,7 @@ import { once } from "node:events";
 import type { Server } from "node:http";
 import express, { type NextFunction, type Request, type Response } from "express";
 import { createBoundAckratePaidJsonRoute } from "@ackrate/express-middleware";
+import { toStroops } from "@ackrate/core";
 import { requireReadyConfig, type AppConfig } from "./app-config";
 import { PostgresBoundRedemptionStore } from "./redemption-store";
 import { installMainnetAccountFallback } from "./rpc-account-fallback";
@@ -10,7 +11,8 @@ import { MARKET_SIGNAL_BRIEF } from "./market-brief";
 import { normalizeAgent402SearchInput, runAgent402Research, runAgent402Tool } from "./agent402";
 import { agent402InputFromQuery, supportedAgent402ToolForSource } from "./agent402-tools";
 import { verifyMarketplaceQuote } from "./marketplace-quote";
-import { MAX_DELIVERY_BYTES } from "./delivery-result";
+import { assertBoundPaymentRequestSize, MAX_BOUND_PAYMENT_HEADER_BYTES, MAX_DELIVERY_BYTES } from "./delivery-result";
+import { createMainnetV2PaymentVerifier } from "./mainnet-payment-verifier";
 
 type Runtime = { server: Server; origin: string; fingerprint: string };
 const globalRuntime = globalThis as typeof globalThis & { __ackrateMainnetFulfillment?: Promise<Runtime> };
@@ -40,6 +42,7 @@ async function startRuntime(config: AppConfig): Promise<Runtime> {
   app.disable("x-powered-by");
   const paidSource = createBoundAckratePaidJsonRoute({
     maxResponseBytes: MAX_DELIVERY_BYTES,
+    maxHeaderBytes: MAX_BOUND_PAYMENT_HEADER_BYTES,
     merchant: config.public.merchant.address,
     sourceAccount: config.public.merchant.address,
     audience: config.appOrigin,
@@ -51,6 +54,7 @@ async function startRuntime(config: AppConfig): Promise<Runtime> {
     network: config.public.network === "mainnet" ? "stellar-mainnet" : "stellar-testnet",
     asset: config.public.asset.contractId,
     decimals: config.public.asset.decimals,
+    verifier: config.public.network === "mainnet" ? createMainnetV2PaymentVerifier(config) : undefined,
   }, async ({ request, payment }) => {
     const item = catalog.get(request.path);
     if (!item) throw new Error("validated catalog item disappeared before fulfillment");
@@ -104,8 +108,23 @@ async function startRuntime(config: AppConfig): Promise<Runtime> {
   app.get(
     "/api/wallet/source/:id",
     (request: Request, response: Response, next: NextFunction): void => {
-      if (!catalog.has(request.path)) {
+      const item = catalog.get(request.path);
+      if (!item) {
         response.status(404).json({ error: "unknown paid source" });
+        return;
+      }
+      try {
+        assertBoundPaymentRequestSize({
+          url: new URL(request.originalUrl, config.appOrigin!).toString(),
+          registry: config.public.mandateRegistryId, merchant: config.public.merchant.address!,
+          asset: config.public.asset.contractId,
+          amountAtomic: toStroops(item.price, config.public.asset.decimals).toString(),
+          decimals: config.public.asset.decimals,
+          network: config.public.network === "mainnet" ? "stellar-mainnet" : "stellar-testnet",
+        });
+      } catch (error) {
+        response.set("cache-control", "private, no-store");
+        response.status(414).json({ error: error instanceof Error ? error.message : "protected payment request is too large" });
         return;
       }
       next();
