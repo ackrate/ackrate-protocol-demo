@@ -1468,19 +1468,21 @@
 .tool-output-facts strong { overflow: hidden; color: #d4d4d4; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
 .tool-output-document pre { max-height: 560px; margin: 0; overflow: auto; padding: 18px; color: #cfcfcf; background: #050505; font: 9px/1.65 "SFMono-Regular", Consolas, monospace; white-space: pre-wrap; word-break: break-word; }
 
-.flow-modal > svg { color: #a3a3a3; }
+.flow-modal > svg { color: #d4d8df; }
 .flow-modal h2 { margin: 18px 0 8px; font-size: 23px; letter-spacing: -0.04em; }
-.flow-modal p { margin: 0 0 20px; color: #888; font-size: 11px; line-height: 1.6; }
-.flow-modal-close { position: absolute; top: 12px; right: 12px; width: 30px; height: 30px; display: grid; place-items: center; border: 0; border-radius: 8px; color: #737373; background: #111; cursor: pointer; }
+.flow-modal p { margin: 0 0 20px; color: #c4cbd6; font-size: 11px; line-height: 1.6; }
+.flow-modal-close { position: absolute; top: 12px; right: 12px; width: 30px; height: 30px; display: grid; place-items: center; border: 0; border-radius: 8px; color: #e5e7eb; background: #202329; cursor: pointer; }
 
 .flow-danger {
   width: 100%;
-  border: 1px solid #7f1d1d;
-  color: #fecaca;
-  background: #450a0a;
+  border: 0;
+  color: #111;
+  background: #fff;
 }
 
-.flow-danger:hover:not(:disabled) { background: #7f1d1d; transform: translateY(-1px); }
+.flow-danger:hover:not(:disabled) { background: #e5e7eb; transform: translateY(-1px); }
+.wallet-preview.wallet-flow .flow-modal .flow-primary:disabled { color: #111; background: #cbd0d8; opacity: 1; }
+.wallet-preview.wallet-flow .flow-modal button:focus-visible { outline: 2px solid #fff; outline-offset: 4px; }
 
 .flow-toast {
   position: fixed;
