@@ -83,7 +83,9 @@ test("approval click signs immediately only after separate fresh transaction pre
   assert.match(retry, /allowanceTransactionIsFresh\(preparedAllowance.xdr, config.networkPassphrase\)/);
   assert.match(retry, /if \(!prepared\)[\s\S]*?await prepareAllowanceTransaction[\s\S]*?return;/);
   assert.match(retry, /approvalInFlight.current/);
-  const signing = retry.slice(retry.indexOf('setNotice("Opening Freighter now.'));
+  const signingStart = retry.indexOf("setAllowanceSubmitting(true)");
+  assert.ok(signingStart >= 0);
+  const signing = retry.slice(signingStart);
   assert.equal(signing.indexOf("await "), signing.indexOf("await submitPreparedAllowanceWithFreighter"));
   const client = readFileSync(new URL("../lib/wallet/mandate-client.ts", import.meta.url), "utf8");
   const submit = client.slice(client.indexOf("export async function submitPreparedAllowanceWithFreighter"), client.indexOf("export async function approveWithFreighter"));
@@ -146,13 +148,29 @@ test("signed allowance is retained before submission and retries cannot open ano
   const app = readFileSync(new URL("../components/wallet/WalletChatApp.tsx", import.meta.url), "utf8");
   const retry = app.slice(app.indexOf("const retryAllowance = async"), app.indexOf("const confirmServiceInputs = async"));
   const pendingBranch = retry.slice(retry.indexOf("if (stored.pendingAllowance)"), retry.indexOf("if (stored.expiry"));
-  assert.match(pendingBranch, /readAllowanceConfirmation/);
+  assert.match(pendingBranch, /setAllowanceCheckAttempt/);
   assert.doesNotMatch(pendingBranch, /submitPreparedAllowanceWithFreighter|signTransaction|prepareAllowanceTransaction/);
   assert.match(pendingBranch, /return;/);
   assert.match(app, /pendingAllowance\?: PendingAllowance/);
-  assert.match(app, /Check USDC approval — no new fee/);
+  assert.match(app, /2 of 2 · Resume confirmation/);
   const client = readFileSync(new URL("../lib/wallet/mandate-client.ts", import.meta.url), "utf8");
-  assert.match(client, /onPrepared\?\.\(pending\);\s*return submitAllowance/);
+  assert.match(client, /onPrepared\?\.\(pending\);\s*const hash = await submitAllowance/);
+});
+
+test("wallet observes signed allowances automatically and never submits from recovery", () => {
+  const app = readFileSync(new URL("../components/wallet/WalletChatApp.tsx", import.meta.url), "utf8");
+  const observer = app.slice(app.indexOf("// Signing/broadcasting happens only"), app.indexOf("const startFreshLimit"));
+  assert.match(observer, /waitForAllowanceConfirmation/);
+  assert.match(observer, /session.address !== stored.user \|\| disconnectOpen/);
+  assert.match(observer, /activeMandateId.current === current.id/);
+  assert.match(observer, /return \(\) => controller.abort\(\)/);
+  assert.match(observer, /if \(status === "confirmed"\)/);
+  assert.match(observer, /if \(body.mandate.id !== current.id\) throw/);
+  assert.match(observer, /allowanceTx: pending.txHash, pendingAllowance: undefined/);
+  assert.doesNotMatch(observer, /submitPreparedAllowance|signTransaction|prepareAllowanceTransaction|registerWithFreighter/);
+  assert.match(app, /waitForConfirmation: false/);
+  assert.match(app, /2 of 2 · Confirming on Stellar/);
+  assert.doesNotMatch(app, /The allowance was signed, but confirmation has not finished/);
 });
 
 test("expired quotes and insufficient balances block new runs without hiding receipt recovery", () => {

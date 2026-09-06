@@ -16,7 +16,7 @@ import { freighterSigner } from "./freighter";
 import { loadAccountSequence } from "./horizon-account";
 import { registeredMandateIdHex } from "./mandate-id";
 import { installMainnetRpcRetry, retryRateLimited } from "./rpc-retry";
-import { allowanceTransactionIsFresh, preparedAllowanceEvidence, type PendingAllowance } from "./client-readiness";
+import { allowanceTransactionIsFresh, preparedAllowanceEvidence, waitForAllowanceConfirmation, type PendingAllowance } from "./client-readiness";
 
 if (typeof window !== "undefined" && !window.Buffer) window.Buffer = Buffer;
 
@@ -122,17 +122,6 @@ export async function registerWithFreighter(
   };
 }
 
-async function settle(server: rpc.Server, hash: string): Promise<void> {
-  let result = await server.getTransaction(hash);
-  for (let attempt = 0; result.status === "NOT_FOUND" && attempt < 30; attempt += 1) {
-    await sleep(1_000);
-    result = await server.getTransaction(hash);
-  }
-  if (result.status !== "SUCCESS") {
-    throw new Error(`transaction ${hash} did not succeed: ${result.status}`);
-  }
-}
-
 async function submitAllowance(
   server: rpc.Server,
   transaction: ReturnType<typeof TransactionBuilder.fromXDR>,
@@ -142,7 +131,6 @@ async function submitAllowance(
     const submitted = await server.sendTransaction(transaction);
     if (submitted.status === "PENDING" || submitted.status === "DUPLICATE") {
       if (submitted.hash !== expectedHash) throw new Error("Stellar returned a different allowance transaction hash.");
-      await settle(server, submitted.hash);
       return submitted.hash;
     }
     if (submitted.status === "TRY_AGAIN_LATER") {
@@ -215,6 +203,7 @@ export async function submitPreparedAllowanceWithFreighter(
   mandate: IntentMandate,
   preparedTransactionXdr: string,
   onPrepared?: (pending: PendingAllowance) => void,
+  options: { waitForConfirmation?: boolean } = {},
 ): Promise<string> {
   if (!allowanceTransactionIsFresh(preparedTransactionXdr, config.networkPassphrase)) {
     throw new Error("The prepared allowance expired. Prepare a fresh approval before opening Freighter.");
@@ -242,7 +231,15 @@ export async function submitPreparedAllowanceWithFreighter(
   }
   // Persist the exact unsigned body/hash before broadcast so a lost response only checks this receipt.
   onPrepared?.(pending);
-  return submitAllowance(server, signedTransaction);
+  const hash = await submitAllowance(server, signedTransaction);
+  // The wallet screen owns resumable confirmation so a refresh never needs a
+  // second signature. Other callers keep the confirmed-receipt return contract.
+  if (options.waitForConfirmation === false) return hash;
+  const status = await waitForAllowanceConfirmation(config.rpcUrl, config.networkPassphrase, {
+    user: mandate.user, asset: mandate.asset, spender: config.mandateRegistryId, maxAmount: mandate.maxAmount.toString(),
+  }, pending);
+  if (status !== "confirmed") throw new Error(`Allowance confirmation is ${status}. Check the retained transaction before signing again.`);
+  return hash;
 }
 
 export async function approveWithFreighter(config: SafeAppConfig, mandate: IntentMandate): Promise<string> {

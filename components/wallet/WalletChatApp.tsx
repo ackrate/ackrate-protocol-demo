@@ -47,7 +47,7 @@ import { MarketplaceOrb } from "./MarketplaceOrb";
 import { ProtocolWorld } from "./ProtocolWorld";
 import { initialServiceInputValues, serializedServiceInputs, ServiceConfigurator, type ServiceInputValues } from "./ServiceConfigurator";
 import type { MarketplaceQuoteView } from "@/lib/wallet/marketplace-quote";
-import { allowanceTransactionIsFresh, canStartFreshWalletLimit, mandateCanAfford, readAllowanceConfirmation, retainWalletMandate, walletAmountAtomic, type PendingAllowance } from "@/lib/wallet/client-readiness";
+import { allowanceTransactionIsFresh, canStartFreshWalletLimit, mandateCanAfford, waitForAllowanceConfirmation, retainWalletMandate, walletAmountAtomic, type PendingAllowance } from "@/lib/wallet/client-readiness";
 import { nextWalletNotification, safeWalletError, type WalletNotification } from "@/lib/wallet/notifications";
 
 type Phase = "idle" | "authenticating" | "adding-asset" | "registering" | "approving" | "active" | "revoking";
@@ -321,6 +321,10 @@ export function WalletChatApp() {
   const [marketplaceCatalog, setMarketplaceCatalog] = useState({ source: "loading", size: 0, matches: 0 });
   const [preparedAllowance, setPreparedAllowance] = useState<{ mandateId: string; xdr: string } | null>(null);
   const [allowancePreparing, setAllowancePreparing] = useState(false);
+  const [allowanceSubmitting, setAllowanceSubmitting] = useState(false);
+  const [allowanceChecking, setAllowanceChecking] = useState(false);
+  const [allowanceProgress, setAllowanceProgress] = useState<"confirming" | "syncing" | "delayed" | null>(null);
+  const [allowanceCheckAttempt, setAllowanceCheckAttempt] = useState(0);
   const [marketplaceQuote, setMarketplaceQuote] = useState<MarketplaceQuoteView | null>(null);
   const [quoteChecking, setQuoteChecking] = useState(false);
   const [runStarted, setRunStarted] = useState(false);
@@ -331,7 +335,7 @@ export function WalletChatApp() {
   const activeMandateId = useRef<string | null>(null);
   const preparedAllowanceReady = Boolean(config && stored && preparedAllowance?.mandateId === stored.id
     && allowanceTransactionIsFresh(preparedAllowance.xdr, config.networkPassphrase, nowSeconds));
-  const notificationBusy = allowancePreparing || quoteChecking || disconnecting || !["idle", "active"].includes(phase);
+  const notificationBusy = allowancePreparing || allowanceChecking || quoteChecking || disconnecting || !["idle", "active"].includes(phase);
 
   useEffect(() => {
     if (!resultVisible) return;
@@ -560,6 +564,86 @@ export function WalletChatApp() {
     activeMandateId.current = value.id;
   }, [config]);
 
+  // Signing/broadcasting happens only in the click handler. This observer can
+  // resume after a lost response or reload, but can only read the saved receipt.
+  useEffect(() => {
+    if (!config || !stored?.pendingAllowance || stored.allowanceTx || allowanceSubmitting
+      || !session.authenticated || session.address !== stored.user || disconnectOpen) {
+      setAllowanceChecking(false);
+      return;
+    }
+    const current = stored;
+    const pending = stored.pendingAllowance;
+    const controller = new AbortController();
+    const stillCurrent = () => !controller.signal.aborted && activeMandateId.current === current.id
+      && !revocationInFlight.current && !disconnectInFlight.current;
+    setAllowanceChecking(true);
+    setAllowanceProgress("confirming");
+    setError(null);
+    setNotice("2 of 2: Confirming the signed USDC allowance on Stellar. No additional signature is needed.");
+
+    void (async () => {
+      let receiptConfirmed = false;
+      const deadline = Date.now() + 120_000;
+      try {
+        const status = await waitForAllowanceConfirmation(config.rpcUrl, config.networkPassphrase, {
+          user: current.user, asset: current.asset, spender: config.mandateRegistryId, maxAmount: current.maxAmount,
+        }, pending, { signal: controller.signal, timeoutMs: 120_000 });
+        if (!stillCurrent()) return;
+        if (status === "failed" || status === "expired") {
+          saveStored({ ...current, pendingAllowance: undefined });
+          setPreparedAllowance(null);
+          setAllowanceProgress(null);
+          setPhase("idle");
+          setError("Transaction 2 did not succeed on Stellar. Your mandate is still registered. Prepare a new USDC allowance when you are ready.");
+          return;
+        }
+        if (status === "confirmed") {
+          receiptConfirmed = true;
+          setAllowanceProgress("syncing");
+          setNotice("2 of 2: USDC allowance confirmed. Updating your spending status…");
+          // A failed status read must not turn a confirmed receipt into an
+          // approval failure. Retry reads and keep its exact hash throughout.
+          do {
+            try {
+              const body = await api<{ mandate: MandateView }>("/api/wallet/mandate/status", {
+                method: "POST", body: JSON.stringify({ mandateId: current.id }),
+                signal: AbortSignal.any([controller.signal, AbortSignal.timeout(15_000)]),
+              });
+              if (!stillCurrent()) return;
+              if (body.mandate.id !== current.id) throw new Error("The spending status belongs to a different mandate.");
+              const confirmed = body.mandate;
+              setMandate(confirmed);
+              saveStored({ ...current, allowanceTx: pending.txHash, pendingAllowance: undefined });
+              setPreparedAllowance(null);
+              setAllowanceProgress(null);
+              setPhase(confirmed.status === "Active" && confirmed.expiry > Math.floor(Date.now() / 1_000) ? "active" : "idle");
+              setNotice(confirmed.status === "Active" && confirmed.expiry > Math.floor(Date.now() / 1_000)
+                ? ALLOWANCE_READY_NOTICE
+                : "USDC allowance confirmed, but this spending limit is no longer active. Existing receipts remain recoverable.");
+              return;
+            } catch {
+              if (!stillCurrent()) return;
+              if (Date.now() >= deadline) break;
+              await new Promise((resolve) => window.setTimeout(resolve, 2_000));
+            }
+          } while (stillCurrent() && Date.now() < deadline);
+        }
+      } catch (cause) {
+        if (!stillCurrent()) return;
+        console.error("USDC allowance reconciliation is unavailable", cause);
+      } finally {
+        if (stillCurrent()) setAllowanceChecking(false);
+      }
+      if (!stillCurrent()) return;
+      setAllowanceProgress("delayed");
+      setNotice(receiptConfirmed
+        ? "USDC allowance confirmed. Spending status is taking longer to refresh. Resume checking below; no new signature or fee is needed."
+        : "Stellar confirmation is taking longer than usual. Your signed allowance is saved. Resume checking below; no new signature or fee is needed.");
+    })();
+    return () => controller.abort();
+  }, [config, stored, allowanceSubmitting, allowanceCheckAttempt, disconnectOpen, session.address, session.authenticated, saveStored, setError, setNotice]);
+
   const startFreshLimit = () => {
     if (!config || !session.address || !stored || notificationBusy || runBusy || approvalInFlight.current
       || !canStartFreshWalletLimit(stored, mandate)) return;
@@ -722,37 +806,10 @@ export function WalletChatApp() {
   };
 
   const retryAllowance = async () => {
-    if (!config || !stored || approvalInFlight.current) return;
+    if (!config || !stored || approvalInFlight.current || allowanceChecking) return;
     if (stored.pendingAllowance) {
-      approvalInFlight.current = true;
-      setPhase("approving");
       setError(null);
-      setNotice("Checking transaction 2: the existing USDC allowance. No new wallet signature or fee is requested.");
-      try {
-        const status = await readAllowanceConfirmation(config.rpcUrl, config.networkPassphrase, {
-          user: stored.user, asset: stored.asset, spender: config.mandateRegistryId, maxAmount: stored.maxAmount,
-        }, stored.pendingAllowance);
-        if (status === "confirmed") {
-          const next = { ...stored, allowanceTx: stored.pendingAllowance.txHash, pendingAllowance: undefined };
-          saveStored(next);
-          const confirmed = await refreshMandate(next);
-          setNotice(confirmed.status === "Active" && confirmed.expiry > Math.floor(Date.now() / 1_000)
-            ? ALLOWANCE_READY_NOTICE
-            : "Allowance confirmed, but this spending limit is no longer active. Existing receipts remain recoverable.");
-        } else if (status === "failed" || status === "expired") {
-          saveStored({ ...stored, pendingAllowance: undefined });
-          setPreparedAllowance(null);
-          setNotice("The previous allowance did not succeed. A fresh approval can now be prepared.");
-        } else {
-          setNotice("The allowance is still unconfirmed. Check again in a moment; no new transaction was sent.");
-        }
-      } catch (cause) {
-        console.error("USDC allowance confirmation check failed", cause);
-        setError("The existing allowance could not be confirmed yet. Check again; no new approval or fee was requested.");
-      } finally {
-        approvalInFlight.current = false;
-        setPhase("idle");
-      }
+      setAllowanceCheckAttempt((attempt) => attempt + 1);
       return;
     }
     if (stored.expiry <= Math.floor(Date.now() / 1_000)) {
@@ -788,29 +845,28 @@ export function WalletChatApp() {
       return;
     }
     setPhase("approving");
+    setAllowanceSubmitting(true);
     setNotice("2 of 2: Confirm the USDC allowance in Freighter. This is the token approval, not another mandate registration.");
     let submitted = stored;
     try {
-      const allowanceTx = await submitPreparedAllowanceWithFreighter(config, intent, prepared, (pendingAllowance) => {
+      await submitPreparedAllowanceWithFreighter(config, intent, prepared, (pendingAllowance) => {
         submitted = { ...stored, pendingAllowance };
         saveStored(submitted);
-      });
-      const next = { ...submitted, allowanceTx, pendingAllowance: undefined };
-      saveStored(next);
-      setPreparedAllowance(null);
-      const confirmed = await refreshMandate(next);
-      setNotice(confirmed.status === "Active" && confirmed.expiry > Math.floor(Date.now() / 1_000)
-        ? ALLOWANCE_READY_NOTICE
-        : "Allowance confirmed, but this spending limit is no longer active. Existing receipts remain recoverable.");
+        setAllowanceProgress("confirming");
+        setNotice("2 of 2: Allowance signed. Submitting to Stellar, then waiting for confirmation…");
+      }, { waitForConfirmation: false });
     } catch (cause) {
-      console.error("USDC allowance approval failed", cause);
-      setError(submitted.pendingAllowance
-        ? "The allowance was signed, but confirmation has not finished. Check the existing approval below; do not approve another transaction."
-        : allowanceFailureMessage(cause));
-      setPreparedAllowance(null);
-      setPhase("idle");
+      console.error("USDC allowance submission needs reconciliation", cause);
+      if (submitted.pendingAllowance) {
+        setNotice("The signed allowance is saved. Checking its Stellar status automatically; no new approval is being sent.");
+      } else {
+        setError(allowanceFailureMessage(cause));
+      }
     } finally {
       approvalInFlight.current = false;
+      setAllowanceSubmitting(false);
+      setPreparedAllowance(null);
+      setPhase("idle");
     }
   };
 
@@ -1539,7 +1595,7 @@ export function WalletChatApp() {
               )}
 
               {storedFresh && stored?.registrationTx && !stored.allowanceTx && mandateMatchesConfig && (
-                <p className="flow-footnote" role="status"><Check size={12} />1 of 2 complete — Mandate registered.</p>
+                <p className="flow-footnote" role="status"><Check size={12} />{stored.pendingAllowance ? "Mandate registered · USDC allowance signed" : "1 of 2 complete — Mandate registered."}</p>
               )}
 
               {mandateOnline && !mandateMatchesConfig ? (
@@ -1547,9 +1603,13 @@ export function WalletChatApp() {
                   {phase === "revoking" ? <LoaderCircle className="spin" size={16} /> : <X size={16} />}{phase === "revoking" ? revocationProgress === "wallet" ? "Waiting for Freighter…" : "Confirming on Stellar…" : "Turn off previous spending limit"}
                 </motion.button>
               ) : stored?.pendingAllowance || (storedFresh && stored?.registrationTx && !stored.allowanceTx) ? (
-                <motion.button className="flow-primary" type="button" onClick={retryAllowance} disabled={phase === "approving" || allowancePreparing} whileTap={reduceMotion ? undefined : { scale: 0.985 }}>
-                  {phase === "approving" || allowancePreparing ? <LoaderCircle className="spin" size={16} /> : <LockKeyhole size={16} />}
-                  {stored.pendingAllowance ? phase === "approving" ? "2 of 2 · Checking allowance…" : "Check USDC allowance — no new fee" : allowancePreparing ? "2 of 2 · Preparing allowance…" : phase === "approving" ? "2 of 2 · Confirm allowance in Freighter…" : !preparedAllowanceReady ? "2 of 2 · Prepare USDC allowance" : "2 of 2 · Approve USDC allowance"}
+                <motion.button className="flow-primary" type="button" onClick={retryAllowance} disabled={phase === "approving" || allowancePreparing || allowanceChecking || allowanceSubmitting} aria-busy={allowanceChecking || allowanceSubmitting} whileTap={reduceMotion ? undefined : { scale: 0.985 }}>
+                  {phase === "approving" || allowancePreparing || allowanceChecking || allowanceSubmitting ? <LoaderCircle className="spin" size={16} /> : <LockKeyhole size={16} />}
+                  {stored.pendingAllowance
+                    ? allowanceSubmitting ? "2 of 2 · Submitting to Stellar…"
+                      : allowanceChecking ? allowanceProgress === "syncing" ? "2 of 2 · Updating spending status…" : "2 of 2 · Confirming on Stellar…"
+                        : "2 of 2 · Resume confirmation"
+                    : allowancePreparing ? "2 of 2 · Preparing allowance…" : phase === "approving" ? "2 of 2 · Confirm allowance in Freighter…" : !preparedAllowanceReady ? "2 of 2 · Prepare USDC allowance" : "2 of 2 · Approve USDC allowance"}
                 </motion.button>
               ) : (
                 <motion.button className="flow-primary" type="button" onClick={activate} disabled={!canApproveLimit || mandateBusy} whileTap={reduceMotion ? undefined : { scale: 0.985 }}>
@@ -1558,7 +1618,9 @@ export function WalletChatApp() {
                 </motion.button>
               )}
               <small className="flow-footnote"><Fingerprint size={12} /><span>{stored?.pendingAllowance
-                ? "The USDC allowance is already signed. This button checks confirmation only—it does not send another approval or request another fee."
+                ? allowanceProgress === "delayed"
+                  ? "Your signed transaction is saved. Resume confirmation checks only—no new approval or network fee. Mandate registration does not need to be repeated."
+                  : "Your USDC allowance is signed. We are checking Stellar automatically and will continue when confirmed. No second signature or additional fee is requested."
                 : storedFresh && stored?.registrationTx && !stored.allowanceTx
                   ? `Your mandate is registered. Transaction 2 approves a capped allowance of ${formatUnits(stored.maxAmount, stored.decimals)} USDC for the contract. It has its own XLM network fee; it does not pay for a service.`
                   : "Two different transactions: first register your spending rules, then approve the contract's USDC allowance. Each has an XLM network fee; neither pays for a service."}</span></small>

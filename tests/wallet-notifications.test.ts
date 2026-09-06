@@ -45,7 +45,8 @@ test("wallet toast is readable, dismissible, announces status and expires only n
   assert.match(app, /fontSize: 13/);
   assert.match(app, /role=\{failed \? "alert" : "status"\} aria-atomic="true"/);
   assert.doesNotMatch(app, /error \?\? notice|Could not finish setup\. Open Freighter/);
-  assert.match(app, /submitted\.pendingAllowance\s*\? "The allowance was signed, but confirmation has not finished/);
+  assert.match(app, /if \(submitted.pendingAllowance\) \{\s*setNotice\("The signed allowance is saved/);
+  assert.doesNotMatch(app, /The allowance was signed, but confirmation has not finished/);
 });
 
 test("chat failures keep saved results available, hide arbitrary recovery messages and offer one recovery action", () => {
