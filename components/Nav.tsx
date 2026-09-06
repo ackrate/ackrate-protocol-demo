@@ -18,7 +18,7 @@ const links = [
 
 export default function Nav() {
   const path = usePathname();
-  if (path.startsWith("/wallet")) return null;
+  if (path.startsWith("/wallet") || path.startsWith("/reports/")) return null;
   return (
     <motion.nav
       initial={{ y: -16, opacity: 0 }}

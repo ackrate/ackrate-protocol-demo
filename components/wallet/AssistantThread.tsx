@@ -13,6 +13,7 @@ import {
   Info,
   LoaderCircle,
   Search,
+  Share2,
   ShieldCheck,
   TriangleAlert,
 } from "lucide-react";
@@ -21,6 +22,7 @@ import type { Agent402Evidence, Agent402ToolEvidence } from "../../lib/wallet/ma
 import { sourceIdForMarketplaceService, WEB_SEARCH_INPUTS, type MarketplaceService } from "../../lib/wallet/marketplace-catalog";
 import { initialServiceInputValues, serializedServiceInputs, serviceInputProblem, type ServiceInputValues } from "./ServiceConfigurator";
 import { safeWalletError } from "../../lib/wallet/notifications";
+import { isSharedReportId } from "../../lib/wallet/shared-report";
 
 export interface PurchaseResult {
   source: { id: string; title: string };
@@ -712,6 +714,54 @@ function ProofLink({ label, hash, explorerNetwork }: { label: string; hash: stri
   );
 }
 
+function ReportShareButton({ mandateId, txHash }: { mandateId: string; txHash: string }) {
+  const [state, setState] = useState<"idle" | "creating" | "copied" | "manual" | "error">("idle");
+  const [link, setLink] = useState("");
+  const [error, setError] = useState("");
+  const inFlight = useRef(false);
+  const input = useRef<HTMLInputElement>(null);
+  const share = async () => {
+    if (inFlight.current) return;
+    inFlight.current = true;
+    setState("creating");
+    setError("");
+    try {
+      let url = link;
+      if (!url) {
+        const response = await fetch("/api/wallet/reports/share", {
+          method: "POST", credentials: "same-origin", cache: "no-store",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ mandateId, txHash }), signal: AbortSignal.timeout(35_000),
+        });
+        const body = await response.json() as { ok?: boolean; id?: string; path?: string; error?: string };
+        if (!response.ok || !body.ok) throw new Error(body.error || "The report link could not be created. Try Share again without rerunning the service.");
+        if (typeof body.id !== "string" || !isSharedReportId(body.id) || body.path !== `/reports/${body.id}`) throw new Error("The shared report link could not be verified.");
+        url = new URL(body.path, window.location.origin).href;
+        setLink(url);
+      }
+      try {
+        await navigator.clipboard.writeText(url);
+        setState("copied");
+      } catch { setState("manual"); }
+    } catch (cause) {
+      setState("error");
+      setError(cause instanceof Error && cause.name !== "TimeoutError" && cause.name !== "TypeError"
+        ? cause.message : "The report link could not be saved yet. Try Share again; it will not rerun the service or make a payment.");
+    } finally { inFlight.current = false; }
+  };
+  useEffect(() => { if (state === "manual") { input.current?.focus(); input.current?.select(); } }, [state]);
+  return <section className="report-share" aria-label="Share report">
+    <button type="button" onClick={share} disabled={state === "creating"} title="Create a public report page and copy its link">
+      {state === "copied" ? <Check size={16} /> : state === "creating" ? <LoaderCircle size={16} className="spin" /> : <Share2 size={16} />}
+      {state === "copied" ? "Link copied" : state === "creating" ? "Creating link…" : "Share report"}
+    </button>
+    <p role={state === "error" ? "alert" : "status"}>{state === "copied" ? "Link copied. Anyone with this link can read the report."
+      : state === "manual" ? "Your report page is ready. Copy the selected link below."
+        : state === "error" ? error : "Create a link anyone can open. Wallet and payment details are not included."}</p>
+    {link && <div className="report-share-link"><input ref={input} aria-label="Shared report link" readOnly value={link} onFocus={(event) => event.currentTarget.select()} /><a href={link} target="_blank" rel="noreferrer">Open report <ArrowUpRight size={14} /></a></div>}
+  </section>;
+}
+
 export function PurchaseReport({
   result,
   explorerNetwork,
@@ -878,6 +928,7 @@ export function PurchaseReport({
               {brief.summary.map((paragraph, index) => <p key={index}><CitedText text={paragraph} sources={brief.sources} /></p>)}
             </section>}
             {brief.methodology && <p className="brief-methodology">Method: {brief.methodology}</p>}
+            <ReportShareButton key={`${result.payment.mandateId}:${result.payment.txHash}`} mandateId={result.payment.mandateId} txHash={result.payment.txHash} />
           </div>
         </article>
 

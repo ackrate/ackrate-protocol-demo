@@ -2256,6 +2256,14 @@
 }
 .wallet-preview.wallet-flow .report-section .tool-output-toolbar button:hover { background: #fff; }
 .wallet-preview.wallet-flow .report-download-status { display: block; margin: 0; padding: 12px 20px; color: #d8e0ec; background: #1b1f27; font-size: 12px; line-height: 1.5; }
+.wallet-preview .report-share { display: grid; gap: 12px; min-width: 0; }
+.wallet-preview .report-share button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; justify-self: start; min-height: 44px; padding: 12px 18px; border: 0; border-radius: 8px; background: #f5f7fa; color: #111318; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+.wallet-preview .report-share button:disabled { opacity: .65; cursor: wait; }
+.wallet-preview .report-share button:focus-visible { outline: 2px solid #8dc9ff; outline-offset: 4px; }
+.wallet-preview .report-share p { margin: 0; color: #bdc7d6; font-size: 12px; line-height: 1.6; }
+.wallet-preview .report-share-link { display: grid; gap: 12px; min-width: 0; }
+.wallet-preview .report-share-link input { box-sizing: border-box; width: 100%; min-width: 0; padding: 12px; border: 1px solid #637083; border-radius: 8px; background: #11151c; color: #eef2f7; font-size: 13px; line-height: 1.6; }
+.wallet-preview .report-share-link a { display: inline-flex; align-items: center; gap: 6px; justify-self: start; color: #d6e9ff; font-size: 13px; }
 .wallet-preview.wallet-flow .report-section .brief-header { padding: 26px; background: #171b22; }
 .wallet-preview.wallet-flow .report-section .brief-header::after { display: none; }
 .wallet-preview.wallet-flow .report-section .brief-header h2 { margin: 14px 0 12px; color: #fff; font-size: clamp(26px, 2.6vw, 38px); line-height: 1.15; letter-spacing: -0.04em; overflow-wrap: anywhere; }

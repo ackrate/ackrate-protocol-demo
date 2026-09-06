@@ -10,7 +10,7 @@ const links = [
 
 export default function SiteFooter() {
   const path = usePathname();
-  if (path.startsWith("/wallet")) return null;
+  if (path.startsWith("/wallet") || path.startsWith("/reports/")) return null;
   return (
     <footer className="mt-16 border-t border-white/10 bg-black/20">
       <div className="mx-auto grid w-full max-w-6xl gap-8 px-5 py-10 sm:grid-cols-[1.25fr_1fr] sm:px-6 lg:px-8">

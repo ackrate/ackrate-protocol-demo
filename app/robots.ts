@@ -5,7 +5,7 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: "*",
       allow: "/",
-      disallow: ["/api/", "/wallet"],
+      disallow: ["/api/", "/wallet", "/reports/"],
     },
     sitemap: "https://reapp.live/sitemap.xml",
     host: "https://reapp.live",

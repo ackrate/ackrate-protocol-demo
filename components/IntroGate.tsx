@@ -25,7 +25,7 @@ export default function IntroGate() {
     }
   }, []);
 
-  if (path.startsWith("/wallet")) return null;
+  if (path.startsWith("/wallet") || path.startsWith("/reports/")) return null;
 
   return (
     <AnimatePresence>
