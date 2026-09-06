@@ -17,6 +17,7 @@ import { loadAccountSequence } from "./horizon-account";
 import { registeredMandateIdHex } from "./mandate-id";
 import { installMainnetRpcRetry, retryRateLimited } from "./rpc-retry";
 import { allowanceTransactionIsFresh, preparedAllowanceEvidence, waitForAllowanceConfirmation, type PendingAllowance } from "./client-readiness";
+import { confirmedRegistrationSequence, selectAllowanceAccountSequence, validateAllowanceSequence } from "./allowance-sequence";
 
 if (typeof window !== "undefined" && !window.Buffer) window.Buffer = Buffer;
 
@@ -24,6 +25,22 @@ const INCLUSION_FEE = "100000";
 const APPROVAL_TIMEBOUND_SECONDS = 10 * 60;
 const SUBMISSION_RETRY_DELAYS_MS = Object.freeze([750, 1_500, 2_500]);
 const sleep = (milliseconds: number) => new Promise((resolve) => setTimeout(resolve, milliseconds));
+
+export class AllowanceSubmissionRejected extends Error {
+  constructor(readonly resultCode: string) {
+    super(`Stellar rejected the allowance submission (${resultCode}).`);
+    this.name = "AllowanceSubmissionRejected";
+  }
+}
+
+export class AllowanceNotSubmittedError extends Error {
+  constructor(readonly reason: "sequence-changed" | "check-unavailable", options?: ErrorOptions) {
+    super(reason === "sequence-changed"
+      ? "Wallet activity changed before allowance submission."
+      : "The signed allowance could not complete its pre-submission check.", options);
+    this.name = "AllowanceNotSubmittedError";
+  }
+}
 
 export interface CreateMandateForm {
   budget: string;
@@ -122,7 +139,7 @@ export async function registerWithFreighter(
   };
 }
 
-async function submitAllowance(
+export async function submitAllowance(
   server: rpc.Server,
   transaction: ReturnType<typeof TransactionBuilder.fromXDR>,
 ): Promise<string> {
@@ -141,8 +158,8 @@ async function submitAllowance(
       await sleep(delay);
       continue;
     }
-    const resultCode = submitted.errorResult?.result().switch().name;
-    throw new Error(`allowance submission was rejected${resultCode ? ` (${resultCode})` : ""}`);
+    const resultCode = submitted.errorResult?.result().switch().name ?? "unknown";
+    throw new AllowanceSubmissionRejected(resultCode);
   }
 }
 
@@ -173,9 +190,14 @@ export async function latestLedgerSequence(config: SafeAppConfig): Promise<numbe
   });
 }
 
-export async function prepareAllowanceTransaction(config: SafeAppConfig, mandate: IntentMandate): Promise<string> {
+export async function prepareAllowanceTransaction(config: SafeAppConfig, mandate: IntentMandate, registrationTx?: string): Promise<string> {
   const server = walletRpcServer(config);
-  const source = await server.getAccount(mandate.user);
+  const observed = await server.getAccount(mandate.user);
+  // Horizon can trail the RPC receipt that just confirmed registration. Never
+  // build transaction 2 with transaction 1's already-consumed sequence.
+  const registrationSequence = registrationTx
+    ? await confirmedRegistrationSequence(config, mandate, registrationTx) : observed.sequenceNumber();
+  const source = new Account(mandate.user, selectAllowanceAccountSequence(observed.sequenceNumber(), registrationSequence));
   const expirationLedger = (await latestLedgerSequence(config)) + 17_280;
   const operation = new Contract(mandate.asset).call(
     "approve",
@@ -195,6 +217,7 @@ export async function prepareAllowanceTransaction(config: SafeAppConfig, mandate
     .setTimeout(APPROVAL_TIMEBOUND_SECONDS)
     .build();
   const prepared = await server.prepareTransaction(built);
+  validateAllowanceSequence(prepared.toXDR(), config.networkPassphrase, registrationSequence);
   return prepared.toXDR();
 }
 
@@ -203,7 +226,7 @@ export async function submitPreparedAllowanceWithFreighter(
   mandate: IntentMandate,
   preparedTransactionXdr: string,
   onPrepared?: (pending: PendingAllowance) => void,
-  options: { waitForConfirmation?: boolean } = {},
+  options: { waitForConfirmation?: boolean; registrationTx?: string } = {},
 ): Promise<string> {
   if (!allowanceTransactionIsFresh(preparedTransactionXdr, config.networkPassphrase)) {
     throw new Error("The prepared allowance expired. Prepare a fresh approval before opening Freighter.");
@@ -228,6 +251,21 @@ export async function submitPreparedAllowanceWithFreighter(
   const preparedTransaction = TransactionBuilder.fromXDR(preparedTransactionXdr, config.networkPassphrase);
   if (!signedTransaction.hash().equals(preparedTransaction.hash())) {
     throw new Error("allowance signing failed: Freighter changed the prepared transaction");
+  }
+  // Do this AFTER opening Freighter to preserve the click activation, but
+  // BEFORE broadcasting or retaining a pending receipt. Another wallet action
+  // may have consumed a pre-prepared transaction's sequence in the meantime.
+  let currentSequence: string;
+  try {
+    const observed = await server.getAccount(mandate.user);
+    const registrationSequence = options.registrationTx
+      ? await confirmedRegistrationSequence(config, mandate, options.registrationTx) : observed.sequenceNumber();
+    currentSequence = selectAllowanceAccountSequence(observed.sequenceNumber(), registrationSequence);
+  } catch (cause) {
+    throw new AllowanceNotSubmittedError("check-unavailable", { cause });
+  }
+  if (!("sequence" in signedTransaction) || BigInt(signedTransaction.sequence) !== BigInt(currentSequence) + 1n) {
+    throw new AllowanceNotSubmittedError("sequence-changed");
   }
   // Persist the exact unsigned body/hash before broadcast so a lost response only checks this receipt.
   onPrepared?.(pending);

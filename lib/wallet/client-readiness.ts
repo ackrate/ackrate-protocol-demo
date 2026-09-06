@@ -1,7 +1,7 @@
 import { Address, TransactionBuilder, scValToNative } from "@stellar/stellar-sdk";
 
 export interface AllowanceScope { user: string; asset: string; spender: string; maxAmount: string }
-export interface PendingAllowance { txHash: string; transactionXdr: string; submittedAt: number; validUntil: number }
+export interface PendingAllowance { txHash: string; transactionXdr: string; submittedAt: number; validUntil: number; submissionError?: string }
 export type AllowanceConfirmation = "confirmed" | "failed" | "expired" | "pending";
 export interface AllowanceConfirmationOptions {
   signal?: AbortSignal;

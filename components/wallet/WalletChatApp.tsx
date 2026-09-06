@@ -33,6 +33,8 @@ import {
 import type { IntentMandate } from "@ackrate/core";
 import {
   buildMandate,
+  AllowanceNotSubmittedError,
+  AllowanceSubmissionRejected,
   prepareAllowanceTransaction,
   registerWithFreighter,
   revokeWithFreighter,
@@ -47,7 +49,8 @@ import { MarketplaceOrb } from "./MarketplaceOrb";
 import { ProtocolWorld } from "./ProtocolWorld";
 import { initialServiceInputValues, serializedServiceInputs, ServiceConfigurator, type ServiceInputValues } from "./ServiceConfigurator";
 import type { MarketplaceQuoteView } from "@/lib/wallet/marketplace-quote";
-import { allowanceTransactionIsFresh, canStartFreshWalletLimit, mandateCanAfford, waitForAllowanceConfirmation, retainWalletMandate, walletAmountAtomic, type PendingAllowance } from "@/lib/wallet/client-readiness";
+import { allowanceTransactionIsFresh, canStartFreshWalletLimit, mandateCanAfford, readAllowanceConfirmation, waitForAllowanceConfirmation, retainWalletMandate, walletAmountAtomic, type PendingAllowance } from "@/lib/wallet/client-readiness";
+import { allowanceConflictsWithRegistration, confirmedRegistrationSequence } from "@/lib/wallet/allowance-sequence";
 import { nextWalletNotification, safeWalletError, type WalletNotification } from "@/lib/wallet/notifications";
 
 type Phase = "idle" | "authenticating" | "adding-asset" | "registering" | "approving" | "active" | "revoking";
@@ -150,6 +153,11 @@ function marketplaceSettlement(result: PurchaseResult): { transaction: string; a
 
 function allowanceFailureMessage(cause: unknown): string {
   const detail = cause instanceof Error ? cause.message : String(cause);
+  if (cause instanceof AllowanceNotSubmittedError) {
+    return cause.reason === "sequence-changed"
+      ? "Your wallet changed while this approval was being prepared. Nothing was submitted. Transaction 2 will be prepared again; your mandate is still registered."
+      : "You signed the allowance, but its pre-submission check could not finish. Nothing was sent to Stellar. Prepare transaction 2 again; your mandate is still registered.";
+  }
   if (/too late|expired|time.?bound/i.test(detail)) {
     return "The prepared approval expired. Prepare a fresh approval before opening Freighter.";
   }
@@ -476,7 +484,7 @@ export function WalletChatApp() {
     ) return;
     let active = true;
     setAllowancePreparing(true);
-    void prepareAllowanceTransaction(config, storedToIntent(stored))
+    void prepareAllowanceTransaction(config, storedToIntent(stored), stored.registrationTx)
       .then((xdr) => {
         if (active) setPreparedAllowance({ mandateId: stored.id, xdr });
       })
@@ -580,22 +588,55 @@ export function WalletChatApp() {
     setAllowanceChecking(true);
     setAllowanceProgress("confirming");
     setError(null);
-    setNotice("2 of 2: Confirming the signed USDC allowance on Stellar. No additional signature is needed.");
+    setNotice(pending.submissionError
+      ? "2 of 2: Checking the rejected submission before requesting another approval."
+      : "2 of 2: Confirming the signed USDC allowance on Stellar. No additional signature is needed.");
 
     void (async () => {
       let receiptConfirmed = false;
       const deadline = Date.now() + 120_000;
       try {
-        const status = await waitForAllowanceConfirmation(config.rpcUrl, config.networkPassphrase, {
+        const scope = {
           user: current.user, asset: current.asset, spender: config.mandateRegistryId, maxAmount: current.maxAmount,
-        }, pending, { signal: controller.signal, timeoutMs: 120_000 });
+        };
+        let status;
+        try {
+          status = await readAllowanceConfirmation(config.rpcUrl, config.networkPassphrase, scope, pending, controller.signal);
+        } catch {
+          // Preserve retry behavior if the first read is interrupted. The
+          // observer still verifies the exact body/hash on every attempt.
+          status = await waitForAllowanceConfirmation(config.rpcUrl, config.networkPassphrase, scope, pending,
+            { signal: controller.signal, timeoutMs: Math.max(0, deadline - Date.now()) });
+        }
+        if (status === "pending" && current.registrationTx) {
+          try {
+            const registrationSequence = await confirmedRegistrationSequence(config, storedToIntent(current), current.registrationTx, controller.signal);
+            if (allowanceConflictsWithRegistration(pending.transactionXdr, config.networkPassphrase, registrationSequence)) {
+              // This different, verified registration has already consumed the
+              // allowance's sequence. The old signed body cannot execute later.
+              status = "failed";
+            }
+          } catch (cause) {
+            // Without proof of a conflict, retain the existing receipt. A
+            // registration-read outage must not stop normal allowance polling.
+            console.warn("Registration sequence reconciliation is unavailable", cause);
+          }
+        }
+        if (status === "pending" && pending.submissionError) {
+          if (!stillCurrent()) return;
+          setAllowanceProgress("delayed");
+          setError(`Stellar rejected transaction 2 (${pending.submissionError}). It is not confirmed. The saved receipt is retained to prevent a duplicate approval; check its status below. Your mandate is still registered.`);
+          return;
+        }
+        if (status === "pending") status = await waitForAllowanceConfirmation(config.rpcUrl, config.networkPassphrase, scope,
+          pending, { signal: controller.signal, timeoutMs: Math.max(0, deadline - Date.now()) });
         if (!stillCurrent()) return;
         if (status === "failed" || status === "expired") {
           saveStored({ ...current, pendingAllowance: undefined });
           setPreparedAllowance(null);
           setAllowanceProgress(null);
           setPhase("idle");
-          setError("Transaction 2 did not succeed on Stellar. Your mandate is still registered. Prepare a new USDC allowance when you are ready.");
+          setError("The previous allowance cannot complete. Your mandate is still registered. Prepare transaction 2 again when you are ready.");
           return;
         }
         if (status === "confirmed") {
@@ -832,7 +873,7 @@ export function WalletChatApp() {
       setAllowancePreparing(true);
       setNotice("Preparing transaction 2: the USDC allowance. Your mandate is already registered.");
       try {
-        prepared = await prepareAllowanceTransaction(config, intent);
+        prepared = await prepareAllowanceTransaction(config, intent, stored.registrationTx);
         setPreparedAllowance({ mandateId: stored.id, xdr: prepared });
         setNotice("Transaction 2 is ready. Click Approve USDC allowance to open Freighter.");
       } catch (cause) {
@@ -854,11 +895,16 @@ export function WalletChatApp() {
         saveStored(submitted);
         setAllowanceProgress("confirming");
         setNotice("2 of 2: Allowance signed. Submitting to Stellar, then waiting for confirmation…");
-      }, { waitForConfirmation: false });
+      }, { waitForConfirmation: false, registrationTx: stored.registrationTx });
     } catch (cause) {
       console.error("USDC allowance submission needs reconciliation", cause);
       if (submitted.pendingAllowance) {
-        setNotice("The signed allowance is saved. Checking its Stellar status automatically; no new approval is being sent.");
+        if (cause instanceof AllowanceSubmissionRejected) {
+          saveStored({ ...submitted, pendingAllowance: { ...submitted.pendingAllowance, submissionError: cause.resultCode } });
+          setError(`${cause.message} Checking the saved transaction before offering another approval.`);
+        } else {
+          setNotice("The submission response was interrupted. Checking the saved transaction before requesting another signature.");
+        }
       } else {
         setError(allowanceFailureMessage(cause));
       }
@@ -1595,7 +1641,7 @@ export function WalletChatApp() {
               )}
 
               {storedFresh && stored?.registrationTx && !stored.allowanceTx && mandateMatchesConfig && (
-                <p className="flow-footnote" role="status"><Check size={12} />{stored.pendingAllowance ? "Mandate registered · USDC allowance signed" : "1 of 2 complete — Mandate registered."}</p>
+                <p className="flow-footnote" role="status"><Check size={12} />{stored.pendingAllowance?.submissionError ? "Mandate registered · Allowance submission rejected" : stored.pendingAllowance ? "Mandate registered · USDC allowance signed" : "1 of 2 complete — Mandate registered."}</p>
               )}
 
               {mandateOnline && !mandateMatchesConfig ? (
@@ -1607,8 +1653,8 @@ export function WalletChatApp() {
                   {phase === "approving" || allowancePreparing || allowanceChecking || allowanceSubmitting ? <LoaderCircle className="spin" size={16} /> : <LockKeyhole size={16} />}
                   {stored.pendingAllowance
                     ? allowanceSubmitting ? "2 of 2 · Submitting to Stellar…"
-                      : allowanceChecking ? allowanceProgress === "syncing" ? "2 of 2 · Updating spending status…" : "2 of 2 · Confirming on Stellar…"
-                        : "2 of 2 · Resume confirmation"
+                      : allowanceChecking ? allowanceProgress === "syncing" ? "2 of 2 · Updating spending status…" : stored.pendingAllowance.submissionError ? "2 of 2 · Checking submission…" : "2 of 2 · Confirming on Stellar…"
+                        : stored.pendingAllowance.submissionError ? "2 of 2 · Check submission status" : "2 of 2 · Resume confirmation"
                     : allowancePreparing ? "2 of 2 · Preparing allowance…" : phase === "approving" ? "2 of 2 · Confirm allowance in Freighter…" : !preparedAllowanceReady ? "2 of 2 · Prepare USDC allowance" : "2 of 2 · Approve USDC allowance"}
                 </motion.button>
               ) : (
@@ -1618,7 +1664,9 @@ export function WalletChatApp() {
                 </motion.button>
               )}
               <small className="flow-footnote"><Fingerprint size={12} /><span>{stored?.pendingAllowance
-                ? allowanceProgress === "delayed"
+                ? stored.pendingAllowance.submissionError
+                  ? "Stellar rejected the submission. This button only checks the saved transaction; it does not request another signature or network fee. Mandate registration does not need to be repeated."
+                  : allowanceProgress === "delayed"
                   ? "Your signed transaction is saved. Resume confirmation checks only—no new approval or network fee. Mandate registration does not need to be repeated."
                   : "Your USDC allowance is signed. We are checking Stellar automatically and will continue when confirmed. No second signature or additional fee is requested."
                 : storedFresh && stored?.registrationTx && !stored.allowanceTx
