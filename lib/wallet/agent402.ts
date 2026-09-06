@@ -84,9 +84,10 @@ const SearchResult = z.object({
 const SearchResponse = z.object({
   query: z.string().trim().min(1).max(400),
   count: z.number().int().min(0).max(20),
-  results: z.array(SearchResult).min(1).max(20),
+  results: z.array(SearchResult).max(20),
   untrustedContent: z.literal(true),
-}).passthrough();
+}).passthrough().refine((response) => response.results.length > 0 || response.count === 0,
+  "An empty search response must report zero results");
 
 export interface Agent402Preflight {
   question: string;
@@ -124,7 +125,85 @@ function timedFetch(fetcher: Fetcher, input: string | URL, init?: RequestInit): 
   return fetcher(input, { ...init, signal: init?.signal ?? AbortSignal.timeout(20_000) });
 }
 
+interface RetainedPaidResponse {
+  state: "reading" | "received" | "rejected";
+  httpStatus: number;
+  contentType: string | null;
+  bytesRead: number;
+  complete: boolean;
+  bodySha256?: string;
+  prefixBase64?: string;
+  prefixSha256?: string;
+  truncated?: boolean;
+  failure?: "oversize" | "invalid_json" | "interrupted" | "schema_mismatch" | "http_status";
+}
+
+function responseMetadata(response: Response): RetainedPaidResponse {
+  return { state: "reading", httpStatus: response.status,
+    contentType: response.headers.get("content-type")?.slice(0, 256) ?? null,
+    bytesRead: 0, complete: false };
+}
+
+/** Retain bounded diagnostic bytes, never a second request to a paid endpoint. */
+async function retainPaidJson(response: Response, maxBytes: number): Promise<
+  { ok: true; output: unknown; delivery: RetainedPaidResponse }
+  | { ok: false; delivery: RetainedPaidResponse }
+> {
+  const metadata = responseMetadata(response);
+  const chunks: Buffer[] = [];
+  let retainedBytes = 0;
+  let bytesRead = 0;
+  let complete = false;
+  const rejected = (failure: RetainedPaidResponse["failure"]) => {
+    const retained = Buffer.concat(chunks, retainedBytes);
+    const prefix = retained.subarray(0, 16 * 1024);
+    return { ok: false as const, delivery: { ...metadata, state: "rejected" as const,
+      failure, bytesRead, complete, truncated: !complete || prefix.length < bytesRead,
+      ...(complete ? { bodySha256: hash(retained) } : {}),
+      prefixBase64: prefix.toString("base64"), prefixSha256: hash(prefix) } };
+  };
+  const length = Number(response.headers.get("content-length"));
+  if (Number.isFinite(length) && length > maxBytes) {
+    await response.body?.cancel().catch(() => undefined);
+    return rejected("oversize");
+  }
+  if (response.body) {
+    const reader = response.body.getReader();
+    try {
+      while (true) {
+        const next = await reader.read();
+        if (next.done) { complete = true; break; }
+        if (!next.value) continue;
+        bytesRead += next.value.byteLength;
+        const retained = Buffer.from(next.value.subarray(0, maxBytes - retainedBytes));
+        chunks.push(retained);
+        retainedBytes += retained.length;
+        if (bytesRead > maxBytes) {
+          await reader.cancel().catch(() => undefined);
+          return rejected("oversize");
+        }
+      }
+    } catch {
+      await reader.cancel().catch(() => undefined);
+      return rejected("interrupted");
+    } finally {
+      reader.releaseLock();
+    }
+  } else {
+    complete = true;
+  }
+  const body = Buffer.concat(chunks, retainedBytes);
+  try {
+    const output: unknown = JSON.parse(body.toString("utf8"));
+    return { ok: true, output, delivery: { ...metadata, state: "received", bytesRead,
+      complete: true, bodySha256: hash(body) } };
+  } catch {
+    return rejected("invalid_json");
+  }
+}
+
 function validatedSearchResults(results: z.infer<typeof SearchResult>[]): Agent402SearchResult[] {
+  if (results.length === 0) return [];
   const seen = new Set<string>();
   const output: Agent402SearchResult[] = [];
   for (const result of results) {
@@ -381,8 +460,10 @@ export async function runAgent402Tool(input: {
     }
     const complete = completedToolFromRecord(existing);
     if (complete) return complete;
-    const paidEvidence = existing.evidence as Agent402ToolEvidence | null;
-    if (existing.status === "marketplace_paid" && paidEvidence?.output !== undefined) {
+    const paidEvidence = existing.evidence as (Agent402ToolEvidence & { delivery?: RetainedPaidResponse }) | null;
+    if (existing.status === "marketplace_paid" && paidEvidence?.output !== undefined
+      && (!paidEvidence.delivery || (paidEvidence.delivery.state === "received"
+        && paidEvidence.delivery.httpStatus >= 200 && paidEvidence.delivery.httpStatus < 300))) {
       const report = { kind: "tool-output", service: paidEvidence.service, input: paidEvidence.input, output: paidEvidence.output };
       await completeMarketplaceRun(input.contractTx, report);
       return { service: paidEvidence.service, parameters: paidEvidence.input, toolOutput: paidEvidence.output, marketplace: paidEvidence };
@@ -442,8 +523,7 @@ export async function runAgent402Tool(input: {
     throw new Error("Agent402 did not return verifiable settlement evidence", { cause: error });
   }
   if (
-    !paid.ok
-    || !settlement.success
+    !settlement.success
     || settlement.network !== AGENT402_NETWORK
     || !/^[0-9a-f]{64}$/i.test(settlement.transaction)
     || (settlement.amount !== undefined && settlement.amount !== input.tool.amountAtomic)
@@ -453,13 +533,11 @@ export async function runAgent402Tool(input: {
     throw new Error("Agent402 settlement did not match the approved Stellar payment");
   }
 
-  const output = await boundedResponseJson(paid, 2 * 1024 * 1024);
-  const evidence: Agent402ToolEvidence = {
+  const baseEvidence: Omit<Agent402ToolEvidence, "output"> = {
     service: { slug: input.tool.slug, name: input.tool.name, method: input.tool.method, route: input.tool.path },
     input: parameters,
-    output,
     discovery: {
-      marketplace: "Agent402",
+      marketplace: "Agent402" as const,
       marketplaceUrl: AGENT402_MARKETPLACE_URL,
       seller: preflight.seller.seller,
       sellerName: preflight.seller.sellerName,
@@ -479,20 +557,39 @@ export async function runAgent402Tool(input: {
     },
     trustlineTransaction,
   };
-  await markMarketplacePaid({
+  const saveEvidence = (evidence: unknown) => markMarketplacePaid({
     contractTx: input.contractTx,
-    marketplaceTx: evidence.settlement.transaction,
-    seller: evidence.discovery.sellerName,
-    sellerUrl: evidence.discovery.serviceUrl,
-    price: evidence.settlement.amount,
+    marketplaceTx: baseEvidence.settlement.transaction,
+    seller: baseEvidence.discovery.sellerName,
+    sellerUrl: baseEvidence.discovery.serviceUrl,
+    price: baseEvidence.settlement.amount,
     evidence,
   });
+  // Persist matched settlement before consuming a body that may be interrupted.
+  await saveEvidence({ ...baseEvidence, delivery: responseMetadata(paid) });
+  const retained = await retainPaidJson(paid, 2 * 1024 * 1024);
+  if (!retained.ok) {
+    await saveEvidence({ ...baseEvidence, delivery: retained.delivery });
+    await markMarketplaceReviewRequired(input.contractTx);
+    throw new Error("The marketplace payment is confirmed, but its response could not be read safely. The settlement and bounded response evidence are retained for reconciliation; do not pay again.");
+  }
+  const output = retained.output;
+  const evidence: Agent402ToolEvidence & { delivery: RetainedPaidResponse } = {
+    ...baseEvidence, output, delivery: retained.delivery,
+  };
+  await saveEvidence(evidence);
+  if (!paid.ok) {
+    await saveEvidence({ ...evidence, delivery: { ...retained.delivery,
+      state: "rejected", failure: "http_status" } });
+    await markMarketplaceReviewRequired(input.contractTx);
+    throw new Error("The marketplace payment is confirmed, but the service returned an unsuccessful HTTP response. Its original output and settlement are retained for reconciliation; do not pay again.");
+  }
   const report = { kind: "tool-output", service: evidence.service, input: evidence.input, output };
   await completeMarketplaceRun(input.contractTx, report);
   return { service: evidence.service, parameters: evidence.input, toolOutput: output, marketplace: evidence };
 }
 
-function hash(value: string): string {
+function hash(value: string | Uint8Array): string {
   return createHash("sha256").update(value).digest("hex");
 }
 
@@ -522,7 +619,12 @@ export async function runAgent402Research(input: {
     const complete = completedFromRecord(existing);
     if (complete) return complete;
     if (existing.status === "marketplace_paid" && existing.evidence) {
-      const evidence = existing.evidence as Agent402Evidence;
+      const evidence = existing.evidence as Agent402Evidence & { delivery?: RetainedPaidResponse };
+      if ((evidence.delivery && (evidence.delivery.state !== "received"
+          || evidence.delivery.httpStatus < 200 || evidence.delivery.httpStatus >= 300))
+        || !Array.isArray(evidence.results) || typeof evidence.query !== "string") {
+        throw new Error("The marketplace payment is confirmed, but its retained response needs reconciliation before a report can be completed. Do not pay again.");
+      }
       const brief = await createMarketplaceReport(question, evidence);
       await completeMarketplaceRun(input.contractTx, brief);
       return { brief, marketplace: evidence };
@@ -584,8 +686,7 @@ export async function runAgent402Research(input: {
     throw new Error("Agent402 did not return verifiable settlement evidence", { cause: error });
   }
   if (
-    !paid.ok
-    || !settlement.success
+    !settlement.success
     || settlement.network !== AGENT402_NETWORK
     || !/^[0-9a-f]{64}$/i.test(settlement.transaction)
     || (settlement.amount !== undefined && settlement.amount !== AGENT402_AMOUNT_ATOMIC)
@@ -595,15 +696,12 @@ export async function runAgent402Research(input: {
     throw new Error("Agent402 settlement did not match the approved Stellar payment");
   }
 
-  const search = SearchResponse.parse(await boundedResponseJson(paid));
-  const results = validatedSearchResults(search.results);
-  const evidence: Agent402Evidence = {
-    query: search.query,
-    count: results.length,
-    results,
-    untrustedContent: true,
+  const baseEvidence: Pick<Agent402Evidence, "discovery" | "settlement" | "trustlineTransaction"> & {
+    input: Agent402SearchInput;
+  } = {
+    input: searchInput,
     discovery: {
-      marketplace: "Agent402",
+      marketplace: "Agent402" as const,
       marketplaceUrl: AGENT402_MARKETPLACE_URL,
       seller: preflight.seller.seller,
       sellerName: preflight.seller.sellerName,
@@ -623,14 +721,46 @@ export async function runAgent402Research(input: {
     },
     trustlineTransaction,
   };
-  await markMarketplacePaid({
+  const saveEvidence = (evidence: unknown) => markMarketplacePaid({
     contractTx: input.contractTx,
-    marketplaceTx: evidence.settlement.transaction,
-    seller: evidence.discovery.sellerName,
-    sellerUrl: evidence.discovery.serviceUrl,
-    price: evidence.settlement.amount,
+    marketplaceTx: baseEvidence.settlement.transaction,
+    seller: baseEvidence.discovery.sellerName,
+    sellerUrl: baseEvidence.discovery.serviceUrl,
+    price: baseEvidence.settlement.amount,
     evidence,
   });
+  // Retain payment evidence even if the response stream ends before valid JSON.
+  await saveEvidence({ ...baseEvidence, delivery: responseMetadata(paid) });
+  const retained = await retainPaidJson(paid, 128 * 1024);
+  if (!retained.ok) {
+    await saveEvidence({ ...baseEvidence, delivery: retained.delivery });
+    await markMarketplaceReviewRequired(input.contractTx);
+    throw new Error("The marketplace payment is confirmed, but its response could not be read safely. The settlement and bounded response evidence are retained for reconciliation; do not pay again.");
+  }
+  const rawEvidence = { ...baseEvidence, rawOutput: retained.output, delivery: retained.delivery };
+  // Search-specific parsing and optional formatting must not erase paid output.
+  await saveEvidence(rawEvidence);
+  if (!paid.ok) {
+    await saveEvidence({ ...rawEvidence, delivery: { ...retained.delivery,
+      state: "rejected", failure: "http_status" } });
+    await markMarketplaceReviewRequired(input.contractTx);
+    throw new Error("The marketplace payment is confirmed, but the search returned an unsuccessful HTTP response. Its original output and settlement are retained for reconciliation; do not pay again.");
+  }
+  let search: z.infer<typeof SearchResponse>;
+  let results: Agent402SearchResult[];
+  try {
+    search = SearchResponse.parse(retained.output);
+    results = validatedSearchResults(search.results);
+  } catch {
+    await saveEvidence({ ...rawEvidence, delivery: { ...retained.delivery,
+      state: "rejected", failure: "schema_mismatch" } });
+    await markMarketplaceReviewRequired(input.contractTx);
+    throw new Error("The marketplace payment is confirmed, but its search response did not match the supported format. The original response and payment evidence are retained for reconciliation; do not pay again.");
+  }
+  const evidence: Agent402Evidence & typeof rawEvidence = {
+    ...rawEvidence, query: search.query, count: results.length, results, untrustedContent: true,
+  };
+  await saveEvidence(evidence);
   const brief = await createMarketplaceReport(question, evidence);
   await completeMarketplaceRun(input.contractTx, brief);
   return { brief, marketplace: evidence };

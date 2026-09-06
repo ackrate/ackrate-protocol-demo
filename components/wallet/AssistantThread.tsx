@@ -73,6 +73,7 @@ export function AssistantThread({
   explorerNetwork,
   marketplaceUrl = "https://agent402.tools/stellar",
   onRunStarted,
+  onBusyChange,
   onEditConfiguration,
   onPurchaseComplete,
 }: {
@@ -86,6 +87,7 @@ export function AssistantThread({
   explorerNetwork: "testnet" | "public";
   marketplaceUrl?: string;
   onRunStarted?: () => void;
+  onBusyChange?: (busy: boolean) => void;
   onEditConfiguration?: () => void;
   onPurchaseComplete: (result: PurchaseResult) => void;
 }) {
@@ -106,13 +108,14 @@ export function AssistantThread({
   });
 
   const runService = (sourceId: string, submittedParameters: Record<string, unknown>, question: string) => {
-    if (runtime.thread.getState().isRunning) return;
+    if (runtime.thread.getState().isRunning) throw new Error("A service request is already running.");
     if (!canRun) throw new Error("This limit cannot make another payment. Existing receipts remain recoverable.");
     if (!quoteToken) throw new Error("Review the service inputs again to confirm its current price and recipient.");
     setChatError(null);
     submittedRun.current = { sourceId, parameters: submittedParameters, quoteToken, requestId: crypto.randomUUID() };
     onRunStarted?.();
     runtime.thread.append({ role: "user", content: [{ type: "text", text: question }] });
+    return submittedRun.current.requestId;
   };
 
   return (
@@ -128,6 +131,7 @@ export function AssistantThread({
             canRun={canRun}
             chatError={chatError}
             onRun={runService}
+            onBusyChange={onBusyChange}
             explorerNetwork={explorerNetwork}
             marketplaceUrl={marketplaceUrl}
             onEditConfiguration={onEditConfiguration}
@@ -148,6 +152,7 @@ function ResearchPurchase({
   canRun,
   chatError,
   onRun,
+  onBusyChange,
   explorerNetwork,
   marketplaceUrl,
   onEditConfiguration,
@@ -160,7 +165,8 @@ function ResearchPurchase({
   parameters?: ServiceInputValues;
   canRun: boolean;
   chatError: Error | null;
-  onRun: (sourceId: string, parameters: Record<string, unknown>, question: string) => void;
+  onRun: (sourceId: string, parameters: Record<string, unknown>, question: string) => string;
+  onBusyChange?: (busy: boolean) => void;
   explorerNetwork: "testnet" | "public";
   marketplaceUrl: string;
   onEditConfiguration?: () => void;
@@ -176,6 +182,14 @@ function ResearchPurchase({
   const activeRun = useRef(false);
   const sawStream = useRef(false);
   const streamedResult = useRef<PurchaseResult | null>(null);
+  const openedResult = useRef<string | null>(null);
+  const onCompleteRef = useRef(onPurchaseComplete);
+  onCompleteRef.current = onPurchaseComplete;
+  const [activeRequestId, setActiveRequestId] = useState<string | null>(null);
+  const [runProgress, setRunProgress] = useState("starting");
+  const [pollDelayed, setPollDelayed] = useState(false);
+  const chatStatusRef = useRef({ running: chatRunning, failed: false });
+  chatStatusRef.current = { running: chatRunning, failed: Boolean(chatError) || state === "error" };
   const primaryField = service.inputs.find((field) => field.required && field.type === "string") ?? service.inputs[0];
   const question = primaryField ? inputValues[primaryField.name] ?? "" : "";
   const inputProblem = serviceInputProblem(service, inputValues);
@@ -196,7 +210,11 @@ function ResearchPurchase({
       activeRun.current = false;
       if (streamedResult.current) {
         setState("success");
-        if (lastMessage?.role === "assistant" && lastMessage.status.type === "incomplete") setError("Your service result is saved. The chat summary was interrupted; open the result below.");
+        setActiveRequestId(null);
+        if (openedResult.current !== streamedResult.current.payment.txHash) {
+          openedResult.current = streamedResult.current.payment.txHash;
+          onCompleteRef.current(streamedResult.current);
+        }
       }
       else {
         setState("error");
@@ -213,6 +231,74 @@ function ResearchPurchase({
       ? "Your service result is saved. The chat summary was interrupted; open the result below."
       : safeWalletError(chatError, "The agent connection did not finish. Check the payment below; another payment will not start automatically."));
   }, [chatError, state]);
+
+  // Poll this exact Run, never the latest receipt from an earlier request.
+  // GET only observes durable state; it cannot submit or retry a payment.
+  useEffect(() => {
+    if (!activeRequestId) return;
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let missingChecks = 0;
+    const controller = new AbortController();
+    const poll = async () => {
+      let finished = false;
+      try {
+        const response = await fetch(`/api/wallet/purchase/status?mandateId=${encodeURIComponent(mandateId)}&requestId=${encodeURIComponent(activeRequestId)}`, {
+          credentials: "same-origin", cache: "no-store",
+          signal: AbortSignal.any([controller.signal, AbortSignal.timeout(15_000)]),
+        });
+        const body = await response.json() as { ok?: boolean; requestId?: string; stage?: string; reserved?: boolean; result?: unknown; txHash?: string };
+        if (cancelled) return;
+        if (!response.ok || !body.ok || body.requestId !== activeRequestId || !body.stage) throw new Error("Status is unavailable");
+        setPollDelayed(false);
+        setRunProgress(body.stage);
+        missingChecks = body.reserved === false ? missingChecks + 1 : 0;
+        if (missingChecks >= 3 && chatStatusRef.current.failed && !chatStatusRef.current.running) {
+          finished = true;
+          activeRun.current = false;
+          setActiveRequestId(null);
+          setState("error");
+          setError("The agent connection ended before a service run was recorded. Check payment status before trying again.");
+          return;
+        }
+        if (body.stage === "complete") {
+          const paid = purchaseResultForMandate(body.result, mandateId);
+          if (!paid || paid.source.id !== sourceIdForMarketplaceService(service)) throw new Error("Result does not match this Run");
+          finished = true;
+          streamedResult.current = paid;
+          activeRun.current = false;
+          setResult(paid);
+          setRecovery(null);
+          setError(null);
+          setState("success");
+          setActiveRequestId(null);
+          window.dispatchEvent(new Event("ackrate-mandate-updated"));
+          if (openedResult.current !== paid.payment.txHash) {
+            openedResult.current = paid.payment.txHash;
+            onCompleteRef.current(paid);
+          }
+        } else if (body.stage === "review_required" || body.stage === "failed") {
+          finished = true;
+          activeRun.current = false;
+          setActiveRequestId(null);
+          if (body.txHash && /^[0-9a-f]{64}$/i.test(body.txHash)) {
+            setRecovery({ pending: true, txHash: body.txHash, deliveryState: "reconciliation_required", paymentConfirmed: false });
+            setState("recovery");
+            setError("The service did not finish. This request's receipt is saved below; no second purchase will be sent automatically.");
+          } else {
+            setState("error");
+            setError("This request did not finish. Check its payment status before trying again.");
+          }
+        }
+      } catch {
+        if (!cancelled) setPollDelayed(true);
+      } finally {
+        if (!cancelled && !finished) timer = setTimeout(poll, 3_000);
+      }
+    };
+    timer = setTimeout(poll, 1_000);
+    return () => { cancelled = true; controller.abort(); if (timer) clearTimeout(timer); };
+  }, [activeRequestId, mandateId, service]);
 
   const checkRecovery = async () => {
     setState("checking");
@@ -236,7 +322,10 @@ function ResearchPurchase({
         const paidResult = purchaseResultForMandate(pending.result, mandateId, pending.txHash);
         if (!paidResult || pending.deliveryState !== "ready" || pending.paymentConfirmed !== true) throw new Error("The saved result does not match this mandate and confirmed payment.");
         setResult(paidResult);
-        setState("success");
+        // The read-only endpoint returns a result here only when no pending
+        // receipt remains. Keep it accessible without blocking a new Run.
+        setRecovery(null);
+        setState("idle");
         window.dispatchEvent(new Event("ackrate-mandate-updated"));
         return;
       }
@@ -274,7 +363,10 @@ function ResearchPurchase({
       activeRun.current = true;
       sawStream.current = false;
       streamedResult.current = null;
-      onRun(sourceId, submittedParameters, service.id === "search" ? String(submittedParameters.q) : `Run ${service.name} with the configured inputs.`);
+      openedResult.current = null;
+      setRunProgress("starting");
+      setPollDelayed(false);
+      setActiveRequestId(onRun(sourceId, submittedParameters, service.id === "search" ? String(submittedParameters.q) : `Run ${service.name} with the configured inputs.`));
     } catch (cause) {
       activeRun.current = false;
       const message = cause instanceof Error ? cause.message : String(cause);
@@ -316,7 +408,11 @@ function ResearchPurchase({
     }
   };
 
-  const busy = chatRunning || state === "checking" || state === "running" || state === "recovering";
+  const busy = Boolean(activeRequestId) || chatRunning || state === "checking" || state === "running" || state === "recovering";
+  useEffect(() => {
+    onBusyChange?.(busy);
+    return () => onBusyChange?.(false);
+  }, [busy, onBusyChange]);
   const reconciliationRequired = recovery?.deliveryState === "reconciliation_required";
   const action = state === "recovery" ? reconciliationRequired ? checkRecovery : recover : state === "error" ? checkRecovery : createReport;
 
@@ -346,7 +442,17 @@ function ResearchPurchase({
         <div><Search size={16} /><span><small>03</small><strong>{service.id === "search" ? "Cited report returns" : "Service output returns"}</strong></span></div>
       </div>
 
-      {state !== "success" && <button className="research-button" type="button" onClick={action} disabled={busy || (state === "idle" && (!canRun || Boolean(inputProblem)))}>
+      {activeRequestId && <div className="run-live-status" role="status" aria-live="polite" aria-atomic="true">
+        <strong>{runProgress === "formatting" ? "Formatting your result" : runProgress === "fetching_service" ? "Receiving marketplace output" : runProgress === "checking_payment" ? "Checking payment" : "Starting your service"}</strong>
+        <ol>
+          <li data-complete={["fetching_service", "formatting", "complete"].includes(runProgress)}>Contract payment</li>
+          <li data-complete={["formatting", "complete"].includes(runProgress)}>Marketplace output</li>
+          <li data-complete={runProgress === "complete"}>Formatted result</li>
+        </ol>
+        <p>{pollDelayed ? "The status connection is slow. Checking again automatically; no new purchase is being sent." : "Updates automatically. Your result opens here when it is ready."}</p>
+      </div>}
+
+      {state !== "success" && !activeRequestId && <button className="research-button" type="button" onClick={action} disabled={busy || (state === "idle" && (!canRun || Boolean(inputProblem)))}>
         {busy ? <LoaderCircle className="spin" size={16} /> : state === "recovery" ? <Check size={16} /> : <Search size={16} />}
         {state === "checking" && "Checking previous payment…"}
         {state === "running" && (service.id === "search" ? "Buying evidence and writing report…" : `Running ${service.name}…`)}
@@ -383,7 +489,7 @@ function ResearchPurchase({
         </div>
       )}
 
-      {result && <button type="button" className="report-ready-notice" onClick={() => onPurchaseComplete(result)}><span><Check size={14} /></span><div><strong>Open result</strong><p>{result.source.title} is saved. View the output and payment proofs without another charge.</p></div><ArrowUpRight size={14} /></button>}
+      {result && <button type="button" className="report-ready-notice" onClick={() => onPurchaseComplete(result)}><span><Check size={14} /></span><div><strong>{state === "idle" ? "View previous result" : "Open result"}</strong><p>{result.source.title} is saved. View the output and payment proofs without another charge.</p></div><ArrowUpRight size={14} /></button>}
     </div>
   );
 }
@@ -484,8 +590,6 @@ function parseBrief(value: unknown): MarketBrief | null {
     || typeof brief.takeaway !== "string"
     || !Array.isArray(brief.findings)
     || !Array.isArray(brief.sources)
-    || brief.findings.length === 0
-    || brief.sources.length === 0
     || (brief.editorialPasses !== undefined && (!Number.isInteger(brief.editorialPasses) || brief.editorialPasses < 0 || brief.editorialPasses > 2))
   ) return null;
   const findingsValid = brief.findings.every((finding) => typeof finding?.number === "string" && typeof finding.title === "string" && typeof finding.body === "string");

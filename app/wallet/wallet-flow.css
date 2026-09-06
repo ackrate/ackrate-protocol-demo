@@ -1613,7 +1613,8 @@
 .wallet-preview.wallet-flow {
   position: relative;
   min-height: 100svh;
-  overflow: hidden;
+  overflow-x: clip;
+  overflow-y: visible;
   color: #f5f5f5;
   background:
     radial-gradient(ellipse at 78% 8%, rgba(255, 228, 184, 0.15), transparent 52%),
@@ -1680,15 +1681,20 @@
 .wallet-preview.wallet-flow .flow-network { color: rgba(255, 255, 255, 0.54); font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; }
 .wallet-preview.wallet-flow .flow-text-button { color: rgba(255, 255, 255, 0.5); font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; }
 
+/* Text and active controls share document flow, so wrapping cannot make them collide. */
 .wallet-preview.wallet-flow .flow-shell,
 .wallet-preview.wallet-flow .flow-shell.flow-shell-active {
   position: relative;
   z-index: 5;
   width: 100%;
-  height: 100svh;
-  min-height: 650px;
+  height: auto;
+  min-height: 100svh;
   margin: 0;
-  padding: 0;
+  padding: clamp(96px, 12vh, 132px) clamp(34px, 6vw, 100px) 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 24px;
   pointer-events: none;
 }
 
@@ -1696,25 +1702,28 @@
 .wallet-preview.wallet-flow .flow-card::before { display: none; }
 
 .wallet-preview.wallet-flow .flow-intro {
-  position: absolute;
+  position: relative;
   z-index: 3;
-  top: clamp(108px, 13vh, 150px);
-  left: clamp(34px, 6vw, 100px);
-  width: min(510px, 44vw);
+  top: auto;
+  left: auto;
+  width: min(575px, 48vw);
+  max-width: 100%;
   text-align: left;
-  pointer-events: none;
+  pointer-events: auto;
 }
 
-.wallet-preview.wallet-flow .flow-shell-active .flow-intro { display: block; opacity: 0.76 !important; }
+.wallet-preview.wallet-flow .flow-shell-active .flow-intro { display: block; opacity: 1 !important; }
 .wallet-preview.wallet-flow .flow-intro > p { color: rgba(255, 255, 255, 0.42); font-size: 8px; letter-spacing: 0.24em; }
 .wallet-preview.wallet-flow .flow-intro h1 {
   margin: 13px 0 12px;
-  font-size: clamp(38px, 4.25vw, 68px);
+  font-size: clamp(34px, 3.8vw, 58px);
   font-weight: 590;
-  line-height: 0.91;
-  letter-spacing: -0.075em;
+  line-height: 1.06;
+  letter-spacing: -0.06em;
   text-wrap: balance;
+  overflow-wrap: anywhere;
 }
+.wallet-preview.wallet-flow .flow-shell-active .flow-intro h1 { margin: 10px 0; font-size: clamp(26px, 2.6vw, 36px); line-height: 1.12; }
 .wallet-preview.wallet-flow .flow-intro > span { color: #c9d0dc; font-size: 12px; line-height: 1.65; letter-spacing: 0.01em; }
 
 .wallet-preview.wallet-flow .flow-progress {
@@ -1803,22 +1812,25 @@
 .wallet-preview.wallet-flow .flow-progress > div.done > span { color: transparent; border: 0; background: rgba(255, 255, 255, 0.72); }
 
 .wallet-preview.wallet-flow .flow-card {
-  position: absolute;
+  position: relative;
   z-index: 8;
-  left: clamp(34px, 6vw, 100px);
-  bottom: clamp(54px, 7vh, 88px);
+  left: auto;
+  bottom: auto;
   width: min(575px, 48vw);
-  max-height: min(58vh, 610px);
-  overflow: auto;
+  max-width: 100%;
+  max-height: none;
+  margin: 0;
+  padding: 4px 20px;
+  overflow: visible;
   border: 0;
   border-radius: 0;
-  background: transparent;
+  background: linear-gradient(115deg, rgba(11, 13, 18, 0.98), rgba(15, 17, 23, 0.94));
   box-shadow: none;
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
   pointer-events: auto;
-  mask-image: linear-gradient(to bottom, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%);
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%);
+  mask-image: none;
+  -webkit-mask-image: none;
 }
 
 .wallet-preview.wallet-flow .flow-stage {
@@ -2009,13 +2021,15 @@
 .wallet-preview.wallet-flow .flow-settlement-grid > div { border: 0; border-radius: 0; background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.025)); }
 
 .wallet-preview.wallet-flow .flow-under-card {
-  position: fixed;
+  position: relative;
   z-index: 11;
-  right: clamp(26px, 3.2vw, 56px);
-  bottom: 47px;
-  width: auto;
+  right: auto;
+  bottom: auto;
+  width: min(575px, 48vw);
+  max-width: 100%;
   margin: 0;
   gap: 18px;
+  flex-wrap: wrap;
   color: rgba(255, 255, 255, 0.28);
   pointer-events: auto;
 }
@@ -2026,6 +2040,97 @@
 .wallet-preview.wallet-flow .toast { z-index: 50; border: 0; border-radius: 0; background: rgba(12, 12, 14, 0.94); box-shadow: inset 3px 0 #fff, 0 24px 80px #000; }
 .wallet-preview.wallet-flow .toast.error { border: 0; box-shadow: inset 3px 0 #ef4444, 0 24px 80px #000; }
 .wallet-preview.wallet-flow .disconnect-dialog { border: 0; border-radius: 0; background: rgba(8, 8, 10, 0.94); box-shadow: 0 40px 140px #000; }
+
+/* Confirmed stages, spending choices, and retained receipts stay plain and readable. */
+.wallet-preview.wallet-flow .run-live-status {
+  display: grid;
+  gap: 12px;
+  margin: 16px 0;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.055);
+  color: #d6dbe4;
+}
+.wallet-preview.wallet-flow .run-live-status > strong { color: #fff; font-size: 14px; line-height: 1.4; }
+.wallet-preview.wallet-flow .run-live-status ol {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: run-stage;
+}
+.wallet-preview.wallet-flow .run-live-status li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  line-height: 1.45;
+  counter-increment: run-stage;
+}
+.wallet-preview.wallet-flow .run-live-status li::before {
+  content: counter(run-stage);
+  display: grid;
+  place-items: center;
+  flex: 0 0 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  color: #bdc6d5;
+  font-size: 11px;
+}
+.wallet-preview.wallet-flow .run-live-status li[data-complete="true"] { color: #fff; }
+.wallet-preview.wallet-flow .run-live-status li[data-complete="true"]::before { content: "✓"; color: #111; background: #fff; }
+.wallet-preview.wallet-flow .run-live-status > p { margin: 0; font-size: 12px; line-height: 1.55; color: #b9c1ce; }
+
+.wallet-preview.wallet-flow .flow-history {
+  width: min(575px, 48vw);
+  max-width: 100%;
+  padding: 18px 20px;
+  background: rgba(13, 15, 20, 0.96);
+  color: #c2cad6;
+  font-size: 12px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+  pointer-events: auto;
+}
+.wallet-preview.wallet-flow .flow-history strong { color: #f5f5f5; font-size: 14px; line-height: 1.45; }
+.wallet-preview.wallet-flow .flow-history p { margin: 8px 0; }
+.wallet-preview.wallet-flow .flow-history-current .flow-primary { max-width: 100%; margin-top: 14px; font-size: 13px; }
+.wallet-preview.wallet-flow .flow-history-record { margin-top: 10px; padding: 0 12px 10px; background: rgba(255, 255, 255, 0.035); }
+.wallet-preview.wallet-flow .flow-history-record:not([open]) { padding-bottom: 0; }
+.wallet-preview.wallet-flow .flow-history-record > summary { padding: 12px 0; color: #e2e6ed; font-size: 12px; line-height: 1.6; cursor: pointer; }
+.wallet-preview.wallet-flow .flow-history-record > p { font-size: 12px; }
+.wallet-preview.wallet-flow .flow-history-record code { color: #d7dde6; font-size: 11px; }
+.wallet-preview.wallet-flow .flow-history-record .proof-evidence { display: flex; flex-wrap: wrap; gap: 8px 12px; padding: 10px 0; }
+.wallet-preview.wallet-flow .flow-history-record .proof-evidence > span { flex: 1 0 100%; color: #c2cad6; font-size: 11px; }
+.wallet-preview.wallet-flow .flow-history-record .report-shell { width: 100%; margin: 16px 0 0; padding: 0; }
+
+.wallet-preview.wallet-flow .flow-budget-preview { display: grid; gap: 10px; margin: 12px 0 16px; color: #c2cad6; }
+.wallet-preview.wallet-flow .flow-budget-preview p { margin: 0; font-size: 12px; line-height: 1.6; }
+.wallet-preview.wallet-flow .flow-budget-preview strong { color: #fff; }
+.wallet-preview.wallet-flow .flow-budget-preview > small { color: #b9c1ce; font-size: 11px; line-height: 1.55; }
+.wallet-preview.wallet-flow .flow-budget-presets { display: flex; flex-wrap: wrap; gap: 8px; }
+.wallet-preview.wallet-flow .flow-budget-presets .flow-text-button,
+.wallet-preview.wallet-flow .flow-history-record > .flow-text-button {
+  min-height: 36px;
+  max-width: 100%;
+  padding: 8px 12px;
+  color: #f0f2f6;
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 12px;
+  line-height: 1.5;
+  letter-spacing: 0;
+  text-transform: none;
+  text-align: left;
+}
+.wallet-preview.wallet-flow .flow-budget-presets .flow-text-button:hover:not(:disabled),
+.wallet-preview.wallet-flow .flow-history-record > .flow-text-button:hover:not(:disabled) { background: rgba(255, 255, 255, 0.14); }
+.wallet-preview.wallet-flow .flow-budget-presets .flow-text-button:disabled,
+.wallet-preview.wallet-flow .flow-history-record > .flow-text-button:disabled { opacity: 0.5; cursor: not-allowed; }
+.wallet-preview.wallet-flow .flow-history summary:focus-visible,
+.wallet-preview.wallet-flow .flow-history button:focus-visible,
+.wallet-preview.wallet-flow .flow-budget-presets button:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
 
 @keyframes world-reveal {
   from { opacity: 0; transform: scale(1.04); filter: blur(10px); }
@@ -2047,17 +2152,18 @@
   .wallet-preview.wallet-flow .flow-header { height: 62px; padding: 0 18px; }
   .wallet-preview.wallet-flow .flow-header .flow-network { display: none; }
   .wallet-preview.wallet-flow .flow-shell,
-  .wallet-preview.wallet-flow .flow-shell.flow-shell-active { height: auto; min-height: 100svh; padding: 76px 18px 108px; }
+  .wallet-preview.wallet-flow .flow-shell.flow-shell-active { height: auto; min-height: 100svh; padding: 86px 18px 108px; gap: 20px; }
   .wallet-preview.wallet-flow .flow-intro,
   .wallet-preview.wallet-flow .flow-shell-active .flow-intro {
     position: relative;
     top: auto;
     left: auto;
     width: 100%;
-    margin-top: 24px;
+    margin-top: 0;
     opacity: 1 !important;
   }
-  .wallet-preview.wallet-flow .flow-intro h1 { max-width: 520px; font-size: clamp(38px, 12vw, 58px); }
+  .wallet-preview.wallet-flow .flow-intro h1 { max-width: 520px; font-size: clamp(34px, 8vw, 48px); }
+  .wallet-preview.wallet-flow .flow-shell-active .flow-intro h1 { font-size: clamp(26px, 5vw, 34px); }
   .wallet-preview.wallet-flow .flow-progress {
     top: auto;
     right: 18px;
@@ -2094,17 +2200,22 @@
     bottom: auto;
     width: 100%;
     max-height: none;
-    margin-top: clamp(250px, 39vh, 390px);
+    margin-top: 0;
     overflow: visible;
     mask-image: none;
     -webkit-mask-image: none;
   }
-  .wallet-preview.wallet-flow .flow-shell-active .flow-card { margin-top: clamp(180px, 31vh, 300px); }
-  .wallet-preview.wallet-flow .flow-under-card { position: relative; right: auto; bottom: auto; margin-top: 20px; }
+  .wallet-preview.wallet-flow .flow-shell-active .flow-card { margin-top: 0; }
+  .wallet-preview.wallet-flow .flow-history { width: 100%; }
+  .wallet-preview.wallet-flow .flow-under-card { position: relative; right: auto; bottom: auto; width: 100%; margin-top: 0; }
   .world-renderer { display: none; }
 }
 
 @media (max-width: 560px) {
+  .wallet-preview.wallet-flow .flow-card { padding: 2px 14px; }
+  .wallet-preview.wallet-flow .flow-history { padding: 16px; }
+  .wallet-preview.wallet-flow .run-live-status { padding: 14px; }
+  .wallet-preview.wallet-flow .run-live-status ol { grid-template-columns: 1fr; gap: 9px; }
   .wallet-preview.wallet-flow .flow-text-button { font-size: 0; }
   .wallet-preview.wallet-flow .flow-text-button svg { width: 17px; height: 17px; }
   .wallet-preview.wallet-flow .flow-stage-heading { display: block; }
@@ -2114,6 +2225,4 @@
   .wallet-preview.wallet-flow .selected-service-summary { grid-template-columns: auto 1fr; }
   .wallet-preview.wallet-flow .marketplace-source-link,
   .wallet-preview.wallet-flow .service-price { grid-column: 2; justify-self: start; }
-  .wallet-preview.wallet-flow .flow-card { margin-top: 230px; }
-  .wallet-preview.wallet-flow .flow-shell-active .flow-card { margin-top: 170px; }
 }

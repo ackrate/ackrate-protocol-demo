@@ -236,13 +236,48 @@ export async function latestSucceededToolCall(input: {
   };
 }
 
+/** Exact request lookup for progress polling. Never initializes or mutates tables. */
+export async function getToolCall(input: {
+  sessionId: string;
+  toolCallId: string;
+  mandateId: string;
+}): Promise<ToolCallRecord | null> {
+  const client = sql();
+  if (!client) {
+    const record = memory.__ackrateToolCalls!.get(toolKey(input.sessionId, input.toolCallId));
+    return record?.mandateId === input.mandateId ? record : null;
+  }
+  const rows = await client.query(
+    `SELECT * FROM ackrate_tool_calls WHERE session_id = $1 AND tool_call_id = $2 AND mandate_id = $3`,
+    [input.sessionId, input.toolCallId, input.mandateId],
+  );
+  if (!rows[0]) return null;
+  const row = rows[0] as Record<string, unknown>;
+  return {
+    sessionId: String(row.session_id), toolCallId: String(row.tool_call_id), mandateId: String(row.mandate_id),
+    sourceId: String(row.source_id), requestHash: typeof row.request_hash === "string" ? row.request_hash : undefined,
+    status: row.status as ToolCallRecord["status"], result: row.result ?? null,
+  };
+}
+
 export class DurableReceiptStore implements SettlementReceiptStore {
-  constructor(private readonly sessionId: string, private readonly mandateId: string) {}
+  constructor(
+    private readonly sessionId: string,
+    private readonly mandateId: string,
+    private readonly afterSave?: (receipt: Readonly<SettlementReceipt>) => Promise<void>,
+  ) {}
+
+  private async notifySaved(receipt: Readonly<SettlementReceipt>): Promise<void> {
+    // Progress is best-effort and cannot interrupt a payment whose receipt is already durable.
+    try { await this.afterSave?.(receipt); }
+    catch { console.warn("[wallet.purchase] progress update unavailable; settlement receipt remains saved"); }
+  }
 
   async savePending(receipt: Readonly<SettlementReceipt>): Promise<void> {
     const client = await initialize();
     if (!client) {
       memory.__ackrateReceipts!.set(receipt.receiptId, receipt);
+      await this.notifySaved(receipt);
       return;
     }
     const exact = JSON.stringify(receipt);
@@ -252,6 +287,7 @@ export class DurableReceiptStore implements SettlementReceiptStore {
        ON CONFLICT (receipt_id) DO UPDATE SET receipt = EXCLUDED.receipt, receipt_text = EXCLUDED.receipt_text`,
       [receipt.receiptId, this.sessionId, this.mandateId, exact, Math.floor(Date.now() / 1_000)],
     );
+    await this.notifySaved(receipt);
   }
 
   async clearPending(receiptId: string): Promise<void> {
@@ -327,8 +363,8 @@ function marketplaceRow(row: Record<string, unknown>): MarketplaceRunRecord {
   };
 }
 
-export async function getMarketplaceRun(contractTx: string): Promise<MarketplaceRunRecord | null> {
-  const client = await initialize();
+export async function getMarketplaceRun(contractTx: string, { readOnly = false }: { readOnly?: boolean } = {}): Promise<MarketplaceRunRecord | null> {
+  const client = readOnly ? sql() : await initialize();
   if (!client) return memory.__ackrateMarketplaceRuns!.get(contractTx) ?? null;
   const rows = await client.query(
     `SELECT * FROM ackrate_marketplace_runs WHERE contract_tx = $1`,
@@ -428,12 +464,14 @@ export async function markMarketplaceReviewRequired(contractTx: string): Promise
   if (!client) {
     const prior = memory.__ackrateMarketplaceRuns!.get(contractTx);
     if (!prior) throw new Error("marketplace run was not reserved");
-    memory.__ackrateMarketplaceRuns!.set(contractTx, { ...prior, status: "review_required" });
+    if (prior.status === "payment_pending" || prior.status === "marketplace_paid") {
+      memory.__ackrateMarketplaceRuns!.set(contractTx, { ...prior, status: "review_required" });
+    }
     return;
   }
   await client.query(
     `UPDATE ackrate_marketplace_runs SET status = 'review_required', updated_at = $2
-     WHERE contract_tx = $1 AND status = 'payment_pending'`,
+     WHERE contract_tx = $1 AND status IN ('payment_pending', 'marketplace_paid')`,
     [contractTx, Math.floor(Date.now() / 1_000)],
   );
 }

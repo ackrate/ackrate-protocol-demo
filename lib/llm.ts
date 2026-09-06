@@ -42,6 +42,10 @@ export type LlmRequest = {
   messages: LlmMessage[];
   tools?: LlmTool[];
   maxTokens: number;
+  /** Optional bounds for formatting work that must not hold paid delivery open. */
+  timeoutMs?: number;
+  maxRetries?: number;
+  signal?: AbortSignal;
 };
 
 export type LlmResponse = {
@@ -195,6 +199,10 @@ export class AnthropicProvider implements LlmProvider {
           }
         : {}),
       messages,
+    }, {
+      ...(req.timeoutMs !== undefined ? { timeout: req.timeoutMs } : {}),
+      ...(req.maxRetries !== undefined ? { maxRetries: req.maxRetries } : {}),
+      ...(req.signal ? { signal: req.signal } : {}),
     });
 
     const text = resp.content
@@ -290,6 +298,10 @@ export class OpenAIProvider implements LlmProvider {
           }
         : {}),
       messages,
+    }, {
+      ...(req.timeoutMs !== undefined ? { timeout: req.timeoutMs } : {}),
+      ...(req.maxRetries !== undefined ? { maxRetries: req.maxRetries } : {}),
+      ...(req.signal ? { signal: req.signal } : {}),
     });
 
     const choice = resp.choices[0];
@@ -354,6 +366,7 @@ export class FailoverLlm {
     }
 
     for (let i = 0; i < providers.length; i++) {
+      req.signal?.throwIfAborted();
       const provider = providers[i];
       try {
         const response = await provider.complete(req, tier);

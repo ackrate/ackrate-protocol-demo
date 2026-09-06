@@ -62,6 +62,23 @@ export function mandateCanAfford(remaining: string | undefined, price: string, d
   return Boolean(remaining && /^\d+$/.test(remaining) && minimum !== null && minimum > 0n && BigInt(remaining) >= minimum);
 }
 
+/** Starting over is navigation, never authority to replace a live or unconfirmed allowance. */
+export function canStartFreshWalletLimit(
+  stored: { id: string; expiry: number; pendingAllowance?: unknown } | null,
+  confirmed: { id: string; status: string } | null,
+  nowSeconds = Math.floor(Date.now() / 1_000),
+): boolean {
+  if (!stored || stored.pendingAllowance || !Number.isSafeInteger(stored.expiry)
+    || !Number.isSafeInteger(nowSeconds)) return false;
+  return stored.expiry <= nowSeconds || Boolean(confirmed?.id === stored.id
+    && (confirmed.status === "Revoked" || confirmed.status === "Exhausted"));
+}
+
+/** Keep every prior mandate reference; starting a new setup must not erase payment evidence. */
+export function retainWalletMandate<T extends { id: string }>(history: readonly T[], current: T): T[] {
+  return [current, ...history.filter((entry) => entry.id !== current.id)];
+}
+
 /** A synchronous check preserves the wallet-opening click's user activation. */
 export function allowanceTransactionIsFresh(xdr: string, networkPassphrase: string, nowSeconds = Math.floor(Date.now() / 1_000)): boolean {
   try {

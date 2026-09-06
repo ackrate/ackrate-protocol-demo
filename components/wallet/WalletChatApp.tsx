@@ -40,12 +40,12 @@ import {
 import type { MandateView, SafeAppConfig, SessionView } from "@/lib/wallet/types";
 import { addTokenToFreighter, connectFreighter, freighterSessionState, signFreighterTransaction } from "@/lib/wallet/freighter";
 import { sourceIdForMarketplaceService, WEB_SEARCH_INPUTS, type MarketplaceService } from "@/lib/wallet/marketplace-catalog";
-import { AssistantThread, PurchaseReport, type PurchaseResult } from "./AssistantThread";
+import { AssistantThread, parseRecovery, purchaseResultForMandate, PurchaseReport, type PurchaseResult } from "./AssistantThread";
 import { MarketplaceOrb } from "./MarketplaceOrb";
 import { ProtocolWorld } from "./ProtocolWorld";
 import { initialServiceInputValues, serializedServiceInputs, ServiceConfigurator, type ServiceInputValues } from "./ServiceConfigurator";
 import type { MarketplaceQuoteView } from "@/lib/wallet/marketplace-quote";
-import { allowanceTransactionIsFresh, mandateCanAfford, readAllowanceConfirmation, walletAmountAtomic, type PendingAllowance } from "@/lib/wallet/client-readiness";
+import { allowanceTransactionIsFresh, canStartFreshWalletLimit, mandateCanAfford, readAllowanceConfirmation, retainWalletMandate, walletAmountAtomic, type PendingAllowance } from "@/lib/wallet/client-readiness";
 import { nextWalletNotification, safeWalletError, type WalletNotification } from "@/lib/wallet/notifications";
 
 type Phase = "idle" | "authenticating" | "adding-asset" | "registering" | "approving" | "active" | "revoking";
@@ -170,6 +170,21 @@ function legacyMandateStorageKey(config: SafeAppConfig, address: string): string
   return `ackrate:mandate:${config.network}:${address}`;
 }
 
+function mandateHistoryStorageKey(config: SafeAppConfig, address: string): string {
+  return `ackrate:mandate-history:v2:${config.network}:${config.mandateRegistryId}:${address}`;
+}
+
+function isHistoricalMandate(value: unknown, config: SafeAppConfig, address: string): value is StoredMandate {
+  if (!value || typeof value !== "object") return false;
+  const entry = value as StoredMandate;
+  return entry.schemaVersion === 2 && entry.user === address && entry.registryId === config.mandateRegistryId
+    && typeof entry.id === "string" && /^[0-9a-f]{64}$/.test(entry.id)
+    && Number.isSafeInteger(entry.expiry) && entry.expiry > 0
+    && typeof entry.maxAmount === "string" && /^\d+$/.test(entry.maxAmount)
+    && Number.isSafeInteger(entry.decimals) && entry.decimals >= 0 && entry.decimals <= 18
+    && [entry.registrationTx, entry.allowanceTx, entry.revokeTx].every((hash) => hash === undefined || /^[0-9a-f]{64}$/i.test(hash));
+}
+
 async function api<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, {
     ...init,
@@ -203,6 +218,47 @@ function TransactionEvidence({ label, hash, explorer }: { label: string; hash: s
   );
 }
 
+function HistoricalWalletReceipt({ record, config }: { record: StoredMandate; config: SafeAppConfig }) {
+  const [checking, setChecking] = useState(false);
+  const [receipt, setReceipt] = useState<ReturnType<typeof parseRecovery>>(null);
+  const [message, setMessage] = useState<string | null>(null);
+  const [result, setResult] = useState<PurchaseResult | null>(null);
+  const explorer = `https://stellar.expert/explorer/${config.explorerNetwork}`;
+  const checkReceipt = async () => {
+    if (checking) return;
+    setChecking(true);
+    setMessage(null);
+    try {
+      const body = await api<{ recovery: unknown }>(`/api/wallet/purchase/recovery?mandateId=${encodeURIComponent(record.id)}`, { cache: "no-store" });
+      const found = parseRecovery(body.recovery);
+      setReceipt(found);
+      setResult(null);
+      if (!found) setMessage("No retained service-payment receipt was returned for this limit. No new payment was made.");
+      else if (found.deliveryState === "ready" && found.paymentConfirmed && found.result !== undefined) {
+        const saved = purchaseResultForMandate(found.result, record.id, found.txHash);
+        if (!saved) throw new Error("Saved output does not match this limit and payment.");
+        setResult(saved);
+        setMessage("Saved service output found. Reading it does not make another payment.");
+      } else setMessage(found.deliveryState === "reconciliation_required"
+        ? "This earlier receipt still needs operator review. A fresh setup does not recover, repay, or refund this purchase."
+        : "This earlier receipt is still pending. Checking its status does not run the service or send another payment.");
+    } catch (cause) {
+      setMessage(safeWalletError(cause, "This saved receipt could not be checked. Its transaction references remain below; no new payment was sent."));
+    } finally { setChecking(false); }
+  };
+  return <details className="flow-history-record">
+    <summary>Previous limit · <time dateTime={new Date(record.expiry * 1_000).toISOString()}>expiry {new Date(record.expiry * 1_000).toLocaleString()}</time></summary>
+    <p>Historical record · {formatUnits(record.maxAmount, record.decimals)} USDC limit · <code>{short(record.id, 6)}</code></p>
+    {record.registrationTx && <TransactionEvidence label="Limit registration" hash={record.registrationTx} explorer={explorer} />}
+    {record.allowanceTx && <TransactionEvidence label="Contract allowance" hash={record.allowanceTx} explorer={explorer} />}
+    {record.revokeTx && <TransactionEvidence label="Spending turned off" hash={record.revokeTx} explorer={explorer} />}
+    {receipt && <TransactionEvidence label={receipt.paymentConfirmed ? "Earlier contract payment" : "Earlier payment record — unconfirmed"} hash={receipt.txHash} explorer={explorer} />}
+    <button className="flow-text-button" type="button" onClick={() => void checkReceipt()} disabled={checking}>{checking ? <LoaderCircle className="spin" size={13} /> : <RefreshCw size={13} />}{checking ? "Checking saved receipt…" : "Check saved receipt · no payment"}</button>
+    {message && <p role="status">{message}</p>}
+    {result && <PurchaseReport result={result} explorerNetwork={config.explorerNetwork} registryId={record.registryId} registrationTx={record.registrationTx} allowanceTx={record.allowanceTx} />}
+  </details>;
+}
+
 function formatUnits(value: string, decimals: number): string {
   const raw = BigInt(value);
   const base = 10n ** BigInt(decimals);
@@ -225,6 +281,7 @@ export function WalletChatApp() {
   const [session, setSession] = useState<SessionView>(emptySession);
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [stored, setStored] = useState<StoredMandate | null>(null);
+  const [mandateHistory, setMandateHistory] = useState<StoredMandate[]>([]);
   const [mandate, setMandate] = useState<MandateView | null>(null);
   const [budget, setBudget] = useState("0.10");
   const [duration, setDuration] = useState("60");
@@ -259,7 +316,9 @@ export function WalletChatApp() {
   const [marketplaceQuote, setMarketplaceQuote] = useState<MarketplaceQuoteView | null>(null);
   const [quoteChecking, setQuoteChecking] = useState(false);
   const [runStarted, setRunStarted] = useState(false);
+  const [runBusy, setRunBusy] = useState(false);
   const approvalInFlight = useRef(false);
+  const activeMandateId = useRef<string | null>(null);
   const preparedAllowanceReady = Boolean(config && stored && preparedAllowance?.mandateId === stored.id
     && allowanceTransactionIsFresh(preparedAllowance.xdr, config.networkPassphrase, nowSeconds));
   const notificationBusy = allowancePreparing || quoteChecking || disconnecting || !["idle", "active"].includes(phase);
@@ -275,8 +334,10 @@ export function WalletChatApp() {
       method: "POST",
       body: JSON.stringify({ mandateId: current.id }),
     });
-    setMandate(body.mandate);
-    setPhase(body.mandate.status === "Active" && body.mandate.expiry > Math.floor(Date.now() / 1_000) ? "active" : "idle");
+    if (activeMandateId.current === current.id) {
+      setMandate(body.mandate);
+      setPhase(body.mandate.status === "Active" && body.mandate.expiry > Math.floor(Date.now() / 1_000) ? "active" : "idle");
+    }
     return body.mandate;
   }, []);
 
@@ -332,6 +393,10 @@ export function WalletChatApp() {
   useEffect(() => {
     if (!config || !session.authenticated || !session.address) return;
     const key = mandateStorageKey(config, session.address);
+    try {
+      const history: unknown = JSON.parse(localStorage.getItem(mandateHistoryStorageKey(config, session.address)) ?? "[]");
+      setMandateHistory(Array.isArray(history) ? history.filter((entry): entry is StoredMandate => isHistoricalMandate(entry, config, session.address!)) : []);
+    } catch { setMandateHistory([]); }
     localStorage.removeItem(legacyMandateStorageKey(config, session.address));
     const raw = localStorage.getItem(key);
     if (!raw) return;
@@ -346,6 +411,8 @@ export function WalletChatApp() {
         || !/^[0-9a-f]{64}$/.test(parsed.credentialHash)
       ) throw new Error("invalid stored mandate");
       setStored(parsed);
+      activeMandateId.current = parsed.id;
+      if (isHistoricalMandate(parsed, config, session.address)) setBudget(formatUnits(parsed.maxAmount, parsed.decimals));
       if (parsed.registrationTx) void refreshMandate(parsed).catch(() => undefined);
     } catch {
       localStorage.removeItem(key);
@@ -472,7 +539,36 @@ export function WalletChatApp() {
     if (!config) return;
     localStorage.setItem(mandateStorageKey(config, value.user), JSON.stringify(value));
     setStored(value);
+    activeMandateId.current = value.id;
   }, [config]);
+
+  const startFreshLimit = () => {
+    if (!config || !session.address || !stored || notificationBusy || runBusy || approvalInFlight.current
+      || !canStartFreshWalletLimit(stored, mandate)) return;
+    try {
+      const key = mandateHistoryStorageKey(config, session.address);
+      const retained: unknown = JSON.parse(localStorage.getItem(key) ?? "[]");
+      if (!Array.isArray(retained)) throw new Error("Saved history could not be read.");
+      // Preserve first; if saving fails, leave the active record and workflow untouched.
+      const history = retainWalletMandate(retained, stored);
+      localStorage.setItem(key, JSON.stringify(history));
+      localStorage.removeItem(mandateStorageKey(config, session.address));
+      setMandateHistory(history.filter((entry): entry is StoredMandate => isHistoricalMandate(entry, config, session.address!)));
+      activeMandateId.current = null;
+      setStored(null);
+      setMandate(null);
+      setPreparedAllowance(null);
+      setCompletedPurchase(null);
+      setRunStarted(false);
+      setMarketplaceQuote(null);
+      setServiceConfigured(false);
+      setPhase("idle");
+      setError(null);
+      setNotice("Previous limit and receipt references saved below. Review the inputs for a fresh price, then approve a new limit. No payment was made.");
+    } catch {
+      setError("The previous record could not be saved in this browser. Nothing was cleared and no new setup was started.");
+    }
+  };
 
   const connect = async () => {
     if (!config) return;
@@ -824,6 +920,8 @@ export function WalletChatApp() {
   );
   const spendingOff = Boolean(stored?.revokeTx && mandate?.status !== "Active");
   const storedFresh = Boolean(stored && stored.expiry > nowSeconds);
+  const historicalCurrent = Boolean(stored && (!storedFresh || (mandate?.id === stored.id && mandate.status !== "Active")));
+  const canCreateFreshLimit = canStartFreshWalletLimit(stored, mandate, nowSeconds);
   const servicePrice = marketplaceQuote?.price ?? marketplaceService.price;
   const enoughRemaining = mandateCanAfford(mandate?.remaining, servicePrice, config?.asset.decimals ?? 7);
   const quoteCurrent = Boolean(marketplaceQuote && marketplaceQuote.expiresAt > nowSeconds);
@@ -1090,6 +1188,7 @@ export function WalletChatApp() {
   const availableUsdc = walletBalances ? walletAmountAtomic(walletBalances.usdcRaw, config?.asset.decimals ?? 7) : null;
   const budgetValid = budgetAtomic !== null && minimumBudget !== null && budgetAtomic >= minimumBudget && budgetAtomic > 0n;
   const hasEnoughUsdc = budgetAtomic !== null && availableUsdc !== null && availableUsdc >= budgetAtomic;
+  const budgetRunCount = budgetAtomic !== null && minimumBudget !== null && minimumBudget > 0n ? budgetAtomic / minimumBudget : null;
   const canApproveLimit = Boolean(config?.ready && !mandateOnline && !stored?.pendingAllowance && quoteCurrent && budgetValid && walletBalances?.hasUsdcTrustline && hasEnoughUsdc);
   const externalSettlement = completedPurchase ? marketplaceSettlement(completedPurchase) : null;
   const navState = (step: number) => workflowStep > step ? "done" : workflowStep === step ? "current" : "";
@@ -1141,6 +1240,14 @@ export function WalletChatApp() {
           <div className={navState(5)}><span>{workflowStep > 5 ? <Check size={14} /> : 5}</span><strong>Run</strong><small>EXECUTE</small></div>
           <div className={navState(6)}><span>6</span><strong>Proof</strong><small>VERIFY</small></div>
         </motion.nav>
+
+        {historicalCurrent && stored && <section className="flow-history flow-history-current" aria-label="Previous spending limit">
+          <div><strong>{stored.expiry <= nowSeconds ? "Your previous spending limit has expired" : "Your previous spending limit is inactive"}</strong>
+            <p>This is an earlier setup, not a new service run. It expires at <time dateTime={new Date(stored.expiry * 1_000).toISOString()}>{new Date(stored.expiry * 1_000).toLocaleString()}</time>. Its unused limit is not available for a new payment.</p>
+            <p>Keep the previous receipt for review. A fresh limit is a separate authorization; it does not retry, recover, or refund the earlier purchase.</p></div>
+          {canCreateFreshLimit && <button className="flow-primary" type="button" onClick={startFreshLimit} disabled={notificationBusy || runBusy}>Create a fresh spending limit <ChevronRight size={16} /></button>}
+          {stored.pendingAllowance && <p>Check the existing USDC approval before starting a separate setup. No replacement approval will be sent automatically.</p>}
+        </section>}
 
         <section className="flow-card">
           <AnimatePresence mode="wait" initial={!reduceMotion}>
@@ -1341,6 +1448,13 @@ export function WalletChatApp() {
                 <label><span>MAXIMUM SPEND</span><div className="flow-input"><input value={budget} onChange={(event) => setBudget(event.target.value)} inputMode="decimal" aria-label="Maximum USDC spend" disabled={mandateOnline} /><strong>USDC</strong></div></label>
                 <label><span>EXPIRES AFTER</span><select value={duration} onChange={(event) => setDuration(event.target.value)} disabled={mandateOnline}><option value="30">30 minutes</option><option value="60">1 hour</option><option value="360">6 hours</option><option value="1440">24 hours</option></select></label>
               </div>
+              {quoteCurrent && minimumBudget !== null && minimumBudget > 0n && <div className="flow-budget-preview">
+                <p><strong>{servicePrice} USDC per run</strong>{budgetRunCount !== null ? ` · Your ${budget} USDC limit covers up to ${budgetRunCount.toString()} ${budgetRunCount === 1n ? "run" : "runs"} at this quoted price.` : " · Choose how many runs to allow."}</p>
+                <div className="flow-budget-presets" aria-label="Spending limit presets">
+                  {[1n, 2n].map((count) => <button className="flow-text-button" type="button" key={count.toString()} disabled={mandateOnline || Boolean(stored?.pendingAllowance)} onClick={() => setBudget(formatUnits((minimumBudget * count).toString(), config?.asset.decimals ?? 7))}>{count.toString()} {count === 1n ? "run" : "runs"} · {formatUnits((minimumBudget * count).toString(), config?.asset.decimals ?? 7)} USDC</button>)}
+                </div>
+                <small>This is a cap, not a deposit. Only a submitted run spends its service price; transaction fees use XLM.</small>
+              </div>}
 
               <div className="flow-summary">
                 <span><ShieldCheck size={15} /></span>
@@ -1393,13 +1507,14 @@ export function WalletChatApp() {
               transition={{ duration: reduceMotion ? 0 : 0.28, ease: "easeOut" }}
             >
               <div className="flow-stage-heading">
-                <div><p className="flow-kicker">STEP 5 OF 6</p><h2>Run {marketplaceService.name}</h2><p className="flow-description">The agent will pass the contract checks, pay Agent402 in real USDC, and return the service output.</p></div>
-                <span className="flow-budget"><span><small>REMAINING</small><strong>{remaining} USDC</strong></span></span>
+                <div><p className="flow-kicker">{historicalCurrent ? "PREVIOUS RUN · RECEIPT ONLY" : "STEP 5 OF 6"}</p><h2>{historicalCurrent ? "Review your earlier payment" : `Run ${marketplaceService.name}`}</h2><p className="flow-description">{historicalCurrent ? "This saved limit is no longer usable. Check its existing receipt, or create a fresh spending limit above for a separate request." : "The agent will pass the contract checks, pay Agent402 in real USDC, and return the service output."}</p></div>
+                <span className="flow-budget"><span><small>{historicalCurrent ? "UNUSED · NOT SPENDABLE" : "REMAINING"}</small><strong>{remaining} USDC</strong></span></span>
               </div>
-              {!quoteCurrent && <div className="flow-alert"><TriangleAlert size={16} />The service quote expired. Edit the inputs to refresh its price and seller before running.</div>}
+              {!historicalCurrent && !quoteCurrent && <div className="flow-alert"><TriangleAlert size={16} />The service quote expired. Edit the inputs to refresh its price and seller before running.</div>}
               {mandateOnline && !enoughRemaining && <div className="flow-alert"><TriangleAlert size={16} />This mandate has less than {servicePrice} USDC remaining. Existing receipts can still be recovered; turn off this limit before creating another.</div>}
               {mandate && config && (
                 <AssistantThread
+                  key={mandate.id}
                   mandateId={mandate.id}
                   asset={config.asset.code}
                   service={marketplaceService}
@@ -1407,6 +1522,7 @@ export function WalletChatApp() {
                   quoteToken={marketplaceQuote?.token}
                   canRun={activeMandateReady && quoteCurrent}
                   onRunStarted={() => { setNotification(null); setRunStarted(true); }}
+                  onBusyChange={setRunBusy}
                   price={servicePrice}
                   explorerNetwork={config.explorerNetwork}
                   marketplaceUrl={marketplaceService.docs}
@@ -1418,7 +1534,7 @@ export function WalletChatApp() {
                 {stored?.registrationTx && <a className="flow-proof-link" href={`${explorer}/tx/${stored.registrationTx}`} target="_blank" rel="noreferrer"><span><Check size={12} />Limit registered</span><code>{short(stored.registrationTx, 6)}</code><ArrowUpRight size={12} /></a>}
                 {stored?.allowanceTx && <a className="flow-proof-link" href={`${explorer}/tx/${stored.allowanceTx}`} target="_blank" rel="noreferrer"><span><Check size={12} />Contract allowance</span><code>{short(stored.allowanceTx, 6)}</code><ArrowUpRight size={12} /></a>}
               </div></details>
-              <div className="flow-secondary-row"><span>Limit: {currentMandate && config ? formatUnits(currentMandate.maxAmount, config.asset.decimals) : budget} USDC · expires {expires ? new Date(expires * 1_000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "soon"}</span><button type="button" onClick={() => setDisconnectOpen(true)}><Power size={12} />Turn off</button></div>
+              <div className="flow-secondary-row"><span>Limit: {currentMandate && config ? formatUnits(currentMandate.maxAmount, config.asset.decimals) : budget} USDC · {historicalCurrent ? "expiry" : "expires"} {expires ? new Date(expires * 1_000).toLocaleString() : "unconfirmed"}</span><button type="button" onClick={() => setDisconnectOpen(true)}><Power size={12} />{historicalCurrent ? "Disconnect" : "Turn off"}</button></div>
             </motion.div>
           ) : (
             <motion.div
@@ -1442,6 +1558,12 @@ export function WalletChatApp() {
           )}
           </AnimatePresence>
         </section>
+
+        {connected && config && mandateHistory.length > 0 && <section className="flow-history" aria-label="Saved previous limits and payment receipts">
+          <strong>Previous limits & receipts</strong>
+          <p>These are historical records. Checking them never starts a new purchase.</p>
+          {mandateHistory.map((record) => <HistoricalWalletReceipt key={record.id} record={record} config={config} />)}
+        </section>}
 
         <div className="flow-under-card">
           <span><ShieldCheck size={14} />2-of-3 governed MandateRegistry V2</span>

@@ -308,7 +308,16 @@ export async function purchaseCatalogItem(input: PurchaseInput): Promise<unknown
     sourceId: item.id, parameters: toolInput, payTo: quote?.payTo ?? null,
     registry: config.public.mandateRegistryId, amount: item.price,
   })).digest("hex");
-  const receiptStore = new DurableReceiptStore(input.sessionId, input.mandateId);
+  let requestedUrl: string | undefined;
+  const receiptStore = new DurableReceiptStore(input.sessionId, input.mandateId, async (receipt) => {
+    if (receipt.mandateId !== input.mandateId || !receiptMatchesPurchase(receipt, requestedUrl)) return;
+    await completeToolCall({
+      sessionId: input.sessionId,
+      toolCallId: input.toolCallId,
+      status: "running",
+      result: { stage: "checking_payment", txHash: receipt.txHash, mandateId: input.mandateId, sourceId: input.sourceId },
+    });
+  });
   if ((await receiptStore.listPending()).length > 0) {
     throw new Error("A previous contract payment is retained for recovery. Resolve that receipt before any new purchase.");
   }
@@ -328,7 +337,6 @@ export async function purchaseCatalogItem(input: PurchaseInput): Promise<unknown
   }
 
   let deliveredReceipt: ReturnType<typeof getSettlementReceipt>;
-  let requestedUrl: string | undefined;
   try {
     const amount = toStroops(item.price, config.public.asset.decimals);
     if (BigInt(context.onChain.remaining) < amount) throw new Error("the contract mandate does not have enough remaining budget");
