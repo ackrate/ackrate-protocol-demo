@@ -712,17 +712,30 @@ export function PurchaseReport({
   registryId,
   registrationTx,
   allowanceTx,
+  autoScroll = true,
 }: {
   result: PurchaseResult;
   explorerNetwork: "testnet" | "public";
   registryId: string;
   registrationTx?: string;
   allowanceTx?: string;
+  autoScroll?: boolean;
 }) {
   const brief = parseBrief(result.delivered);
   const marketplace = parseMarketplace(result.delivered);
   const toolDelivery = parseToolDelivery(result.delivered);
   const briefRef = useRef<HTMLElement>(null);
+  const [downloadNotice, setDownloadNotice] = useState<{ message: string; failed: boolean } | null>(null);
+  const downloadResult = (format: "receipt" | "output" | "report") => {
+    try {
+      const file = purchaseResultDownload(result, format);
+      saveDownload(file);
+      setDownloadNotice({ message: `Download requested: ${file.filename}. Check your browser's downloads.`, failed: false });
+    } catch {
+      setDownloadNotice({ message: "The download could not start. Your result is still here; try the download again without rerunning the service.", failed: true });
+    }
+  };
+  const downloadStatus = downloadNotice && <p className="report-download-status" role={downloadNotice.failed ? "alert" : "status"}>{downloadNotice.message}</p>;
 
   useEffect(() => {
     if (explorerNetwork !== "public") return;
@@ -741,8 +754,8 @@ export function PurchaseReport({
   }, [explorerNetwork, marketplace?.settlement.transaction, result.payment.amount, result.payment.asset, result.payment.txHash]);
 
   useEffect(() => {
-    briefRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }, [result.payment.txHash]);
+    if (autoScroll) briefRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [autoScroll, result.payment.txHash]);
 
   if (!marketplace || (!brief && !toolDelivery) || (brief && !("count" in marketplace))) {
     return <section id="paid-service-output" className="report-section shell tool-output-section" ref={briefRef} aria-labelledby="saved-output-title">
@@ -759,7 +772,8 @@ export function PurchaseReport({
           {allowanceTx && <ProofLink label="USDC allowance" hash={allowanceTx} explorerNetwork={explorerNetwork} />}
         </aside>
         <article className="tool-output-document">
-          <div className="tool-output-toolbar"><strong>{result.source.title}</strong><button type="button" onClick={() => saveDownload(purchaseResultDownload(result, "receipt"))}>Download receipt JSON</button></div>
+          <div className="tool-output-toolbar"><strong>{result.source.title}</strong><button type="button" onClick={() => downloadResult("receipt")}>Download receipt JSON</button></div>
+          {downloadStatus}
           <pre>{JSON.stringify(result.delivered, null, 2)}</pre>
         </article>
       </div>
@@ -790,9 +804,10 @@ export function PurchaseReport({
           <article className="tool-output-document">
             <div className="tool-output-toolbar">
               <span><small>LIVE AGENT402 OUTPUT</small><strong>{toolDelivery.service.method} {toolDelivery.service.route}</strong></span>
-              <button type="button" onClick={() => saveDownload(purchaseResultDownload(result, "output"))}>Download {textOutput !== null ? "text" : "JSON"}</button>
-              <button type="button" onClick={() => saveDownload(purchaseResultDownload(result, "receipt"))}>Receipt JSON</button>
+              <button type="button" onClick={() => downloadResult("output")}>Download {textOutput !== null ? "text" : "JSON"}</button>
+              <button type="button" onClick={() => downloadResult("receipt")}>Receipt JSON</button>
             </div>
+            {downloadStatus}
             {outputRecord && <div className="tool-output-facts">
               {Object.entries(outputRecord).filter(([key, value]) => key !== "text" && ["string", "number", "boolean"].includes(typeof value)).slice(0, 8).map(([key, value]) => (
                 <div key={key}><small>{key}</small><strong>{String(value)}</strong></div>
@@ -831,9 +846,10 @@ export function PurchaseReport({
         <article className="research-brief report-document">
           <div className="tool-output-toolbar">
             <strong>Report &amp; evidence</strong>
-            <button type="button" onClick={() => saveDownload(purchaseResultDownload(result, "report"))}>Download report</button>
-            <button type="button" onClick={() => saveDownload(purchaseResultDownload(result, "receipt"))}>Receipt JSON</button>
+            <button type="button" title="Download the report as Markdown (.md)" onClick={() => downloadResult("report")}>Download report</button>
+            <button type="button" title="Download the saved payment receipt and service response as JSON" onClick={() => downloadResult("receipt")}>Receipt JSON</button>
           </div>
+          {downloadStatus}
           <header className="brief-header">
             <div className="brief-kicker"><span />{brief.kicker}</div>
             <h2 id="research-brief-title">{brief.title}</h2>

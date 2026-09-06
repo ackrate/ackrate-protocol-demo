@@ -2037,7 +2037,7 @@
 }
 
 .wallet-preview.wallet-flow .tool-output-layout,
-.wallet-preview.wallet-flow .report-shell { position: relative; z-index: 9; pointer-events: auto; }
+.wallet-preview.wallet-flow .report-section { position: relative; z-index: 9; pointer-events: auto; }
 
 .wallet-preview.wallet-flow .toast { z-index: 50; border: 0; border-radius: 0; background: rgba(12, 12, 14, 0.94); box-shadow: inset 3px 0 #fff, 0 24px 80px #000; }
 .wallet-preview.wallet-flow .toast.error { border: 0; box-shadow: inset 3px 0 #ef4444, 0 24px 80px #000; }
@@ -2106,7 +2106,7 @@
 .wallet-preview.wallet-flow .flow-history-record code { color: #d7dde6; font-size: 11px; }
 .wallet-preview.wallet-flow .flow-history-record .proof-evidence { display: flex; flex-wrap: wrap; gap: 8px 12px; padding: 10px 0; }
 .wallet-preview.wallet-flow .flow-history-record .proof-evidence > span { flex: 1 0 100%; color: #c2cad6; font-size: 11px; }
-.wallet-preview.wallet-flow .flow-history-record .report-shell { width: 100%; margin: 16px 0 0; padding: 0; }
+.wallet-preview.wallet-flow .flow-history-record .report-section { width: 100%; margin: 16px 0 0; padding: 0; }
 
 .wallet-preview.wallet-flow .flow-budget-preview { display: grid; gap: 10px; margin: 12px 0 16px; color: #c2cad6; }
 .wallet-preview.wallet-flow .flow-budget-preview p { margin: 0; font-size: 12px; line-height: 1.6; }
@@ -2133,6 +2133,173 @@
 .wallet-preview.wallet-flow .flow-history summary:focus-visible,
 .wallet-preview.wallet-flow .flow-history button:focus-visible,
 .wallet-preview.wallet-flow .flow-budget-presets button:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+
+/* Saved output is a reading surface, independent of the interactive world. */
+.wallet-preview.wallet-flow.wallet-result-mode { background: #090b0f; color: #edf0f5; }
+.wallet-preview.wallet-flow.wallet-result-mode::before { display: none; }
+.wallet-preview.wallet-flow.wallet-result-mode .flow-header { background: #090b0f; }
+.wallet-preview.wallet-flow .wallet-result-view {
+  position: relative;
+  z-index: 10;
+  width: min(1440px, 100%);
+  min-height: 100svh;
+  margin: 0 auto;
+  padding: 96px 28px 48px;
+  pointer-events: auto;
+}
+.wallet-preview.wallet-flow .wallet-result-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.wallet-preview.wallet-flow .wallet-result-toolbar > button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 9px 14px;
+  border: 0;
+  border-radius: 6px;
+  background: #22262e;
+  color: #f5f7fa;
+  font-size: 13px;
+  line-height: 1.5;
+  letter-spacing: 0;
+  text-transform: none;
+  cursor: pointer;
+}
+.wallet-preview.wallet-flow .wallet-result-toolbar > :is(small, span) { color: #b7bfcc; font-size: 12px; line-height: 1.5; }
+.wallet-preview.wallet-flow .report-section { isolation: isolate; scroll-margin-top: 96px; color: #e1e6ee; background: #090b0f; }
+.wallet-preview.wallet-flow .wallet-result-view > .report-section { width: 100%; max-width: none; margin: 0; padding: 0; }
+.wallet-preview.wallet-flow .report-section :is(button, a) { pointer-events: auto; touch-action: manipulation; }
+.wallet-preview.wallet-flow .report-section button:focus-visible,
+.wallet-preview.wallet-flow .report-section a:focus-visible,
+.wallet-preview.wallet-flow .wallet-result-toolbar button:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+.wallet-preview.wallet-flow .report-section-head { max-width: none; margin: 0 0 18px; text-align: left; }
+.wallet-preview.wallet-flow .report-section-head h2 { color: #f5f7fa; font-size: 24px; line-height: 1.25; }
+.wallet-preview.wallet-flow .report-section-head > p:last-child { color: #bac3d1; font-size: 13px; line-height: 1.6; }
+.wallet-preview.wallet-flow .wallet-result-view > .report-section:not(.tool-output-section) > .report-section-head { display: none; }
+.wallet-preview.wallet-flow .report-layout {
+  display: grid;
+  grid-template-columns: minmax(200px, 0.75fr) minmax(0, 2.4fr) minmax(220px, 0.85fr);
+  grid-template-areas: "proof document sources";
+  align-items: start;
+  gap: 18px;
+}
+.wallet-preview.wallet-flow .report-document { grid-area: document; min-width: 0; }
+.wallet-preview.wallet-flow .report-proof-rail { grid-area: proof; }
+.wallet-preview.wallet-flow .report-source-rail { grid-area: sources; }
+.wallet-preview.wallet-flow .tool-output-layout {
+  grid-template-columns: 250px minmax(0, 1fr);
+  grid-template-areas: "proof document";
+  align-items: start;
+  gap: 18px;
+}
+.wallet-preview.wallet-flow .tool-output-document { grid-area: document; min-width: 0; }
+.wallet-preview.wallet-flow .report-section :is(.report-rail, .report-document, .tool-output-document) {
+  border: 0;
+  border-radius: 0;
+  color: #e1e6ee;
+  background: #12151b;
+  box-shadow: none;
+}
+.wallet-preview.wallet-flow .report-rail { position: static; min-width: 0; overflow: visible; padding: 18px; }
+.wallet-preview.wallet-flow .report-rail small,
+.wallet-preview.wallet-flow .report-proof-row small,
+.wallet-preview.wallet-flow .seller-detail small { color: #b6bfcd; font-size: 10px; line-height: 1.5; }
+.wallet-preview.wallet-flow .report-rail-heading strong,
+.wallet-preview.wallet-flow .seller-detail strong { color: #f0f3f8; font-size: 13px; line-height: 1.4; }
+.wallet-preview.wallet-flow .report-proof-row { grid-template-columns: minmax(0, 1fr) auto auto; gap: 7px; padding: 12px 0; }
+.wallet-preview.wallet-flow .report-proof-row code,
+.wallet-preview.wallet-flow .seller-detail code { color: #c9d1dd; font-size: 11px; overflow-wrap: anywhere; }
+.wallet-preview.wallet-flow .report-proof-row :is(button, a) {
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 6px;
+  color: #f3f5f9;
+  background: #272c36;
+}
+.wallet-preview.wallet-flow .report-section .report-link { min-height: 40px; color: #e1e6ee; background: #222730; font-size: 12px; line-height: 1.5; }
+.wallet-preview.wallet-flow .report-amount strong { color: #f5f7fa; font-size: 27px; }
+.wallet-preview.wallet-flow .report-amount strong span { color: #c2cbd8; font-size: 11px; }
+.wallet-preview.wallet-flow .report-section .tool-output-toolbar {
+  position: relative;
+  z-index: 1;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: 9px;
+  padding: 16px 20px;
+  background: #1b1f27;
+  pointer-events: auto;
+}
+.wallet-preview.wallet-flow .report-section .tool-output-toolbar > :is(strong, span) { flex: 1 1 150px; }
+.wallet-preview.wallet-flow .report-section .tool-output-toolbar strong { color: #e9edf4; font-size: 13px; overflow-wrap: anywhere; }
+.wallet-preview.wallet-flow .report-section .tool-output-toolbar small { color: #b6bfcd; font-size: 10px; }
+.wallet-preview.wallet-flow .report-section .tool-output-toolbar button {
+  flex: 0 1 auto;
+  min-height: 40px;
+  padding: 9px 13px;
+  border: 0;
+  border-radius: 6px;
+  color: #111;
+  background: #f0f2f6;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.5;
+  cursor: pointer;
+}
+.wallet-preview.wallet-flow .report-section .tool-output-toolbar button:hover { background: #fff; }
+.wallet-preview.wallet-flow .report-download-status { display: block; margin: 0; padding: 12px 20px; color: #d8e0ec; background: #1b1f27; font-size: 12px; line-height: 1.5; }
+.wallet-preview.wallet-flow .report-section .brief-header { padding: 26px; background: #171b22; }
+.wallet-preview.wallet-flow .report-section .brief-header::after { display: none; }
+.wallet-preview.wallet-flow .report-section .brief-header h2 { margin: 14px 0 12px; color: #fff; font-size: clamp(26px, 2.6vw, 38px); line-height: 1.15; letter-spacing: -0.04em; overflow-wrap: anywhere; }
+.wallet-preview.wallet-flow .report-section .brief-header > p { color: #c4cdd9; font-size: 14px; line-height: 1.65; }
+.wallet-preview.wallet-flow .report-section .brief-kicker { color: #cdd5e2; font-size: 10px; line-height: 1.5; }
+.wallet-preview.wallet-flow .report-section .brief-meta { margin-top: 16px; }
+.wallet-preview.wallet-flow .report-section .brief-meta span { border: 0; color: #c9d1de; background: #262c36; font-size: 9px; line-height: 1.45; }
+.wallet-preview.wallet-flow .report-section .brief-body { gap: 24px; padding: 26px; }
+.wallet-preview.wallet-flow .report-section .brief-opening { color: #e3e8f0; font-size: 16px; line-height: 1.75; }
+.wallet-preview.wallet-flow .report-section .brief-opening::first-letter { float: none; margin: 0; font-size: inherit; font-weight: inherit; line-height: inherit; }
+.wallet-preview.wallet-flow .report-section .brief-findings { gap: 22px; border: 0; border-radius: 0; background: transparent; }
+.wallet-preview.wallet-flow .report-section .brief-finding { grid-template-columns: 25px minmax(0, 1fr); gap: 12px; padding: 0; background: transparent; }
+.wallet-preview.wallet-flow .report-section .brief-finding > span { color: #aeb8c8; font-size: 11px; }
+.wallet-preview.wallet-flow .report-section .brief-finding h3 { color: #f2f5fa; font-size: 17px; line-height: 1.4; }
+.wallet-preview.wallet-flow .report-section .brief-finding p { color: #c9d1dd; font-size: 15px; line-height: 1.75; }
+.wallet-preview.wallet-flow .report-section .brief-takeaway { border: 0; border-radius: 0; background: #202630; }
+.wallet-preview.wallet-flow .report-section .brief-takeaway span { color: #d6ddea; font-size: 10px; }
+.wallet-preview.wallet-flow .report-section .brief-takeaway p { color: #e0e6f0; font-size: 15px; line-height: 1.7; }
+.wallet-preview.wallet-flow .report-section .brief-methodology { color: #b1bdcf; font-size: 12px; line-height: 1.65; }
+.wallet-preview.wallet-flow .report-section .brief-body a { color: #fff; text-decoration: underline; text-underline-offset: 3px; }
+.wallet-preview.wallet-flow .report-sources-head strong { color: #eef2f7; font-size: 14px; }
+.wallet-preview.wallet-flow .report-sources-head p { color: #b9c3d1; font-size: 12px; line-height: 1.6; }
+.wallet-preview.wallet-flow .report-source-rail b { color: #e6ebf3; font-size: 12px; line-height: 1.5; }
+.wallet-preview.wallet-flow .report-source-rail a small { color: #b8c3d2; font-size: 11px; font-weight: 400; line-height: 1.55; letter-spacing: 0; }
+.wallet-preview.wallet-flow .report-source-rail li > span { color: #a2afc2; font-size: 10px; }
+.wallet-preview.wallet-flow .report-source-rail a:hover b { color: #fff; text-decoration: underline; }
+.wallet-preview.wallet-flow .report-section .tool-output-facts small { color: #b4bfce; font-size: 10px; }
+.wallet-preview.wallet-flow .report-section .tool-output-facts strong { color: #e0e6ef; font-size: 12px; white-space: normal; overflow-wrap: anywhere; }
+.wallet-preview.wallet-flow .report-section .tool-output-document pre { max-height: none; padding: 22px; color: #dce3ee; background: #12151b; font-size: 13px; line-height: 1.7; white-space: pre-wrap; overflow-wrap: anywhere; }
+.wallet-preview.wallet-flow .flow-history-record .report-layout { grid-template-columns: minmax(0, 1fr); grid-template-areas: "document" "proof" "sources"; }
+.wallet-preview.wallet-flow .flow-history-record .tool-output-layout { grid-template-columns: minmax(0, 1fr); grid-template-areas: "document" "proof"; }
+.wallet-preview.wallet-flow .flow-history-record .report-section .brief-header,
+.wallet-preview.wallet-flow .flow-history-record .report-section .brief-body { padding: 18px; }
+
+@media (max-width: 1100px) {
+  .wallet-preview.wallet-flow .report-layout { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-areas: "document document" "proof sources"; }
+}
+@media (max-width: 800px) {
+  .wallet-preview.wallet-flow .wallet-result-view { padding: 84px 16px 36px; }
+  .wallet-preview.wallet-flow .tool-output-layout { grid-template-columns: minmax(0, 1fr); grid-template-areas: "document" "proof"; }
+  .wallet-preview.wallet-flow .report-layout { grid-template-columns: minmax(0, 1fr); grid-template-areas: "document" "proof" "sources"; }
+  .wallet-preview.wallet-flow .report-section .brief-header,
+  .wallet-preview.wallet-flow .report-section .brief-body { padding: 20px; }
+  .wallet-preview.wallet-flow .report-section .tool-output-toolbar { padding: 14px; }
+  .wallet-preview.wallet-flow .report-section .tool-output-toolbar > :is(strong, span) { flex-basis: 100%; }
+}
 
 @keyframes world-reveal {
   from { opacity: 0; transform: scale(1.04); filter: blur(10px); }

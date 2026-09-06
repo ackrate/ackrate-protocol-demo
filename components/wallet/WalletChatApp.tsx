@@ -5,6 +5,7 @@ import Link from "next/link";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   Activity,
+  ArrowLeft,
   ArrowUpRight,
   Bot,
   Check,
@@ -302,6 +303,9 @@ export function WalletChatApp() {
   const [balancesLoading, setBalancesLoading] = useState(false);
   const [nowSeconds, setNowSeconds] = useState(() => Math.floor(Date.now() / 1_000));
   const [completedPurchase, setCompletedPurchase] = useState<PurchaseResult | null>(null);
+  const [openedResultTx, setOpenedResultTx] = useState<string | null>(null);
+  const resultViewRef = useRef<HTMLDivElement>(null);
+  const resultVisible = Boolean(completedPurchase && config && openedResultTx === completedPurchase.payment.txHash);
   const [marketplaceSelected, setMarketplaceSelected] = useState(false);
   const [serviceConfigured, setServiceConfigured] = useState(false);
   const [marketplaceService, setMarketplaceService] = useState<MarketplaceService>(DEFAULT_MARKETPLACE_SERVICE);
@@ -322,6 +326,12 @@ export function WalletChatApp() {
   const preparedAllowanceReady = Boolean(config && stored && preparedAllowance?.mandateId === stored.id
     && allowanceTransactionIsFresh(preparedAllowance.xdr, config.networkPassphrase, nowSeconds));
   const notificationBusy = allowancePreparing || quoteChecking || disconnecting || !["idle", "active"].includes(phase);
+
+  useEffect(() => {
+    if (!resultVisible) return;
+    window.scrollTo({ top: 0, behavior: "instant" });
+    resultViewRef.current?.focus({ preventScroll: true });
+  }, [resultVisible]);
 
   useEffect(() => {
     if (!notification || notification.kind === "error" || notificationBusy) return;
@@ -1194,8 +1204,8 @@ export function WalletChatApp() {
   const navState = (step: number) => workflowStep > step ? "done" : workflowStep === step ? "current" : "";
 
   return (
-    <main className={`wallet-preview wallet-flow spatial-step-${workflowStep}`}>
-      <ProtocolWorld step={workflowStep} reducedMotion={Boolean(reduceMotion)} />
+    <main className={`wallet-preview wallet-flow spatial-step-${workflowStep}${resultVisible ? " wallet-result-mode" : ""}`}>
+      {!resultVisible && <ProtocolWorld step={workflowStep} reducedMotion={Boolean(reduceMotion)} />}
       <header className="flow-header">
         <Link href="/" className="flow-brand"><span className="flow-brand-mark"><MarketplaceOrb variant="brand" /></span><strong>ACKRATE</strong></Link>
         <div className="flow-network"><span />{config?.networkLabel ?? "Loading Mainnet"}</div>
@@ -1214,7 +1224,7 @@ export function WalletChatApp() {
         </div>
       </header>
 
-      <section className={`flow-shell ${connected ? "flow-shell-active" : ""}`}>
+      {!resultVisible && <section className={`flow-shell ${connected ? "flow-shell-active" : ""}`}>
         <motion.div
           className="flow-intro"
           initial={reduceMotion ? false : { opacity: 0, y: -8 }}
@@ -1553,7 +1563,7 @@ export function WalletChatApp() {
                 <a href={`${explorer}/tx/${completedPurchase.payment.txHash}`} target="_blank" rel="noreferrer"><small>01 · ACKRATE CONTRACT</small><strong>{completedPurchase.payment.amount} {completedPurchase.payment.asset}</strong><code>{short(completedPurchase.payment.txHash, 6)}</code><span>Verify <ArrowUpRight size={12} /></span></a>
                 {externalSettlement ? <a href={`${explorer}/tx/${externalSettlement.transaction}`} target="_blank" rel="noreferrer"><small>02 · AGENT402 x402</small><strong>{externalSettlement.amount} USDC</strong><code>{short(externalSettlement.transaction, 6)}</code><span>Verify <ArrowUpRight size={12} /></span></a> : <div><small>02 · AGENT402 x402</small><strong>Proof unavailable</strong><span>Do not treat this run as complete.</span></div>}
               </div>
-              <a className="flow-primary flow-report-link" href="#paid-service-output"><Sparkles size={16} />{isGuidedResearchService(marketplaceService) ? "Read the cited report" : "Open service output"}</a>
+              <button className="flow-primary flow-report-link" type="button" onClick={() => setOpenedResultTx(completedPurchase.payment.txHash)}><Sparkles size={16} />{isGuidedResearchService(marketplaceService) ? "Read the cited report" : "Open service output"}</button>
               <div className="flow-secondary-row"><button type="button" onClick={() => { setCompletedPurchase(null); setServiceConfigured(false); setMarketplaceQuote(null); setRunStarted(false); }}><Search size={12} />Configure another request</button><button type="button" onClick={() => setDisconnectOpen(true)}><Power size={12} />Turn off spending</button></div>
             </motion.div>
           )}
@@ -1570,16 +1580,26 @@ export function WalletChatApp() {
           <span><ShieldCheck size={14} />2-of-3 governed MandateRegistry V2</span>
           <a href={config?.mandateRegistryId ? `${stepOneExplorer}/contract/${config.mandateRegistryId}` : "#"} target="_blank" rel="noreferrer">View contract <ArrowUpRight size={13} /></a>
         </div>
-      </section>
+      </section>}
 
-      {completedPurchase && config && (
-        <PurchaseReport
-          result={completedPurchase}
-          explorerNetwork={config.explorerNetwork}
-          registryId={config.mandateRegistryId}
-          registrationTx={stored?.registrationTx}
-          allowanceTx={stored?.allowanceTx}
-        />
+      {resultVisible && completedPurchase && config && (
+        <div className="wallet-result-view" ref={resultViewRef} tabIndex={-1} aria-label="Service result">
+          <div className="wallet-result-toolbar">
+            <button type="button" onClick={() => {
+              setOpenedResultTx(null);
+              window.scrollTo({ top: 0, behavior: "instant" });
+            }}><ArrowLeft size={16} />Back to payment trail</button>
+            <span>Saved output · Viewing and downloading do not make another payment.</span>
+          </div>
+          <PurchaseReport
+            result={completedPurchase}
+            explorerNetwork={config.explorerNetwork}
+            registryId={config.mandateRegistryId}
+            registrationTx={stored?.registrationTx}
+            allowanceTx={stored?.allowanceTx}
+            autoScroll={false}
+          />
+        </div>
       )}
 
       {disconnectOpen && session.authenticated && (
