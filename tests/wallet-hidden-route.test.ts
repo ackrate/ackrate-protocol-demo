@@ -28,7 +28,10 @@ test("wallet and experimental remain separate pages with separate styles and ind
   const nav = read("components/Nav.tsx");
   assert.match(nav, /\{ href: "\/wallet"/);
   assert.doesNotMatch(nav, /\{ href: "\/experimental"/);
-  assert.match(read("app/robots.ts"), /disallow: \["\/api\/", "\/wallet"\]/);
+  const robots = read("app/robots.ts");
+  assert.match(robots, /disallow: \[[^\]]*"\/api\/"/);
+  assert.match(robots, /disallow: \[[^\]]*"\/wallet"/);
+  assert.match(robots, /disallow: \[[^\]]*"\/reports\/"/);
   for (const surface of surfaces) {
     const other = surface === "wallet" ? "experimental" : "wallet";
     const page = read(`app/${surface}/page.tsx`);
@@ -87,8 +90,16 @@ for (const surface of surfaces) {
       assert.match(app, /!serviceConfigured \? 3 : !activeMandateReady && !spentOut \? 4 : !completedPurchase \? 5 : 6/);
       assert.match(app, /spentOut = Boolean\(storedFresh && stored\?\.allowanceTx && mandateMatchesConfig && mandate\?\.status === "Exhausted"\)/);
     }
-    assert.match(ui, /Open Freighter · Approve \$\{formatUnits\(/);
-    assert.match(ui, /Preparing (?:secure approval|Freighter)/);
+    if (surface === "wallet") {
+      includes(ui, ["1 of 2 · Register mandate", "2 of 2 · Approve USDC allowance", "2 of 2 · Preparing allowance", "2 of 2 · Resume confirmation", "Mandate registration does not need to be repeated"]);
+      const retry = section(app, "const retryAllowance = async () =>", "const confirmServiceInputs = async () =>");
+      const pending = section(retry, "if (stored.pendingAllowance)", "if (stored.expiry");
+      includes(pending, ["setAllowanceCheckAttempt", "return;"]);
+      assert.doesNotMatch(pending, /registerWithFreighter|submitPreparedAllowanceWithFreighter|prepareAllowanceTransaction/);
+    } else {
+      assert.match(ui, /Open Freighter · Approve \$\{formatUnits\(/);
+      assert.match(ui, /Preparing (?:secure approval|Freighter)/);
+    }
     includes(ui, ["Your funds stay in your wallet", 'phase === "registering"']);
   });
 
@@ -104,21 +115,32 @@ for (const surface of surfaces) {
   });
 
   test(`${surface}: disconnect is visible and only clears site state after session deletion`, () => {
-    const disconnect = section(app, "const disconnect = async () =>", "const chooseMarketplaceService = () =>");
+    const disconnect = section(app, surface === "wallet" ? "const finishDisconnect = async (confirmedMandate?: MandateView) =>" : "const disconnect = async () =>", "const chooseMarketplaceService = () =>");
     assert.match(ui, /Disconnect wallet/);
     assert.match(app, /onClick=\{(?:connected \? )?\(\) => setDisconnectOpen\(true\)/);
-    assert.match(disconnect, /mandate\?\.status === "Active" && mandate\.expiry > Math\.floor\(Date\.now\(\) \/ 1_000\)/);
-    includes(disconnect, ["First tap Turn off spending below. Then disconnect your wallet", 'await api("/api/wallet/auth/session", { method: "DELETE"', surface === "wallet" ? "Disconnect did not finish. Your wallet is still connected" : "Could not disconnect. Please try again"]);
+    assert.match(disconnect, /(?:mandate|latest)\?\.status === "Active" && (?:mandate|latest)\.expiry > Math\.floor\(Date\.now\(\) \/ 1_000\)/);
+    includes(disconnect, ["First tap Turn off spending below. Then disconnect your wallet", 'await api("/api/wallet/auth/session", { method: "DELETE"', surface === "wallet" ? "Spending is off, but sign-out did not finish" : "Could not disconnect. Please try again"]);
     assert.match(disconnect, /catch \(cause\) \{[\s\S]*?return;/);
     assert.ok(disconnect.indexOf('method: "DELETE"') < disconnect.indexOf("setSession(emptySession)"));
     includes(disconnect, ["setSession(emptySession)", "setWalletAddress(null)", "setMarketplaceSelected(false)", "setServiceConfigured(false)", "setCompletedPurchase(null)", "localStorage.removeItem(mandateStorageKey(config, session.address))", "localStorage.removeItem(legacyMandateStorageKey(config, session.address))", 'localStorage.removeItem("ackrate:mainnet:last-payment")', "Wallet disconnected. Connect a wallet to start again"]);
-    if (surface === "wallet") includes(disconnect, ["localStorage.removeItem(marketplaceStorageKey(session.address))", "window.location.reload()"]);
+    if (surface === "wallet") {
+      includes(disconnect, ["confirmedMandate.id !== stored?.id", "confirmedMandate.user !== session.address", "localStorage.removeItem(marketplaceStorageKey(session.address))", "setDisconnectOpen(false)", "window.location.reload()"]);
+      assert.ok(disconnect.indexOf("confirmedMandate.id !== stored?.id") < disconnect.indexOf('method: "DELETE"'));
+      assert.ok(disconnect.indexOf('method: "DELETE"') < disconnect.indexOf("localStorage.removeItem"));
+    }
     assert.doesNotMatch(disconnect, /localStorage\.clear\(/);
   });
 
   test(`${surface}: revocation verifies the same account and preserves its transaction proof`, () => {
-    const revoke = section(app, "const revoke = async () =>", "const disconnect = async () =>");
-    includes(revoke, ["const address = await connectFreighter(config.networkPassphrase)", 'if (address !== stored.user) throw new Error("Select the same wallet you connected to Ackrate")', "await revokeWithFreighter", "await refreshMandate(next)", "Spending is off. Now click Disconnect wallet"]);
+    const revoke = section(app, surface === "wallet" ? "const revoke = async (disconnectAfter = false) =>" : "const revoke = async () =>", surface === "wallet" ? "const finishDisconnect = async" : "const disconnect = async () =>");
+    includes(revoke, ["const address = await connectFreighter(config.networkPassphrase)", "Select the same wallet you connected to Ackrate", "await revokeWithFreighter"]);
+    if (surface === "wallet") {
+      includes(revoke, ["address !== current.user", '!current.revokeTx && !current.pendingRevokeTx', "pendingRevokeTx: hash", "await refreshMandate(current)", 'confirmed.status !== "Revoked" && attempt < 10', 'if (confirmed.status !== "Revoked")', 'if (disconnectAfter)', "await finishDisconnect(confirmed)"]);
+      const finalConfirmation = revoke.lastIndexOf('if (confirmed.status !== "Revoked")');
+      assert.ok(finalConfirmation > revoke.indexOf("await revokeWithFreighter"));
+      assert.ok(revoke.indexOf("await finishDisconnect(confirmed)") > finalConfirmation);
+      assert.match(revoke.slice(finalConfirmation, revoke.indexOf("if (disconnectAfter)")), /throw new Error/);
+    } else includes(revoke, ["address !== stored.user", "await refreshMandate(next)", "Spending is off. Now click Disconnect wallet"]);
     includes(app, ['role="dialog" aria-modal="true"', "stored?.revokeTx"]);
     assert.match(ui, /Spending turned off/);
   });
@@ -153,10 +175,10 @@ for (const surface of surfaces) {
   });
 }
 
-test("wallet search starts empty with published optional fields collapsed", () => {
+test("wallet search prefills the editable Stellar question with published optional fields collapsed", () => {
   const service = FALLBACK_MARKETPLACE_SERVICES.find((candidate) => candidate.id === "search")!;
   const values = initialServiceInputValues(service);
-  assert.equal(values.q, "");
+  assert.equal(values.q, "What is Stellar?");
   const markup = renderToStaticMarkup(createElement(ServiceConfigurator, { service, values, executable: true, onChange() {}, onBack() {}, onContinue() {} }));
   includes(markup, ['aria-label="What are you searching for?"', 'placeholder="What is Stellar?"', '<details class="service-parameters">', "<summary>Advanced options"]);
   assert.doesNotMatch(markup, /<details[^>]* open/);

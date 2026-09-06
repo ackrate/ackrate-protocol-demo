@@ -45,7 +45,11 @@ test("wallet toast is readable, dismissible, announces status and expires only n
   assert.match(app, /fontSize: 13/);
   assert.match(app, /role=\{failed \? "alert" : "status"\} aria-atomic="true"/);
   assert.doesNotMatch(app, /error \?\? notice|Could not finish setup\. Open Freighter/);
-  assert.match(app, /if \(submitted.pendingAllowance\) \{\s*setNotice\("The signed allowance is saved/);
+  const submission = app.slice(app.indexOf("const retryAllowance = async () =>"), app.indexOf("const confirmServiceInputs = async () =>"));
+  assert.match(submission, /if \(submitted.pendingAllowance\) \{\s*if \(cause instanceof AllowanceSubmissionRejected\)/);
+  assert.match(submission, /submissionError: cause.resultCode/);
+  assert.match(submission, /setNotice\("The submission response was interrupted\. Checking the saved transaction before requesting another signature/);
+  assert.match(app, /2 of 2: Confirming the signed USDC allowance on Stellar\. No additional signature is needed/);
   assert.doesNotMatch(app, /The allowance was signed, but confirmation has not finished/);
 });
 
