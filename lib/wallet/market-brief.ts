@@ -5,6 +5,8 @@ export interface MarketBrief {
   opening: string;
   findings: Array<{ number: string; title: string; body: string }>;
   takeaway: string;
+  /** Optional for older saved reports; newly composed reports close with 3–4 paragraphs. */
+  summary?: string[];
   sources: Array<{ publisher: string; title: string; url: string }>;
   question?: string;
   generatedAt?: string;

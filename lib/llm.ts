@@ -46,6 +46,8 @@ export type LlmRequest = {
   timeoutMs?: number;
   maxRetries?: number;
   signal?: AbortSignal;
+  /** Scoped reasoning budget for text-only report composition. */
+  reasoningEffort?: "low" | "medium" | "high";
 };
 
 export type LlmResponse = {
@@ -228,11 +230,12 @@ export class OpenAIProvider implements LlmProvider {
   constructor(
     readonly label: string,
     private client: OpenAI = new OpenAI(),
+    modelOverrides: Partial<Record<Tier, string>> = {},
   ) {
     // Env-configurable so the deployer points it at whatever the key supports.
     const main = process.env.OPENAI_MODEL || "gpt-5.5";
     const sub = process.env.OPENAI_MODEL_SUB || process.env.OPENAI_MODEL || "gpt-5.5";
-    this.models = { main, sub };
+    this.models = { main, sub, ...modelOverrides };
   }
 
   engineName(tier: Tier): string {
@@ -289,6 +292,7 @@ export class OpenAIProvider implements LlmProvider {
     const resp = await this.client.chat.completions.create({
       model: this.models[tier],
       max_completion_tokens: req.maxTokens,
+      ...(req.reasoningEffort ? { reasoning_effort: req.reasoningEffort } : {}),
       ...(req.tools
         ? {
             tools: req.tools.map((t) => ({
@@ -404,4 +408,10 @@ export function buildFailoverLlm(): FailoverLlm {
   }
 
   return new FailoverLlm(providers);
+}
+
+/** Report-only selection. Chat/tool routes retain their existing model policy. */
+export function buildReportLlm(): FailoverLlm {
+  const model = process.env.OPENAI_REPORT_MODEL?.trim() || "gpt-6-astra";
+  return new FailoverLlm([new OpenAIProvider("report editor", undefined, { main: model, sub: model })]);
 }

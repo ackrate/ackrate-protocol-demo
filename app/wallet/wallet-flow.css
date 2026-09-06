@@ -2274,6 +2274,9 @@
 .wallet-preview.wallet-flow .report-section .brief-takeaway { border: 0; border-radius: 0; background: #202630; }
 .wallet-preview.wallet-flow .report-section .brief-takeaway span { color: #d6ddea; font-size: 10px; }
 .wallet-preview.wallet-flow .report-section .brief-takeaway p { color: #e0e6f0; font-size: 15px; line-height: 1.7; }
+.wallet-preview.wallet-flow .report-section .brief-plain-english { display: grid; gap: 14px; }
+.wallet-preview.wallet-flow .report-section .brief-plain-english h3 { margin: 0; color: #f2f5fa; font-size: 18px; line-height: 1.4; letter-spacing: -0.02em; }
+.wallet-preview.wallet-flow .report-section .brief-plain-english p { margin: 0; color: #e0e6f0; font-size: 16px; line-height: 1.75; }
 .wallet-preview.wallet-flow .report-section .brief-methodology { color: #b1bdcf; font-size: 12px; line-height: 1.65; }
 .wallet-preview.wallet-flow .report-section .brief-body a { color: #fff; text-decoration: underline; text-underline-offset: 3px; }
 .wallet-preview.wallet-flow .report-sources-head strong { color: #eef2f7; font-size: 14px; }

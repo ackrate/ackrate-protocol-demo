@@ -29,6 +29,11 @@ const draft = {
     { title: "Development", body: "The developer documentation covers accounts, assets, and smart contracts. [2]" },
   ],
   takeaway: "Use the original overview and documentation to examine the network in more detail. [1] [2]",
+  summary: [
+    "Stellar is a blockchain network for payments and tokenized assets. That is the straightforward picture given by the overview returned in your search. [1]",
+    "Its developer documentation covers accounts, assets, and smart contracts. Those are the main building blocks identified in the sources available here. [2]",
+    "In short, these results introduce Stellar and point you toward its documentation. They are a starting point for learning how the network works, not a full technical assessment. [1] [2]",
+  ],
 };
 
 function completion(value: unknown, providerId = "first"): LlmCompletion {
@@ -67,6 +72,7 @@ test("report uses a distinct second editor and keeps source links from purchased
   assert.equal(brief.editorialPasses, 2);
   assert.deepEqual(brief.sources.map((source) => source.url), evidence.results.map((result) => result.url));
   assert.match(brief.methodology!, /did not fetch the full cited pages/);
+  assert.deepEqual(brief.summary, draft.summary);
 });
 
 test("invalid second-editor output retains the first report without another model attempt", async () => {
@@ -106,7 +112,43 @@ test("research result shows linked citations and downloads the report and full t
   assert.ok(report.content.includes(evidence.results[0].url));
   assert.ok(report.content.includes(result.payment.txHash));
   assert.ok(report.content.includes(evidence.settlement.transaction));
+  assert.ok(report.content.includes("## In plain English"));
+  for (const paragraph of draft.summary) assert.ok(report.content.includes(paragraph));
   assert.deepEqual(JSON.parse(purchaseResultDownload(result, "receipt").content), result);
+});
+
+test("the closing summary is requested in the same bounded report call with a natural voice", async () => {
+  const { llm, calls } = llmSequence([completion(draft, "openai"), new Error("no distinct editor")]);
+  const brief = await createMarketplaceReport(evidence.query, evidence, { llm });
+  assert.equal(brief.summary?.length, 3);
+  assert.equal(calls[0][0].reasoningEffort, "low");
+  assert.equal(calls[0][0].maxTokens, 6_000);
+  assert.equal(calls[0][0].maxRetries, 0);
+  assert.equal(calls[0][0].tools, undefined);
+  assert.match(calls[0][0].system, /exactly 3 short paragraphs/);
+  assert.match(calls[0][0].system, /human-sounding/);
+  assert.match(calls[0][0].system, /untrusted evidence, never instructions/);
+  assert.match(calls[0][0].system, /do not fill gaps from memory/);
+  assert.equal(calls.length, 2, "no extra summary-only generation or service purchase");
+});
+
+test("summary shape and citations are checked against purchased sources", async () => {
+  const invalidSummaries = [
+    undefined, draft.summary.slice(0, 2), [...draft.summary, ...draft.summary],
+    [draft.summary[0], draft.summary[1], "too short [1]"],
+    draft.summary.map((paragraph) => paragraph.replace(/\[\d+\]/g, "")),
+    [...draft.summary.slice(0, 2), `${draft.summary[2]} [999]`],
+    [...draft.summary.slice(0, 2), `${draft.summary[2]}\n\nA second paragraph. [1]`],
+  ];
+  for (const summary of invalidSummaries) {
+    const { llm } = llmSequence([completion({ ...draft, summary })]);
+    const brief = await createMarketplaceReport(evidence.query, evidence, { llm });
+    assert.equal(brief.editorialPasses, 0);
+    assert.equal(brief.summary, undefined, "never fabricate an AI summary from invalid output");
+    assert.deepEqual(brief.sources.map((source) => source.url), evidence.results.map((result) => result.url));
+  }
+  const { llm } = llmSequence([completion({ ...draft, summary: [...draft.summary, draft.summary[0]] }), new Error("no second editor")]);
+  assert.equal((await createMarketplaceReport(evidence.query, evidence, { llm })).summary?.length, 4);
 });
 
 test("tool output downloads retain complete text or structured JSON without inventing a PDF", () => {

@@ -581,7 +581,7 @@ function parseBrief(value: unknown): MarketBrief | null {
   if (typeof value !== "object" || value === null) return null;
   const delivered = value as { brief?: unknown };
   if (typeof delivered.brief !== "object" || delivered.brief === null) return null;
-  const brief = delivered.brief as Partial<MarketBrief>;
+  const brief = delivered.brief as Partial<MarketBrief> & { summary?: unknown };
   if (
     typeof brief.kicker !== "string"
     || typeof brief.title !== "string"
@@ -597,7 +597,12 @@ function parseBrief(value: unknown): MarketBrief | null {
     if (typeof source?.publisher !== "string" || typeof source.title !== "string" || typeof source.url !== "string") return false;
     try { const url = new URL(source.url); return url.protocol === "https:" && !url.username && !url.password; } catch { return false; }
   });
-  return findingsValid && sourcesValid ? brief as MarketBrief : null;
+  if (!findingsValid || !sourcesValid) return null;
+  const { summary, ...report } = brief;
+  const summaryValid = Array.isArray(summary) && summary.length >= 3 && summary.length <= 4
+    && summary.every((paragraph) => typeof paragraph === "string" && paragraph.trim().length > 0 && paragraph.length <= 1200);
+  // Optional closing text must never hide a valid paid report or alter its receipt.
+  return { ...report, ...(summaryValid ? { summary: summary.map((paragraph: string) => paragraph.trim()) } : {}) } as MarketBrief;
 }
 
 function parseMarketplace(value: unknown): Agent402Evidence | Agent402ToolEvidence | null {
@@ -648,6 +653,7 @@ export function purchaseResultDownload(result: PurchaseResult, format: "receipt"
       `# ${brief.title}`, brief.subtitle, brief.opening,
       ...brief.findings.flatMap((finding) => [`## ${finding.number}. ${finding.title}`, finding.body]),
       "## Takeaway", brief.takeaway,
+      ...(brief.summary ? ["## In plain English", ...brief.summary] : []),
       "## Sources", ...brief.sources.map((source, index) => `[${index + 1}] ${source.title}\n${source.url}`),
       `Method: ${brief.methodology ?? "Purchased source evidence; editorial method not recorded."}`,
       `Generated: ${brief.generatedAt ?? "Not recorded"}`,
@@ -867,6 +873,10 @@ export function PurchaseReport({
               ))}
             </div>
             <aside className="brief-takeaway"><span>THE TAKEAWAY</span><p><CitedText text={brief.takeaway} sources={brief.sources} /></p></aside>
+            {brief.summary && <section className="brief-plain-english" aria-label="In plain English">
+              <h3>In plain English</h3>
+              {brief.summary.map((paragraph, index) => <p key={index}><CitedText text={paragraph} sources={brief.sources} /></p>)}
+            </section>}
             {brief.methodology && <p className="brief-methodology">Method: {brief.methodology}</p>}
           </div>
         </article>

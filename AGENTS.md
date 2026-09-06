@@ -29,6 +29,9 @@ Set `OPENAI_API_KEY` for chat and report formatting. Explicitly selecting
 `OPENAI_MODEL` / `OPENAI_MODEL_SUB` set the model ids. See
 `.env.example`. The failover layer lives in `lib/llm.ts`. Without any key the
 video demo still works and the research page shows a notice.
+Marketplace report composition uses its own OpenAI-only model setting,
+`OPENAI_REPORT_MODEL` (default `gpt-6-astra`), without changing chat/tool routing.
+New reports include a cited, three-paragraph plain-English closing summary.
 
 ## Routes
 
