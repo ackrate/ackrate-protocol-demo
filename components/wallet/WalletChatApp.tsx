@@ -601,7 +601,7 @@ export function WalletChatApp() {
         method: "POST",
         body: JSON.stringify({ address: walletAddress }),
       });
-      setNotice("Verify wallet control in Freighter. This challenge is never sent to Mainnet.");
+      setNotice("Confirm the sign-in request in Freighter to prove this wallet is yours. No payment or spending permission is granted.");
       const signedTransactionXdr = await signFreighterTransaction(
         challenge.transactionXdr,
         walletAddress,
@@ -612,7 +612,7 @@ export function WalletChatApp() {
         body: JSON.stringify({ signedTransactionXdr }),
       });
       setSession(verified.session);
-      setNotice("Wallet verified. You can now choose a marketplace service.");
+      setNotice("Signed in. You can now choose a marketplace service.");
       setPhase("idle");
     } catch (cause) {
       setError(safeWalletError(cause, "Wallet verification did not finish. Open Freighter to complete the sign-in request; it does not make a payment."));
@@ -1261,8 +1261,8 @@ export function WalletChatApp() {
               transition={{ duration: reduceMotion ? 0 : 0.28, ease: "easeOut" }}
             >
               <p className="flow-kicker">STEP 1 OF 6</p>
-              <h2>Connect your wallet</h2>
-              <p className="flow-description">Use a personal Freighter wallet on Stellar Mainnet. We verify that you control it without broadcasting a transaction.</p>
+              <h2>{walletAddress ? "Sign in with your wallet" : "Connect your wallet"}</h2>
+              <p className="flow-description">{walletAddress ? "Your wallet is connected. Confirm ownership before choosing a service." : "Connect a personal Freighter wallet on Stellar Mainnet, then sign in to prove it belongs to you."}</p>
               <div className="flow-checklist">
                 <span><Check size={14} />Mainnet wallet</span>
                 <span><Check size={14} />Circle USDC</span>
@@ -1275,14 +1275,15 @@ export function WalletChatApp() {
                 className="flow-primary"
                 type="button"
                 onClick={walletAddress ? authenticate : connect}
+                aria-describedby="wallet-sign-in-note"
                 disabled={!config || phase === "authenticating"}
                 whileHover={reduceMotion || !config || phase === "authenticating" ? undefined : { y: -2, scale: 1.005 }}
                 whileTap={reduceMotion || !config || phase === "authenticating" ? undefined : { scale: 0.985 }}
               >
                 {phase === "authenticating" ? <LoaderCircle className="spin" size={17} /> : <WalletCards size={17} />}
-                {phase === "authenticating" ? "Waiting for Freighter…" : walletAddress ? "Verify wallet" : "Connect Freighter"}
+                {phase === "authenticating" ? "Waiting for Freighter…" : walletAddress ? "Sign in with Freighter" : "Connect Freighter"}
               </motion.button>
-              <small className="flow-footnote"><LockKeyhole size={12} />Freighter may show a connection prompt and a verification signature.</small>
+              <small className="flow-footnote wallet-sign-in-note"><LockKeyhole size={12} aria-hidden="true" /><em id="wallet-sign-in-note">{walletAddress ? "Confirm in Freighter to prove this wallet is yours and sign in. This does not authorize spending. Freighter may show a fee, but we do not submit this request to Stellar, so no fee is charged." : "Connecting shares your public wallet address. Next, you will sign in to prove ownership. Neither step makes a payment or authorizes spending."}</em></small>
             </motion.div>
           ) : !marketplaceSelected ? (
             <motion.div

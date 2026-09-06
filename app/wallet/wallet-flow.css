@@ -1921,6 +1921,8 @@
 .wallet-preview.wallet-flow .flow-primary:hover:not(:disabled),
 .wallet-preview.wallet-flow .research-button:hover:not(:disabled) { background: #fff; transform: translateY(-3px); box-shadow: 0 22px 70px rgba(255, 255, 255, 0.12); }
 .wallet-preview.wallet-flow .flow-footnote { max-width: 480px; justify-content: flex-start; color: #b9c1ce; font-size: 11px; }
+.wallet-preview.wallet-flow .wallet-sign-in-note { align-items: flex-start; font-size: 12px; line-height: 1.55; }
+.wallet-preview.wallet-flow .wallet-sign-in-note svg { flex-shrink: 0; margin-top: 3px; }
 
 .wallet-preview.wallet-flow .marketplace-source,
 .wallet-preview.wallet-flow .selected-service-summary,
