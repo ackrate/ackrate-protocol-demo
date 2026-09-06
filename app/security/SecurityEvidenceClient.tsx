@@ -6,7 +6,13 @@ import { ArrowUpRight, Check, ChevronDown, Code2, FileCheck2, Network, ShieldChe
 const REPO = "https://github.com/ackrate/ackrate-protocol-contracts";
 const CONTRACT = "CCLZEBJXG4YVJEPBCR5F27N733BCK5HQJWZZGB3K54JVODY3VAGP4HWR";
 const WASM_HASH = "982809197d35d44c7b0fce6bd117fb2fec09b728c64c146c1f803b01faacff62";
+const AUTHORITY = "GCIURCX7JHEKQLRTW6RDZU7OJUVCDM7WWNQPIKRERIHQOHSLW7UY7TXG";
+const USDC = "CCW67TSZV3SSS2HXMBQ5JFGCKJNXKZM7UQUWUZPUTHXSTZLEO7SJMI75";
 const REPORT = `${REPO}/blob/main/docs/mainnet-v2-security-verification.md`;
+const THREAT_MODEL = `${REPO}/blob/main/docs/mainnet-v2-threat-model.md`;
+const DATA_FLOW = `${REPO}/blob/main/docs/mainnet-v2-data-flow.md`;
+const SCAN_REPORT = `${REPO}/blob/main/docs/mainnet-v2-security-scan-report.md`;
+const SOURCE_PROOF = `${REPO}/blob/main/docs/mainnet-v2-source-verification.md`;
 const TESTS = `${REPO}/blob/main/contracts/mainnet-v2/mandate-registry/src/test.rs`;
 const GATE = `${REPO}/blob/main/scripts/gatecheck-contracts.sh`;
 const SCAN = `${REPO}/blob/main/scripts/security-scan.sh`;
@@ -28,13 +34,13 @@ type EvidenceCard = {
   icon: typeof ShieldCheck;
 };
 
-const cards: EvidenceCard[] = [
+export const SECURITY_EVIDENCE_CARDS: EvidenceCard[] = [
   {
     id: "behavior",
     label: "Contract behavior",
     result: "53 / 53 PASS",
     summary: "The reviewed V2 code passes its required native and optimized-contract checks.",
-    command: "cargo test --manifest-path contracts/mainnet-v2/mandate-registry/Cargo.toml --all-features",
+    command: "./scripts/gatecheck-contracts.sh",
     steps: [
       "52 native Soroban host tests passed",
       "1 exact optimized-WASM execution check passed",
@@ -42,7 +48,7 @@ const cards: EvidenceCard[] = [
       "512 complete mandate-state scenarios passed",
     ],
     proves: "Budget, expiry, merchant, asset, status, sequence, and atomic Circle USDC settlement are enforced by the contract.",
-    boundary: "Behavior is exercised locally; the live-code check below binds that reviewed code to Mainnet.",
+    boundary: "Run from the repository root with the pinned toolchain. The gate builds the optimized WASM before executing it; a standalone all-features test requires that artifact. The live-code check binds the reviewed bytes to Mainnet.",
     links: [
       { label: "Test code", href: TESTS },
       { label: "Full gate", href: GATE },
@@ -54,7 +60,7 @@ const cards: EvidenceCard[] = [
     label: "Required attack paths",
     result: "ALL REJECTED",
     summary: "Every required hostile path has an executable negative test.",
-    command: "cargo test --manifest-path contracts/mainnet-v2/mandate-registry/Cargo.toml test::",
+    command: "cargo test --manifest-path contracts/mainnet-v2/mandate-registry/Cargo.toml --locked test::",
     steps: [
       "Unauthorized callers rejected",
       "Expired mandates and overspend rejected",
@@ -65,7 +71,8 @@ const cards: EvidenceCard[] = [
     boundary: "These checks cover known and modeled paths; they are not a claim that unknown defects cannot exist.",
     links: [
       { label: "Negative tests", href: TESTS },
-      { label: "Threat matrix", href: REPORT },
+      { label: "Threat model", href: THREAT_MODEL },
+      { label: "Data flows and trust boundaries", href: DATA_FLOW },
     ],
     icon: ShieldCheck,
   },
@@ -82,9 +89,10 @@ const cards: EvidenceCard[] = [
       "15,510-byte artifact and canonical SHA-256 matched",
     ],
     proves: "A changed required test, dependency finding, function, event, artifact size, or canonical Linux hash stops the release gate.",
-    boundary: "The canonical byte hash is Linux-defined; other platforms reproduce behavior, interface, and artifact size.",
+    boundary: "The canonical byte hash is enforced by Linux CI; other platforms reproduce behavior, interface, and artifact size. One accepted host-only maintenance advisory is excluded from deployed WASM and checked separately; it is not described as remediated.",
     links: [
       { label: "Dependency check", href: SCAN },
+      { label: "Scan results and dispositions", href: SCAN_REPORT },
       { label: "Gate code", href: GATE },
       { label: "Public runs", href: ACTIONS },
     ],
@@ -95,7 +103,23 @@ const cards: EvidenceCard[] = [
     label: "Live Mainnet binding",
     result: "READ-ONLY PASS",
     summary: "Mainnet was read directly to confirm code, state, asset policy, and 2-of-3 authority.",
-    command: "./scripts/deploy-mainnet-v2.sh verify-deploy",
+    command: `set -euo pipefail
+./scripts/deploy-mainnet-v2.sh verify-deploy \\
+  --contract-id ${CONTRACT} \\
+  --source ${AUTHORITY} \\
+  --admin ${AUTHORITY} \\
+  --initial-asset ${USDC} \\
+  --rpc-url https://mainnet.sorobanrpc.com
+curl --fail --silent --show-error \\
+  https://horizon.stellar.org/accounts/${AUTHORITY} | \\
+  jq --exit-status --arg authority ${AUTHORITY} '
+    .account_id == $authority and
+    .thresholds.low_threshold == 2 and
+    .thresholds.med_threshold == 2 and
+    .thresholds.high_threshold == 2 and
+    (.signers | length) == 3 and
+    all(.signers[]; .type == "ed25519_public_key" and .weight == 1)
+  '`,
     steps: [
       "Live WASM SHA-256 matched reviewed V2",
       "Schema 2, unpaused, no successor pending",
@@ -108,19 +132,20 @@ const cards: EvidenceCard[] = [
       { label: "Contract", href: EXPLORER },
       { label: "Live check", href: LIVE_CHECK },
       { label: "Verification code", href: DEPLOY_CHECK },
+      { label: "Source proof and explorer status", href: SOURCE_PROOF },
     ],
     icon: Network,
   },
 ];
 
 export default function SecurityEvidenceClient() {
-  const [openId, setOpenId] = useState(cards[0]!.id);
+  const [openId, setOpenId] = useState(SECURITY_EVIDENCE_CARDS[0]!.id);
   const [runningId, setRunningId] = useState<string | null>(null);
   const [visibleSteps, setVisibleSteps] = useState(0);
 
   useEffect(() => {
     if (!runningId) return;
-    const total = cards.find((card) => card.id === runningId)?.steps.length ?? 0;
+    const total = SECURITY_EVIDENCE_CARDS.find((card) => card.id === runningId)?.steps.length ?? 0;
     if (visibleSteps >= total) {
       setRunningId(null);
       return;
@@ -147,7 +172,7 @@ export default function SecurityEvidenceClient() {
       </header>
 
       <section className="mt-10 grid items-start gap-4 lg:grid-cols-2" aria-label="Security evidence">
-        {cards.map((card) => {
+        {SECURITY_EVIDENCE_CARDS.map((card) => {
           const Icon = card.icon;
           const open = openId === card.id;
           const running = runningId === card.id;
@@ -177,7 +202,7 @@ export default function SecurityEvidenceClient() {
                       {running ? "Replaying…" : "Replay check"}
                     </button>
                   </div>
-                  <code className="mt-3 block overflow-x-auto rounded-lg bg-black/35 p-3 text-xs leading-5 text-emerald-100/70">$ {card.command}</code>
+                  <pre className="mt-3 overflow-x-auto rounded-lg bg-black/35 p-3 text-xs leading-5 text-emerald-100/70"><code>{card.command}</code></pre>
                   <ol className="mt-4 space-y-2" aria-live="polite">
                     {card.steps.slice(0, shown).map((step) => (
                       <li className="flex gap-2 text-sm leading-5 text-white/65" key={step}><Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" />{step}</li>
@@ -206,6 +231,9 @@ export default function SecurityEvidenceClient() {
         </p>
         <p className="mt-4 max-w-3xl">
           The replay is a readable view of recorded gate output, not a browser-side substitute for the Rust suite. Reproduce it from the public repository or inspect the public workflow history. No check on this page signs or submits a transaction.
+        </p>
+        <p className="mt-3 max-w-3xl">
+          Source-to-chain proof is separate from an explorer verification badge. The linked source-verification record documents the explorer intake issue and the independently matching build and on-chain hashes.
         </p>
         <a className="mt-4 inline-flex items-center gap-1.5 font-bold text-emerald-300 hover:text-emerald-200" href={REPORT} target="_blank" rel="noreferrer">Read the concise verification record <ArrowUpRight className="h-4 w-4" /></a>
       </footer>
