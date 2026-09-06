@@ -37,6 +37,7 @@ import {
   registerWithFreighter,
   revokeWithFreighter,
   submitPreparedAllowanceWithFreighter,
+  walletRpcServer,
 } from "@/lib/wallet/mandate-client";
 import type { MandateView, SafeAppConfig, SessionView } from "@/lib/wallet/types";
 import { addTokenToFreighter, connectFreighter, freighterSessionState, signFreighterTransaction } from "@/lib/wallet/freighter";
@@ -67,6 +68,7 @@ interface StoredMandate {
   registrationTx?: string;
   allowanceTx?: string;
   pendingAllowance?: PendingAllowance;
+  pendingRevokeTx?: string;
   revokeTx?: string;
 }
 
@@ -183,7 +185,7 @@ function isHistoricalMandate(value: unknown, config: SafeAppConfig, address: str
     && Number.isSafeInteger(entry.expiry) && entry.expiry > 0
     && typeof entry.maxAmount === "string" && /^\d+$/.test(entry.maxAmount)
     && Number.isSafeInteger(entry.decimals) && entry.decimals >= 0 && entry.decimals <= 18
-    && [entry.registrationTx, entry.allowanceTx, entry.revokeTx].every((hash) => hash === undefined || /^[0-9a-f]{64}$/i.test(hash));
+    && [entry.registrationTx, entry.allowanceTx, entry.pendingRevokeTx, entry.revokeTx].every((hash) => hash === undefined || /^[0-9a-f]{64}$/i.test(hash));
 }
 
 async function api<T>(url: string, init?: RequestInit): Promise<T> {
@@ -298,6 +300,7 @@ export function WalletChatApp() {
   }, []);
   const [disconnectOpen, setDisconnectOpen] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
+  const [revocationProgress, setRevocationProgress] = useState<"wallet" | "confirming" | null>(null);
   const [usdcReady, setUsdcReady] = useState(false);
   const [walletBalances, setWalletBalances] = useState<WalletBalances | null>(null);
   const [balancesLoading, setBalancesLoading] = useState(false);
@@ -322,6 +325,8 @@ export function WalletChatApp() {
   const [runStarted, setRunStarted] = useState(false);
   const [runBusy, setRunBusy] = useState(false);
   const approvalInFlight = useRef(false);
+  const revocationInFlight = useRef(false);
+  const disconnectInFlight = useRef(false);
   const activeMandateId = useRef<string | null>(null);
   const preparedAllowanceReady = Boolean(config && stored && preparedAllowance?.mandateId === stored.id
     && allowanceTransactionIsFresh(preparedAllowance.xdr, config.networkPassphrase, nowSeconds));
@@ -346,7 +351,9 @@ export function WalletChatApp() {
     });
     if (activeMandateId.current === current.id) {
       setMandate(body.mandate);
-      setPhase(body.mandate.status === "Active" && body.mandate.expiry > Math.floor(Date.now() / 1_000) ? "active" : "idle");
+      if (!revocationInFlight.current) {
+        setPhase(body.mandate.status === "Active" && body.mandate.expiry > Math.floor(Date.now() / 1_000) ? "active" : "idle");
+      }
     }
     return body.mandate;
   }, []);
@@ -828,38 +835,83 @@ export function WalletChatApp() {
     }
   };
 
-  const revoke = async () => {
-    if (!config || !stored) return;
+  const revoke = async (disconnectAfter = false) => {
+    if (!config || !stored || revocationInFlight.current || disconnectInFlight.current) return;
+    revocationInFlight.current = true;
     setError(null);
     setPhase("revoking");
-    setNotice("Open Freighter, choose this wallet, and approve Turn off spending.");
+    setRevocationProgress("confirming");
+    setNotice("Checking the existing spending limit. No transaction is being sent yet.");
+    let confirmed: MandateView | null = null;
     try {
-      const address = await connectFreighter(config.networkPassphrase);
-      if (address !== stored.user) throw new Error("Select the same wallet you connected to Ackrate");
-      const revokeTx = await revokeWithFreighter(config, storedToIntent(stored));
-      const next = { ...stored, revokeTx };
-      saveStored(next);
-      await refreshMandate(next);
-      setNotice("Spending is off. Now click Disconnect wallet.");
+      let current = stored;
+      confirmed = await refreshMandate(current);
+      // A confirmed receipt must only be reconciled, never submitted a second time.
+      if (confirmed.status !== "Revoked" && !current.revokeTx && !current.pendingRevokeTx) {
+        setRevocationProgress("wallet");
+        setNotice("Confirm Turn off spending in Freighter. We will wait for Stellar confirmation.");
+        const address = await connectFreighter(config.networkPassphrase);
+        if (address !== current.user) throw new Error("Select the same wallet you connected to Ackrate");
+        const revokeTx = await revokeWithFreighter(config, storedToIntent(current), (hash) => {
+          current = { ...current, pendingRevokeTx: hash };
+          setStored(current);
+          saveStored(current);
+          setRevocationProgress("confirming");
+          setNotice("Transaction submitted. Waiting for Stellar to confirm spending is off…");
+        });
+        current = { ...current, revokeTx, pendingRevokeTx: undefined };
+        saveStored(current);
+      }
+      setRevocationProgress("confirming");
+      if (current.pendingRevokeTx && confirmed.status !== "Revoked") {
+        const existing = await walletRpcServer(config).getTransaction(current.pendingRevokeTx);
+        if (existing.status === "FAILED") {
+          saveStored({ ...current, pendingRevokeTx: undefined });
+          throw new Error("The previous revocation failed on Stellar. Spending is not confirmed off. Try Turn off spending again if you want to submit a new transaction.");
+        }
+      }
+      // Allow the read endpoint to catch up with the confirmed transaction.
+      for (let attempt = 0; confirmed.status !== "Revoked" && attempt < 10; attempt += 1) {
+        if (attempt > 0) await new Promise((resolve) => window.setTimeout(resolve, 2_000));
+        confirmed = await refreshMandate(current);
+      }
+      if (confirmed.status !== "Revoked") {
+        throw new Error("The existing revocation is saved, but Stellar has not confirmed the mandate is revoked yet. Check again; no new transaction will be sent.");
+      }
+      if (disconnectAfter) {
+        await finishDisconnect(confirmed);
+      } else {
+        setNotice("Spending is off. The mandate is revoked.");
+      }
     } catch (cause) {
-      setError(safeWalletError(cause, "Spending could not be turned off. Check Freighter's pending request and keep the same wallet selected."));
-      setPhase("active");
+      setError(safeWalletError(cause, "Spending could not be confirmed off. Keep the same wallet selected and check the existing transaction before trying again."));
+    } finally {
+      revocationInFlight.current = false;
+      setRevocationProgress(null);
+      if (!disconnectInFlight.current) setPhase(confirmed?.status === "Active" ? "active" : "idle");
     }
   };
 
-  const disconnect = async () => {
-    if (disconnecting) return;
-    if (mandate?.status === "Active" && mandate.expiry > Math.floor(Date.now() / 1_000)) {
+  const finishDisconnect = async (confirmedMandate?: MandateView) => {
+    if (disconnectInFlight.current) return;
+    const latest = confirmedMandate ?? mandate;
+    if (confirmedMandate && (confirmedMandate.id !== stored?.id || confirmedMandate.user !== session.address)) {
+      throw new Error("The confirmed spending limit does not match this wallet.");
+    }
+    if (latest?.status === "Active" && latest.expiry > Math.floor(Date.now() / 1_000)) {
       setNotice("First tap Turn off spending below. Then disconnect your wallet.");
       return;
     }
 
+    disconnectInFlight.current = true;
     setError(null);
     setDisconnecting(true);
+    setNotice("Spending is off. Disconnecting your wallet…");
     try {
       await api("/api/wallet/auth/session", { method: "DELETE", body: "{}" });
     } catch (cause) {
-      setError("Disconnect did not finish. Your wallet is still connected; try Disconnect again.");
+      setError("Spending is off, but sign-out did not finish. Retry Disconnect wallet; no new transaction or fee is needed.");
+      disconnectInFlight.current = false;
       setDisconnecting(false);
       return;
     }
@@ -872,6 +924,7 @@ export function WalletChatApp() {
     localStorage.removeItem("ackrate:mainnet:last-payment");
     setSession(emptySession);
     setWalletAddress(null);
+    activeMandateId.current = null;
     setMandate(null);
     setStored(null);
     setPreparedAllowance(null);
@@ -893,6 +946,8 @@ export function WalletChatApp() {
     // Reload only after the cookie is cleared so pending requests cannot restore old setup.
     window.location.reload();
   };
+
+  const disconnect = () => finishDisconnect();
 
   const chooseMarketplaceService = () => {
     if (!session.address) return;
@@ -1090,7 +1145,7 @@ export function WalletChatApp() {
                   <div className="active-banner"><span><Check size={15} /></span><div><small>Status</small><strong>Spending is on</strong></div></div>
                   <div className="mandate-id"><span>Spending limit ID</span><code>{short(currentMandate.id, 9)}</code></div>
                   <p className="shutdown-copy">Turn off spending before you disconnect your wallet.</p>
-                  <button id="turn-off-mandate" className="danger-button" onClick={revoke} disabled={phase === "revoking"}><X size={15} /> {phase === "revoking" ? "Waiting for Freighter…" : "Turn off spending"}</button>
+                  <button id="turn-off-mandate" className="danger-button" onClick={() => revoke()} disabled={phase === "revoking"}><X size={15} /> {phase === "revoking" ? "Confirming spending is off…" : "Turn off spending"}</button>
                 </div>
               )}
             </div>
@@ -1165,8 +1220,8 @@ export function WalletChatApp() {
                 <>
                   <h2 id="disconnect-title">First, turn off spending</h2>
                   <p>This stops the agent from spending. Freighter will ask you to approve.</p>
-                  <button className="danger-button" onClick={revoke} disabled={phase === "revoking"}>
-                    <X size={16} /> {phase === "revoking" ? "Waiting for Freighter…" : "Turn off spending"}
+                  <button className="danger-button" onClick={() => revoke(true)} disabled={phase === "revoking" || disconnecting}>
+                    <X size={16} /> {phase === "revoking" || disconnecting ? "Confirming and disconnecting…" : "Turn off spending"}
                   </button>
                   {error && <p className="disconnect-error">{error}</p>}
                 </>
@@ -1483,8 +1538,8 @@ export function WalletChatApp() {
               )}
 
               {mandateOnline && !mandateMatchesConfig ? (
-                <motion.button className="flow-primary flow-danger" type="button" onClick={revoke} disabled={phase === "revoking"} whileTap={reduceMotion ? undefined : { scale: 0.985 }}>
-                  {phase === "revoking" ? <LoaderCircle className="spin" size={16} /> : <X size={16} />}{phase === "revoking" ? "Waiting for Freighter…" : "Turn off previous spending limit"}
+                <motion.button className="flow-primary flow-danger" type="button" onClick={() => revoke()} disabled={phase === "revoking"} whileTap={reduceMotion ? undefined : { scale: 0.985 }}>
+                  {phase === "revoking" ? <LoaderCircle className="spin" size={16} /> : <X size={16} />}{phase === "revoking" ? revocationProgress === "wallet" ? "Waiting for Freighter…" : "Confirming on Stellar…" : "Turn off previous spending limit"}
                 </motion.button>
               ) : stored?.pendingAllowance || (storedFresh && stored?.registrationTx && !stored.allowanceTx) ? (
                 <motion.button className="flow-primary" type="button" onClick={retryAllowance} disabled={phase === "approving" || allowancePreparing} whileTap={reduceMotion ? undefined : { scale: 0.985 }}>
@@ -1605,13 +1660,23 @@ export function WalletChatApp() {
       {disconnectOpen && session.authenticated && (
         <div className="flow-modal-backdrop" role="presentation">
           <section className="flow-modal" role="dialog" aria-modal="true" aria-labelledby="flow-disconnect-title">
-            <button className="flow-modal-close" type="button" onClick={() => setDisconnectOpen(false)} aria-label="Close"><X size={16} /></button>
+            <button className="flow-modal-close" type="button" onClick={() => setDisconnectOpen(false)} disabled={phase === "revoking" || disconnecting} aria-label="Close"><X size={16} /></button>
             <Power size={20} />
-            {mandateOnline ? (
+            {phase === "revoking" || disconnecting ? (
+              <>
+                <h2 id="flow-disconnect-title">{disconnecting ? "Disconnecting wallet" : "Turning off spending"}</h2>
+                <p role="status" aria-live="polite">{disconnecting
+                  ? "Spending is confirmed off. Closing your session and returning to Connect…"
+                  : revocationProgress === "wallet"
+                    ? "Confirm the transaction in Freighter. This dialog will close automatically after Stellar confirms the revocation."
+                    : "Checking the mandate on Stellar. We will disconnect automatically when spending is confirmed off."}</p>
+                <button className="flow-primary" type="button" disabled><LoaderCircle className="spin" size={16} />{disconnecting ? "Disconnecting…" : revocationProgress === "wallet" ? "Waiting for Freighter…" : "Confirming on Stellar…"}</button>
+              </>
+            ) : mandateOnline ? (
               <>
                 <h2 id="flow-disconnect-title">Turn off spending first</h2>
-                <p>This revokes the mandate on Mainnet. Freighter will ask you to approve one final transaction; after it confirms, you can disconnect.</p>
-                <button className="flow-primary flow-danger" type="button" onClick={revoke} disabled={phase === "revoking"}>{phase === "revoking" ? <LoaderCircle className="spin" size={16} /> : <X size={16} />}{phase === "revoking" ? "Waiting for Freighter…" : "Turn off spending"}</button>
+                <p>This revokes the mandate on Mainnet. Confirm once in Freighter; after Stellar confirms, we will disconnect automatically and return you to Connect.</p>
+                <button className="flow-primary flow-danger" type="button" onClick={() => revoke(true)}><Power size={16} />{stored?.revokeTx || stored?.pendingRevokeTx ? "Check confirmation and disconnect" : "Turn off spending & disconnect"}</button>
               </>
             ) : (
               <>

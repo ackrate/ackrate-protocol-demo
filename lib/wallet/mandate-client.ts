@@ -250,10 +250,15 @@ export async function approveWithFreighter(config: SafeAppConfig, mandate: Inten
   return submitPreparedAllowanceWithFreighter(config, mandate, prepared);
 }
 
-export async function revokeWithFreighter(config: SafeAppConfig, mandate: IntentMandate): Promise<string> {
+export async function revokeWithFreighter(config: SafeAppConfig, mandate: IntentMandate, onSubmitted?: (hash: string) => void): Promise<string> {
   const client = walletClient(config, mandate.user);
   const assembled = await client.revoke_mandate({ mandate_id: mandate.idBuffer });
-  const sent = await assembled.signAndSend();
+  const sent = await assembled.signAndSend({ watcher: {
+    onSubmitted: (response) => onSubmitted?.(transactionHash({ sendTransactionResponse: response })),
+  } });
+  if (sent.getTransactionResponse?.status !== "SUCCESS") {
+    throw new Error("Stellar has not confirmed that spending is off. Check the existing transaction before trying again.");
+  }
   sent.result.unwrap();
   return transactionHash(sent);
 }
