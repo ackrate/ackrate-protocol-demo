@@ -50,6 +50,9 @@ async function initialize(): Promise<Sql | null> {
       )
     `);
     await client.query(`
+      ALTER TABLE ackrate_tool_calls ADD COLUMN IF NOT EXISTS request_hash text
+    `);
+    await client.query(`
       CREATE TABLE IF NOT EXISTS ackrate_payment_receipts (
         receipt_id text PRIMARY KEY,
         session_id text NOT NULL,
@@ -110,6 +113,7 @@ export interface ToolCallRecord {
   toolCallId: string;
   mandateId: string;
   sourceId: string;
+  requestHash?: string;
   status: "running" | "succeeded" | "delivery_pending" | "failed";
   result: unknown;
 }
@@ -129,10 +133,10 @@ export async function reserveToolCall(input: Omit<ToolCallRecord, "status" | "re
   const now = Math.floor(Date.now() / 1_000);
   const inserted = await client.query(
     `INSERT INTO ackrate_tool_calls
-       (session_id, tool_call_id, mandate_id, source_id, status, result, created_at, updated_at)
-     VALUES ($1, $2, $3, $4, 'running', NULL, $5, $5)
+       (session_id, tool_call_id, mandate_id, source_id, status, result, created_at, updated_at, request_hash)
+     VALUES ($1, $2, $3, $4, 'running', NULL, $5, $5, $6)
      ON CONFLICT DO NOTHING RETURNING *`,
-    [input.sessionId, input.toolCallId, input.mandateId, input.sourceId, now],
+    [input.sessionId, input.toolCallId, input.mandateId, input.sourceId, now, input.requestHash ?? null],
   );
   const rows = inserted.length ? inserted : await client.query(
     `SELECT * FROM ackrate_tool_calls WHERE session_id = $1 AND tool_call_id = $2`,
@@ -146,6 +150,7 @@ export async function reserveToolCall(input: Omit<ToolCallRecord, "status" | "re
       toolCallId: String(row.tool_call_id),
       mandateId: String(row.mandate_id),
       sourceId: String(row.source_id),
+      requestHash: typeof row.request_hash === "string" ? row.request_hash : undefined,
       status: row.status as ToolCallRecord["status"],
       result: row.result ?? null,
     },
@@ -174,6 +179,7 @@ export async function completePendingToolCalls(input: {
   sessionId: string;
   mandateId: string;
   sourceId: string;
+  txHash: string;
   result: unknown;
 }): Promise<void> {
   const client = await initialize();
@@ -184,6 +190,7 @@ export async function completePendingToolCalls(input: {
         && record.mandateId === input.mandateId
         && record.sourceId === input.sourceId
         && record.status === "delivery_pending"
+        && (record.result as { txHash?: string } | null)?.txHash === input.txHash
       ) {
         memory.__ackrateToolCalls!.set(key, { ...record, status: "succeeded", result: input.result });
       }
@@ -192,8 +199,9 @@ export async function completePendingToolCalls(input: {
   }
   await client.query(
     `UPDATE ackrate_tool_calls SET status = 'succeeded', result = $4::jsonb, updated_at = $5
-     WHERE session_id = $1 AND mandate_id = $2 AND source_id = $3 AND status = 'delivery_pending'`,
-    [input.sessionId, input.mandateId, input.sourceId, JSON.stringify(input.result), Math.floor(Date.now() / 1_000)],
+     WHERE session_id = $1 AND mandate_id = $2 AND source_id = $3 AND status = 'delivery_pending'
+       AND result->>'txHash' = $6`,
+    [input.sessionId, input.mandateId, input.sourceId, JSON.stringify(input.result), Math.floor(Date.now() / 1_000), input.txHash],
   );
 }
 

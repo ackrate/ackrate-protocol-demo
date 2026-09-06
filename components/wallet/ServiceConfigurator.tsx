@@ -7,7 +7,7 @@ import type { MarketplaceInputField, MarketplaceService } from "@/lib/wallet/mar
 export type ServiceInputValues = Record<string, string>;
 
 const SEARCH_EXAMPLES = [
-  "What is Solana and what are its main risks?",
+  "What is Stellar?",
   "How are AI agents using stablecoin payments?",
   "What changed in the x402 ecosystem this year?",
 ];
@@ -20,7 +20,7 @@ export function initialServiceInputValues(service: MarketplaceService): ServiceI
       : example === null || typeof example === "object"
         ? ""
         : String(example);
-    return [field.name, field.name === "q" && service.id === "search" ? SEARCH_EXAMPLES[0]! : value];
+    return [field.name, field.name === "q" && service.id === "search" ? "" : value];
   }));
 }
 
@@ -79,14 +79,16 @@ function FieldControl({
   value,
   disabled,
   onChange,
+  searchQuery = false,
 }: {
   field: MarketplaceInputField;
   value: string;
   disabled: boolean;
   onChange: (value: string) => void;
+  searchQuery?: boolean;
 }) {
-  const label = fieldLabel(field);
-  const placeholder = field.example === null
+  const label = searchQuery ? "What are you searching for?" : fieldLabel(field);
+  const placeholder = searchQuery ? SEARCH_EXAMPLES[0] : field.example === null
     ? field.description
     : Array.isArray(field.example)
       ? field.example.join("\n")
@@ -105,7 +107,7 @@ function FieldControl({
       <option value="false">No</option>
     </select>;
   }
-  if (largeField(field)) {
+  if (searchQuery || largeField(field)) {
     return <textarea
       aria-label={label}
       value={value}
@@ -134,6 +136,7 @@ export function ServiceConfigurator({
   onChange,
   onBack,
   onContinue,
+  busy = false,
 }: {
   service: MarketplaceService;
   values: ServiceInputValues;
@@ -141,40 +144,53 @@ export function ServiceConfigurator({
   onChange: (values: ServiceInputValues) => void;
   onBack: () => void;
   onContinue: () => void;
+  busy?: boolean;
 }) {
   const reduceMotion = useReducedMotion();
   const problem = inputProblem(service, values);
+  const requiredFields = service.inputs.filter((field) => field.required);
+  const optionalFields = service.inputs.filter((field) => !field.required);
+
+  const renderField = (field: MarketplaceInputField, index: number) => {
+    const searchQuery = service.id === "search" && field.name === "q";
+    return <motion.label
+      className={`schema-field ${searchQuery || largeField(field) ? "schema-field-large" : ""}`}
+      key={field.name}
+      initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: reduceMotion ? 0 : index * 0.045, duration: 0.22 }}
+    >
+      <span><b>{searchQuery ? "What are you searching for?" : fieldLabel(field)}</b>{field.required ? <em>Required</em> : <em>Optional</em>}</span>
+      <FieldControl
+        field={field}
+        value={values[field.name] ?? ""}
+        disabled={busy}
+        searchQuery={searchQuery}
+        onChange={(value) => onChange({ ...values, [field.name]: value })}
+      />
+      <small>{field.description}</small>
+    </motion.label>;
+  };
 
   return <div className="service-configurator">
     <div className="config-source-bar">
       <span><Braces size={14} /></span>
-      <div><small>LIVE AGENT402 SCHEMA</small><strong>{service.name}</strong></div>
+      <div><small>{service.schemaSource === "agent402-find" ? "AGENT402 API SCHEMA" : "AGENT402 DOCUMENTED INPUTS"}</small><strong>{service.name}</strong></div>
       <code>{service.method} {service.path}</code>
       <b>{service.price} USDC</b>
     </div>
 
     {service.inputs.length > 0 ? <div className="schema-field-stack">
-      {service.inputs.map((field, index) => <motion.label
-        className={`schema-field ${largeField(field) ? "schema-field-large" : ""}`}
-        key={field.name}
-        initial={reduceMotion ? false : { opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: reduceMotion ? 0 : index * 0.045, duration: 0.22 }}
-      >
-        <span><b>{fieldLabel(field)}</b>{field.required ? <em>Required</em> : <em>Optional</em>}</span>
-        <FieldControl
-          field={field}
-          value={values[field.name] ?? ""}
-          disabled={false}
-          onChange={(value) => onChange({ ...values, [field.name]: value })}
-        />
-        <small>{field.description}</small>
-      </motion.label>)}
+      {requiredFields.map(renderField)}
+      {optionalFields.length > 0 && <details className="service-parameters">
+        <summary>Advanced options <small>{optionalFields.length} optional {optionalFields.length === 1 ? "input" : "inputs"}</small></summary>
+        <div className="schema-field-stack">{optionalFields.map(renderField)}</div>
+      </details>}
     </div> : <div className="schema-empty"><TriangleAlert size={17} /><div><strong>No machine-readable fields returned</strong><p>Open the listing documentation before using this service.</p></div></div>}
 
     {service.id === "search" && <div className="config-examples">
       <span>TRY A PROMPT</span>
-      {SEARCH_EXAMPLES.map((example) => <button type="button" key={example} onClick={() => onChange({ ...values, q: example })}>{example}</button>)}
+      {SEARCH_EXAMPLES.map((example) => <button type="button" disabled={busy} key={example} onClick={() => onChange({ ...values, q: example })}>{example}</button>)}
     </div>}
 
     <div className={`config-readiness ${executable ? "ready" : "inspect-only"}`}>
@@ -190,15 +206,15 @@ export function ServiceConfigurator({
     {problem && <div className="config-problem"><TriangleAlert size={14} />{problem}</div>}
 
     <div className="config-actions">
-      <button type="button" onClick={onBack}><ArrowLeft size={14} /> Marketplace</button>
+      <button type="button" onClick={onBack} disabled={busy}><ArrowLeft size={14} /> Marketplace</button>
       <motion.button
         className="flow-primary"
         type="button"
         onClick={onContinue}
-        disabled={!executable || Boolean(problem)}
+        disabled={busy || !executable || Boolean(problem)}
         whileHover={reduceMotion || !executable || Boolean(problem) ? undefined : { y: -1 }}
         whileTap={reduceMotion || !executable || Boolean(problem) ? undefined : { scale: 0.985 }}
-      ><SlidersHorizontal size={15} /> Use these inputs <ArrowRight size={15} /></motion.button>
+      ><SlidersHorizontal size={15} /> {busy ? "Checking price and seller…" : "Use these inputs"} <ArrowRight size={15} /></motion.button>
     </div>
   </div>;
 }

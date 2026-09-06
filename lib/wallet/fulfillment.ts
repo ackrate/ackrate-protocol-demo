@@ -9,6 +9,8 @@ import { installMainnetRpcRetry } from "./rpc-retry";
 import { MARKET_SIGNAL_BRIEF } from "./market-brief";
 import { normalizeAgent402SearchInput, runAgent402Research, runAgent402Tool } from "./agent402";
 import { agent402InputFromQuery, supportedAgent402ToolForSource } from "./agent402-tools";
+import { verifyMarketplaceQuote } from "./marketplace-quote";
+import { MAX_DELIVERY_BYTES } from "./delivery-result";
 
 type Runtime = { server: Server; origin: string; fingerprint: string };
 const globalRuntime = globalThis as typeof globalThis & { __ackrateMainnetFulfillment?: Promise<Runtime> };
@@ -37,6 +39,7 @@ async function startRuntime(config: AppConfig): Promise<Runtime> {
   const app = express();
   app.disable("x-powered-by");
   const paidSource = createBoundAckratePaidJsonRoute({
+    maxResponseBytes: MAX_DELIVERY_BYTES,
     merchant: config.public.merchant.address,
     sourceAccount: config.public.merchant.address,
     audience: config.appOrigin,
@@ -53,6 +56,12 @@ async function startRuntime(config: AppConfig): Promise<Runtime> {
     if (!item) throw new Error("validated catalog item disappeared before fulfillment");
     const tool = supportedAgent402ToolForSource(item.id);
     const toolInput = tool ? agent402InputFromQuery(tool, request.query) : null;
+    const quoteToken = request.query._quote;
+    if (quoteToken !== undefined && typeof quoteToken !== "string") throw new Error("Invalid marketplace quote");
+    const quote = quoteToken && toolInput ? verifyMarketplaceQuote({
+      token: quoteToken, config, user: payment.user, sourceId: item.id,
+      parameters: toolInput, settledRecovery: true,
+    }) : undefined;
     const searchInput = tool?.slug === "search" && toolInput ? normalizeAgent402SearchInput(toolInput) : null;
     const marketplaceResult = searchInput
       ? await runAgent402Research({
@@ -61,6 +70,7 @@ async function startRuntime(config: AppConfig): Promise<Runtime> {
           searchInput,
           mandateId: payment.mandateId,
           contractTx: payment.txHash,
+          quote,
         })
       : tool && toolInput
         ? await runAgent402Tool({
@@ -69,6 +79,7 @@ async function startRuntime(config: AppConfig): Promise<Runtime> {
             parameters: toolInput,
             mandateId: payment.mandateId,
             contractTx: payment.txHash,
+            quote,
           })
       : null;
     return {

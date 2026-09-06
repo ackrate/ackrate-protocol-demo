@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AssistantRuntimeProvider, ThreadPrimitive } from "@assistant-ui/react";
+import { AssistantRuntimeProvider, MessagePrimitive, ThreadPrimitive, useAuiState, type TextMessagePartProps, type ToolCallMessagePartProps, type ThreadMessage } from "@assistant-ui/react";
 import { AssistantChatTransport, useChatRuntime } from "@assistant-ui/react-ai-sdk";
+import ReactMarkdown from "react-markdown";
 import {
   ArrowRight,
   ArrowUpRight,
@@ -49,14 +50,24 @@ interface PendingRecovery {
   result?: unknown;
 }
 
+interface ConfiguredRun {
+  sourceId: string;
+  parameters: Record<string, unknown>;
+  quoteToken?: string;
+  requestId: string;
+}
+
 export function AssistantThread({
   mandateId,
   asset,
   price = "0.02",
   service = DEFAULT_SEARCH_SERVICE,
   parameters,
+  quoteToken,
+  canRun = true,
   explorerNetwork,
   marketplaceUrl = "https://agent402.tools/stellar",
+  onRunStarted,
   onEditConfiguration,
   onPurchaseComplete,
 }: {
@@ -65,17 +76,39 @@ export function AssistantThread({
   price?: string;
   service?: MarketplaceService;
   parameters?: ServiceInputValues;
+  quoteToken?: string;
+  canRun?: boolean;
   explorerNetwork: "testnet" | "public";
   marketplaceUrl?: string;
+  onRunStarted?: () => void;
   onEditConfiguration?: () => void;
   onPurchaseComplete: (result: PurchaseResult) => void;
 }) {
+  const submittedRun = useRef<ConfiguredRun | null>(null);
+  const [chatError, setChatError] = useState<Error | null>(null);
   const transport = useMemo(() => new AssistantChatTransport({
     api: "/api/wallet/chat",
-    body: { mandateId },
+    body: () => {
+      if (!submittedRun.current) throw new Error("Choose a service and explicitly run it first.");
+      return { mandateId, ...submittedRun.current };
+    },
     credentials: "same-origin",
   }), [mandateId]);
-  const runtime = useChatRuntime({ transport });
+  const runtime = useChatRuntime({
+    transport,
+    sendAutomaticallyWhen: () => false,
+    onError: (error) => setChatError(error),
+  });
+
+  const runService = (sourceId: string, submittedParameters: Record<string, unknown>, question: string) => {
+    if (runtime.thread.getState().isRunning) return;
+    if (!canRun) throw new Error("This limit cannot make another payment. Existing receipts remain recoverable.");
+    if (!quoteToken) throw new Error("Review the service inputs again to confirm its current price and recipient.");
+    setChatError(null);
+    submittedRun.current = { sourceId, parameters: submittedParameters, quoteToken, requestId: crypto.randomUUID() };
+    onRunStarted?.();
+    runtime.thread.append({ role: "user", content: [{ type: "text", text: question }] });
+  };
 
   return (
     <AssistantRuntimeProvider runtime={runtime}>
@@ -87,6 +120,9 @@ export function AssistantThread({
             price={price}
             service={service}
             parameters={parameters}
+            canRun={canRun}
+            chatError={chatError}
+            onRun={runService}
             explorerNetwork={explorerNetwork}
             marketplaceUrl={marketplaceUrl}
             onEditConfiguration={onEditConfiguration}
@@ -104,6 +140,9 @@ function ResearchPurchase({
   price,
   service,
   parameters,
+  canRun,
+  chatError,
+  onRun,
   explorerNetwork,
   marketplaceUrl,
   onEditConfiguration,
@@ -114,6 +153,9 @@ function ResearchPurchase({
   price: string;
   service: MarketplaceService;
   parameters?: ServiceInputValues;
+  canRun: boolean;
+  chatError: Error | null;
+  onRun: (sourceId: string, parameters: Record<string, unknown>, question: string) => void;
   explorerNetwork: "testnet" | "public";
   marketplaceUrl: string;
   onEditConfiguration?: () => void;
@@ -124,15 +166,47 @@ function ResearchPurchase({
   const [result, setResult] = useState<PurchaseResult | null>(null);
   const [recovery, setRecovery] = useState<PendingRecovery | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const publishedTx = useRef<string | null>(null);
+  const messages = useAuiState((snapshot) => snapshot.thread.messages);
+  const chatRunning = useAuiState((snapshot) => snapshot.thread.isRunning);
+  const activeRun = useRef(false);
+  const sawStream = useRef(false);
+  const streamedResult = useRef<PurchaseResult | null>(null);
   const primaryField = service.inputs.find((field) => field.required && field.type === "string") ?? service.inputs[0];
   const question = primaryField ? inputValues[primaryField.name] ?? "" : "";
 
   useEffect(() => {
-    if (!result || publishedTx.current === result.payment.txHash) return;
-    publishedTx.current = result.payment.txHash;
-    onPurchaseComplete(result);
-  }, [onPurchaseComplete, result]);
+    if (!activeRun.current) return;
+    if (chatRunning) sawStream.current = true;
+    const purchase = confirmedPurchaseFromMessages(messages, mandateId, sourceIdForMarketplaceService(service));
+    if (purchase && streamedResult.current?.payment.txHash !== purchase.payment.txHash) {
+      streamedResult.current = purchase;
+      setResult(purchase);
+      setRecovery(null);
+      window.dispatchEvent(new Event("ackrate-mandate-updated"));
+    }
+    const lastMessage = messages[messages.length - 1];
+    const ended = lastMessage?.role === "assistant" && (lastMessage.status.type === "complete" || lastMessage.status.type === "incomplete");
+    if (!chatRunning && (sawStream.current || ended)) {
+      activeRun.current = false;
+      if (streamedResult.current) {
+        setState("success");
+        if (lastMessage?.role === "assistant" && lastMessage.status.type === "incomplete") setError("Your service result is saved. The chat summary was interrupted; open the result below.");
+      }
+      else {
+        setState("error");
+        setError("The agent run did not return a confirmed result. Check the existing payment before trying again. No automatic second payment will be sent.");
+      }
+    }
+  }, [chatRunning, messages, mandateId, service]);
+
+  useEffect(() => {
+    if (!chatError || !activeRun.current) return;
+    activeRun.current = false;
+    setState(streamedResult.current ? "success" : "error");
+    setError(streamedResult.current
+      ? "Your service result is saved. The chat summary was interrupted; open the result below."
+      : "The agent connection did not finish. Check the existing payment before trying again. No automatic second payment will be sent.");
+  }, [chatError]);
 
   const checkRecovery = async () => {
     setState("checking");
@@ -169,6 +243,7 @@ function ResearchPurchase({
   }, [mandateId]);
 
   const createReport = async () => {
+    if (activeRun.current || chatRunning || state !== "idle" || !canRun) return;
     const normalized = question.replace(/\s+/g, " ").trim();
     if (!normalized || (service.id === "search" && (normalized.length < 3 || normalized.length > 400))) {
       setError(service.id === "search" ? "Enter a question between 3 and 400 characters." : "Return to Configure and enter the required service input.");
@@ -185,31 +260,20 @@ function ResearchPurchase({
     setError(null);
     try {
       const submittedParameters = serializedServiceInputs(service, inputValues);
-      const response = await fetch("/api/wallet/purchase", {
-        method: "POST",
-        credentials: "same-origin",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          mandateId,
-          sourceId,
-          question: service.id === "search" ? normalized : undefined,
-          parameters: submittedParameters,
-        }),
-      });
-      const body = await response.json() as { ok: boolean; result?: unknown; error?: string };
-      if (!response.ok || !body.ok || !isPurchaseResult(body.result)) {
-        throw new Error(body.error ?? `Research request returned HTTP ${response.status}`);
-      }
-      setResult(body.result);
-      setState("success");
-      window.dispatchEvent(new Event("ackrate-mandate-updated"));
+      activeRun.current = true;
+      sawStream.current = false;
+      streamedResult.current = null;
+      onRun(sourceId, submittedParameters, service.id === "search" ? normalized : `Run ${service.name} for ${normalized}`);
     } catch (cause) {
+      activeRun.current = false;
       const message = cause instanceof Error ? cause.message : String(cause);
       if (/retained for recovery|delivery is pending/i.test(message)) {
         await checkRecovery();
         return;
       }
-      if (/review/i.test(message)) {
+      if (/Review the service inputs/i.test(message)) {
+        setError(message);
+      } else if (/review/i.test(message)) {
         setError("A payment response needs verification before any retry. No automatic second payment will be sent.");
       } else if (/Agent402|marketplace/i.test(message)) {
         setError("The marketplace is unavailable. No new marketplace payment was sent.");
@@ -237,8 +301,8 @@ function ResearchPurchase({
     }
   };
 
-  const busy = state === "checking" || state === "running" || state === "recovering";
-  const action = state === "recovery" ? recover : createReport;
+  const busy = chatRunning || state === "checking" || state === "running" || state === "recovering";
+  const action = state === "recovery" ? recover : state === "error" ? checkRecovery : createReport;
 
   return (
     <div className="research-purchase">
@@ -266,16 +330,28 @@ function ResearchPurchase({
         <div><Search size={16} /><span><small>03</small><strong>{service.id === "search" ? "Cited report returns" : "Service output returns"}</strong></span></div>
       </div>
 
-      <button className="research-button" type="button" onClick={action} disabled={busy || (state !== "recovery" && question.trim().length < 3)}>
+      {state !== "success" && <button className="research-button" type="button" onClick={action} disabled={busy || (state === "idle" && (!canRun || question.trim().length < 3))}>
         {busy ? <LoaderCircle className="spin" size={16} /> : state === "recovery" ? <Check size={16} /> : <Search size={16} />}
         {state === "checking" && "Checking previous payment…"}
         {state === "running" && "Buying evidence and writing report…"}
         {state === "recovering" && "Recovering paid report…"}
         {state === "recovery" && "Recover report — no new charge"}
-        {!busy && state !== "recovery" && `Run ${service.name} · ${price} ${asset}`}
-      </button>
+        {state === "error" && "Check payment before retrying"}
+        {!busy && state === "idle" && `Run ${service.name} · ${price} ${asset}`}
+      </button>}
+
+      {!canRun && <p className="autonomy-note">This limit cannot make another payment. Existing receipts remain recoverable.</p>}
 
       <p className="autonomy-note">No wallet popup is needed for each report. The agent can spend only inside the mandate you already approved.</p>
+
+      {messages.length > 0 && <div className="agent-conversation" aria-label="Conversation with your payment agent" aria-live="polite">
+        <ThreadPrimitive.Messages>
+          {({ message }) => <MessagePrimitive.Root className={`agent-message agent-message-${message.role}`}>
+            <small>{message.role === "user" ? "YOU" : "YOUR AGENT"}</small>
+            <MessagePrimitive.Parts components={{ Text: ChatText, tools: { by_name: { purchase_source: PurchaseTool }, Fallback: () => null } }} />
+          </MessagePrimitive.Root>}
+        </ThreadPrimitive.Messages>
+      </div>}
 
       {error && (
         <div className="research-error" role="alert">
@@ -291,9 +367,20 @@ function ResearchPurchase({
         </div>
       )}
 
-      {result && <a className="report-ready-notice" href="#paid-service-output"><span><Check size={14} /></span><div><strong>Output ready</strong><p>View the result and both payment proofs below.</p></div><ArrowUpRight size={14} /></a>}
+      {result && <button type="button" className="report-ready-notice" disabled={chatRunning || state === "running"} onClick={() => onPurchaseComplete(result)}><span><Check size={14} /></span><div><strong>Open result</strong><p>{chatRunning ? "The agent is finishing its response…" : "View the service output and both payment proofs."}</p></div><ArrowUpRight size={14} /></button>}
     </div>
   );
+}
+
+function ChatText({ text }: TextMessagePartProps) {
+  return <div className="agent-message-text"><ReactMarkdown skipHtml components={{ a: ({ children, ...props }) => <a {...props} target="_blank" rel="noreferrer">{children}</a> }}>{text}</ReactMarkdown></div>;
+}
+
+function PurchaseTool({ result, isError, status }: ToolCallMessagePartProps) {
+  if (isError) return <div className="agent-tool-status"><TriangleAlert size={14} /><span>Service execution needs a payment check before retrying.</span></div>;
+  if (isPurchaseResult(result)) return <div className="agent-tool-status"><Check size={14} /><span>Paid {result.payment.amount} {result.payment.asset} · {result.source.title}<code>{shortHash(result.payment.txHash)}</code></span></div>;
+  if (result !== undefined && status.type !== "running") return <div className="agent-tool-status"><TriangleAlert size={14} /><span>The service response needs verification. Check the payment before retrying.</span></div>;
+  return <div className="agent-tool-status"><LoaderCircle className={status.type === "running" ? "spin" : undefined} size={14} /><span>Checking the mandate and running the selected service…</span></div>;
 }
 
 async function openPaidReport(mandateId: string): Promise<PurchaseResult> {
@@ -322,8 +409,36 @@ export function parseRecovery(value: unknown): PendingRecovery | null {
 
 function isPurchaseResult(value: unknown): value is PurchaseResult {
   if (typeof value !== "object" || value === null) return false;
-  const payment = (value as { payment?: unknown }).payment;
-  return typeof payment === "object" && payment !== null && typeof (payment as { txHash?: unknown }).txHash === "string";
+  const candidate = value as { payment?: unknown; source?: unknown };
+  if (typeof candidate.payment !== "object" || candidate.payment === null || typeof candidate.source !== "object" || candidate.source === null) return false;
+  const payment = candidate.payment as Partial<PurchaseResult["payment"]>;
+  const source = candidate.source as Partial<PurchaseResult["source"]>;
+  return typeof source.id === "string" && typeof source.title === "string"
+    && payment.status === "settled"
+    && typeof payment.txHash === "string" && /^[0-9a-f]{64}$/i.test(payment.txHash)
+    && typeof payment.mandateId === "string" && /^[0-9a-f]{64}$/i.test(payment.mandateId)
+    && typeof payment.amount === "string" && /^\d+(?:\.\d+)?$/.test(payment.amount)
+    && typeof payment.asset === "string" && "delivered" in value;
+}
+
+/** Only a matching server tool result from the current user turn can complete a run. */
+export function confirmedPurchaseFromMessages(
+  messages: readonly Pick<ThreadMessage, "role" | "content">[],
+  mandateId: string,
+  sourceId: string | null,
+): PurchaseResult | null {
+  if (!sourceId) return null;
+  let lastUser = messages.length - 1;
+  while (lastUser >= 0 && messages[lastUser]?.role !== "user") lastUser -= 1;
+  if (lastUser < 0) return null;
+  for (const message of messages.slice(lastUser + 1)) {
+    if (message.role !== "assistant") continue;
+    for (const part of message.content) {
+      if (part.type !== "tool-call" || part.toolName !== "purchase_source" || part.isError || !isPurchaseResult(part.result)) continue;
+      if (part.result.payment.mandateId === mandateId && part.result.source.id === sourceId) return part.result;
+    }
+  }
+  return null;
 }
 
 function parseBrief(value: unknown): MarketBrief | null {

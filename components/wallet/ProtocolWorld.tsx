@@ -124,13 +124,13 @@ export function ProtocolWorld({ step, reducedMotion }: { step: number; reducedMo
       renderer.setClearColor(0x000000, 0);
       renderer.outputColorSpace = THREE.SRGBColorSpace;
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
-      renderer.toneMappingExposure = 0.96;
+      renderer.toneMappingExposure = 1.2;
       renderer.domElement.className = "protocol-world-canvas";
       renderer.domElement.setAttribute("aria-hidden", "true");
       host.append(renderer.domElement);
 
       const scene = new THREE.Scene();
-      scene.fog = new THREE.FogExp2(0x03040a, 0.049);
+      scene.fog = new THREE.FogExp2(0x161c2b, 0.038);
       const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
       camera.position.set(-0.35, 2.5, 11.3);
 
@@ -374,8 +374,8 @@ export function ProtocolWorld({ step, reducedMotion }: { step: number; reducedMo
       horizonDisc.position.set(10.8, 8.1, -27);
       world.add(horizonDisc);
 
-      scene.add(new THREE.HemisphereLight(0x9caed2, 0x010103, 0.62));
-      const moonLight = new THREE.DirectionalLight(0xd8e2ff, 2.8);
+      scene.add(new THREE.HemisphereLight(0xdde7ff, 0x29252b, 1.8));
+      const moonLight = new THREE.DirectionalLight(0xffefda, 4.2);
       moonLight.position.set(7, 11, 4);
       scene.add(moonLight);
       const valleyLight = new THREE.PointLight(0x627cc4, 22, 25, 2);

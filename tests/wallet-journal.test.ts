@@ -43,18 +43,23 @@ test("delivery recovery closes only the matching pending tool call", async () =>
   const toolCallId = crypto.randomUUID();
   const input = { sessionId, toolCallId, mandateId: "c".repeat(64), sourceId: "market-brief" };
   await reserveToolCall(input);
-  await completeToolCall({ sessionId, toolCallId, status: "delivery_pending", result: { pending: true } });
+  await completeToolCall({ sessionId, toolCallId, status: "delivery_pending", result: { pending: true, txHash: "d".repeat(64) } });
+  const unrelatedId = crypto.randomUUID();
+  await reserveToolCall({ ...input, toolCallId: unrelatedId });
+  await completeToolCall({ sessionId, toolCallId: unrelatedId, status: "delivery_pending", result: { txHash: "e".repeat(64) } });
   const result = { payment: { txHash: "d".repeat(64) } };
   await completePendingToolCalls({
     sessionId,
     mandateId: input.mandateId,
     sourceId: input.sourceId,
+    txHash: "d".repeat(64),
     result,
   });
   const recovered = await reserveToolCall(input);
   assert.equal(recovered.created, false);
   assert.equal(recovered.record.status, "succeeded");
   assert.deepEqual(recovered.record.result, result);
+  assert.equal((await reserveToolCall({ ...input, toolCallId: unrelatedId })).record.status, "delivery_pending");
 });
 
 test("pending settlement receipt survives listing until explicit acknowledgement", async () => {

@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import {
   DeliveryPendingError,
   getSettlementReceipt,
@@ -19,6 +20,8 @@ import {
   supportedAgent402ToolForSource,
 } from "./agent402-tools";
 import { ensureAgentUsdcTrustline } from "./trustline";
+import { assertQuotedRecipient, verifyMarketplaceQuote } from "./marketplace-quote";
+import { assertSuccessfulDelivery, MAX_DELIVERY_BYTES, receiptMatchesPurchase } from "./delivery-result";
 
 export interface PurchaseInput {
   config: AppConfig;
@@ -29,6 +32,7 @@ export interface PurchaseInput {
   sourceId: string;
   question?: string;
   parameters?: unknown;
+  quoteToken?: string;
 }
 
 export interface PendingPurchaseRecovery {
@@ -114,12 +118,12 @@ function catalogItemForReceipt(config: AppConfig, receipt: { url: string; method
   ));
   if (!item) throw new Error("retained settlement receipt does not match an allowlisted purchase");
   const tool = supportedAgent402ToolForSource(item.id);
-  const allowedParams = new Set(tool?.parameterNames ?? []);
+  const allowedParams = new Set([...(tool?.parameterNames ?? []), "_quote"]);
   if ([...retained.searchParams.keys()].some((key) => !allowedParams.has(key))) {
     throw new Error("retained settlement receipt has unexpected query parameters");
   }
   if (tool) {
-    normalizeAgent402ToolInput(tool.slug, Object.fromEntries(retained.searchParams));
+    normalizeAgent402ToolInput(tool.slug, Object.fromEntries([...retained.searchParams].filter(([key]) => key !== "_quote")));
   }
   const question = item.id === "agent402-research"
     ? normalizeResearchQuestion(retained.searchParams.get("q") ?? "")
@@ -144,7 +148,9 @@ async function completedResult(
   response: Response,
 ) {
   if (!response.ok) throw new Error(`merchant delivery failed with HTTP ${response.status}`);
-  const delivered = await boundedResponseJson(response);
+  const delivered = await boundedResponseJson(response, MAX_DELIVERY_BYTES);
+  assertSuccessfulDelivery(delivered, { sourceId: item.id, txHash: receipt.txHash, mandateId: receipt.mandateId,
+    price: item.price, assetCode: config.public.asset.code, assetContract: config.public.asset.contractId });
   return attachMarketBriefToPurchaseResult({
     source: { id: item.id, title: item.title },
     payment: {
@@ -243,6 +249,7 @@ export async function recoverPendingCatalogPurchase(input: Omit<PurchaseInput, "
       sessionId: input.sessionId,
       mandateId: input.mandateId,
       sourceId: item.id,
+      txHash: receipt.txHash,
       result,
     });
     await receiptStore.clearPending(receipt.receiptId);
@@ -258,6 +265,7 @@ export async function recoverPendingCatalogPurchase(input: Omit<PurchaseInput, "
     sessionId: input.sessionId,
     mandateId: input.mandateId,
     sourceId: item.id,
+    txHash: receipt.txHash,
     result,
   });
   await consumer.acknowledgeDelivery(receipt);
@@ -271,6 +279,7 @@ export async function purchaseCatalogItem(input: PurchaseInput): Promise<unknown
   const item = config.public.catalog.find((candidate) => candidate.id === input.sourceId);
   if (!item) throw new Error("the requested source is not in the server allowlist");
   const tool = supportedAgent402ToolForSource(item.id);
+  if (tool && !input.quoteToken) throw new Error("Review the service inputs and confirm its marketplace quote before running.");
   const toolInput = tool
     ? normalizeAgent402ToolInput(tool.slug, input.parameters ?? { q: input.question ?? "" })
     : null;
@@ -278,14 +287,27 @@ export async function purchaseCatalogItem(input: PurchaseInput): Promise<unknown
     ? normalizeAgent402SearchInput(toolInput)
     : null;
   const question = searchInput?.q ?? null;
+  const quote = input.quoteToken && tool && toolInput ? verifyMarketplaceQuote({
+    token: input.quoteToken, config, user: input.sessionAddress, sourceId: item.id, parameters: toolInput,
+  }) : null;
+  const requestHash = createHash("sha256").update(JSON.stringify({
+    sourceId: item.id, parameters: toolInput, payTo: quote?.payTo ?? null,
+    registry: config.public.mandateRegistryId, amount: item.price,
+  })).digest("hex");
+  const receiptStore = new DurableReceiptStore(input.sessionId, input.mandateId);
+  if ((await receiptStore.listPending()).length > 0) {
+    throw new Error("A previous contract payment is retained for recovery. Resolve that receipt before any new purchase.");
+  }
   const reservation = await reserveToolCall({
     sessionId: input.sessionId,
     toolCallId: input.toolCallId,
     mandateId: input.mandateId,
     sourceId: input.sourceId,
+    requestHash,
   });
   if (!reservation.created) {
-    if (reservation.record.mandateId !== input.mandateId || reservation.record.sourceId !== input.sourceId) {
+    if (reservation.record.mandateId !== input.mandateId || reservation.record.sourceId !== input.sourceId
+      || reservation.record.requestHash !== requestHash) {
       throw new Error("tool call id was already bound to different payment inputs");
     }
     if (reservation.record.status === "succeeded") return reservation.record.result;
@@ -293,25 +315,25 @@ export async function purchaseCatalogItem(input: PurchaseInput): Promise<unknown
     if (reservation.record.status === "failed") throw new Error("this exact purchase attempt previously failed; start a new chat request");
   }
 
-  const amount = toStroops(item.price, config.public.asset.decimals);
-  if (BigInt(context.onChain.remaining) < amount) throw new Error("the contract mandate does not have enough remaining budget");
-  if (tool && toolInput) {
-    await preflightAgent402Tool(tool, toolInput, config.public.asset.contractId);
-    // The contract pays the relay before fulfillment runs. Its Circle USDC
-    // trustline must therefore exist before execute_payment is submitted.
-    await ensureAgentUsdcTrustline(config);
-  }
-  const receiptStore = new DurableReceiptStore(input.sessionId, input.mandateId);
-  const consumer = agentFor(config, context, receiptStore);
-  const paidUrl = new URL(item.path, config.merchantUrl);
-  if (tool && toolInput) {
-    for (const [name, value] of agent402InternalQuery(tool, toolInput)) paidUrl.searchParams.set(name, value);
-  }
-  const url = paidUrl.toString();
   let deliveredReceipt: ReturnType<typeof getSettlementReceipt>;
-
+  let requestedUrl: string | undefined;
   try {
-    const response = await consumer.fetch(url, {
+    const amount = toStroops(item.price, config.public.asset.decimals);
+    if (BigInt(context.onChain.remaining) < amount) throw new Error("the contract mandate does not have enough remaining budget");
+    if (tool && toolInput) {
+      const preflight = await preflightAgent402Tool(tool, toolInput, config.public.asset.contractId);
+      if (quote) assertQuotedRecipient(quote, preflight.requirement);
+      // Fund the relay's trustline before execute_payment can transfer USDC.
+      await ensureAgentUsdcTrustline(config);
+    }
+    const consumer = agentFor(config, context, receiptStore);
+    const paidUrl = new URL(item.path, config.merchantUrl);
+    if (tool && toolInput) {
+      for (const [name, value] of agent402InternalQuery(tool, toolInput)) paidUrl.searchParams.set(name, value);
+    }
+    if (input.quoteToken) paidUrl.searchParams.set("_quote", input.quoteToken);
+    requestedUrl = paidUrl.toString();
+    const response = await consumer.fetch(requestedUrl, {
       headers: { Accept: "application/json" },
       redirect: "error",
     });
@@ -328,7 +350,10 @@ export async function purchaseCatalogItem(input: PurchaseInput): Promise<unknown
     await consumer.acknowledgeDelivery(receipt).catch(() => undefined);
     return result;
   } catch (error) {
-    const pendingReceipt = error instanceof DeliveryPendingError ? error.receipt : deliveredReceipt;
+    const foundReceipt = error instanceof DeliveryPendingError ? error.receipt : deliveredReceipt;
+    // Another tab may have saved a receipt after our initial pending check.
+    // Never attach its paid output to this request's different input/quote.
+    const pendingReceipt = foundReceipt && receiptMatchesPurchase(foundReceipt, requestedUrl) ? foundReceipt : undefined;
     if (pendingReceipt) {
       const pending = {
         status: "delivery_pending",

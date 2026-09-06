@@ -1,401 +1,270 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { initialServiceInputValues, serializedServiceInputs, ServiceConfigurator } from "../components/wallet/ServiceConfigurator";
+import { FALLBACK_MARKETPLACE_SERVICES } from "../lib/wallet/marketplace-catalog";
+import { AssistantThread, confirmedPurchaseFromMessages, type PurchaseResult } from "../components/wallet/AssistantThread";
 
 const read = (path: string) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
-/** The wallet journey is the app plus its six location components. */
-const journey = () => [
-  "components/wallet/WalletChatApp.tsx",
-  "components/wallet/stages/shared.tsx",
-  "components/wallet/stages/ConnectStage.tsx",
-  "components/wallet/stages/MarketplaceStage.tsx",
-  "components/wallet/stages/ConfigureStage.tsx",
-  "components/wallet/stages/LimitStage.tsx",
-  "components/wallet/stages/RunStage.tsx",
-  "components/wallet/stages/ProofStage.tsx",
-].map(read).join("\n");
+const surfaces = ["wallet", "experimental"] as const;
+function journey(surface: typeof surfaces[number]): string {
+  const paths = [`components/${surface}/WalletChatApp.tsx`];
+  if (surface === "experimental") for (const name of ["shared", "ConnectStage", "MarketplaceStage", "ConfigureStage", "LimitStage", "RunStage", "ProofStage"]) paths.push(`components/experimental/stages/${name}.tsx`);
+  return paths.map(read).join("\n");
+}
+function section(source: string, start: string, end: string): string {
+  const begin = source.indexOf(start);
+  const finish = source.indexOf(end, begin + start.length);
+  assert.ok(begin >= 0 && finish > begin, `Expected source section: ${start}`);
+  return source.slice(begin, finish);
+}
+function includes(source: string, values: string[]) {
+  for (const value of values) assert.ok(source.includes(value), `Expected ${value}`);
+}
 
-test("wallet route is listed in the primary nav but excluded from search discovery", () => {
-  const navigation = read("components/Nav.tsx");
-  const sitemap = read("app/sitemap.ts");
-  const robots = read("app/robots.ts");
-  const layout = read("app/wallet/layout.tsx");
-
-  assert.equal(navigation.includes('{ href: "/wallet"'), true);
-  assert.equal(sitemap.includes('"/wallet"'), false);
-  assert.match(robots, /disallow: \["\/api\/", "\/wallet"\]/);
-  assert.match(layout, /index: false/);
-  assert.match(layout, /follow: false/);
-});
-
-test("wallet browser calls stay inside the isolated API namespace", () => {
-  const app = read("components/wallet/WalletChatApp.tsx");
-  const thread = read("components/wallet/AssistantThread.tsx");
-
-  assert.doesNotMatch(app, /"\/api\/(?:auth|config|mandate)/);
-  assert.match(app, /"\/api\/wallet\/auth\/challenge"/);
-  assert.match(app, /"\/api\/wallet\/mandate\/status"/);
-  assert.match(thread, /api: "\/api\/wallet\/chat"/);
-});
-
-test("connecting Freighter never creates or signs a Mainnet transaction", () => {
-  const app = read("components/wallet/WalletChatApp.tsx");
-  const connectStart = app.indexOf("const connect = async () =>");
-  const authenticateStart = app.indexOf("const authenticate = async () =>");
-  const activateStart = app.indexOf("const activate = async () =>");
-
-  assert.ok(connectStart >= 0 && authenticateStart > connectStart && activateStart > authenticateStart);
-  const connectSource = app.slice(connectStart, authenticateStart);
-  const authenticateSource = app.slice(authenticateStart, activateStart);
-  assert.match(connectSource, /connectFreighter/);
-  assert.doesNotMatch(connectSource, /auth\/challenge|signFreighterTransaction/);
-  assert.match(authenticateSource, /auth\/challenge/);
-  assert.match(authenticateSource, /signFreighterTransaction/);
-  assert.match(journey(), /Connecting does not create, sign, or send a Mainnet transaction/);
-});
-
-test("wallet marketplace step selects the external Stellar service without moving funds", () => {
-  const app = read("components/wallet/WalletChatApp.tsx");
-  const ui = journey();
-  const world = read("components/wallet/ProtocolWorld.tsx");
-  const hall = read("components/wallet/world/hall.ts");
-  const configurator = read("components/wallet/ServiceConfigurator.tsx");
-  const styles = read("app/wallet/wallet-flow.css");
-  const catalogRoute = read("app/api/wallet/marketplace/services/route.ts");
-
-  assert.match(ui, /https:\/\/agent402\.tools\/stellar/);
-  assert.match(ui, /STEP \{stage\} OF 6/);
-  assert.match(ui, /Search web, research, scraper, PDF/);
-  assert.match(app, /marketplaceDraft\.name/);
-  assert.match(app, /changeMarketplaceService/);
-  assert.match(app, /JSON\.stringify\(marketplaceDraft\)/);
-  assert.match(app, /\/api\/wallet\/marketplace\/services\?q=/);
-  assert.match(ui, /Nothing moves until you say so/);
-  assert.match(app, /isRunnableMarketplaceService/);
-  assert.match(ui, /Configure \{draft\.name\}/);
-  assert.match(ui, /LIVE PAYMENT READY/);
-  assert.match(catalogRoute, /https:\/\/agent402\.tools\/api\/pricing/);
-  assert.match(catalogRoute, /https:\/\/agent402\.tools\/api\/find/);
-  assert.match(catalogRoute, /parseMarketplaceFind/);
-  assert.match(catalogRoute, /stellar:pubnet/);
-  assert.match(catalogRoute, /requireSession/);
-  assert.match(catalogRoute, /verified-fallback/);
-  assert.match(app, /AnimatePresence/);
-  assert.match(app, /useReducedMotion/);
-  assert.match(app, /<ProtocolWorld signals=\{worldSignals\}/);
-  assert.doesNotMatch(app, /className="flow-brand"><span>R<\/span>/);
-  /* One authored world with a node renderer and a classic WebGL fallback. */
-  assert.match(world, /WebGPURenderer/);
-  assert.match(world, /"gpu" in navigator/);
-  assert.match(world, /forceWebGL/);
-  assert.match(world, /new THREE\.WebGLRenderer/);
-  assert.match(world, /ResizeObserver/);
-  assert.match(world, /IntersectionObserver/);
-  assert.match(world, /pointerdown/);
-  assert.match(world, /setPointerCapture/);
-  assert.match(world, /renderer!\.dispose\(\)/);
-  assert.match(world, /hall\.dispose\(\)/);
-  assert.match(hall, /new THREE\.InstancedMesh/);
-  assert.match(hall, /ExtrudeGeometry/);
-  assert.match(hall, /stations: Station\[\]/);
-  assert.doesNotMatch(hall, /TorusKnotGeometry|IcosahedronGeometry/);
-  assert.match(styles, /prefers-reduced-motion: reduce/);
-  assert.match(styles, /data-renderer="webgpu"/);
-  assert.match(ui, /service-inputs/);
-  assert.match(configurator, /service\.inputs\.map/);
-  assert.match(configurator, /LIVE AGENT402 SCHEMA/);
-});
-
-test("the guided wallet completes limit, research, and dual-proof verification stages", () => {
-  const app = read("components/wallet/WalletChatApp.tsx");
-  const ui = journey();
-  const styles = read("app/wallet/wallet-flow.css");
-
-  for (const copy of ["stage={3}", "stage={4}", "stage={5}", "stage={6}", "Your funds stay in your wallet", "ACKRATE CONTRACT", "AGENT402 x402", "Read the cited report"]) {
-    assert.match(ui, new RegExp(copy.replace(/[{}]/g, "\\$&")));
+test("wallet and experimental remain separate pages with separate styles and indexing exclusions", () => {
+  const nav = read("components/Nav.tsx");
+  assert.match(nav, /\{ href: "\/wallet"/);
+  assert.doesNotMatch(nav, /\{ href: "\/experimental"/);
+  assert.match(read("app/robots.ts"), /disallow: \["\/api\/", "\/wallet"\]/);
+  for (const surface of surfaces) {
+    const other = surface === "wallet" ? "experimental" : "wallet";
+    const page = read(`app/${surface}/page.tsx`);
+    assert.ok(page.includes(`@/components/${surface}/WalletChatApp`));
+    assert.ok(!page.includes(`@/components/${other}/`));
+    const layout = read(`app/${surface}/layout.tsx`);
+    includes(layout, ["index: false", "follow: false", `canonical: "/${surface}"`]);
+    assert.equal(read("app/sitemap.ts").includes(`"/${surface}"`), false);
   }
-  assert.match(app, /walletBalances\?\.hasUsdcTrustline/);
-  assert.match(app, /walletBalances\.usdcRaw/);
-  assert.match(app, /activeMandateReady/);
-  assert.match(styles, /flow-settlement-grid/);
+  const wallet = read("app/wallet/layout.tsx");
+  includes(wallet, ["wallet.css", "wallet-monochrome.css", "wallet-flow.css"]);
+  assert.doesNotMatch(wallet, /experimental-flow\.css|hall-root/);
+  includes(read("app/experimental/layout.tsx"), ["experimental-flow.css", "hall-root"]);
 });
 
-test("wallet separates mandate registration and token allowance into two deliberate approvals", () => {
-  const app = read("components/wallet/WalletChatApp.tsx");
-  const client = read("lib/wallet/mandate-client.ts");
-  const activateStart = app.indexOf("const activate = async () =>");
-  const retryStart = app.indexOf("const retryAllowance = async () =>");
-  const activateSource = app.slice(activateStart, retryStart);
+for (const surface of surfaces) {
+  const app = read(`components/${surface}/WalletChatApp.tsx`);
+  const thread = read(`components/${surface}/AssistantThread.tsx`);
+  const ui = journey(surface);
 
-  assert.match(activateSource, /registerWithFreighter/);
-  assert.doesNotMatch(activateSource, /approveWithFreighter/);
-  assert.match(journey(), /Open Freighter · Approve \$\{formatUnits\(evidence\.maxAmount, evidence\.decimals\)\} USDC/);
-  assert.match(app, /prepareAllowanceTransaction/);
-  assert.match(app, /submitPreparedAllowanceWithFreighter/);
+  test(`${surface}: connecting does not sign or register a mandate`, () => {
+    const connect = section(app, "const connect = async () =>", "const authenticate = async () =>");
+    const authenticate = section(app, "const authenticate = async () =>", "const activate = async () =>");
+    assert.match(connect, /connectFreighter/);
+    assert.doesNotMatch(connect, /auth\/challenge|signFreighterTransaction|registerWithFreighter|approveWithFreighter/);
+    assert.match(authenticate, /auth\/challenge/);
+    assert.match(authenticate, /signFreighterTransaction/);
+    assert.match(ui, /Connecting does not create, sign, or send a Mainnet transaction/);
+    assert.doesNotMatch(app, /"\/api\/(?:auth|config|mandate)/);
+    includes(app, ['"/api/wallet/auth/challenge"', '"/api/wallet/mandate/status"']);
+    assert.match(thread, /api: "\/api\/wallet\/chat"/);
+  });
+
+  test(`${surface}: choosing a discovered service retains inputs without making a payment`, () => {
+    const choose = section(app, "const chooseMarketplaceService = () =>", "const changeMarketplaceService = () =>");
+    includes(choose, ["JSON.stringify(marketplaceDraft)", "setMarketplaceService(marketplaceDraft)", "setServiceConfigured(false)", "initialServiceInputValues(marketplaceDraft)"]);
+    assert.doesNotMatch(choose, /fetch\(|registerWithFreighter|signFreighterTransaction|submitPreparedAllowanceWithFreighter/);
+    includes(app, ["/api/wallet/marketplace/services?q=", "https://agent402.tools/stellar", "service={marketplaceService}", "parameters={serviceInputValues}"]);
+    includes(ui, ["service-inputs", "<ServiceConfigurator", "Configure {"]);
+    if (surface === "wallet") assert.match(ui, /disabled=\{!isRunnableMarketplaceService\(/);
+    else includes(ui, ["const runnable = isRunnable(draft)", "disabled={!runnable}"]);
+    assert.match(thread, /serializedServiceInputs\(service, inputValues\)/);
+  });
+
+  test(`${surface}: spending requires registration, allowance, matching configuration, and enough balance`, () => {
+    const activate = section(app, "const activate = async () =>", "const retryAllowance = async () =>");
+    assert.match(activate, /registerWithFreighter/);
+    assert.doesNotMatch(activate, /approveWithFreighter|submitPreparedAllowanceWithFreighter/);
+    includes(app, ["prepareAllowanceTransaction", "submitPreparedAllowanceWithFreighter", "allowanceFailureMessage(cause)", "budgetNumber >= minimumBudget", "walletBalances?.hasUsdcTrustline", "walletBalances.usdcRaw"]);
+    assert.match(app, /activeMandateReady = Boolean\(mandateOnline && mandateMatchesConfig && storedFresh && stored\?\.allowanceTx\)/);
+    if (surface === "wallet") {
+      assert.match(app, /!serviceConfigured \? 3 : !showRun \? 4 : !completedPurchase \? 5 : 6/);
+      includes(app, ["canRun={activeMandateReady}", "showRun = activeMandateReady || recoverableRun", "recoverableRun = Boolean(stored?.allowanceTx && mandateMatchesConfig && mandate?.id === stored.id"]);
+    }
+    else {
+      assert.match(app, /!serviceConfigured \? 3 : !activeMandateReady && !spentOut \? 4 : !completedPurchase \? 5 : 6/);
+      assert.match(app, /spentOut = Boolean\(storedFresh && stored\?\.allowanceTx && mandateMatchesConfig && mandate\?\.status === "Exhausted"\)/);
+    }
+    assert.match(ui, /Open Freighter · Approve \$\{formatUnits\(/);
+    assert.match(ui, /Preparing (?:secure approval|Freighter)/);
+    includes(ui, ["Your funds stay in your wallet", 'phase === "registering"']);
+  });
+
+  test(`${surface}: governance keys and expired mandates cannot authorize consumer setup`, () => {
+    includes(app, ["walletAddress === config.contractAuthorityAddress", "session.address === config.contractAuthorityAddress", "Use a separate personal Mainnet wallet", "mandate.expiry > nowSeconds", "setInterval(() => setNowSeconds"]);
+    includes(ui, ["Contract account detected", "This 2-of-3 account protects the contract"]);
+    const authenticate = section(app, "const authenticate = async () =>", "const activate = async () =>");
+    assert.ok(authenticate.indexOf("walletAddress === config.contractAuthorityAddress") < authenticate.indexOf('"/api/wallet/auth/challenge"'));
+    assert.match(authenticate, /walletAddress === config\.contractAuthorityAddress\) \{[\s\S]*?return;/);
+    assert.match(app, /useCallback\(async \(current: StoredMandate\)/);
+    includes(app, ["if (parsed.registrationTx) void refreshMandate(parsed)", "if (stored) void refreshMandate(stored)"]);
+    assert.doesNotMatch(app, /const current = candidate \?\? stored|}, \[stored\]\);/);
+  });
+
+  test(`${surface}: disconnect is visible and only clears site state after session deletion`, () => {
+    const disconnect = section(app, "const disconnect = async () =>", "const chooseMarketplaceService = () =>");
+    assert.match(ui, /Disconnect wallet/);
+    assert.match(app, /onClick=\{(?:connected \? )?\(\) => setDisconnectOpen\(true\)/);
+    assert.match(disconnect, /mandate\?\.status === "Active" && mandate\.expiry > Math\.floor\(Date\.now\(\) \/ 1_000\)/);
+    includes(disconnect, ["First tap Turn off spending below. Then disconnect your wallet", 'await api("/api/wallet/auth/session", { method: "DELETE"', "Could not disconnect. Please try again"]);
+    assert.match(disconnect, /catch \(cause\) \{[\s\S]*?return;/);
+    assert.ok(disconnect.indexOf('method: "DELETE"') < disconnect.indexOf("setSession(emptySession)"));
+    includes(disconnect, ["setSession(emptySession)", "setWalletAddress(null)", "setMarketplaceSelected(false)", "setServiceConfigured(false)", "setCompletedPurchase(null)", "localStorage.removeItem(mandateStorageKey(config, session.address))", "localStorage.removeItem(legacyMandateStorageKey(config, session.address))", 'localStorage.removeItem("ackrate:mainnet:last-payment")', "Wallet disconnected. Connect a wallet to start again"]);
+    if (surface === "wallet") includes(disconnect, ["localStorage.removeItem(marketplaceStorageKey(session.address))", "window.location.reload()"]);
+    assert.doesNotMatch(disconnect, /localStorage\.clear\(/);
+  });
+
+  test(`${surface}: revocation verifies the same account and preserves its transaction proof`, () => {
+    const revoke = section(app, "const revoke = async () =>", "const disconnect = async () =>");
+    includes(revoke, ["const address = await connectFreighter(config.networkPassphrase)", 'if (address !== stored.user) throw new Error("Select the same wallet you connected to Ackrate")', "await revokeWithFreighter", "await refreshMandate(next)", "Spending is off. Now click Disconnect wallet"]);
+    includes(app, ['role="dialog" aria-modal="true"', "stored?.revokeTx"]);
+    assert.match(ui, /Spending turned off/);
+  });
+
+  test(`${surface}: trustline readiness and saved mandate identity preserve the current release`, () => {
+    assert.match(app, /already\.\*trustline\|trustline\.\*already/i);
+    assert.match(app, /USDC is already ready in your wallet\./);
+    assert.match(ui, /usdcReady \? "USDC is ready" : "Add USDC to wallet"/);
+    includes(app, ["schemaVersion: 2", "registryId: config.mandateRegistryId", "releaseFingerprint: config.releaseFingerprint", "id: registration.mandateId", "credentialHash: intent.id"]);
+  });
+
+  test(`${surface}: recovery returns paid results without an automatic second payment`, () => {
+    includes(thread, ["Recover report — no new charge", "Checking previous payment", "No automatic second payment will be sent", "parseRecovery", "invalid retained settlement evidence", "Check payment", "if (isPurchaseResult(pending.result))"]);
+    assert.match(thread, /setResult\(pending\.result\)[\s\S]*setState\("success"\)/);
+  });
+
+  test(`${surface}: reports expose contract, marketplace, registration, and allowance proofs`, () => {
+    includes(app, ["<PurchaseReport", "registrationTx={stored?.registrationTx}", "allowanceTx={stored?.allowanceTx}"]);
+    includes(ui, ["ACKRATE CONTRACT", "AGENT402 x402", "Read the cited report", "Open service output", "View transaction"]);
+    includes(thread, ["Mandate registration", "USDC allowance", "Agent402 x402", "Stellar Explorer", "Research sources", 'className="research-brief report-document"', "report-rail report-proof-rail", "report-rail report-source-rail", "TWO-MODEL REVIEW"]);
+  });
+
+  test(`${surface}: 3D rendering preserves fallback, reduced motion, and resource cleanup`, () => {
+    const world = read(`components/${surface}/ProtocolWorld.tsx`);
+    includes(world, ["WebGPURenderer", '"gpu" in navigator', "new THREE.WebGLRenderer", "ResizeObserver", "IntersectionObserver", "document.hidden", "reducedMotion", "setPointerCapture", 'removeEventListener("pointerdown"', "resources.forEach((resource) => resource.dispose())", "renderer!.dispose()"]);
+  });
+}
+
+test("wallet search starts empty with published optional fields collapsed", () => {
+  const service = FALLBACK_MARKETPLACE_SERVICES.find((candidate) => candidate.id === "search")!;
+  const values = initialServiceInputValues(service);
+  assert.equal(values.q, "");
+  const markup = renderToStaticMarkup(createElement(ServiceConfigurator, { service, values, executable: true, onChange() {}, onBack() {}, onContinue() {} }));
+  includes(markup, ['aria-label="What are you searching for?"', 'placeholder="What is Stellar?"', '<details class="service-parameters">', "<summary>Advanced options"]);
+  assert.doesNotMatch(markup, /<details[^>]* open/);
+  assert.deepEqual(serializedServiceInputs(service, { q: "What is Stellar?", count: "", freshness: "" }), { q: "What is Stellar?" });
+});
+
+test("wallet PDF services show a required URL and preserve the submitted value", () => {
+  for (const id of ["pdf", "pdf-info"]) {
+    const service = FALLBACK_MARKETPLACE_SERVICES.find((candidate) => candidate.id === id)!;
+    const values = { url: "https://example.com/paper.pdf" };
+    const markup = renderToStaticMarkup(createElement(ServiceConfigurator, { service, values, executable: true, onChange() {}, onBack() {}, onContinue() {} }));
+    includes(markup, ['type="url"', "Required"]);
+    assert.doesNotMatch(markup, /<details/);
+    assert.deepEqual(serializedServiceInputs(service, values), values);
+  }
+});
+
+test("wallet Run uses the chat runtime with one explicit request identity and no automatic continuation", () => {
+  const thread = read("components/wallet/AssistantThread.tsx");
+  includes(thread, ["new AssistantChatTransport", 'api: "/api/wallet/chat"', "return { mandateId, ...submittedRun.current }", "requestId: crypto.randomUUID()", "sourceId, parameters: submittedParameters, quoteToken", "sendAutomaticallyWhen: () => false", "runtime.thread.append", "onRunStarted?.()", "<ThreadPrimitive.Messages>", "<MessagePrimitive.Parts", "purchase_source: PurchaseTool"]);
+  assert.doesNotMatch(thread, /fetch\("\/api\/wallet\/purchase"/);
+  includes(thread, ['state === "error" ? checkRecovery : createReport', 'onClick={() => onPurchaseComplete(result)}', "Open result", "No automatic second payment will be sent"]);
+  assert.doesNotMatch(thread, /publishedTx\.current/);
+});
+
+test("wallet chat accepts only the selected service's confirmed tool output from this user turn", () => {
+  const mandateId = "a".repeat(64);
+  const sourceId = "agent402-research";
+  const purchase: PurchaseResult = {
+    source: { id: sourceId, title: "Web search" },
+    payment: { status: "settled", amount: "0.02", asset: "USDC", txHash: "b".repeat(64), mandateId },
+    delivered: { output: "Purchased evidence" },
+  };
+  const user = { role: "user" as const, content: [{ type: "text" as const, text: "What is Stellar?" }] };
+  const tool = { type: "tool-call" as const, toolName: "purchase_source", toolCallId: "paid-1", args: {}, argsText: "{}", result: purchase };
+  const assistant = { role: "assistant" as const, content: [tool] };
+  assert.equal(confirmedPurchaseFromMessages([user, assistant], mandateId, sourceId), purchase);
+  assert.equal(confirmedPurchaseFromMessages([user, assistant, user], mandateId, sourceId), null);
+  assert.equal(confirmedPurchaseFromMessages([assistant], mandateId, sourceId), null);
+  assert.equal(confirmedPurchaseFromMessages([user, assistant], "c".repeat(64), sourceId), null);
+  assert.equal(confirmedPurchaseFromMessages([user, assistant], mandateId, "agent402-pdf"), null);
+  assert.equal(confirmedPurchaseFromMessages([user, assistant], mandateId, null), null);
+  for (const changed of [
+    { ...tool, isError: true },
+    { ...tool, toolName: "made_up_payment" },
+    { ...tool, result: { ...purchase, payment: { ...purchase.payment, txHash: "not-a-transaction" } } },
+    { ...tool, result: { ...purchase, payment: { ...purchase.payment, status: "pending" } } },
+  ]) assert.equal(confirmedPurchaseFromMessages([user, { role: "assistant", content: [changed] }], mandateId, sourceId), null);
+  assert.equal(confirmedPurchaseFromMessages([user, { role: "assistant", content: [{ type: "text", text: JSON.stringify(purchase) }] }], mandateId, sourceId), null);
+});
+
+test("an expired wallet limit retains the chat and read-only receipt recovery", () => {
+  const markup = renderToStaticMarkup(createElement(AssistantThread, {
+    mandateId: "a".repeat(64), asset: "USDC", canRun: false, explorerNetwork: "public", onPurchaseComplete() {},
+  }));
+  includes(markup, ["This limit cannot make another payment. Existing receipts remain recoverable.", "Checking previous payment"]);
+  const thread = read("components/wallet/AssistantThread.tsx");
+  assert.match(thread, /state !== "idle" \|\| !canRun/);
+  assert.match(thread, /"\/api\/wallet\/purchase\/recovery"/);
+});
+
+test("experimental retains its authored stages and restricts navigation to reachable locations", () => {
+  const app = read("components/experimental/WalletChatApp.tsx");
+  for (const name of ["ConnectStage", "MarketplaceStage", "ConfigureStage", "LimitStage", "RunStage", "ProofStage"]) assert.ok(app.includes(`<${name}`));
+  includes(app, ["<ProtocolWorld signals={worldSignals}", 'className="hall-report"']);
+  includes(read("components/experimental/RouteRail.tsx"), ["reachable.includes(location.stage)", "disabled={!clickable}", 'aria-current={state === "current" ? "step" : undefined}']);
+  assert.match(read("components/experimental/ProtocolWorld.tsx"), /hall\.dispose\(\)/);
+});
+
+test("catalog discovery fetches authenticated Stellar pricing and input schemas", () => {
+  includes(read("app/api/wallet/marketplace/services/route.ts"), ["https://agent402.tools/api/pricing", "https://agent402.tools/api/find", "parseMarketplaceFind", "stellar:pubnet", "requireSession", "verified-fallback"]);
+});
+
+test("allowance signing avoids relay preparation before the popup and recovers pending submission", () => {
+  const client = read("lib/wallet/mandate-client.ts");
+  const prepare = section(client, "export async function prepareAllowanceTransaction", "export async function submitPreparedAllowanceWithFreighter");
   assert.match(client, /Keep signing as the first asynchronous action/);
-  /* The relay compacts getLatestLedger; the SDK's parsed getLatestLedger()
-     needs headerXdr and would fail before Freighter opens. */
-  const prepareStart = client.indexOf("export async function prepareAllowanceTransaction");
-  const prepareEnd = client.indexOf("export async function submitPreparedAllowanceWithFreighter");
-  assert.ok(prepareStart >= 0 && prepareEnd > prepareStart);
-  assert.doesNotMatch(client.slice(prepareStart, prepareEnd), /server\.getLatestLedger\(\)/);
-  assert.match(client.slice(prepareStart, prepareEnd), /latestLedgerSequence\(config\)/);
-  assert.match(client, /method: "getLatestLedger"/);
-  assert.match(app, /activeMandateReady = Boolean\(mandateOnline && mandateMatchesConfig && storedFresh && stored\?\.allowanceTx\)/);
-  assert.match(client, /APPROVAL_TIMEBOUND_SECONDS = 10 \* 60/);
-  assert.match(client, /submitted\.status === "TRY_AGAIN_LATER"/);
-  assert.match(client, /submitted\.status === "PENDING" \|\| submitted\.status === "DUPLICATE"/);
-  assert.match(app, /allowanceFailureMessage\(cause\)/);
+  assert.doesNotMatch(prepare, /server\.getLatestLedger\(\)/);
+  assert.match(prepare, /latestLedgerSequence\(config\)/);
+  includes(client, ['method: "getLatestLedger"', "APPROVAL_TIMEBOUND_SECONDS = 10 * 60", 'submitted.status === "TRY_AGAIN_LATER"', 'submitted.status === "PENDING" || submitted.status === "DUPLICATE"']);
 });
 
-test("research composer renders and submits Agent402's discovered input schema", () => {
-  const app = read("components/wallet/WalletChatApp.tsx");
-  const thread = read("components/wallet/AssistantThread.tsx");
-  const configurator = read("components/wallet/ServiceConfigurator.tsx");
-  const purchase = read("app/api/wallet/purchase/route.ts");
-
-  assert.match(app, /service=\{marketplaceService\}/);
-  assert.match(journey(), /parameters=\{parameters\}/);
-  assert.match(configurator, /service\.inputs\.map/);
-  assert.match(configurator, /LIVE AGENT402 SCHEMA/);
-  assert.match(thread, /parameters/);
-  assert.match(purchase, /parameters: z\.record/);
-  assert.match(purchase, /z\.string\(\)\.max\(4_000\)/);
-});
-
-test("wallet keeps the contract governance multisig separate from consumer setup", () => {
-  const app = read("components/wallet/WalletChatApp.tsx");
-  const config = read("lib/wallet/app-config.ts");
-
-  assert.match(config, /contractAuthorityAddress = release\.release\.authorityAccount/);
-  assert.match(app, /walletAddress === config\.contractAuthorityAddress/);
-  assert.match(app, /session\.address === config\.contractAuthorityAddress/);
-  assert.match(journey(), /Contract account detected/);
-  assert.match(journey(), /This 2-of-3 account protects the contract/);
-  assert.match(app, /Use a separate personal Mainnet wallet/);
-  assert.match(journey(), /disabled=\{!ready \|\| governanceWalletConnected\}/);
-});
-
-test("wallet transaction assembly uses authenticated same-origin Stellar relays", () => {
-  const config = read("lib/wallet/app-config.ts");
-  const account = read("lib/wallet/horizon-account.ts");
-  const rpc = read("app/api/wallet/rpc/route.ts");
-
-  assert.match(config, /\$\{appOrigin\}\/api\/wallet\/rpc/);
-  assert.match(account, /"\/api\/wallet\/account\/sequence"/);
-  assert.match(rpc, /requireSession/);
-  assert.match(rpc, /config\.network\.rpcUrl/);
+test("wallet transaction assembly uses bounded authenticated same-origin Stellar relays", () => {
+  includes(read("lib/wallet/app-config.ts"), ["contractAuthorityAddress = release.release.authorityAccount", "${appOrigin}/api/wallet/rpc"]);
+  assert.match(read("lib/wallet/horizon-account.ts"), /"\/api\/wallet\/account\/sequence"/);
   assert.match(read("lib/wallet/mandate-client.ts"), /installMainnetRpcRetry\(config\.network\)/);
+  includes(read("app/api/wallet/rpc/route.ts"), ["requireSession", "config.network.rpcUrl", "postRpcWithRetryAndConsume", "boundedResponseJson(response, 8 * 1024 * 1024)", "compactWalletRpcResponse(body.method, upstream.status, upstream.raw)", "MAINNET_RPC_FALLBACK"]);
 });
 
-test("wallet RPC relay bounds, compacts, and fails over Mainnet responses", () => {
-  const source = read("app/api/wallet/rpc/route.ts");
-  assert.match(source, /postRpcWithRetryAndConsume/);
-  assert.match(source, /boundedResponseJson\(response, 8 \* 1024 \* 1024\)/);
-  assert.match(source, /compactWalletRpcResponse\(body\.method, upstream\.status, upstream\.raw\)/);
-  assert.match(source, /MAINNET_RPC_FALLBACK/);
-});
-
-test("wallet exposes a direct real-payment control that does not let the chat model choose payment inputs", () => {
-  const thread = read("components/wallet/AssistantThread.tsx");
+test("purchase and recovery routes enforce session and input checks independently of the model", () => {
   const purchase = read("app/api/wallet/purchase/route.ts");
-  const recovery = read("app/api/wallet/purchase/recovery/route.ts");
-
-  assert.match(thread, /Run \$\{service\.name\} · \$\{price\} \$\{asset\}/);
-  assert.match(thread, /"\/api\/wallet\/purchase"/);
-  assert.match(purchase, /purchaseCatalogItem/);
-  assert.match(purchase, /requireSession/);
+  includes(purchase, ["parameters: z.record", "z.string().max(4_000)", "purchaseCatalogItem", "requireSession"]);
   assert.doesNotMatch(purchase, /openai|anthropic|streamText/i);
-  assert.match(recovery, /getPendingCatalogRecovery/);
-  assert.match(recovery, /recoverPendingCatalogPurchase/);
-  assert.match(recovery, /requireSession/);
-  assert.match(recovery, /requireSameOrigin/);
-  assert.match(thread, /Recover report — no new charge/);
-  assert.match(thread, /Checking previous payment/);
-  assert.match(thread, /No automatic second payment will be sent/);
-  assert.match(thread, /parseRecovery/);
-  assert.match(thread, /invalid retained settlement evidence/);
-  assert.match(thread, /Check payment/);
-  assert.match(journey(), /View transaction/);
+  includes(read("app/api/wallet/purchase/recovery/route.ts"), ["getPendingCatalogRecovery", "recoverPendingCatalogPurchase", "requireSession", "requireSameOrigin"]);
 });
 
-test("the real Agent402 path prepares the relay before the contract reimburses it", () => {
-  const appConfig = read("lib/wallet/app-config.ts");
+test("Agent402 relay readiness is checked before contract-funded execution", () => {
   const purchase = read("lib/wallet/purchase.ts");
-  const fulfillment = read("lib/wallet/fulfillment.ts");
-  const agent402 = read("lib/wallet/agent402.ts");
-
-  assert.match(appConfig, /networkName === "mainnet" \? agentAddress : configuredMerchantAddress/);
-  assert.ok(purchase.indexOf("await preflightAgent402Research") < purchase.indexOf("await ensureAgentUsdcTrustline"));
+  assert.match(read("lib/wallet/app-config.ts"), /networkName === "mainnet" \? agentAddress : configuredMerchantAddress/);
+  assert.ok(purchase.indexOf("await preflightAgent402Tool") >= 0);
+  assert.ok(purchase.indexOf("await preflightAgent402Tool") < purchase.indexOf("await ensureAgentUsdcTrustline"));
   assert.ok(purchase.indexOf("await ensureAgentUsdcTrustline") < purchase.indexOf("await consumer.fetch"));
-  assert.match(fulfillment, /runAgent402Research/);
-  assert.match(agent402, /createPaymentPayload/);
-  assert.match(agent402, /encodePaymentSignatureHeader/);
-  assert.match(agent402, /markMarketplacePaid/);
-  assert.match(agent402, /stellar:pubnet/);
+  assert.match(read("lib/wallet/fulfillment.ts"), /runAgent402Research/);
+  includes(read("lib/wallet/agent402.ts"), ["createPaymentPayload", "encodePaymentSignatureHeader", "markMarketplacePaid", "stellar:pubnet"]);
 });
 
-test("wallet closes an expired mandate locally and offers a fresh boundary", () => {
-  const app = read("components/wallet/WalletChatApp.tsx");
-
-  assert.match(app, /mandate\.expiry > nowSeconds/);
-  assert.match(app, /setInterval\(\(\) => setNowSeconds/);
-  assert.match(journey(), /Approve spending limit/);
+test("V2 registration uses the contract-returned mandate id", () => {
+  includes(read("lib/wallet/mandate-client.ts"), ["preparedMandateId = registeredMandateIdHex(assembled.result.unwrap())", "submittedMandateId !== preparedMandateId", "legacy credential identifier instead of a V2 mandate id"]);
+  assert.match(read("lib/wallet/mandate-id.ts"), /bytes\.length !== 32/);
 });
 
-test("wallet hydration cannot create a mandate-status request loop", () => {
-  const app = read("components/wallet/WalletChatApp.tsx");
-
-  assert.match(app, /useCallback\(async \(current: StoredMandate\)/);
-  assert.match(app, /if \(parsed\.registrationTx\) void refreshMandate\(parsed\)/);
-  assert.match(app, /if \(stored\) void refreshMandate\(stored\)/);
-  assert.doesNotMatch(app, /const current = candidate \?\? stored/);
-  assert.doesNotMatch(app, /}, \[stored\]\);/);
-});
-
-test("wallet shows clear progress while Mainnet approval is prepared", () => {
-  const ui = journey();
-  const styles = read("app/wallet/wallet-flow.css");
-
-  assert.match(ui, /Saving your limit/);
-  assert.match(ui, /Preparing Freighter/);
-  assert.match(ui, /limit-approvals/);
-  assert.match(styles, /limit-approvals li\.is-busy/);
-});
-
-test("wallet card exposes an obvious site disconnect control", () => {
-  const app = read("components/wallet/WalletChatApp.tsx");
-
-  assert.match(app, /Disconnect wallet/);
-  assert.match(app, /Turn off spending/);
-  assert.match(app, /onClick=\{\(\) => setDisconnectOpen\(true\)\}/);
-  assert.match(app, /method: "DELETE"/);
-  assert.match(app, /setSession\(emptySession\)/);
-  assert.match(app, /className="hall-wallet" type="button" onClick=\{\(\) => setDisconnectOpen\(true\)\}/);
-});
-
-test("wallet disconnect is blocked until the on-chain mandate is off", () => {
-  const app = read("components/wallet/WalletChatApp.tsx");
-
-  assert.match(app, /mandate\?\.status === "Active" && mandate\.expiry > Math\.floor\(Date\.now\(\) \/ 1_000\)/);
-  assert.match(app, /First tap Turn off spending below\. Then disconnect your wallet/);
-  assert.match(app, /Spending is off\. Now click Disconnect wallet/);
-  assert.match(app, /const spendingOff = Boolean\(stored\?\.revokeTx && mandate\?\.status !== "Active"\)/);
-  assert.match(app, /mandateOnline \? "SPENDING IS ON" : "SPENDING IS OFF"/);
-  assert.match(app, /First, turn off spending/);
-});
-
-test("wallet labels reflect the connected and spending-off states", () => {
-  const app = read("components/wallet/WalletChatApp.tsx");
-  const rail = read("components/wallet/RouteRail.tsx");
-  const ui = journey();
-
-  assert.match(ui, /walletAddress \? "Verify wallet" : "Enter with Freighter"/);
-  assert.match(rail, /location\.stage < stage \? "done" : location\.stage === stage \? "current" : "ahead"/);
-  assert.match(app, /mandateOnline \? "SPENDING IS ON" : "SPENDING IS OFF"/);
-});
-
-test("an existing USDC trustline is shown as ready instead of an error", () => {
-  const app = read("components/wallet/WalletChatApp.tsx");
-
-  assert.match(app, /already\.\*trustline\|trustline\.\*already/i);
-  assert.match(app, /USDC is already ready in your wallet\./);
-  assert.match(journey(), /usdcReady \? "USDC is ready" : "Add USDC to wallet"/);
-});
-
-test("turning off reconnects and verifies the exact Freighter account before signing", () => {
-  const app = read("components/wallet/WalletChatApp.tsx");
-
-  assert.match(app, /const address = await connectFreighter\(config\.networkPassphrase\)/);
-  assert.match(app, /if \(address !== stored\.user\) throw new Error\("Select the same wallet you connected to Ackrate"\)/);
-  assert.match(app, /role="dialog" aria-modal="true"/);
-  assert.match(app, /First, turn off spending/);
-  assert.match(app, /Ready to disconnect/);
-});
-
-test("confirmed disconnect clears only Ackrate wallet setup and purchase state", () => {
-  const app = read("components/wallet/WalletChatApp.tsx");
-
-  assert.doesNotMatch(app, /auth\/session"[\s\S]{0,100}\.catch\(\(\) => undefined\)/);
-  assert.match(app, /localStorage\.removeItem\(mandateStorageKey\(config, session\.address\)\)/);
-  assert.match(app, /localStorage\.removeItem\(legacyMandateStorageKey\(config, session\.address\)\)/);
-  assert.match(app, /localStorage\.removeItem\("ackrate:mainnet:last-payment"\)/);
-  assert.match(app, /Wallet disconnected\. Connect a wallet to start again/);
-  assert.match(app, /Could not disconnect\. Please try again/);
-});
-
-test("wallet stores the V2 contract-returned id and rejects stale release state", () => {
-  const app = read("components/wallet/WalletChatApp.tsx");
-  const client = read("lib/wallet/mandate-client.ts");
-  const mandateId = read("lib/wallet/mandate-id.ts");
-
-  assert.match(client, /preparedMandateId = registeredMandateIdHex\(assembled\.result\.unwrap\(\)\)/);
-  assert.match(mandateId, /bytes\.length !== 32/);
-  assert.match(client, /submittedMandateId !== preparedMandateId/);
-  assert.match(client, /legacy credential identifier instead of a V2 mandate id/);
-  assert.match(app, /schemaVersion: 2/);
-  assert.match(app, /registryId: config\.mandateRegistryId/);
-  assert.match(app, /releaseFingerprint: config\.releaseFingerprint/);
-  assert.match(app, /id: registration\.mandateId/);
-  assert.match(app, /credentialHash: intent\.id/);
-});
-
-test("every wallet transaction has a visible explorer link", () => {
-  const app = read("components/wallet/WalletChatApp.tsx");
-  const thread = read("components/wallet/AssistantThread.tsx");
-
-  assert.match(journey(), /ProofLink label="Spending limit"/);
-  assert.match(journey(), /ProofLink label="USDC approval"/);
-  assert.match(app, /ProofLink label="Spending turned off"/);
-  assert.match(journey(), /View transaction/);
-  assert.match(thread, /Stellar Explorer/);
-  assert.match(thread, /Agent402 x402/);
-});
-
-test("a paid report renders below the flow with side rails for proof and purchased sources", () => {
-  const app = read("components/wallet/WalletChatApp.tsx");
-  const thread = read("components/wallet/AssistantThread.tsx");
-  const fulfillment = read("lib/wallet/fulfillment.ts");
-  const brief = read("lib/wallet/market-brief.ts");
-  const report = read("lib/wallet/marketplace-report.ts");
-
-  assert.match(thread, /className="research-brief report-document"/);
-  assert.match(thread, /THE TAKEAWAY/);
-  assert.match(thread, /Research sources/);
-  assert.match(thread, /report-rail report-proof-rail/);
-  assert.match(thread, /report-rail report-source-rail/);
-  assert.match(thread, /REPORT COMPLETE/);
-  assert.match(thread, /Mandate registration/);
-  assert.match(thread, /USDC allowance/);
-  assert.match(app, /<PurchaseReport/);
-  assert.ok(app.lastIndexOf('className={`flow-shell') < app.lastIndexOf("<PurchaseReport"));
-  assert.match(app, /className="hall-report"/);
-  assert.match(fulfillment, /runAgent402Research/);
-  assert.match(fulfillment, /marketplace: marketplaceResult\?\.marketplace/);
-  assert.match(brief, /attachMarketBriefToPurchaseResult/);
-  assert.match(report, /excludeProviderId: firstPass\.providerId/);
-  assert.match(report, /editorialPasses = 2/);
-  assert.match(thread, /TWO-MODEL REVIEW/);
-});
-
-test("a retained paid report opens automatically and pending delivery reuses the paid receipt", () => {
-  const thread = read("components/wallet/AssistantThread.tsx");
-  const purchase = read("lib/wallet/purchase.ts");
-
-  assert.match(thread, /if \(isPurchaseResult\(pending\.result\)\)/);
-  assert.match(thread, /setResult\(pending\.result\)[\s\S]*setState\("success"\)/);
-  assert.match(purchase, /consumer\.retryDelivery\(receipt/);
-  assert.match(purchase, /await consumer\.acknowledgeDelivery\(receipt\)/);
-  assert.match(purchase, /latestSucceededToolCall/);
-});
-
-test("wallet journey uses plain action language", () => {
-  const app = journey();
-  const thread = read("components/wallet/AssistantThread.tsx");
-
-  for (const label of ["Enter with Freighter", "Configure {draft.name}", "Draw the line.", "Approve ${budget || \"0\"} USDC limit", "Run ${service.name}", "Open service output", "Turn off spending", "Disconnect wallet"]) {
-    assert.match(`${app}\n${thread}`, new RegExp(label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
-  }
-  assert.doesNotMatch(app, /Mandate control room|Freighter authority|Authenticated account|Set the boundary|Active mandate|Revoke authority|Spending envelope|Verifiable by default/);
-  assert.doesNotMatch(thread, /MANDATE ONLINE|Your agent has boundaries|Settlement status could not be confirmed|Get my brief — already paid/);
+test("paid recovery reuses the receipt and report editing keeps provider independence", () => {
+  includes(read("lib/wallet/purchase.ts"), ["consumer.retryDelivery(receipt", "await consumer.acknowledgeDelivery(receipt)", "latestSucceededToolCall"]);
+  assert.match(read("lib/wallet/fulfillment.ts"), /marketplace: marketplaceResult\?\.marketplace/);
+  assert.match(read("lib/wallet/market-brief.ts"), /attachMarketBriefToPurchaseResult/);
+  includes(read("lib/wallet/marketplace-report.ts"), ["excludeProviderId: firstPass.providerId", "editorialPasses = 2"]);
 });

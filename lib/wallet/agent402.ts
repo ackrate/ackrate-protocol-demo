@@ -369,6 +369,7 @@ export async function runAgent402Tool(input: {
   mandateId: string;
   contractTx: string;
   fetcher?: Fetcher;
+  quote?: import("./marketplace-quote").MarketplaceQuote;
 }) {
   const fetcher = input.fetcher ?? globalThis.fetch;
   const parameters = normalizeAgent402ToolInput(input.tool.slug, input.parameters);
@@ -390,6 +391,10 @@ export async function runAgent402Tool(input: {
   }
 
   const preflight = await preflightAgent402Tool(input.tool, parameters, input.config.public.asset.contractId, fetcher);
+  if (input.quote) {
+    const { assertQuotedRecipient } = await import("./marketplace-quote");
+    assertQuotedRecipient(input.quote, preflight.requirement);
+  }
   const trustlineTransaction = await ensureAgentUsdcTrustline(input.config);
   const client = paymentClientForTool(input.config, input.tool);
   const scopedRequired: PaymentRequired = { ...preflight.paymentRequired, accepts: [preflight.requirement] };
@@ -503,6 +508,7 @@ export async function runAgent402Research(input: {
   mandateId: string;
   contractTx: string;
   fetcher?: Fetcher;
+  quote?: import("./marketplace-quote").MarketplaceQuote;
 }) {
   const fetcher = input.fetcher ?? globalThis.fetch;
   const searchInput = normalizeAgent402SearchInput(input.searchInput ?? { q: input.question });
@@ -525,6 +531,10 @@ export async function runAgent402Research(input: {
   }
 
   const preflight = await preflightAgent402Research(searchInput, input.config.public.asset.contractId, fetcher);
+  if (input.quote) {
+    const { assertQuotedRecipient } = await import("./marketplace-quote");
+    assertQuotedRecipient(input.quote, preflight.requirement);
+  }
   const trustlineTransaction = await ensureAgentUsdcTrustline(input.config);
   const client = paymentClient(input.config);
   const scopedRequired: PaymentRequired = { ...preflight.paymentRequired, accepts: [preflight.requirement] };
