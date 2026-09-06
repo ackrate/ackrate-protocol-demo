@@ -171,7 +171,17 @@ for (const surface of surfaces) {
     includes(editorial, ["Research sources", "report-rail report-source-rail", "TWO-MODEL REVIEW"]);
   });
 
-  test(`${surface}: 3D rendering preserves fallback, reduced motion, and resource cleanup`, () => {
+  test(`${surface}: rendering matches the page presentation`, () => {
+    if (surface === "wallet") {
+      assert.doesNotMatch(app, /ProtocolWorld|MarketplaceOrb|rotateY|<canvas/);
+      includes(app, ["wallet-flow wallet-flat", "<ShieldCheck size={19}"]);
+      const layout = read("app/wallet/layout.tsx");
+      assert.ok(layout.indexOf('import "./wallet-flat.css"') > layout.indexOf('import "./wallet-flow.css"'));
+      const flat = read("app/wallet/wallet-flat.css");
+      includes(flat, ['font-family: "Wallet Geist"', "background: #000", "position: static", "repeat(3, minmax(0, 1fr))", ":focus-visible"]);
+      assert.doesNotMatch(flat, /radial-gradient|linear-gradient|translateZ|rotateY/);
+      return;
+    }
     const world = read(`components/${surface}/ProtocolWorld.tsx`);
     includes(world, ["WebGPURenderer", '"gpu" in navigator', "new THREE.WebGLRenderer", "ResizeObserver", "IntersectionObserver", "document.hidden", "reducedMotion", "setPointerCapture", 'removeEventListener("pointerdown"', "resources.forEach((resource) => resource.dispose())", "renderer!.dispose()"]);
   });

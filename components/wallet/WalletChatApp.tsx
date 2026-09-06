@@ -45,8 +45,6 @@ import type { MandateView, SafeAppConfig, SessionView } from "@/lib/wallet/types
 import { addTokenToFreighter, connectFreighter, freighterSessionState, signFreighterTransaction } from "@/lib/wallet/freighter";
 import { sourceIdForMarketplaceService, WEB_SEARCH_INPUTS, type MarketplaceService } from "@/lib/wallet/marketplace-catalog";
 import { AssistantThread, parseRecovery, purchaseResultForMandate, PurchaseReport, type PurchaseResult } from "./AssistantThread";
-import { MarketplaceOrb } from "./MarketplaceOrb";
-import { ProtocolWorld } from "./ProtocolWorld";
 import { initialServiceInputValues, serializedServiceInputs, ServiceConfigurator, type ServiceInputValues } from "./ServiceConfigurator";
 import type { MarketplaceQuoteView } from "@/lib/wallet/marketplace-quote";
 import { allowanceTransactionIsFresh, canStartFreshWalletLimit, mandateCanAfford, readAllowanceConfirmation, waitForAllowanceConfirmation, retainWalletMandate, walletAmountAtomic, type PendingAllowance } from "@/lib/wallet/client-readiness";
@@ -1362,10 +1360,9 @@ export function WalletChatApp() {
   const navState = (step: number) => workflowStep > step ? "done" : workflowStep === step ? "current" : "";
 
   return (
-    <main className={`wallet-preview wallet-flow spatial-step-${workflowStep}${resultVisible ? " wallet-result-mode" : ""}`}>
-      {!resultVisible && <ProtocolWorld step={workflowStep} reducedMotion={Boolean(reduceMotion)} />}
+    <main className={`wallet-preview wallet-flow wallet-flat${resultVisible ? " wallet-result-mode" : ""}`}>
       <header className="flow-header">
-        <Link href="/" className="flow-brand"><span className="flow-brand-mark"><MarketplaceOrb variant="brand" /></span><strong>ACKRATE</strong></Link>
+        <Link href="/" className="flow-brand"><span className="flow-brand-mark"><ShieldCheck size={19} aria-hidden="true" /></span><strong>ACKRATE</strong></Link>
         <div className="flow-network"><span />{config?.networkLabel ?? "Loading Mainnet"}</div>
         <div className="flow-header-actions">
           {(connected || walletAddress) && (
@@ -1389,9 +1386,9 @@ export function WalletChatApp() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: reduceMotion ? 0 : 0.42, ease: "easeOut" }}
         >
-          <p>THE ENFORCEMENT LAYER FOR AGENT PAYMENTS</p>
-          <h1>Give agents buying power.<br />Not a blank check.</h1>
-          <span>One mandate unlocks real x402 services. ACKRATE enforces who gets paid, how much, and when—on-chain.</span>
+          <p>AGENT PAYMENTS</p>
+          <h1>Your wallet. Your limits.</h1>
+          <span>Choose a service, set a spending limit, and let your agent pay within it.</span>
         </motion.div>
 
         <motion.nav
@@ -1552,9 +1549,9 @@ export function WalletChatApp() {
             <motion.div
               key="configure"
               className="flow-stage configure-stage"
-              initial={reduceMotion ? false : { opacity: 0, rotateY: -4, x: 16 }}
-              animate={{ opacity: 1, rotateY: 0, x: 0 }}
-              exit={reduceMotion ? undefined : { opacity: 0, rotateY: 4, x: -16 }}
+              initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={reduceMotion ? undefined : { opacity: 0, y: -8 }}
               transition={{ duration: reduceMotion ? 0 : 0.32, ease: [0.22, 1, 0.36, 1] }}
             >
               <div className="flow-stage-heading">
