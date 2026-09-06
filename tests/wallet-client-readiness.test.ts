@@ -42,10 +42,12 @@ test("a cached approval must leave time for a human to review before Freighter o
   assert.equal(allowanceTransactionIsFresh("invalid", Networks.TESTNET, 1000), false);
 });
 
-test("search starts empty, requires a useful question, and preserves optional published parameters", () => {
+test("search prefills the editable Stellar question and preserves optional published parameters", () => {
   const values = initialServiceInputValues(search);
-  assert.equal(values.q, "");
-  assert.match(serviceInputProblem(search, values)!, /Enter q/);
+  assert.equal(values.q, "What is Stellar?");
+  assert.equal(serviceInputProblem(search, values), null);
+  assert.equal(serializedServiceInputs(search, values).q, "What is Stellar?");
+  assert.match(serviceInputProblem(search, { ...values, q: "" })!, /Enter q/);
   assert.match(serviceInputProblem(search, { ...values, q: "a" })!, /between 3 and 400/);
   assert.equal(serviceInputProblem(search, { q: "What is Stellar?", count: "10", freshness: "" }), null);
   assert.deepEqual(serializedServiceInputs(search, { q: "What is Stellar?", count: "10", freshness: "" }), { q: "What is Stellar?", count: 10 });

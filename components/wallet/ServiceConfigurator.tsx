@@ -6,8 +6,10 @@ import type { MarketplaceInputField, MarketplaceService } from "@/lib/wallet/mar
 
 export type ServiceInputValues = Record<string, string>;
 
+const DEFAULT_SEARCH_QUERY = "What is Stellar?";
+
 const SEARCH_EXAMPLES = [
-  "What is Stellar?",
+  DEFAULT_SEARCH_QUERY,
   "How are AI agents using stablecoin payments?",
   "What changed in the x402 ecosystem this year?",
 ];
@@ -20,7 +22,7 @@ export function initialServiceInputValues(service: MarketplaceService): ServiceI
       : example === null || example === undefined || typeof example === "object"
         ? ""
         : String(example);
-    return [field.name, field.name === "q" && service.id === "search" ? "" : value];
+    return [field.name, field.name === "q" && service.id === "search" ? DEFAULT_SEARCH_QUERY : value];
   }));
 }
 
@@ -100,7 +102,7 @@ function FieldControl({
   searchQuery?: boolean;
 }) {
   const label = searchQuery ? "What are you searching for?" : fieldLabel(field);
-  const placeholder = searchQuery ? SEARCH_EXAMPLES[0] : field.example === null
+  const placeholder = searchQuery ? DEFAULT_SEARCH_QUERY : field.example === null
     ? field.description
     : Array.isArray(field.example)
       ? field.example.join("\n")
