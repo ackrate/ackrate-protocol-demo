@@ -84,6 +84,7 @@ interface WalletBalances {
 const emptySession: SessionView = { authenticated: false, address: null, network: null, expiresAt: null };
 const MARKETPLACE_URL = "https://agent402.tools/stellar";
 const MARKETPLACE_SERVICE_ID = "agent402:web-search";
+const ALLOWANCE_READY_NOTICE = "2 of 2 complete: USDC allowance confirmed. The agent is ready to run your service.";
 const DEFAULT_MARKETPLACE_SERVICE: MarketplaceService = {
   id: "search",
   name: "Web search",
@@ -365,7 +366,7 @@ export function WalletChatApp() {
 
   useEffect(() => {
     if (stored?.allowanceTx && stored.expiry <= nowSeconds) {
-      setNotice((current) => current === "Spending limit approved. The agent is ready."
+      setNotice((current) => current === ALLOWANCE_READY_NOTICE
         ? "This spending limit has expired. Existing payment receipts are still recoverable." : current);
     }
   }, [nowSeconds, stored?.allowanceTx, stored?.expiry]);
@@ -477,7 +478,7 @@ export function WalletChatApp() {
       })
       .catch((cause) => {
         console.error("USDC allowance preparation failed", cause);
-        if (active) setError("The network could not prepare your USDC approval. No Freighter request has been sent yet. Use Prepare approval to retry.");
+        if (active) setError("The network could not prepare transaction 2, the USDC allowance. No Freighter request has been sent yet. Use Prepare USDC allowance to retry.");
       })
       .finally(() => {
         if (active) setAllowancePreparing(false);
@@ -679,7 +680,7 @@ export function WalletChatApp() {
       };
       saveStored(next);
       setPhase("registering");
-      setNotice("Approve your spending limit in Freighter.");
+      setNotice("1 of 2: Confirm mandate registration in Freighter. This saves your spending rules on-chain; it does not approve the USDC allowance yet.");
       const registration = await registerWithFreighter(config, intent, (mandateId) => {
         next = { ...next, id: mandateId };
         saveStored(next);
@@ -688,7 +689,7 @@ export function WalletChatApp() {
       saveStored(next);
       await refreshMandate(next);
       setPhase("idle");
-      setNotice("Limit registered. Preparing the final USDC approval now.");
+      setNotice("1 of 2 complete: mandate registered. Next, approve the USDC allowance in a separate transaction.");
     } catch (cause) {
       setError(safeWalletError(cause, "Limit registration did not finish. Check Freighter for a pending request before signing another registration."));
       setPhase("idle");
@@ -726,7 +727,7 @@ export function WalletChatApp() {
       approvalInFlight.current = true;
       setPhase("approving");
       setError(null);
-      setNotice("Checking the existing allowance transaction. No new wallet signature or fee is requested.");
+      setNotice("Checking transaction 2: the existing USDC allowance. No new wallet signature or fee is requested.");
       try {
         const status = await readAllowanceConfirmation(config.rpcUrl, config.networkPassphrase, {
           user: stored.user, asset: stored.asset, spender: config.mandateRegistryId, maxAmount: stored.maxAmount,
@@ -736,7 +737,7 @@ export function WalletChatApp() {
           saveStored(next);
           const confirmed = await refreshMandate(next);
           setNotice(confirmed.status === "Active" && confirmed.expiry > Math.floor(Date.now() / 1_000)
-            ? "Spending limit approved. The agent is ready."
+            ? ALLOWANCE_READY_NOTICE
             : "Allowance confirmed, but this spending limit is no longer active. Existing receipts remain recoverable.");
         } else if (status === "failed" || status === "expired") {
           saveStored({ ...stored, pendingAllowance: undefined });
@@ -772,11 +773,11 @@ export function WalletChatApp() {
     if (!prepared) {
       setPreparedAllowance(null);
       setAllowancePreparing(true);
-      setNotice("Preparing the USDC approval. The Freighter button will unlock in a moment.");
+      setNotice("Preparing transaction 2: the USDC allowance. Your mandate is already registered.");
       try {
         prepared = await prepareAllowanceTransaction(config, intent);
         setPreparedAllowance({ mandateId: stored.id, xdr: prepared });
-        setNotice("Approval ready. Click Open Freighter to confirm it.");
+        setNotice("Transaction 2 is ready. Click Approve USDC allowance to open Freighter.");
       } catch (cause) {
         console.error("USDC allowance preparation failed", cause);
         setError("The approval could not be prepared yet. Wait a moment and try again.");
@@ -787,7 +788,7 @@ export function WalletChatApp() {
       return;
     }
     setPhase("approving");
-    setNotice("Opening Freighter now. Approve the single USDC allowance transaction.");
+    setNotice("2 of 2: Confirm the USDC allowance in Freighter. This is the token approval, not another mandate registration.");
     let submitted = stored;
     try {
       const allowanceTx = await submitPreparedAllowanceWithFreighter(config, intent, prepared, (pendingAllowance) => {
@@ -799,7 +800,7 @@ export function WalletChatApp() {
       setPreparedAllowance(null);
       const confirmed = await refreshMandate(next);
       setNotice(confirmed.status === "Active" && confirmed.expiry > Math.floor(Date.now() / 1_000)
-        ? "Spending limit approved. The agent is ready."
+        ? ALLOWANCE_READY_NOTICE
         : "Allowance confirmed, but this spending limit is no longer active. Existing receipts remain recoverable.");
     } catch (cause) {
       console.error("USDC allowance approval failed", cause);
@@ -1537,6 +1538,10 @@ export function WalletChatApp() {
                 <div className="flow-alert"><TriangleAlert size={16} />Enter at least {servicePrice} USDC—the price of one service call—with no more than {config?.asset.decimals ?? 7} decimal places.</div>
               )}
 
+              {storedFresh && stored?.registrationTx && !stored.allowanceTx && mandateMatchesConfig && (
+                <p className="flow-footnote" role="status"><Check size={12} />1 of 2 complete — Mandate registered.</p>
+              )}
+
               {mandateOnline && !mandateMatchesConfig ? (
                 <motion.button className="flow-primary flow-danger" type="button" onClick={() => revoke()} disabled={phase === "revoking"} whileTap={reduceMotion ? undefined : { scale: 0.985 }}>
                   {phase === "revoking" ? <LoaderCircle className="spin" size={16} /> : <X size={16} />}{phase === "revoking" ? revocationProgress === "wallet" ? "Waiting for Freighter…" : "Confirming on Stellar…" : "Turn off previous spending limit"}
@@ -1544,21 +1549,25 @@ export function WalletChatApp() {
               ) : stored?.pendingAllowance || (storedFresh && stored?.registrationTx && !stored.allowanceTx) ? (
                 <motion.button className="flow-primary" type="button" onClick={retryAllowance} disabled={phase === "approving" || allowancePreparing} whileTap={reduceMotion ? undefined : { scale: 0.985 }}>
                   {phase === "approving" || allowancePreparing ? <LoaderCircle className="spin" size={16} /> : <LockKeyhole size={16} />}
-                  {stored.pendingAllowance ? phase === "approving" ? "Checking existing approval…" : "Check USDC approval — no new fee" : allowancePreparing ? "Preparing secure approval…" : phase === "approving" ? "Opening Freighter…" : !preparedAllowanceReady ? "Prepare approval" : `Open Freighter · Approve ${formatUnits(stored.maxAmount, stored.decimals)} USDC`}
+                  {stored.pendingAllowance ? phase === "approving" ? "2 of 2 · Checking allowance…" : "Check USDC allowance — no new fee" : allowancePreparing ? "2 of 2 · Preparing allowance…" : phase === "approving" ? "2 of 2 · Confirm allowance in Freighter…" : !preparedAllowanceReady ? "2 of 2 · Prepare USDC allowance" : "2 of 2 · Approve USDC allowance"}
                 </motion.button>
               ) : (
                 <motion.button className="flow-primary" type="button" onClick={activate} disabled={!canApproveLimit || mandateBusy} whileTap={reduceMotion ? undefined : { scale: 0.985 }}>
                   {mandateBusy ? <LoaderCircle className="spin" size={16} /> : <LockKeyhole size={16} />}
-                  {phase === "registering" ? "Registering limit…" : phase === "approving" ? "Approving USDC…" : `Approve ${budget || "0"} USDC limit`}
+                  {phase === "registering" ? "1 of 2 · Registering mandate…" : phase === "approving" ? "2 of 2 · Confirming USDC allowance…" : "1 of 2 · Register mandate"}
                 </motion.button>
               )}
-              <small className="flow-footnote"><Fingerprint size={12} />Approval 1 registers the mandate. Approval 2 opens Freighter and caps the contract allowance.</small>
+              <small className="flow-footnote"><Fingerprint size={12} /><span>{stored?.pendingAllowance
+                ? "The USDC allowance is already signed. This button checks confirmation only—it does not send another approval or request another fee."
+                : storedFresh && stored?.registrationTx && !stored.allowanceTx
+                  ? `Your mandate is registered. Transaction 2 approves a capped allowance of ${formatUnits(stored.maxAmount, stored.decimals)} USDC for the contract. It has its own XLM network fee; it does not pay for a service.`
+                  : "Two different transactions: first register your spending rules, then approve the contract's USDC allowance. Each has an XLM network fee; neither pays for a service."}</span></small>
               <div className="flow-secondary-row"><button type="button" onClick={changeMarketplaceService}><Search size={12} />Change service</button><button type="button" onClick={() => setDisconnectOpen(true)}><Power size={12} />Disconnect</button></div>
 
               {(stored?.registrationTx || stored?.allowanceTx) && (
                 <details className="flow-evidence"><summary><span><Database size={13} />Setup transactions</span><ChevronRight size={13} /></summary><div>
-                  {stored.registrationTx && <a className="flow-proof-link" href={`${explorer}/tx/${stored.registrationTx}`} target="_blank" rel="noreferrer"><span><Check size={12} />Spending limit</span><code>{short(stored.registrationTx, 6)}</code><ArrowUpRight size={12} /></a>}
-                  {stored.allowanceTx && <a className="flow-proof-link" href={`${explorer}/tx/${stored.allowanceTx}`} target="_blank" rel="noreferrer"><span><Check size={12} />USDC approval</span><code>{short(stored.allowanceTx, 6)}</code><ArrowUpRight size={12} /></a>}
+                  {stored.registrationTx && <a className="flow-proof-link" href={`${explorer}/tx/${stored.registrationTx}`} target="_blank" rel="noreferrer"><span><Check size={12} />1 · Mandate registration</span><code>{short(stored.registrationTx, 6)}</code><ArrowUpRight size={12} /></a>}
+                  {stored.allowanceTx && <a className="flow-proof-link" href={`${explorer}/tx/${stored.allowanceTx}`} target="_blank" rel="noreferrer"><span><Check size={12} />2 · USDC allowance</span><code>{short(stored.allowanceTx, 6)}</code><ArrowUpRight size={12} /></a>}
                   {stored.pendingAllowance && <a className="flow-proof-link" href={`${explorer}/tx/${stored.pendingAllowance.txHash}`} target="_blank" rel="noreferrer"><span><Clock3 size={12} />Allowance awaiting confirmation</span><code>{short(stored.pendingAllowance.txHash, 6)}</code><ArrowUpRight size={12} /></a>}
                 </div></details>
               )}
