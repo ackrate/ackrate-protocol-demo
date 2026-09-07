@@ -16,14 +16,13 @@ import {
 import "@xterm/xterm/css/xterm.css";
 
 const PACKAGE = "@ackrate/cli";
-const VERSION = "0.1.10";
+const VERSION = "0.2.0";
 const COMMAND = "ackrate";
-const CONTRACT = "CCHQ5G4Y4YBMY6D3TYYJSVJVCKUM22Q6TMKCCHVAHY4X7K6QELQACZRM";
+const CONTRACT = "CCLZEBJXG4YVJEPBCR5F27N733BCK5HQJWZZGB3K54JVODY3VAGP4HWR";
 
-const INSTALL = `# Candidate version — confirm npm publication before installing
-npx @ackrate/cli@0.1.10 demo research-agent
+const INSTALL = `npx @ackrate/cli@0.2.0 demo research-agent --network mainnet
 
-npm install -g @ackrate/cli@0.1.10
+npm install -g @ackrate/cli@0.2.0
 ackrate --help`;
 
 const PROJECT_FLOW = `ackrate init
@@ -35,8 +34,10 @@ ackrate settlement acknowledge <TX_HASH>
 ackrate pay 10.00`;
 
 const QUICK = [
-  { label: "demo research-agent", cmd: "demo research-agent" },
-  { label: "init", cmd: "init" },
+  { label: "version", cmd: "--version" },
+  { label: "help", cmd: "--help" },
+  { label: "demo research-agent", cmd: "demo research-agent --network mainnet" },
+  { label: "init", cmd: "init --network mainnet" },
   { label: "setup", cmd: "setup" },
   { label: "mandate create", cmd: "mandate create" },
   { label: "pay", cmd: "pay" },
@@ -44,20 +45,20 @@ const QUICK = [
 ];
 
 const COMMANDS = [
-  { name: "init", desc: "Writes a committable ackrate.config.json with the live testnet contract id.", Icon: Package },
-  { name: "setup", desc: "Creates user, agent, and merchant testnet accounts, then funds them.", Icon: CheckCircle2 },
+  { name: "init", desc: "Configures the official Mainnet contract with your signing identities, merchant, price and budget.", Icon: Package },
+  { name: "setup", desc: "Checks the configured Mainnet accounts, USDC and fee balances. It does not create or fund accounts.", Icon: CheckCircle2 },
   { name: "mandate create", desc: "Registers a scoped mandate and approves the allowance to the contract.", Icon: ShieldCheck },
   { name: "pay", desc: "Makes an agent-signed payment through MandateRegistry.execute_payment.", Icon: Terminal },
   { name: "settlement reconcile", desc: "Checks the exact prepared transaction hash before another payment is allowed.", Icon: ShieldCheck },
   { name: "settlement acknowledge <tx-hash>", desc: "Explicitly accepts one exact durable success before another payment is allowed.", Icon: CheckCircle2 },
-  { name: "demo research-agent", desc: "Runs the complete budget-capped research-agent flow from a cold start.", Icon: Play },
+  { name: "demo research-agent", desc: "Runs the consumer and fulfillment agents: three paid sources, then a contract budget rejection. Requires funded accounts and explicit signing approval.", Icon: Play },
 ];
 
 const PROOF = [
   { label: "package", value: PACKAGE, Icon: Package },
   { label: "command", value: COMMAND, Icon: Terminal },
-  { label: "network", value: "testnet", Icon: Gauge },
-  { label: "custody", value: "contract", Icon: ShieldCheck },
+  { label: "network", value: "Mainnet · USDC", Icon: Gauge },
+  { label: "enforcement", value: "MandateRegistry", Icon: ShieldCheck },
 ];
 
 const fade = (d = 0) => ({
@@ -73,7 +74,7 @@ export default function CliPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const fitRef = useRef<any>(null);
   const sessionRef = useRef<string>("");
-  const [cmd, setCmd] = useState("demo research-agent");
+  const [cmd, setCmd] = useState("demo research-agent --network mainnet");
   const [running, setRunning] = useState(false);
   const [ready, setReady] = useState(false);
 
@@ -96,8 +97,8 @@ export default function CliPage() {
       fit.fit();
       termRef.current = term;
       fitRef.current = fit;
-      term.writeln(`\x1b[2m${PACKAGE} candidate ${VERSION} · pinned testnet runner · pick a command below or type one, then Run.\x1b[0m`);
-      term.writeln("\x1b[2mState (config, keys, mandate) persists across commands in this browser session.\x1b[0m\r\n");
+      term.writeln(`\x1b[2m${PACKAGE} ${VERSION} · Stellar Mainnet · published npm executable.\x1b[0m`);
+      term.writeln("\x1b[2mMainnet needs funded accounts and authorized signers. This browser session has no signing credentials.\x1b[0m\r\n");
       setReady(true);
       const onResize = () => fit.fit();
       window.addEventListener("resize", onResize);
@@ -125,7 +126,7 @@ export default function CliPage() {
         body: JSON.stringify({ args, sessionId: sessionRef.current }),
       });
       if (res.status === 400) {
-        term.write("\x1b[31munknown command — try: demo research-agent · init · setup · mandate create · pay · settlement reconcile/acknowledge\x1b[0m\r\n");
+        term.write(`\x1b[31m${await res.text()}\x1b[0m\r\n`);
         return;
       }
       if (!res.body) throw new Error("no stream");
@@ -152,16 +153,15 @@ export default function CliPage() {
         <motion.div {...fade()} className="flex flex-col justify-center">
           <div className="inline-flex w-fit items-center gap-2 rounded-full border border-emerald-300/20 bg-emerald-400/10 px-3.5 py-1.5 text-[11px] font-semibold tracking-[0.18em] text-emerald-200">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 shadow-[0_0_10px_rgba(110,231,183,0.95)]" />
-            LIVE TESTNET CLI
+            MAINNET CLI
           </div>
           <h1 className="mt-5 max-w-3xl text-4xl font-black leading-[1.02] tracking-tight sm:text-6xl">
-            Ship an agent payment from the browser terminal.
+            Run the Mainnet CLI.
           </h1>
           <p className="mt-5 max-w-2xl text-base leading-relaxed text-emerald-100/70 sm:text-lg">
             <code className="rounded bg-black/30 px-1.5 py-0.5 font-mono text-sm text-emerald-100">{PACKAGE}</code>
-            {" "}is live on npm. This page tracks candidate {VERSION}; confirm publication before installing it. The
-            browser runner stays on testnet: create ephemeral actors, authorize a mandate, and watch the contract reject
-            payments past budget.
+            {" "}version {VERSION} is published on npm. This terminal runs that executable with Stellar Mainnet selected,
+            using the official contract and Circle USDC. The research command includes the consumer and fulfillment agents.
           </p>
 
           <div className="mt-5 grid grid-cols-2 gap-2.5">
@@ -179,8 +179,8 @@ export default function CliPage() {
           <div className="mt-7 flex flex-wrap gap-3">
             <button
               onClick={() => {
-                setCmd("demo research-agent");
-                run("demo research-agent");
+                setCmd("demo research-agent --network mainnet");
+                run("demo research-agent --network mainnet");
               }}
               disabled={running || !ready}
               className="inline-flex items-center gap-2 rounded-xl bg-emerald-400 px-4 py-2.5 text-sm font-bold text-[#06241a] shadow-[0_0_28px_rgba(52,211,153,0.35)] transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-50"
@@ -198,6 +198,12 @@ export default function CliPage() {
               <ExternalLink className="h-4 w-4" aria-hidden />
             </a>
           </div>
+
+          <p className="mt-5 rounded-lg border border-white/15 bg-black/30 p-4 text-sm leading-relaxed text-zinc-300">
+            Mainnet signing setup is required before a paid run. There are no free accounts on Mainnet.
+            Commands report missing configuration; a confirmation warning is not a completed payment.
+            Signing credentials and spending approval are not exposed to anonymous browser commands.
+          </p>
 
           <div className="mt-7 space-y-3">
             {[
@@ -220,7 +226,7 @@ export default function CliPage() {
                 <Terminal className="h-4 w-4" aria-hidden />
                 {COMMAND} demo research-agent
               </div>
-              <div className="mt-1 text-xs text-emerald-50/45">Server-side CLI bundle, per-session state, Stellar testnet.</div>
+              <div className="mt-1 text-xs text-emerald-50/45">Published CLI executable, isolated session, Stellar Mainnet.</div>
             </div>
             <div className="rounded-full border border-emerald-300/20 bg-emerald-400/10 px-3 py-1 font-mono text-[11px] text-emerald-200">
               {running ? "running" : ready ? "ready" : "booting"}
@@ -258,7 +264,7 @@ export default function CliPage() {
               spellCheck={false}
               disabled={running}
               className="min-w-0 flex-1 bg-transparent text-emerald-50 placeholder:text-emerald-50/30 focus:outline-none"
-              placeholder="demo research-agent"
+              placeholder="demo research-agent --network mainnet"
             />
             <button
               type="submit"
@@ -275,14 +281,14 @@ export default function CliPage() {
               <span className="h-3 w-3 rounded-full bg-red-400/70" />
               <span className="h-3 w-3 rounded-full bg-amber-400/70" />
               <span className="h-3 w-3 rounded-full bg-emerald-400/70" />
-              <span className="ml-2">@ackrate/cli · testnet</span>
+              <span className="ml-2">@ackrate/cli {VERSION} · Mainnet</span>
             </div>
             <div ref={hostRef} className="h-[520px] w-full px-3 py-2" />
           </div>
 
           <div className="mt-3 flex flex-col gap-2 px-1 text-xs text-emerald-50/50 sm:flex-row sm:items-center sm:justify-between">
-            <span>Demo runs usually take 30-60 seconds.</span>
-            <a className="inline-flex items-center gap-1 text-emerald-400 underline underline-offset-2 hover:text-emerald-300" href={`https://stellar.expert/explorer/testnet/contract/${CONTRACT}`} target="_blank" rel="noreferrer">
+            <span>Payment success requires confirmed receipts and delivered results.</span>
+            <a className="inline-flex items-center gap-1 text-emerald-400 underline underline-offset-2 hover:text-emerald-300" href={`https://stellar.expert/explorer/public/contract/${CONTRACT}`} target="_blank" rel="noreferrer">
               Contract {CONTRACT.slice(0, 6)}...{CONTRACT.slice(-4)}
               <ArrowRight className="h-3.5 w-3.5" aria-hidden />
             </a>
@@ -294,7 +300,7 @@ export default function CliPage() {
         <div className="rounded-xl border border-white/10 bg-black/25 p-5">
           <div className="flex items-center gap-2 text-sm font-semibold text-emerald-100">
             <WalletCards className="h-4 w-4 text-emerald-300" aria-hidden />
-            Candidate install commands
+            Published install commands
           </div>
           <Code>{INSTALL}</Code>
         </div>

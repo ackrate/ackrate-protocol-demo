@@ -2,9 +2,9 @@ import { createPageMetadata } from "@/lib/site-metadata";
 
 export const metadata = createPageMetadata({
   title: "ACKRATE Research Agent CLI Runner",
-  description: "Run the ACKRATE research-agent CLI flow in a guided interface and inspect bounded agentic payments on Stellar testnet without an LLM key.",
+  description: "Open the published ACKRATE Mainnet CLI and reference consumer and fulfillment agents.",
   path: "/toolkit/cli",
-  keywords: ["CLI runner", "research agent", "testnet demo"],
+  keywords: ["CLI runner", "research agent", "Mainnet"],
 });
 
 export default function Layout({ children }: { children: React.ReactNode }) {

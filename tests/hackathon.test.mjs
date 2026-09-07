@@ -257,12 +257,12 @@ test("plain-text guides distinguish testnet demos, the Mainnet wallet, and candi
   }
 });
 
-test("public toolkit pages label candidate versions without relabeling the pinned testnet runner", async () => {
+test("the CLI uses the published Mainnet release while unrelated historical documentation stays unchanged", async () => {
   const bundle = new URL("../vendor/ackrate-cli.mjs", import.meta.url);
   const { stdout } = await run(process.execPath, [bundle.pathname, "--version"]);
   const actualVersion = stdout.trim();
 
-  assert.equal(actualVersion, "0.1.9");
+  assert.equal(actualVersion, "0.2.0");
   const [home, cli, terminal, bundleSource] = await Promise.all([
     read("app/page.tsx"),
     read("app/cli/page.tsx"),
@@ -271,8 +271,6 @@ test("public toolkit pages label candidate versions without relabeling the pinne
   ]);
   for (const [path, source] of [
     ["app/page.tsx", home],
-    ["app/cli/page.tsx", cli],
-    ["app/toolkit/cli/page.tsx", terminal],
   ]) {
     assert.match(source, /0\.1\.10/, `${path} candidate version`);
     assert.match(source, /candidate/i, `${path} candidate label`);
@@ -287,10 +285,20 @@ test("public toolkit pages label candidate versions without relabeling the pinne
   ]) assert.match(home, new RegExp(version.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")), version);
   for (const [path, source] of [
     ["app/page.tsx", home],
-    ["app/cli/page.tsx", cli],
-    ["app/toolkit/cli/page.tsx", terminal],
-    ["vendor/ackrate-cli.mjs", bundleSource],
   ]) {
     assert.match(source, new RegExp(PERMANENT_SIMPLE_CONTRACT), path);
   }
+  assert.match(cli, /const VERSION = "0\.2\.0"/);
+  assert.match(terminal, /redirect\("\/cli"\)/);
+  assert.match(cli, /--network mainnet/);
+  assert.doesNotMatch(cli, /testnet|0\.1\.9|0\.1\.10/i);
+  const registry = "CCLZEBJXG4YVJEPBCR5F27N733BCK5HQJWZZGB3K54JVODY3VAGP4HWR";
+  assert.ok(cli.includes(registry));
+  assert.ok(bundleSource.includes(registry));
+  assert.ok(bundleSource.includes("CCW67TSZV3SSS2HXMBQ5JFGCKJNXKZM7UQUWUZPUTHXSTZLEO7SJMI75"));
+  const packageJson = JSON.parse(await read("package.json"));
+  const lock = JSON.parse(await read("package-lock.json"));
+  assert.equal(packageJson.dependencies["@ackrate/cli"], actualVersion);
+  assert.equal(lock.packages["node_modules/@ackrate/cli"].version, actualVersion);
+  assert.equal(createHash("sha256").update(bundleSource).digest("hex"), "b719eb1e780f85daa20a3d86c2f82d80b5789574c079e459b5fc640fb174b125");
 });
