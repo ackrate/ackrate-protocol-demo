@@ -25,3 +25,56 @@ Executable SHA-256: `b719eb1e780f85daa20a3d86c2f82d80b5789574c079e459b5fc640fb17
 The anonymous terminal does not inherit server signing credentials. Mainnet paid
 commands require explicit real-USDC authorization and designated funded signing
 identities. Version/help success alone is not evidence of a completed payment.
+
+## Freighter-funded CLI test
+
+`ackrate-cli-test.mjs` is the separate **0.2.1 source build** from
+[`ackrate/ackrate-protocol` commit 0be7bf8](https://github.com/ackrate/ackrate-protocol/commit/0be7bf8c9f938e5ebe42c0c35db54d8061b37333).
+It exactly matches the prepared CLI archive; `cli-test-build.json` pins its SHA-256.
+It is not described as a published npm 0.2.1 release. Anonymous version/help inspection
+continues to use the unchanged public npm 0.2.0 executable above.
+
+The authenticated `/api/cli/test` runner executes this CLI with its reference
+consumer and fulfillment agents. A narrow external signer adapter supplies only
+the generated test payer's capped registration/allowance signatures. The user
+keeps their funding-account key in Freighter. Three new test-account keys are
+encrypted in PostgreSQL using a purpose-derived server key; they are never sent
+to the browser. Funding requires a separate explicit Freighter confirmation of
+6 XLM (account reserves and fee headroom) and 0.03 USDC. Those funded accounts remain
+server-managed; this interface does not promise an automatic return of their balances.
+
+The run is claimed in PostgreSQL before execution and cannot automatically restart.
+Payment receipts/outcomes are periodically copied into saved output and captured
+on normal exit. An abrupt host failure can still lose the most recent local journal
+write: retain the locked run and reconcile the public account/contract history manually.
+Do not treat this interface as a guarantee of crash-safe exact-delivery recovery.
+
+## One-off server-funded CLI test
+
+An operator can configure `ACKRATE_CLI_BURNER_MNEMONIC` as a **sealed, server-only
+Railway variable**. The value is the English BIP39 phrase only, not a `NAME=value`
+assignment. One matching pair of surrounding quotes and extra whitespace are
+accepted. The parser validates the checksum and Stellar SEP-5 derivation, checking
+only account indices 0–19 against the approved account
+`GCHNDR6APAMBLIAYTQRCKDHQRBI3E2V5GE6KIRUBXROLHRS46NF5YDVV`.
+Any mismatch stops signing. A mnemonic controls every derived account, not merely
+the selected burner; it must never belong to a primary or shared account.
+
+`npm start` sets the runtime-only marker. It starts the fixed, one-off job
+`cli-mainnet-burner-20260907-v1`; builds, development, and public status requests
+cannot start it. PostgreSQL retains this job across deployments and replicas.
+The signed funding transaction and session capability are encrypted before
+submission. Only the winner of a durable state/version claim can submit the exact
+funding transaction or launch the CLI. No reset or repeat-run endpoint exists.
+
+Funding is exactly 6 XLM to three new test accounts, 0.03 Circle USDC to the payer,
+and a 0.00006 XLM funding-transaction fee. Subsequent test transaction fees come
+from those funded accounts. The burner phrase is used only for this exact funding
+signature; it is not persisted in PostgreSQL, passed to the CLI, logged, or sent
+to a browser. Generated test-account keys remain encrypted in PostgreSQL.
+
+The read-only `/api/cli/test/burner` response and `/cli` show progress and saved
+evidence. A failed or ambiguous submitted run is retained for reconciliation,
+never funded again automatically. A completed deployment is not payment evidence;
+only successful CLI checks and independently verified Mainnet receipts can close
+the acceptance test. The source-build versus public-npm distinction above remains.

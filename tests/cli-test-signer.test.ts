@@ -1,5 +1,9 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
+import { mkdtemp, rm, symlink } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import test from "node:test";
 import { Account, Address, Asset, Contract, Keypair, Memo, Networks, Operation, Transaction, TransactionBuilder, nativeToScVal, xdr } from "@stellar/stellar-sdk";
@@ -17,7 +21,7 @@ const agent = Keypair.random();
 const merchant = Keypair.random();
 const rogue = Keypair.random();
 const config = { payer: payer.publicKey(), agent: agent.publicKey(), merchant: merchant.publicKey(), nowSeconds: now };
-const env = { CLI_TEST_PAYER_SECRET: payer.secret(), CLI_TEST_AGENT_SECRET: agent.secret(), CLI_TEST_MERCHANT_PUBLIC_KEY: merchant.publicKey() };
+const env: NodeJS.ProcessEnv = { NODE_ENV: "test", CLI_TEST_PAYER_SECRET: payer.secret(), CLI_TEST_AGENT_SECRET: agent.secret(), CLI_TEST_MERCHANT_PUBLIC_KEY: merchant.publicKey() };
 const address = (value: string) => new Address(value).toScVal();
 const amount = (value = 300_000n) => nativeToScVal(value, { type: "i128" });
 const registration = () => [address(config.payer), address(config.agent), address(config.merchant), address(USDC_SAC), amount(), nativeToScVal(BigInt(now + 3600), { type: "u64" }), nativeToScVal(Buffer.alloc(32, 7), { type: "bytes" })];
@@ -69,7 +73,7 @@ test("adapter refuses shell/path/extra flags, alternate network/RPC, and agent s
     valid.map((arg, index) => index === 8 ? `${MAINNET_RPC}/other` : arg),
   ];
   for (const args of bad) {
-    await assert.rejects(runCliTestSigner(args, { env: new Proxy({}, { get() { assert.fail("must not read environment"); } }) }), /command is not supported/);
+    await assert.rejects(runCliTestSigner(args, { env: new Proxy({ NODE_ENV: "test" } as NodeJS.ProcessEnv, { get() { assert.fail("must not read environment"); } }) }), /command is not supported/);
   }
 });
 
@@ -204,4 +208,35 @@ test("script runs as an external executable and signs generated-key registration
   const signed = TransactionBuilder.fromXDR(result.stdout.trim(), MAINNET_PASSPHRASE) as Transaction;
   assert.ok(payer.verify(signed.hash(), signed.signatures[0].signature()));
   assert.equal(result.stderr, "");
+});
+
+test("a PATH symlink resolves the trusted signer and SDK from an isolated run directory without exposing generated seeds", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "ackrate-cli-signer-symlink-"));
+  const executable = join(directory, "stellar");
+  await symlink(fileURLToPath(new URL("../scripts/cli-test-signer.mjs", import.meta.url)), executable);
+  const childEnv = { ...env, PATH: `${directory}:${dirname(process.execPath)}` };
+  try {
+    for (const [identity, publicKey] of [["cli-payer", config.payer], ["cli-agent", config.agent]]) {
+      const result = await execute("stellar", ["keys", "public-key", identity, "--quiet"], { cwd: directory, env: childEnv });
+      assert.equal(result.stdout, `${publicKey}\n`);
+      assert.equal(result.stderr, "");
+      assert.equal(/S[A-Z2-7]{55}/.test(result.stdout + result.stderr), false);
+    }
+    const current = Math.floor(Date.now() / 1000);
+    const args = registration(); args[5] = nativeToScVal(BigInt(current + 3600), { type: "u64" });
+    const unsigned = tx(MAINNET_REGISTRY, "register_mandate", args, { maxTime: current + 60 });
+    const result = await execute("stellar", signArgs(unsigned), { cwd: directory, env: childEnv });
+    const signed = TransactionBuilder.fromXDR(result.stdout.trim(), MAINNET_PASSPHRASE) as Transaction;
+    assert.equal(signed.hash().toString("hex"), unsigned.hash().toString("hex"));
+    assert.ok(payer.verify(signed.hash(), signed.signatures[0].signature()));
+    assert.equal(result.stderr, "");
+    assert.equal(result.stdout.includes(payer.secret()) || result.stdout.includes(agent.secret()), false);
+    await assert.rejects(execute("stellar", ["tx", "sign", "../arbitrary.xdr"], { cwd: directory, env: childEnv }), (error: unknown) => {
+      const failed = error as { stdout: string; stderr: string };
+      assert.equal(failed.stdout, "");
+      assert.match(failed.stderr, /command is not supported/);
+      assert.equal(/S[A-Z2-7]{55}/.test(failed.stderr), false);
+      return true;
+    });
+  } finally { await rm(directory, { recursive: true, force: true }); }
 });

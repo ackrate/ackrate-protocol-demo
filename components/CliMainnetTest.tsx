@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { getNetworkDetails, requestAccess, signTransaction } from "@stellar/freighter-api";
+import { getAddress, getNetworkDetails, requestAccess, signTransaction } from "@stellar/freighter-api";
 import { Download, ExternalLink, Loader2, WalletCards } from "lucide-react";
 
 const PUBLIC_NETWORK = "Public Global Stellar Network ; September 2015";
@@ -60,7 +60,7 @@ function errorText(error: unknown): string {
 }
 
 async function walletAccount(expected?: string): Promise<string> {
-  const access = await requestAccess();
+  const access = await (expected ? getAddress() : requestAccess());
   if (access.error || !ACCOUNT.test(access.address)) {
     throw new Error("Freighter did not connect an account. Open Freighter, unlock it, and approve access.");
   }
@@ -152,7 +152,12 @@ export default function CliMainnetTest() {
     let stopped = false;
     let timer: ReturnType<typeof setTimeout>;
     const poll = async () => {
-      try { if (!busyRef.current) await refresh(); }
+      try {
+        if (!busyRef.current) {
+          await refresh();
+          if (!stopped && mounted.current) setError(null);
+        }
+      }
       catch (cause) { if (!stopped && mounted.current) setError(errorText(cause)); }
       if (!stopped) timer = setTimeout(poll, 2_000);
     };
@@ -184,6 +189,7 @@ export default function CliMainnetTest() {
   }
 
   async function connectAndPrepare() {
+    if (!status?.ready || run) return;
     await action("Verify ownership in Freighter", async () => {
       const owner = await walletAccount();
       const response = await fetch(API, {
@@ -200,11 +206,11 @@ export default function CliMainnetTest() {
   }
 
   async function fund() {
-    if (!run || run.state !== "prepared" || !reviewed || savedFunding) return;
+    if (!status?.ready || !run || run.state !== "prepared" || !reviewed || savedFunding) return;
     await action("Approve funding in Freighter", async () => {
       const latest = await refresh();
       const current = latest.run;
-      if (!current || current.id !== run.id || current.state !== "prepared" || !current.fundingXdr) {
+      if (!latest.ready || !current || current.id !== run.id || current.state !== "prepared" || !current.fundingXdr) {
         throw new Error("The funding state changed. Review the current status before continuing.");
       }
       if (current.fundingXdr !== run.fundingXdr || current.owner !== run.owner) {
@@ -213,6 +219,10 @@ export default function CliMainnetTest() {
       }
       if (current.fundingExpiresAt && current.fundingExpiresAt * 1_000 <= Date.now()) {
         throw new Error("This prepared funding transaction expired. Refresh the status; do not sign an expired transaction.");
+      }
+      if (readSavedFunding(current)) {
+        setSavedFunding(readSavedFunding(current));
+        throw new Error("This exact funding transaction is already saved. Use Resume saved transaction instead of signing again.");
       }
       const signedXdr = await signForOwner(current.fundingXdr, current.owner);
       const saved: SavedFunding = {
@@ -232,30 +242,30 @@ export default function CliMainnetTest() {
   }
 
   async function resumeFunding() {
-    if (!run || !savedFunding) return;
+    if (!status?.ready || !run || !savedFunding) return;
     await action("Resume the saved funding transaction", async () => {
-      await walletAccount(run.owner);
       const latest = await refresh();
       const current = latest.run;
       if (current?.state === "funded" || current?.state === "running" || current?.state === "succeeded") return;
-      if (!current || current.id !== run.id || !["prepared", "funding"].includes(current.state)) {
+      if (!latest.ready || !current || current.id !== run.id || current.owner !== run.owner || !["prepared", "funding"].includes(current.state)) {
         throw new Error("This run cannot accept a funding retry. Check its current status before continuing.");
       }
       const saved = readSavedFunding(current);
       if (!saved) throw new Error("The saved signature does not match this exact prepared transaction. No replacement transaction was submitted.");
+      await walletAccount(current.owner);
       await post({ action: "fund", signedXdr: saved.signedXdr });
       await refresh();
     });
   }
 
   async function runTest() {
-    if (!run || run.state !== "funded" || !runApproved) return;
+    if (!status?.ready || !run || run.state !== "funded" || !runApproved) return;
     await action("Start the Mainnet CLI test", async () => {
-      await walletAccount(run.owner);
       const latest = await refresh();
-      if (latest.run?.id !== run.id || latest.run.state !== "funded") {
+      if (!latest.ready || latest.run?.id !== run.id || latest.run.state !== "funded" || latest.run.owner !== run.owner) {
         throw new Error("The run state changed. Review its status before starting another action.");
       }
+      await walletAccount(latest.run.owner);
       await post({ action: "run", confirmRealUsdc: true });
     });
   }

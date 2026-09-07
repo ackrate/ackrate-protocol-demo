@@ -4,6 +4,12 @@ import { EXPLORER_BASE } from "./explorer";
 import { log } from "./log";
 
 export async function registerNodeInstrumentation() {
+  // Only `npm start` sets this marker. Builds, development and page requests
+  // must never initiate the operator-authorized, one-off funded CLI test.
+  if (process.env.NEXT_PHASE !== "phase-production-build" && process.env.ACKRATE_CLI_RUNTIME_START === "1" && process.env.ACKRATE_CLI_BURNER_MNEMONIC) {
+    const { startCliBurnerJob } = await import("./cli-test-burner-job");
+    startCliBurnerJob();
+  }
   let contract = "…";
   let rpc = "…";
   const price = "1.00";

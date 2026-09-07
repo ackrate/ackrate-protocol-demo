@@ -14,7 +14,7 @@ import {
   WalletCards,
 } from "lucide-react";
 import "@xterm/xterm/css/xterm.css";
-import CliMainnetTest from "../../components/CliMainnetTest";
+import CliMainnetTestPanel from "../../components/CliMainnetTestPanel";
 
 const PACKAGE = "@ackrate/cli";
 const VERSION = "0.2.0";
@@ -145,7 +145,7 @@ export default function CliPage() {
           <p className="mt-5 max-w-2xl text-base leading-relaxed text-emerald-100/70 sm:text-lg">
             <code className="rounded bg-black/30 px-1.5 py-0.5 font-mono text-sm text-emerald-100">{PACKAGE}</code>
             {" "}runs the consumer and fulfillment agents against the official Stellar Mainnet contract and Circle USDC.
-            Connect Freighter, review the funding transaction, then approve the research test.
+            Follow the recorded team-funded run, or connect Freighter to authorize your own test when team funding is not configured.
           </p>
 
           <div className="mt-5 grid grid-cols-2 gap-2.5">
@@ -173,7 +173,7 @@ export default function CliPage() {
           </div>
 
           <p className="mt-5 rounded-lg border border-white/15 bg-black/30 p-4 text-sm leading-relaxed text-zinc-300">
-            The Freighter test uses CLI 0.2.1 built from source; the published npm release is {VERSION}.
+            The paid test uses CLI 0.2.1 built from source; the published npm release is {VERSION}.
             Funding transfers real assets to three dedicated server-managed accounts. The test then makes
             three 0.01 USDC purchases and checks the contract&apos;s budget limit.
           </p>
@@ -192,7 +192,7 @@ export default function CliPage() {
           </div>
         </motion.div>
 
-        <motion.div {...fade(0.08)}><CliMainnetTest /></motion.div>
+        <motion.div {...fade(0.08)}><CliMainnetTestPanel /></motion.div>
       </section>
 
       <details className="mb-8 rounded-xl border border-zinc-800 bg-zinc-950 p-4" onToggle={(event) => {

@@ -1,0 +1,6 @@
+{
+  "version": "0.2.1",
+  "sourceCommit": "0be7bf8c9f938e5ebe42c0c35db54d8061b37333",
+  "sha256": "ec3895ea85330ccfeb9ccb865ef916ded6f82226a299654ab5ccad42b2cbab51",
+  "provenance": "Source-built CLI from ackrate/ackrate-protocol; this is not yet a published npm 0.2.1 release."
+}

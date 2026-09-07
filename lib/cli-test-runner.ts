@@ -1,7 +1,7 @@
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
-import { chmod, copyFile, mkdir, readFile, readdir } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { chmod, symlink, mkdir, readFile, readdir } from "node:fs/promises";
+import { dirname, join, relative } from "node:path";
 import { tmpdir } from "node:os";
 import type { CliTestStore, CliTestRow, CliTestPatch } from "./cli-test-store";
 
@@ -23,6 +23,35 @@ export function cliPaidEnvironment(directory: string, secrets: { payer: string; 
 
 export function cleanCliLog(value: string): string {
   return value.replace(/\x1b\[[0-?]*[ -/]*[@-~]/g, "").replace(/S[A-Z2-7]{55}/g, "[redacted key]").slice(-180_000);
+}
+
+/** Stop starts a one-way drain: a delayed snapshot/store write must settle
+ * before the caller writes terminal evidence, and later ticks do nothing. */
+export function createCliEvidenceHeartbeat(
+  snapshot: () => Promise<string>,
+  save: (logs: string) => Promise<unknown>,
+  onError: () => void,
+) {
+  let closed = false;
+  let pending: Promise<void> | undefined;
+  let failed = false;
+  let failure: unknown;
+  return {
+    tick(): void {
+      if (closed || pending || failed) return;
+      pending = Promise.resolve().then(snapshot).then(save).then(() => undefined)
+        .catch((error: unknown) => { failed = true; failure = error; onError(); })
+        .finally(() => { pending = undefined; });
+      // A throwing error callback must not leave an unhandled rejection while
+      // the process-close path is still waiting to drain the heartbeat.
+      void pending.catch(() => undefined);
+    },
+    async stop(): Promise<void> {
+      closed = true;
+      await pending;
+      if (failed) throw failure;
+    },
+  };
 }
 
 async function receiptEvidence(directory: string): Promise<string> {
@@ -65,8 +94,7 @@ async function execute(store: CliTestStore, initial: CliTestRow, token: string):
     await chmod(directory, 0o700);
     // Narrow external-signing adapter, not the Stellar CLI executable.
     const adapter = join(directory, "bin", "stellar");
-    await copyFile(join(process.cwd(), "scripts", "cli-test-signer.mjs"), adapter);
-    await chmod(adapter, 0o700);
+    await symlink(relative(dirname(adapter), join(process.cwd(), "scripts", "cli-test-signer.mjs")), adapter);
     const bundle = join(process.cwd(), "vendor", "ackrate-cli-test.mjs");
     const manifest = JSON.parse(await readFile(join(process.cwd(), "vendor", "cli-test-build.json"), "utf8")) as { sha256: string; version: string; sourceCommit: string };
     if (manifest.version !== CLI_TEST_VERSION || manifest.sourceCommit !== CLI_TEST_SOURCE
@@ -79,16 +107,24 @@ async function execute(store: CliTestStore, initial: CliTestRow, token: string):
     const append = (chunk: Buffer) => { logs = cleanCliLog(logs + chunk.toString()); };
     child.stdout.on("data", append);
     child.stderr.on("data", append);
-    const heartbeat = setInterval(() => { void save({ logs }).catch(() => child.kill("SIGTERM")); }, 2000);
+    const snapshots = createCliEvidenceHeartbeat(
+      async () => cleanCliLog(logs + await receiptEvidence(directory)),
+      (snapshot) => save({ logs: snapshot }),
+      () => { child.kill("SIGTERM"); },
+    );
+    const heartbeat = setInterval(() => snapshots.tick(), 2000);
     let timedOut = false;
     const timeout = setTimeout(() => { timedOut = true; child.kill("SIGKILL"); }, 10 * 60_000);
     const code = await new Promise<number | null>((resolve, reject) => {
       child.on("error", reject); child.on("close", resolve);
-    }).finally(() => { clearInterval(heartbeat); clearTimeout(timeout); });
+    }).finally(async () => {
+      clearInterval(heartbeat); clearTimeout(timeout);
+      await snapshots.stop();
+    });
     logs = cleanCliLog(logs + await receiptEvidence(directory));
     const succeeded = code === 0 && logs.includes("Verified result") && logs.includes("3 protected research sources");
     await save({ logs, state: succeeded ? "succeeded" : "failed", finishedAt: Math.floor(Date.now() / 1000),
-      ...(succeeded ? {} : { error: timedOut ? "The test timed out. Payment records are retained; do not fund or run it again." : "The CLI stopped before all acceptance checks passed. Keep this run for payment reconciliation." }) });
+      ...(succeeded ? {} : { error: timedOut ? "The test timed out. Saved output is retained; do not fund or run it again." : "The CLI stopped before all acceptance checks passed. Keep this run for payment reconciliation." }) });
   } catch {
     try {
       const latest = await store.read(initial.id, token);

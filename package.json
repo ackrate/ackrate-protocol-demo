@@ -5,9 +5,9 @@
   "description": "Ackrate mainnet demo: an AI agent makes real USDC payments enforced on-chain by MandateRegistry.",
   "type": "module",
   "scripts": {
-    "dev": "WATCHPACK_POLLING=true NODE_OPTIONS='--disable-warning=DEP0205' next dev --webpack",
-    "build": "next build --webpack",
-    "start": "NODE_OPTIONS='--disable-warning=DEP0205' next start",
+    "dev": "ACKRATE_CLI_RUNTIME_START=0 WATCHPACK_POLLING=true NODE_OPTIONS='--disable-warning=DEP0205' next dev --webpack",
+    "build": "ACKRATE_CLI_RUNTIME_START=0 next build --webpack",
+    "start": "ACKRATE_CLI_RUNTIME_START=1 NODE_OPTIONS='--disable-warning=DEP0205' next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "generate:starters": "node scripts/starters/generate.mjs",
@@ -16,7 +16,7 @@
     "check:workflow-pins": "node scripts/check-workflow-pins.mjs",
     "test:hackathon": "node --test tests/hackathon.test.mjs tests/starter-catalog.test.mjs tests/starter-generation.test.mjs tests/starter-install.test.mjs tests/starter-presenter.test.mjs tests/starter-scenarios.test.mjs tests/shared-runtime.test.mjs tests/scenario-contract.test.mjs tests/scenario-runtime-boundary.test.mjs tests/contract-exact-payment.test.mjs tests/fulfillment-recovery.test.mjs tests/storage-recovery.test.mjs tests/operator-closure.test.mjs",
     "test:wallet": "node --import tsx --test tests/wallet-*.test.ts",
-    "test:cli": "node --import tsx --test tests/cli-runner.test.ts",
+    "test:cli": "node --import tsx --test tests/cli-runner.test.ts tests/cli-test-*.test.ts tests/cli-mainnet-ui.test.mjs",
     "smoke:hackathon": "node scripts/hackathon-smoke.mjs",
     "gatecheck:hackathon": "npm run typecheck && npm run test:hackathon && npm run build && npm run smoke:hackathon",
     "gatecheck:t3": "npm run check:branding && npm run check:workflow-pins && npm run check:starters && npm run typecheck && npm run test:cli && npm run test:hackathon && npm run test:wallet && npm audit --audit-level=high && npm run build && npm run smoke:hackathon"
@@ -43,6 +43,8 @@
     "@xterm/xterm": "^6.0.0",
     "ai": "7.0.55",
     "buffer": "6.0.3",
+    "bip39": "3.1.0",
+    "ed25519-hd-key": "2.0.0",
     "express": "^5.2.1",
     "framer-motion": "^11.15.0",
     "lucide-react": "^1.24.0",
@@ -56,6 +58,7 @@
     "zod": "4.4.3"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "0.5.8",
     "@tailwindcss/postcss": "^4.0.0",
     "@types/express": "^5.0.6",
     "@types/node": "^22.10.2",
