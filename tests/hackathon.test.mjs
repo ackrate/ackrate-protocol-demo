@@ -262,7 +262,7 @@ test("the CLI uses the published Mainnet release while unrelated historical docu
   const { stdout } = await run(process.execPath, [bundle.pathname, "--version"]);
   const actualVersion = stdout.trim();
 
-  assert.equal(actualVersion, "0.2.0");
+  assert.equal(actualVersion, "0.2.1");
   const [home, cli, terminal, bundleSource] = await Promise.all([
     read("app/page.tsx"),
     read("app/cli/page.tsx"),
@@ -288,7 +288,7 @@ test("the CLI uses the published Mainnet release while unrelated historical docu
   ]) {
     assert.match(source, new RegExp(PERMANENT_SIMPLE_CONTRACT), path);
   }
-  assert.match(cli, /const VERSION = "0\.2\.0"/);
+  assert.match(cli, /const VERSION = "0\.2\.1"/);
   assert.match(terminal, /redirect\("\/cli"\)/);
   assert.match(cli, /--network mainnet/);
   assert.doesNotMatch(cli, /testnet|0\.1\.9|0\.1\.10/i);
@@ -300,5 +300,5 @@ test("the CLI uses the published Mainnet release while unrelated historical docu
   const lock = JSON.parse(await read("package-lock.json"));
   assert.equal(packageJson.dependencies["@ackrate/cli"], actualVersion);
   assert.equal(lock.packages["node_modules/@ackrate/cli"].version, actualVersion);
-  assert.equal(createHash("sha256").update(bundleSource).digest("hex"), "b719eb1e780f85daa20a3d86c2f82d80b5789574c079e459b5fc640fb174b125");
+  assert.equal(createHash("sha256").update(bundleSource).digest("hex"), "c2e6c113a6fdcad618927c59a304da525628041c7d10626d430712c2f7e2ce69");
 });
