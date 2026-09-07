@@ -66,9 +66,9 @@ export default function Intro({ onDone }: { onDone: () => void }) {
     const target = new Float32Array(COUNT * 3);
     const colors = new Float32Array(COUNT * 3);
     const positions = new Float32Array(COUNT * 3);
-    const cA = new THREE.Color("#ff1300");
-    const cB = new THREE.Color("#ff5a1f");
-    const cC = new THREE.Color("#ffd0b5");
+    const cA = new THREE.Color("#ffffff");
+    const cB = new THREE.Color("#a3a3a3");
+    const cC = new THREE.Color("#525252");
     const R = 4.3;
     const golden = Math.PI * (1 + Math.sqrt(5));
     for (let i = 0; i < COUNT; i++) {
@@ -110,7 +110,7 @@ export default function Intro({ onDone }: { onDone: () => void }) {
 
     const coreMat = new THREE.SpriteMaterial({
       map: glow,
-      color: new THREE.Color("#ff2100"),
+      color: new THREE.Color("#ffffff"),
       transparent: true,
       depthWrite: false,
       blending: THREE.AdditiveBlending,
@@ -212,7 +212,7 @@ export default function Intro({ onDone }: { onDone: () => void }) {
           transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
           className="text-6xl font-black tracking-tight sm:text-8xl"
         >
-          <span className="bg-gradient-to-r from-red-300 via-red-500 to-orange-400 bg-clip-text text-transparent drop-shadow-[0_0_40px_rgba(255,32,0,0.58)]">
+          <span className="bg-gradient-to-r from-white via-neutral-200 to-neutral-500 bg-clip-text text-transparent drop-shadow-[0_0_40px_rgba(255,255,255,0.38)]">
             ACKRATE
           </span>
         </motion.div>
