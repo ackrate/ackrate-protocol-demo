@@ -14,6 +14,7 @@ import {
   WalletCards,
 } from "lucide-react";
 import "@xterm/xterm/css/xterm.css";
+import CliMainnetTest from "../../components/CliMainnetTest";
 
 const PACKAGE = "@ackrate/cli";
 const VERSION = "0.2.0";
@@ -25,23 +26,9 @@ const INSTALL = `npx @ackrate/cli@0.2.0 demo research-agent --network mainnet
 npm install -g @ackrate/cli@0.2.0
 ackrate --help`;
 
-const PROJECT_FLOW = `ackrate init
-ackrate setup
-ackrate mandate create
-ackrate pay
-ackrate settlement reconcile
-ackrate settlement acknowledge <TX_HASH>
-ackrate pay 10.00`;
-
 const QUICK = [
   { label: "version", cmd: "--version" },
   { label: "help", cmd: "--help" },
-  { label: "demo research-agent", cmd: "demo research-agent --network mainnet" },
-  { label: "init", cmd: "init --network mainnet" },
-  { label: "setup", cmd: "setup" },
-  { label: "mandate create", cmd: "mandate create" },
-  { label: "pay", cmd: "pay" },
-  { label: "settlement reconcile", cmd: "settlement reconcile" },
 ];
 
 const COMMANDS = [
@@ -74,7 +61,6 @@ export default function CliPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const fitRef = useRef<any>(null);
   const sessionRef = useRef<string>("");
-  const [cmd, setCmd] = useState("demo research-agent --network mainnet");
   const [running, setRunning] = useState(false);
   const [ready, setReady] = useState(false);
 
@@ -89,7 +75,7 @@ export default function CliPage() {
         cursorBlink: true,
         fontSize: 13,
         fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
-        theme: { background: "#000000", foreground: "#d1fae5", cursor: "#34d399", selectionBackground: "#065f46" },
+        theme: { background: "#000000", foreground: "#d4d4d8", cursor: "#e4e4e7", selectionBackground: "#3f3f46" },
       });
       const fit = new FitAddon();
       term.loadAddon(fit);
@@ -97,8 +83,8 @@ export default function CliPage() {
       fit.fit();
       termRef.current = term;
       fitRef.current = fit;
-      term.writeln(`\x1b[2m${PACKAGE} ${VERSION} · Stellar Mainnet · published npm executable.\x1b[0m`);
-      term.writeln("\x1b[2mMainnet needs funded accounts and authorized signers. This browser session has no signing credentials.\x1b[0m\r\n");
+      term.writeln(`\x1b[2m${PACKAGE} ${VERSION} · published npm executable · command inspection.\x1b[0m`);
+      term.writeln("\x1b[2mVersion and help only. Use the Freighter test above for a paid Mainnet run.\x1b[0m\r\n");
       setReady(true);
       const onResize = () => fit.fit();
       window.addEventListener("resize", onResize);
@@ -114,7 +100,7 @@ export default function CliPage() {
 
   async function run(command: string) {
     const term = termRef.current;
-    if (!term || running) return;
+    if (!term || running || !QUICK.some((item) => item.cmd === command)) return;
     const args = command.trim().split(/\s+/).filter(Boolean);
     if (args.length === 0) return;
     setRunning(true);
@@ -147,9 +133,7 @@ export default function CliPage() {
 
   return (
     <main className="relative mx-auto w-full max-w-6xl px-4 py-8 sm:px-5">
-      <div className="glow" aria-hidden />
-
-      <section className="grid min-h-[calc(100vh-92px)] gap-8 py-6 lg:grid-cols-[0.86fr_1.14fr] lg:items-center">
+      <section className="grid gap-8 py-6 lg:grid-cols-[0.8fr_1.2fr] lg:items-start">
         <motion.div {...fade()} className="flex flex-col justify-center">
           <div className="inline-flex w-fit items-center gap-2 rounded-full border border-emerald-300/20 bg-emerald-400/10 px-3.5 py-1.5 text-[11px] font-semibold tracking-[0.18em] text-emerald-200">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 shadow-[0_0_10px_rgba(110,231,183,0.95)]" />
@@ -160,8 +144,8 @@ export default function CliPage() {
           </h1>
           <p className="mt-5 max-w-2xl text-base leading-relaxed text-emerald-100/70 sm:text-lg">
             <code className="rounded bg-black/30 px-1.5 py-0.5 font-mono text-sm text-emerald-100">{PACKAGE}</code>
-            {" "}version {VERSION} is published on npm. This terminal runs that executable with Stellar Mainnet selected,
-            using the official contract and Circle USDC. The research command includes the consumer and fulfillment agents.
+            {" "}runs the consumer and fulfillment agents against the official Stellar Mainnet contract and Circle USDC.
+            Connect Freighter, review the funding transaction, then approve the research test.
           </p>
 
           <div className="mt-5 grid grid-cols-2 gap-2.5">
@@ -177,17 +161,6 @@ export default function CliPage() {
           </div>
 
           <div className="mt-7 flex flex-wrap gap-3">
-            <button
-              onClick={() => {
-                setCmd("demo research-agent --network mainnet");
-                run("demo research-agent --network mainnet");
-              }}
-              disabled={running || !ready}
-              className="inline-flex items-center gap-2 rounded-xl bg-emerald-400 px-4 py-2.5 text-sm font-bold text-[#06241a] shadow-[0_0_28px_rgba(52,211,153,0.35)] transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <Play className="h-4 w-4" aria-hidden />
-              Run demo
-            </button>
             <a
               href="https://www.npmjs.com/package/@ackrate/cli"
               target="_blank"
@@ -200,9 +173,9 @@ export default function CliPage() {
           </div>
 
           <p className="mt-5 rounded-lg border border-white/15 bg-black/30 p-4 text-sm leading-relaxed text-zinc-300">
-            Mainnet signing setup is required before a paid run. There are no free accounts on Mainnet.
-            Commands report missing configuration; a confirmation warning is not a completed payment.
-            Signing credentials and spending approval are not exposed to anonymous browser commands.
+            The Freighter test uses CLI 0.2.1 built from source; the published npm release is {VERSION}.
+            Funding transfers real assets to three dedicated server-managed accounts. The test then makes
+            three 0.01 USDC purchases and checks the contract&apos;s budget limit.
           </p>
 
           <div className="mt-7 space-y-3">
@@ -219,71 +192,37 @@ export default function CliPage() {
           </div>
         </motion.div>
 
-        <motion.section {...fade(0.08)} className="rounded-2xl border border-emerald-300/15 bg-black/35 p-3 shadow-[0_0_64px_rgba(16,185,129,0.16)]">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-emerald-400/10 px-3 pb-3">
-            <div>
-              <div className="flex items-center gap-2 font-mono text-sm text-emerald-200">
-                <Terminal className="h-4 w-4" aria-hidden />
-                {COMMAND} demo research-agent
-              </div>
-              <div className="mt-1 text-xs text-emerald-50/45">Published CLI executable, isolated session, Stellar Mainnet.</div>
-            </div>
-            <div className="rounded-full border border-emerald-300/20 bg-emerald-400/10 px-3 py-1 font-mono text-[11px] text-emerald-200">
-              {running ? "running" : ready ? "ready" : "booting"}
-            </div>
-          </div>
+        <motion.div {...fade(0.08)}><CliMainnetTest /></motion.div>
+      </section>
 
-          <div className="mt-3 flex flex-wrap gap-2 px-1">
+      <details className="mb-8 rounded-xl border border-zinc-800 bg-zinc-950 p-4" onToggle={(event) => {
+        if (event.currentTarget.open) requestAnimationFrame(() => fitRef.current?.fit?.());
+      }}>
+        <summary className="cursor-pointer text-sm font-medium text-zinc-300">CLI command inspection · published {VERSION} · version and help</summary>
+        <p className="mt-3 text-xs leading-relaxed text-zinc-500">These commands inspect the published executable. They do not fund accounts or start the Freighter test.</p>
+          <div className="mt-3 flex flex-wrap gap-2">
             {QUICK.map((q) => (
               <button
                 key={q.cmd}
-                onClick={() => {
-                  setCmd(q.cmd);
-                  run(q.cmd);
-                }}
+                type="button"
+                onClick={() => void run(q.cmd)}
                 disabled={running || !ready}
                 className="inline-flex items-center gap-1.5 rounded-md border border-emerald-400/20 bg-emerald-500/10 px-3 py-1.5 font-mono text-[12px] text-emerald-200 transition hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 <Terminal className="h-3.5 w-3.5" aria-hidden />
-                {q.label}
+                Show {q.label}
               </button>
             ))}
           </div>
-
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              run(cmd);
-            }}
-            className="mt-3 flex items-center gap-2 rounded-lg border border-emerald-400/20 bg-black/50 px-3 py-2 font-mono text-sm"
-          >
-            <span className="text-emerald-400">{COMMAND}</span>
-            <input
-              value={cmd}
-              onChange={(e) => setCmd(e.target.value)}
-              spellCheck={false}
-              disabled={running}
-              className="min-w-0 flex-1 bg-transparent text-emerald-50 placeholder:text-emerald-50/30 focus:outline-none"
-              placeholder="demo research-agent --network mainnet"
-            />
-            <button
-              type="submit"
-              disabled={running || !ready}
-              className="inline-flex items-center gap-1.5 rounded-md bg-emerald-500 px-4 py-1.5 font-semibold text-black shadow-[0_0_20px_rgba(16,185,129,0.35)] transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <Play className="h-4 w-4" aria-hidden />
-              {running ? "Running..." : "Run"}
-            </button>
-          </form>
 
           <div className="mt-4 overflow-hidden rounded-xl border border-emerald-400/20 bg-black shadow-[0_0_44px_rgba(16,185,129,0.14)]">
             <div className="flex items-center gap-2 border-b border-emerald-400/10 px-4 py-2 font-mono text-[12px] text-emerald-300/70">
               <span className="h-3 w-3 rounded-full bg-red-400/70" />
               <span className="h-3 w-3 rounded-full bg-amber-400/70" />
               <span className="h-3 w-3 rounded-full bg-emerald-400/70" />
-              <span className="ml-2">@ackrate/cli {VERSION} · Mainnet</span>
+              <span className="ml-2">@ackrate/cli {VERSION} · {running ? "inspecting" : ready ? "ready" : "loading"}</span>
             </div>
-            <div ref={hostRef} className="h-[520px] w-full px-3 py-2" />
+            <div ref={hostRef} className="h-[320px] w-full px-3 py-2" />
           </div>
 
           <div className="mt-3 flex flex-col gap-2 px-1 text-xs text-emerald-50/50 sm:flex-row sm:items-center sm:justify-between">
@@ -293,8 +232,7 @@ export default function CliPage() {
               <ArrowRight className="h-3.5 w-3.5" aria-hidden />
             </a>
           </div>
-        </motion.section>
-      </section>
+      </details>
 
       <motion.section {...fade(0.16)} className="grid gap-4 pb-12 lg:grid-cols-[0.9fr_1.1fr]">
         <div className="rounded-xl border border-white/10 bg-black/25 p-5">
