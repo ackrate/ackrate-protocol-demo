@@ -1475,7 +1475,7 @@ export function WalletChatApp() {
   return (
     <main className={`wallet-preview wallet-flow wallet-flat${resultVisible ? " wallet-result-mode" : ""}`}>
       <header className="flow-header">
-        <Link href="/" className="flow-brand" aria-label="ACKRATE home"><AckrateSolarMark size={42} /><strong>ACKRATE</strong></Link>
+        <div className="flow-wallet-context"><WalletCards size={15} /><strong>Agent Wallet</strong></div>
         <div className="flow-network"><span />{config?.networkLabel ?? "Loading Mainnet"}</div>
         <div className="flow-header-actions">
           {(connected || walletAddress) && (
