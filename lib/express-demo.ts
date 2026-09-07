@@ -281,7 +281,7 @@ interface DemoSession {
   origin: string;
   mandate: IntentMandate;
   consumer: Agent;
-  registry: RegistryClient;
+  registry: Pick<RegistryClient, "get_mandate">;
   hooks: SessionHooks;
   accounts: { user: string; agent: string; merchant: string };
   registerTx: string;

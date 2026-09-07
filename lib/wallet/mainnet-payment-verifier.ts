@@ -21,7 +21,7 @@ interface V2PaymentEvent {
 
 interface V2Mandate extends LoadedMandate {
   seq: number;
-  spent: bigint | string;
+  spent: bigint;
 }
 
 interface ReadOnlyLoaders {

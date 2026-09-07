@@ -36,7 +36,8 @@ import {
   AllowanceNotSubmittedError,
   AllowanceSubmissionRejected,
   prepareAllowanceTransaction,
-  registerWithFreighter,
+  registerRetainedWithFreighter as registerWithFreighter,
+  RegistrationNotSubmittedError,
   revokeWithFreighter,
   submitPreparedAllowanceWithFreighter,
   walletRpcServer,
@@ -50,6 +51,7 @@ import type { MarketplaceQuoteView } from "@/lib/wallet/marketplace-quote";
 import { allowanceTransactionIsFresh, canStartFreshWalletLimit, mandateCanAfford, readAllowanceConfirmation, waitForAllowanceConfirmation, retainWalletMandate, walletAmountAtomic, type PendingAllowance } from "@/lib/wallet/client-readiness";
 import { allowanceConflictsWithRegistration, confirmedRegistrationSequence } from "@/lib/wallet/allowance-sequence";
 import { nextWalletNotification, safeWalletError, type WalletNotification } from "@/lib/wallet/notifications";
+import { assertRegistrationMandate, readRegistrationConfirmation, registrationNeedsReconciliation, type PendingRegistration, type RegistrationState } from "../../lib/wallet/registration-recovery";
 
 type Phase = "idle" | "authenticating" | "adding-asset" | "registering" | "approving" | "active" | "revoking";
 
@@ -67,6 +69,9 @@ interface StoredMandate {
   expiry: number;
   decimals: number;
   registrationTx?: string;
+  registrationState?: RegistrationState;
+  pendingRegistration?: PendingRegistration;
+  registrationAttempts?: PendingRegistration[];
   allowanceTx?: string;
   pendingAllowance?: PendingAllowance;
   pendingRevokeTx?: string;
@@ -331,17 +336,20 @@ export function WalletChatApp() {
   const [allowanceChecking, setAllowanceChecking] = useState(false);
   const [allowanceProgress, setAllowanceProgress] = useState<"confirming" | "syncing" | "delayed" | null>(null);
   const [allowanceCheckAttempt, setAllowanceCheckAttempt] = useState(0);
+  const [registrationChecking, setRegistrationChecking] = useState(false);
+  const [registrationCheckAttempt, setRegistrationCheckAttempt] = useState(0);
   const [marketplaceQuote, setMarketplaceQuote] = useState<MarketplaceQuoteView | null>(null);
   const [quoteChecking, setQuoteChecking] = useState(false);
   const [runStarted, setRunStarted] = useState(false);
   const [runBusy, setRunBusy] = useState(false);
   const approvalInFlight = useRef(false);
+  const registrationInFlight = useRef(false);
   const revocationInFlight = useRef(false);
   const disconnectInFlight = useRef(false);
   const activeMandateId = useRef<string | null>(null);
   const preparedAllowanceReady = Boolean(config && stored && preparedAllowance?.mandateId === stored.id
     && allowanceTransactionIsFresh(preparedAllowance.xdr, config.networkPassphrase, nowSeconds));
-  const notificationBusy = allowancePreparing || allowanceChecking || quoteChecking || disconnecting || !["idle", "active"].includes(phase);
+  const notificationBusy = registrationChecking || allowancePreparing || allowanceChecking || quoteChecking || disconnecting || !["idle", "active"].includes(phase);
 
   useEffect(() => {
     if (!resultVisible) return;
@@ -570,6 +578,71 @@ export function WalletChatApp() {
     activeMandateId.current = value.id;
   }, [config]);
 
+  // Recovery only reads the saved registration. A lost response or reload never
+  // re-enters the signing/submission path or changes the original mandate id.
+  useEffect(() => {
+    if (!config || !stored || !registrationNeedsReconciliation(stored) || phase === "registering"
+      || !session.authenticated || session.address !== stored.user || disconnectOpen) {
+      setRegistrationChecking(false);
+      return;
+    }
+    const current = stored;
+    const controller = new AbortController();
+    const stillCurrent = () => !controller.signal.aborted && activeMandateId.current === current.id;
+    setRegistrationChecking(true);
+    setNotice("1 of 2: Checking the original registration on Stellar. No new signature or fee is requested.");
+    void (async () => {
+      const deadline = Date.now() + 120_000;
+      try {
+        if (!current.pendingRegistration) {
+          // Older releases retained the mandate id but not the signed receipt.
+          // A read error is not proof of absence and must not permit replacement.
+          const original = await refreshMandate(current);
+          assertRegistrationMandate(current, { ...original });
+          if (stillCurrent()) setNotice("The original mandate is registered. Its transaction receipt was not retained by the earlier app version. Keep this record; do not register a replacement while its receipt is unresolved.");
+          return;
+        }
+        do {
+          try {
+            const status = await readRegistrationConfirmation(config, current, current.pendingRegistration, controller.signal);
+            if (!stillCurrent()) return;
+            if (status === "confirmed") {
+              const body = await api<{ mandate: MandateView }>("/api/wallet/mandate/status", {
+                method: "POST", body: JSON.stringify({ mandateId: current.id }),
+                signal: AbortSignal.any([controller.signal, AbortSignal.timeout(15_000)]),
+              });
+              assertRegistrationMandate(current, { ...body.mandate });
+              if (!stillCurrent()) return;
+              const next = { ...current, registrationTx: current.pendingRegistration.txHash, pendingRegistration: undefined,
+                registrationAttempts: [...(current.registrationAttempts ?? []), current.pendingRegistration] };
+              saveStored(next);
+              setMandate(body.mandate);
+              setPhase(body.mandate.status === "Active" && body.mandate.expiry > Math.floor(Date.now() / 1000) ? "active" : "idle");
+              if (stillCurrent()) setNotice("1 of 2 complete: the original registration is confirmed. Next, approve the USDC allowance; registration will not be repeated.");
+              return;
+            }
+            if (status === "failed" || status === "expired") {
+              saveStored({ ...current, registrationState: "failed", pendingRegistration: undefined,
+                registrationAttempts: [...(current.registrationAttempts ?? []), current.pendingRegistration] });
+              setError("The saved registration did not complete and cannot execute later. Its receipt is retained. Register again only when you choose to approve another network fee.");
+              return;
+            }
+          } catch {
+            // Outages and unverifiable responses keep the exact pending record.
+          }
+          if (!stillCurrent() || Date.now() >= deadline) break;
+          await new Promise((resolve) => window.setTimeout(resolve, 2_000));
+        } while (stillCurrent() && Date.now() < deadline);
+        if (stillCurrent()) setNotice("The original registration is still unconfirmed. Its signed transaction is saved. Resume checking below; no new signature or network fee is needed.");
+      } catch {
+        if (stillCurrent()) setError("The original registration could not be checked. Its saved mandate is preserved. Resume checking; do not register a replacement.");
+      } finally {
+        if (stillCurrent()) setRegistrationChecking(false);
+      }
+    })();
+    return () => controller.abort();
+  }, [config, stored, phase, session.address, session.authenticated, disconnectOpen, registrationCheckAttempt, saveStored, refreshMandate, setError, setNotice]);
+
   // Signing/broadcasting happens only in the click handler. This observer can
   // resume after a lost response or reload, but can only read the saved receipt.
   useEffect(() => {
@@ -685,6 +758,7 @@ export function WalletChatApp() {
 
   const startFreshLimit = () => {
     if (!config || !session.address || !stored || notificationBusy || runBusy || approvalInFlight.current
+      || registrationNeedsReconciliation(stored)
       || !canStartFreshWalletLimit(stored, mandate)) return;
     try {
       const key = mandateHistoryStorageKey(config, session.address);
@@ -763,7 +837,15 @@ export function WalletChatApp() {
   };
 
   const activate = async () => {
-    if (!config || !session.address || !config.ready) return;
+    if (!config || !session.address || !config.ready || registrationInFlight.current || disconnectInFlight.current || disconnectOpen) return;
+    if (registrationNeedsReconciliation(stored)) {
+      setRegistrationCheckAttempt((value) => value + 1);
+      return;
+    }
+    if (stored?.registrationTx) {
+      setError("This mandate is already registered. Continue its allowance setup, or archive an expired limit before creating another.");
+      return;
+    }
     if (!marketplaceQuote || marketplaceQuote.expiresAt <= Math.floor(Date.now() / 1_000)) {
       setServiceConfigured(false);
       setError("Review the service inputs again to refresh its price and seller before approving.");
@@ -784,10 +866,12 @@ export function WalletChatApp() {
       setPhase("idle");
       return;
     }
+    registrationInFlight.current = true;
+    let next: StoredMandate | undefined;
     try {
       const expiry = Math.floor(Date.now() / 1_000) + Number(duration) * 60;
       const intent = buildMandate(config, session.address, { budget, expiry });
-      let next: StoredMandate = {
+      next = {
         schemaVersion: 2,
         id: intent.id,
         credentialHash: intent.id,
@@ -800,22 +884,45 @@ export function WalletChatApp() {
         maxAmount: intent.maxAmount.toString(),
         expiry: intent.expiry,
         decimals: intent.decimals,
+        registrationState: "not-submitted",
+        registrationAttempts: stored?.registrationAttempts,
       };
       saveStored(next);
       setPhase("registering");
       setNotice("1 of 2: Confirm mandate registration in Freighter. This saves your spending rules on-chain; it does not approve the USDC allowance yet.");
       const registration = await registerWithFreighter(config, intent, (mandateId) => {
-        next = { ...next, id: mandateId };
+        next = { ...next!, id: mandateId };
+        saveStored(next);
+      }, (pendingRegistration) => {
+        if (disconnectInFlight.current || activeMandateId.current !== next!.id) {
+          throw new Error("The wallet setup changed before registration submission.");
+        }
+        next = { ...next!, registrationState: "pending", pendingRegistration };
         saveStored(next);
       });
-      next = { ...next, id: registration.mandateId, registrationTx: registration.transactionHash };
+      next = { ...next, id: registration.mandateId, registrationTx: registration.transactionHash,
+        registrationAttempts: [...(next.registrationAttempts ?? []), ...(next.pendingRegistration ? [next.pendingRegistration] : [])],
+        pendingRegistration: undefined };
       saveStored(next);
       await refreshMandate(next);
       setPhase("idle");
       setNotice("1 of 2 complete: mandate registered. Next, approve the USDC allowance in a separate transaction.");
     } catch (cause) {
-      setError(safeWalletError(cause, "Limit registration did not finish. Check Freighter for a pending request before signing another registration."));
+      if (cause instanceof RegistrationNotSubmittedError && next) {
+        // Signing rejection or pre-send storage/validation failure cannot have
+        // broadcast. Persist that distinction without discarding older receipts.
+        try { saveStored({ ...next, registrationState: "not-submitted", pendingRegistration: undefined }); } catch { /* No send occurred. */ }
+        setError("Registration was not submitted to Stellar. Nothing was paid. You can try registering again when ready.");
+      } else if (next?.pendingRegistration) {
+        setNotice("The registration response was interrupted. The original signed transaction is saved and will be checked; do not sign another registration.");
+      } else if (next?.registrationTx) {
+        setNotice("The original registration is confirmed and its receipt is saved. Spending status is still refreshing; registration must not be repeated.");
+      } else {
+        setError(safeWalletError(cause, "Registration preparation did not finish. No transaction was submitted."));
+      }
       setPhase("idle");
+    } finally {
+      registrationInFlight.current = false;
     }
   };
 
@@ -995,6 +1102,10 @@ export function WalletChatApp() {
 
   const finishDisconnect = async (confirmedMandate?: MandateView) => {
     if (disconnectInFlight.current) return;
+    if (registrationInFlight.current || registrationNeedsReconciliation(stored)) {
+      setError("The original registration is still being checked. Keep its saved record and confirm its status before disconnecting this setup.");
+      return;
+    }
     const latest = confirmedMandate ?? mandate;
     if (confirmedMandate && (confirmedMandate.id !== stored?.id || confirmedMandate.user !== session.address)) {
       throw new Error("The confirmed spending limit does not match this wallet.");
@@ -1087,7 +1198,8 @@ export function WalletChatApp() {
   const spendingOff = Boolean(stored?.revokeTx && mandate?.status !== "Active");
   const storedFresh = Boolean(stored && stored.expiry > nowSeconds);
   const historicalCurrent = Boolean(stored && (!storedFresh || (mandate?.id === stored.id && mandate.status !== "Active")));
-  const canCreateFreshLimit = canStartFreshWalletLimit(stored, mandate, nowSeconds);
+  const registrationPending = registrationNeedsReconciliation(stored);
+  const canCreateFreshLimit = !registrationPending && canStartFreshWalletLimit(stored, mandate, nowSeconds);
   const servicePrice = marketplaceQuote?.price ?? marketplaceService.price;
   const enoughRemaining = mandateCanAfford(mandate?.remaining, servicePrice, config?.asset.decimals ?? 7);
   const quoteCurrent = Boolean(marketplaceQuote && marketplaceQuote.expiresAt > nowSeconds);
@@ -1611,13 +1723,13 @@ export function WalletChatApp() {
               </div>
 
               <div className="flow-fields">
-                <label><span>MAXIMUM SPEND</span><div className="flow-input"><input value={budget} onChange={(event) => setBudget(event.target.value)} inputMode="decimal" aria-label="Maximum USDC spend" disabled={mandateOnline} /><strong>USDC</strong></div></label>
-                <label><span>EXPIRES AFTER</span><select value={duration} onChange={(event) => setDuration(event.target.value)} disabled={mandateOnline}><option value="30">30 minutes</option><option value="60">1 hour</option><option value="360">6 hours</option><option value="1440">24 hours</option></select></label>
+                <label><span>MAXIMUM SPEND</span><div className="flow-input"><input value={budget} onChange={(event) => setBudget(event.target.value)} inputMode="decimal" aria-label="Maximum USDC spend" disabled={mandateOnline || registrationPending} /><strong>USDC</strong></div></label>
+                <label><span>EXPIRES AFTER</span><select value={duration} onChange={(event) => setDuration(event.target.value)} disabled={mandateOnline || registrationPending}><option value="30">30 minutes</option><option value="60">1 hour</option><option value="360">6 hours</option><option value="1440">24 hours</option></select></label>
               </div>
               {quoteCurrent && minimumBudget !== null && minimumBudget > 0n && <div className="flow-budget-preview">
                 <p><strong>{servicePrice} USDC per run</strong>{budgetRunCount !== null ? ` · Your ${budget} USDC limit covers up to ${budgetRunCount.toString()} ${budgetRunCount === 1n ? "run" : "runs"} at this quoted price.` : " · Choose how many runs to allow."}</p>
                 <div className="flow-budget-presets" aria-label="Spending limit presets">
-                  {[1n, 2n].map((count) => <button className="flow-text-button" type="button" key={count.toString()} disabled={mandateOnline || Boolean(stored?.pendingAllowance)} onClick={() => setBudget(formatUnits((minimumBudget * count).toString(), config?.asset.decimals ?? 7))}>{count.toString()} {count === 1n ? "run" : "runs"} · {formatUnits((minimumBudget * count).toString(), config?.asset.decimals ?? 7)} USDC</button>)}
+                  {[1n, 2n].map((count) => <button className="flow-text-button" type="button" key={count.toString()} disabled={mandateOnline || registrationPending || Boolean(stored?.pendingAllowance)} onClick={() => setBudget(formatUnits((minimumBudget * count).toString(), config?.asset.decimals ?? 7))}>{count.toString()} {count === 1n ? "run" : "runs"} · {formatUnits((minimumBudget * count).toString(), config?.asset.decimals ?? 7)} USDC</button>)}
                 </div>
                 <small>This is a cap, not a deposit. Only a submitted run spends its service price; transaction fees use XLM.</small>
               </div>}
@@ -1641,7 +1753,12 @@ export function WalletChatApp() {
                 <p className="flow-footnote" role="status"><Check size={12} />{stored.pendingAllowance?.submissionError ? "Mandate registered · Allowance submission rejected" : stored.pendingAllowance ? "Mandate registered · USDC allowance signed" : "1 of 2 complete — Mandate registered."}</p>
               )}
 
-              {mandateOnline && !mandateMatchesConfig ? (
+              {registrationPending ? (
+                <motion.button className="flow-primary" type="button" onClick={() => setRegistrationCheckAttempt((value) => value + 1)} disabled={registrationChecking || phase === "registering"} aria-busy={registrationChecking} whileTap={reduceMotion ? undefined : { scale: 0.985 }}>
+                  {registrationChecking ? <LoaderCircle className="spin" size={16} /> : <RefreshCw size={16} />}
+                  {registrationChecking ? "1 of 2 · Checking original registration…" : "1 of 2 · Resume registration check"}
+                </motion.button>
+              ) : mandateOnline && !mandateMatchesConfig ? (
                 <motion.button className="flow-primary flow-danger" type="button" onClick={() => revoke()} disabled={phase === "revoking"} whileTap={reduceMotion ? undefined : { scale: 0.985 }}>
                   {phase === "revoking" ? <LoaderCircle className="spin" size={16} /> : <X size={16} />}{phase === "revoking" ? revocationProgress === "wallet" ? "Waiting for Freighter…" : "Confirming on Stellar…" : "Turn off previous spending limit"}
                 </motion.button>
@@ -1660,7 +1777,9 @@ export function WalletChatApp() {
                   {phase === "registering" ? "1 of 2 · Registering mandate…" : phase === "approving" ? "2 of 2 · Confirming USDC allowance…" : "1 of 2 · Register mandate"}
                 </motion.button>
               )}
-              <small className="flow-footnote"><Fingerprint size={12} /><span>{stored?.pendingAllowance
+              <small className="flow-footnote"><Fingerprint size={12} /><span>{registrationPending
+                ? "Your original mandate is saved. This button only checks its existing registration; it never requests another signature or network fee. A replacement remains blocked until the outcome is known."
+                : stored?.pendingAllowance
                 ? stored.pendingAllowance.submissionError
                   ? "Stellar rejected the submission. This button only checks the saved transaction; it does not request another signature or network fee. Mandate registration does not need to be repeated."
                   : allowanceProgress === "delayed"
@@ -1671,9 +1790,10 @@ export function WalletChatApp() {
                   : "Two different transactions: first register your spending rules, then approve the contract's USDC allowance. Each has an XLM network fee; neither pays for a service."}</span></small>
               <div className="flow-secondary-row"><button type="button" onClick={changeMarketplaceService}><Search size={12} />Change service</button><button type="button" onClick={() => setDisconnectOpen(true)}><Power size={12} />Disconnect</button></div>
 
-              {(stored?.registrationTx || stored?.allowanceTx) && (
+              {(stored?.registrationTx || stored?.pendingRegistration || stored?.allowanceTx) && (
                 <details className="flow-evidence"><summary><span><Database size={13} />Setup transactions</span><ChevronRight size={13} /></summary><div>
                   {stored.registrationTx && <a className="flow-proof-link" href={`${explorer}/tx/${stored.registrationTx}`} target="_blank" rel="noreferrer"><span><Check size={12} />1 · Mandate registration</span><code>{short(stored.registrationTx, 6)}</code><ArrowUpRight size={12} /></a>}
+                  {stored.pendingRegistration && <a className="flow-proof-link" href={`${explorer}/tx/${stored.pendingRegistration.txHash}`} target="_blank" rel="noreferrer"><span><Clock3 size={12} />Original registration awaiting confirmation</span><code>{short(stored.pendingRegistration.txHash, 6)}</code><ArrowUpRight size={12} /></a>}
                   {stored.allowanceTx && <a className="flow-proof-link" href={`${explorer}/tx/${stored.allowanceTx}`} target="_blank" rel="noreferrer"><span><Check size={12} />2 · USDC allowance</span><code>{short(stored.allowanceTx, 6)}</code><ArrowUpRight size={12} /></a>}
                   {stored.pendingAllowance && <a className="flow-proof-link" href={`${explorer}/tx/${stored.pendingAllowance.txHash}`} target="_blank" rel="noreferrer"><span><Clock3 size={12} />Allowance awaiting confirmation</span><code>{short(stored.pendingAllowance.txHash, 6)}</code><ArrowUpRight size={12} /></a>}
                 </div></details>

@@ -18,6 +18,7 @@ import { registeredMandateIdHex } from "./mandate-id";
 import { installMainnetRpcRetry, retryRateLimited } from "./rpc-retry";
 import { allowanceTransactionIsFresh, preparedAllowanceEvidence, waitForAllowanceConfirmation, type PendingAllowance } from "./client-readiness";
 import { confirmedRegistrationSequence, selectAllowanceAccountSequence, validateAllowanceSequence } from "./allowance-sequence";
+import { signedRegistrationEvidence, type PendingRegistration } from "./registration-recovery";
 
 if (typeof window !== "undefined" && !window.Buffer) window.Buffer = Buffer;
 
@@ -50,6 +51,13 @@ export interface CreateMandateForm {
 export interface RegistrationResult {
   mandateId: string;
   transactionHash: string;
+}
+
+export class RegistrationNotSubmittedError extends Error {
+  constructor(options?: ErrorOptions) {
+    super("Registration was not submitted to Stellar. You can retry the same spending rules when ready.", options);
+    this.name = "RegistrationNotSubmittedError";
+  }
 }
 
 export function publicNetwork(config: SafeAppConfig): NetworkConfig {
@@ -108,10 +116,24 @@ function transactionHash(sent: { sendTransactionResponse?: { hash?: string } }):
   return hash;
 }
 
+/** Wallet setup requires retention; the older experimental caller remains compatible. */
+export async function registerRetainedWithFreighter(
+  config: SafeAppConfig,
+  mandate: IntentMandate,
+  onPrepared: (mandateId: string) => void,
+  onSigned: (pending: PendingRegistration) => void,
+): Promise<RegistrationResult> {
+  if (typeof onSigned !== "function") {
+    throw new RegistrationNotSubmittedError({ cause: new Error("Registration requires durable signed-transaction retention before submission.") });
+  }
+  return registerWithFreighter(config, mandate, onPrepared, onSigned);
+}
+
 export async function registerWithFreighter(
   config: SafeAppConfig,
   mandate: IntentMandate,
   onPrepared?: (mandateId: string) => void,
+  onSigned?: (pending: PendingRegistration) => void,
 ): Promise<RegistrationResult> {
   const client = walletClient(config, mandate.user);
   const assembled = await client.register_mandate({
@@ -128,7 +150,34 @@ export async function registerWithFreighter(
     throw new Error("Mainnet registration returned the legacy credential identifier instead of a V2 mandate id");
   }
   onPrepared?.(preparedMandateId);
-  const sent = await assembled.signAndSend();
+  let pending: PendingRegistration;
+  try {
+    // The installed SDK updates timebounds while signing; inspect its final
+    // built body, not the earlier simulation envelope. No broadcast occurs here.
+    await assembled.sign();
+    if (!assembled.signed || !assembled.built || !assembled.signed.hash().equals(assembled.built.hash())) {
+      throw new Error("Freighter changed the prepared registration transaction.");
+    }
+    pending = signedRegistrationEvidence(assembled.signed.toXDR(), config.networkPassphrase, config.mandateRegistryId, {
+      id: preparedMandateId, credentialHash: mandate.idBuffer.toString("hex"), user: mandate.user,
+      agent: mandate.agent, merchant: mandate.merchant, asset: mandate.asset,
+      maxAmount: mandate.maxAmount.toString(), expiry: mandate.expiry,
+    });
+    // A storage failure must prevent submission. This callback is synchronous.
+    const retained: unknown = onSigned?.(pending);
+    if (retained && typeof retained === "object" && "then" in retained) {
+      // This UI contract is deliberately synchronous: do not send while an
+      // unawaited browser storage callback may still fail.
+      void Promise.resolve(retained).catch(() => undefined);
+      throw new Error("Registration retention must finish synchronously before submission.");
+    }
+  } catch (cause) {
+    throw new RegistrationNotSubmittedError({ cause });
+  }
+  const sent = await assembled.send();
+  if (sent.getTransactionResponse?.status !== "SUCCESS" || transactionHash(sent) !== pending.txHash) {
+    throw new Error("The original registration is awaiting verified confirmation. No replacement was submitted.");
+  }
   const submittedMandateId = registeredMandateIdHex(sent.result.unwrap());
   if (submittedMandateId !== preparedMandateId) {
     throw new Error("MandateRegistry returned different identifiers before and after submission");

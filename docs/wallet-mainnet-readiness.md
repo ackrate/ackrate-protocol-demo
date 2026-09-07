@@ -1,5 +1,11 @@
 # Wallet mainnet release-readiness gate check
 
+**Historical checkpoint:** this September 6 record is retained as originally
+dated. For the later wallet recovery fixes, independently verified owner-run
+receipts and current execution-path checks, see the
+[September 7 hosted wallet gate](wallet-marketplace-gate-2026-09-07.md).
+Pending labels below describe this older checkpoint, not a fresh release verdict.
+
 Check date: 2026-09-06. This is an engineering gate check, not an external
 endorsement. It separates the SDK/CLI and hosted application release
 requirements from the original governance requirement. No mainnet transaction

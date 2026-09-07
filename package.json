@@ -22,11 +22,11 @@
     "gatecheck:t3": "npm run check:branding && npm run check:workflow-pins && npm run check:starters && npm run typecheck && npm run test:cli && npm run test:hackathon && npm run test:wallet && npm audit --audit-level=high && npm run build && npm run smoke:hackathon"
   },
   "dependencies": {
-    "@ackrate/ap2": "0.3.2",
+    "@ackrate/ap2": "0.4.0",
     "@ackrate/cli": "0.2.1",
-    "@ackrate/core": "0.3.3",
-    "@ackrate/express-middleware": "0.2.4",
-    "@ackrate/stellar": "0.2.4",
+    "@ackrate/core": "0.4.1",
+    "@ackrate/express-middleware": "0.3.0",
+    "@ackrate/stellar": "0.3.0",
     "@ai-sdk/anthropic": "4.0.49",
     "@ai-sdk/openai": "4.0.33",
     "@ai-sdk/react": "4.0.58",

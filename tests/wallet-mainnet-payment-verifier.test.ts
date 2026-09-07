@@ -44,10 +44,16 @@ async function verify(overrides: {
   return verifier.verify(txHash, { ...requirement, ...overrides.requirement });
 }
 
-test("legacy selector rejects deployed V2 event while strict adapter retains token evidence and verifies it", async (t) => {
+test("native V2 selection requires the canonical asset and the strict adapter retains token evidence", async (t) => {
   const network = t.mock.method(globalThis, "fetch", async () => { throw new Error("Offline verifier must not access the network or submit a payment"); });
   assert.deepEqual(selectPayment([transfer, payment], { merchant: relay, registryId: requirement.registryId, priceStroops: 200000n }),
-    { ok: false, reason: "no trusted registry payment to this merchant in that transaction" });
+    { ok: false, reason: "V2 payment asset does not match this API" });
+  const check = { merchant: relay, registryId: requirement.registryId, priceStroops: 200000n, asset: config.public.asset.contractId };
+  assert.deepEqual(selectPayment([transfer, payment], check), {
+    ok: true, mandateId, amount: 200000n, consumedSequence: 2,
+  });
+  assert.deepEqual(selectPayment([transfer, payment], { ...check, asset: otherAsset }),
+    { ok: false, reason: "V2 payment asset does not match this API" });
   const adapted = adaptMainnetV2PaymentEvents([transfer, payment]);
   assert.equal(adapted.events[0], transfer, "original SAC transfer is preserved, not manufactured");
   assert.equal(adapted.payments[0]?.sequence, 2);
@@ -107,7 +113,7 @@ test("network, freshness, exact amount and current mandate sequence/accounting c
   assert.throws(() => createMainnetV2PaymentVerifier({ ...config, network: { ...config.network, mandateRegistryId: otherAsset } }), /manifest-pinned/);
 });
 
-test("public settled Mainnet metadata reproduces the original failure and verifies with V2 parsing only inside the unchanged freshness window", async (t) => {
+test("public settled Mainnet metadata verifies native V2 fields only inside the unchanged freshness window", async (t) => {
   const networkGuard = t.mock.method(globalThis, "fetch", async () => { throw new Error("Historical fixture verification is offline and cannot transmit a payment"); });
   const fixture = JSON.parse(readFileSync(new URL("./fixtures/wallet-mainnet-v2-payment.json", import.meta.url), "utf8")) as {
     txHash: string; status: string; ledger: number; latestLedger: number; resultMetaXdr: string;
@@ -121,7 +127,10 @@ test("public settled Mainnet metadata reproduces the original failure and verifi
   const historicalMandate = "e21128d9871ea317f003c86ea746e094ebd7496207e9e88b7429a0096bf94cde";
   const pinned = loadAppConfig({ NODE_ENV: "test", ACKRATE_WALLET_NETWORK: "mainnet", ACKRATE_CHAT_AGENT_PUBLIC_KEY: historicalRelay });
   const check = { merchant: historicalRelay, registryId: pinned.public.mandateRegistryId, priceStroops: 200000n };
-  assert.deepEqual(selectPayment(events, check), { ok: false, reason: "no trusted registry payment to this merchant in that transaction" });
+  assert.deepEqual(selectPayment(events, check), { ok: false, reason: "V2 payment asset does not match this API" });
+  assert.deepEqual(selectPayment(events, { ...check, asset: pinned.public.asset.contractId }), {
+    ok: true, mandateId: Buffer.from(historicalMandate, "hex"), amount: 200000n, consumedSequence: 0,
+  });
   const adapted = adaptMainnetV2PaymentEvents(events);
   assert.equal(adapted.payments[0]?.mandateId.toString("hex"), historicalMandate);
   assert.equal(adapted.payments[0]?.sequence, 0);

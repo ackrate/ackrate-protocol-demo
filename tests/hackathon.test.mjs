@@ -4,6 +4,7 @@ import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { promisify } from "node:util";
+import ts from "typescript";
 
 const read = (path) => readFile(new URL(`../${path}`, import.meta.url), "utf8");
 const run = promisify(execFile);
@@ -17,15 +18,39 @@ const protectedHashes = {
   "app/express/layout.tsx": "7fb5a1ee24023ddd61ee8092c0c2e3047d51d5a0c4273fb1f4ba6f7374f8b40d",
   "app/api/express/route.ts": "645a2a92788b61f42537ee0d9f4980c7324a0f76fadd68239939da17b0854141",
   "app/api/express/[sessionId]/source/[resource]/route.ts": "022c94e6c368357692c1981f08f52aea41c28ef39eadde56ca501280a6e552a5",
-  "lib/express-demo.ts": "1a7ac7d6a2a76349ea067283d2bf15ebec80b0976574ea5bc97978f6fe474e40",
+  // 2026-09-07: narrow the registry interface to its sole used method for SDK
+  // type compatibility. The historical source and identical JS are checked below.
+  "lib/express-demo.ts": "78a2f7cddbfad963cc23bfef774b263061d183cef1b2915c326c6b89fd07d433",
 };
 
-test("the verified Express runtime remains byte-for-byte unchanged", async () => {
+test("the verified Express source remains at its reviewed baseline", async () => {
   for (const [path, expected] of Object.entries(protectedHashes)) {
     const source = await read(path);
     const actual = createHash("sha256").update(source).digest("hex");
     assert.equal(actual, expected, path);
   }
+});
+
+test("the Express registry type compatibility change preserves emitted JavaScript", async () => {
+  const source = await read("lib/express-demo.ts");
+  const narrowed = 'registry: Pick<RegistryClient, "get_mandate">;';
+  assert.equal(source.split(narrowed).length - 1, 1, "exactly one reviewed type-only change");
+  const historical = source.replace(narrowed, "registry: RegistryClient;");
+  assert.equal(createHash("sha256").update(historical).digest("hex"),
+    "1a7ac7d6a2a76349ea067283d2bf15ebec80b0976574ea5bc97978f6fe474e40",
+    "reconstruct the exact protected source, not an arbitrary rewritten baseline");
+  const compiler = ts.convertCompilerOptionsFromJson(JSON.parse(await read("tsconfig.json")).compilerOptions, ".");
+  assert.deepEqual(compiler.errors, []);
+  const emit = (input) => {
+    const output = ts.transpileModule(input, {
+      fileName: "lib/express-demo.ts",
+      compilerOptions: { ...compiler.options, noEmit: false, incremental: false, sourceMap: false, inlineSourceMap: false },
+      reportDiagnostics: true,
+    });
+    assert.deepEqual(output.diagnostics?.filter((item) => item.category === ts.DiagnosticCategory.Error), []);
+    return output.outputText;
+  };
+  assert.equal(emit(source), emit(historical), "the reviewed type annotation must not change emitted runtime code");
 });
 
 test("navigation exposes Security and Solutions without deleting direct product routes", async () => {

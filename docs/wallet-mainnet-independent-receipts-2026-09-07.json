@@ -1,0 +1,153 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Independent read-only Mainnet wallet receipt gate check",
+  "result": "PASS",
+  "scope": "Historical setup and two settlement legs only; not a claim of a new hosted run or complete application acceptance.",
+  "verificationStartedAtUtc": "2026-09-07T13:12:52.763Z",
+  "observedAtUtc": "2026-09-07T13:13:03.401Z",
+  "observedAtBangkok": "2026-09-07T20:13:03.401+07:00",
+  "network": {
+    "passphrase": "Public Global Stellar Network ; September 2015",
+    "protocolVersion": 27,
+    "rpcUrl": "https://mainnet.sorobanrpc.com",
+    "horizonUrl": "https://horizon.stellar.org"
+  },
+  "identities": {
+    "user": "GCHNDR6APAMBLIAYTQRCKDHQRBI3E2V5GE6KIRUBXROLHRS46NF5YDVV",
+    "agent": "GBALWVF5IYJUW6NBQE7UIOM2JRZIFMMS7OXFDWSYRHU2GUPS3OUM5ZSZ",
+    "onchainMerchant": "GBALWVF5IYJUW6NBQE7UIOM2JRZIFMMS7OXFDWSYRHU2GUPS3OUM5ZSZ",
+    "marketplaceSeller": "GDNJXCKW7ZM7GEEVP674TWPU26YJNBQ2FI4ZIPRKTPTNUEJMDHFJWWRL",
+    "registry": "CCLZEBJXG4YVJEPBCR5F27N733BCK5HQJWZZGB3K54JVODY3VAGP4HWR",
+    "asset": "CCW67TSZV3SSS2HXMBQ5JFGCKJNXKZM7UQUWUZPUTHXSTZLEO7SJMI75",
+    "issuer": "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN"
+  },
+  "mandate": {
+    "id": "7605af91f90012d1c5dca782e5b24f7436c9801c39813783fbe5fee9d8206246",
+    "credentialHash": "41da716878e9481985211e836d4196417bde2480c39a49d2f776ad4d0e153818",
+    "maxAmountAtomic": "300000",
+    "maxAmountUsdc": "0.03",
+    "expiryUnixSeconds": 1788710128
+  },
+  "transactions": {
+    "registration": {
+      "hash": "e8f1aefe334bab9f802081e0b8c202b6e36e62e0d36a4f2ed038b7a682587fd2",
+      "status": "SUCCESS",
+      "ledger": 64302268,
+      "createdAtUtc": "2026-09-06T14:55:56Z",
+      "createdAtBangkok": "2026-09-06T21:55:56+07:00",
+      "source": "GCHNDR6APAMBLIAYTQRCKDHQRBI3E2V5GE6KIRUBXROLHRS46NF5YDVV",
+      "sequence": "276046026379362327",
+      "operationCount": 1,
+      "mainnetEnvelopeHashMatches": true,
+      "horizonAndRpcAgree": true,
+      "soleOwnerSignatureValid": true,
+      "contract": "CCLZEBJXG4YVJEPBCR5F27N733BCK5HQJWZZGB3K54JVODY3VAGP4HWR",
+      "method": "register_mandate",
+      "returnedMandateId": "7605af91f90012d1c5dca782e5b24f7436c9801c39813783fbe5fee9d8206246",
+      "exactScopeBudgetExpiryCredentialMatches": true
+    },
+    "allowance": {
+      "hash": "ab50e7a1386d3ff9b09524f2b46ce1b4290660d6949a896d4d9e43b8803d6391",
+      "status": "SUCCESS",
+      "ledger": 64302279,
+      "createdAtUtc": "2026-09-06T14:56:58Z",
+      "createdAtBangkok": "2026-09-06T21:56:58+07:00",
+      "source": "GCHNDR6APAMBLIAYTQRCKDHQRBI3E2V5GE6KIRUBXROLHRS46NF5YDVV",
+      "sequence": "276046026379362328",
+      "operationCount": 1,
+      "mainnetEnvelopeHashMatches": true,
+      "horizonAndRpcAgree": true,
+      "soleOwnerSignatureValid": true,
+      "contract": "CCW67TSZV3SSS2HXMBQ5JFGCKJNXKZM7UQUWUZPUTHXSTZLEO7SJMI75",
+      "method": "approve",
+      "spender": "CCLZEBJXG4YVJEPBCR5F27N733BCK5HQJWZZGB3K54JVODY3VAGP4HWR",
+      "amountAtomic": "300000",
+      "expirationLedger": 64319548
+    },
+    "mandatePayment": {
+      "hash": "dd30b3373055435cc26a7159782e9feb5869326dc76780a7f9db7fda79d45a46",
+      "status": "SUCCESS",
+      "ledger": 64302287,
+      "createdAtUtc": "2026-09-06T14:57:42Z",
+      "createdAtBangkok": "2026-09-06T21:57:42+07:00",
+      "source": "GBALWVF5IYJUW6NBQE7UIOM2JRZIFMMS7OXFDWSYRHU2GUPS3OUM5ZSZ",
+      "sequence": "275466244449107986",
+      "operationCount": 1,
+      "mainnetEnvelopeHashMatches": true,
+      "horizonAndRpcAgree": true,
+      "contract": "CCLZEBJXG4YVJEPBCR5F27N733BCK5HQJWZZGB3K54JVODY3VAGP4HWR",
+      "method": "execute_payment",
+      "mandateId": "7605af91f90012d1c5dca782e5b24f7436c9801c39813783fbe5fee9d8206246",
+      "consumedSequence": 0,
+      "registryPaymentEventMatches": true,
+      "transfer": {
+        "contractId": "CCW67TSZV3SSS2HXMBQ5JFGCKJNXKZM7UQUWUZPUTHXSTZLEO7SJMI75",
+        "from": "GCHNDR6APAMBLIAYTQRCKDHQRBI3E2V5GE6KIRUBXROLHRS46NF5YDVV",
+        "to": "GBALWVF5IYJUW6NBQE7UIOM2JRZIFMMS7OXFDWSYRHU2GUPS3OUM5ZSZ",
+        "amountAtomic": "200000",
+        "amountUsdc": "0.02"
+      }
+    },
+    "sellerPayment": {
+      "hash": "bf87bd637ee4a52d48efebce2eb1dc1ee5c50fcb355d8f09c48b840c6db0019d",
+      "status": "SUCCESS",
+      "ledger": 64302290,
+      "createdAtUtc": "2026-09-06T14:57:59Z",
+      "createdAtBangkok": "2026-09-06T21:57:59+07:00",
+      "source": "GD6ZLGJJYRWVZBXTG57YDUBATVKOHACYZYQUKMB6UH4EYYITLRCYZZSD",
+      "sequence": "274562471660879935",
+      "operationCount": 1,
+      "mainnetEnvelopeHashMatches": true,
+      "horizonAndRpcAgree": true,
+      "contract": "CCW67TSZV3SSS2HXMBQ5JFGCKJNXKZM7UQUWUZPUTHXSTZLEO7SJMI75",
+      "method": "transfer",
+      "transfer": {
+        "contractId": "CCW67TSZV3SSS2HXMBQ5JFGCKJNXKZM7UQUWUZPUTHXSTZLEO7SJMI75",
+        "from": "GBALWVF5IYJUW6NBQE7UIOM2JRZIFMMS7OXFDWSYRHU2GUPS3OUM5ZSZ",
+        "to": "GDNJXCKW7ZM7GEEVP674TWPU26YJNBQ2FI4ZIPRKTPTNUEJMDHFJWWRL",
+        "amountAtomic": "200000",
+        "amountUsdc": "0.02"
+      }
+    }
+  },
+  "currentMandateRead": {
+    "method": "get_mandate",
+    "simulationOnly": true,
+    "signatures": 0,
+    "submissions": 0,
+    "latestLedger": 64316662,
+    "status": "Revoked",
+    "seq": 1,
+    "spentAtomic": "200000",
+    "maxAmountAtomic": "300000",
+    "scopeMatchesRegistration": true
+  },
+  "checks": {
+    "pinnedMainnetNetwork": true,
+    "fourSuccessfulExactHashTransactions": true,
+    "registrationReturnMatchesPaidMandate": true,
+    "registrationAndAllowanceOwnerSignaturesValid": true,
+    "allowanceSpenderIsRegistry": true,
+    "registryExecutePaymentAndEventMatch": true,
+    "canonicalUsdcWalletToRelayTransfer": true,
+    "canonicalUsdcRelayToSellerTransfer": true,
+    "currentStateConsistentWithRecordedSpend": true
+  },
+  "verificationActions": {
+    "publicRpcReads": true,
+    "publicHorizonReads": true,
+    "unsignedReadOnlySimulation": true,
+    "signaturesCreated": 0,
+    "transactionsSubmitted": 0,
+    "keysOrCredentialStoresAccessed": false
+  },
+  "limitations": [
+    "Trusted pinned RPC and Horizon responses were cross-checked; this is not an independently operated archival node or a new payment.",
+    "Transaction signatures establish the public account signer, not the wallet UI used; Freighter attribution and delivery acceptance are separate recorded human evidence.",
+    "The two payments are separate settlements; the mandate protects wallet-to-relay payment, while seller routing and delivery remain application responsibilities.",
+    "Chain receipts do not establish HTTP response content, live model/provider invocation, report quality, refunds, all-service coverage, or arbitrary crash recovery.",
+    "The recorded wallet run occurred on 2026-09-06. Source inspection and the current deployment gate are separate evidence, not proof that this payment used every subsequent source revision.",
+    "The mandate is now Revoked, not active or exhausted. Reading these receipts does not authorize replay or further spending.",
+    "This is a bounded technical gate check, not an external endorsement or a guarantee of security or acceptance."
+  ]
+}
