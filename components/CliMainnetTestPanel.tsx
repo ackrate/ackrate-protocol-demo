@@ -13,7 +13,7 @@ interface BurnerStatus {
   run?: { id: string; state: string; logs: string; error?: string; fundingHash?: string; payer: string; agent: string; merchant: string; owner: string };
 }
 
-/** A public, read-only view of the single operator-funded run. No payment actions. */
+/** The interactive test is always available; prior team evidence never replaces it. */
 export default function CliMainnetTestPanel() {
   const [status, setStatus] = useState<BurnerStatus | null>(null);
   const [unavailable, setUnavailable] = useState(false);
@@ -34,7 +34,6 @@ export default function CliMainnetTestPanel() {
     return () => { disposed = true; controller.abort(); clearTimeout(timer); };
   }, []);
 
-  if (status?.configured === false) return <CliMainnetTest />;
   const run = status?.run;
   const state = status && ["blocked", "failed", "unavailable"].includes(status.state)
     ? status.state : run?.state ?? status?.state ?? "checking";
@@ -48,13 +47,17 @@ export default function CliMainnetTestPanel() {
     document.body.append(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
   return (
+    <div className="space-y-6">
+      <CliMainnetTest />
+      {(status?.configured || run || unavailable) && <details className="rounded-xl border border-zinc-800 bg-zinc-950/60">
+        <summary className="cursor-pointer p-4 text-sm font-medium text-zinc-400">Previous team-funded test · {success ? "passed" : "recorded evidence"}</summary>
     <section className="overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950 text-zinc-100" aria-label="Mainnet CLI test status">
       <div className="border-b border-zinc-800 p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-lg font-semibold tracking-tight">Team-funded Mainnet test</h2>
+          <h2 className="text-lg font-semibold tracking-tight">Previous team-funded Mainnet test</h2>
           <span role="status" className={`rounded-full border px-3 py-1 text-xs ${success ? "border-emerald-500/30 text-emerald-300" : "border-zinc-700 text-zinc-300"}`}>{state}</span>
         </div>
-        <p className="mt-3 text-sm leading-relaxed text-zinc-400">One authorized run: three purchases at 0.01 USDC, then a budget-limit check. No Freighter interaction is needed for this team-funded test.</p>
+        <p className="mt-3 text-sm leading-relaxed text-zinc-400">Saved evidence from the earlier automated run, separate from your interactive test above. This panel cannot start a new test.</p>
         <p className="mt-2 text-xs leading-relaxed text-zinc-500">Account setup transfers 6 XLM for reserves and fee headroom, plus 0.03 USDC. Refreshing this page cannot fund or restart the test.</p>
         {status?.version && <p className="mt-3 font-mono text-xs text-zinc-400">CLI {status.version} · verified published executable</p>}
       </div>
@@ -69,5 +72,7 @@ export default function CliMainnetTestPanel() {
         <button type="button" disabled={!run} onClick={download} className="rounded-lg bg-zinc-100 px-4 py-2 text-sm font-medium text-black disabled:opacity-40">Download test evidence</button>
       </div>
     </section>
+      </details>}
+    </div>
   );
 }

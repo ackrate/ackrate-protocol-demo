@@ -300,6 +300,12 @@ export default function CliMainnetTest() {
         <span className="rounded-full border border-zinc-700 px-3 py-1 text-xs text-zinc-300">Mainnet · real funds</span>
       </div>
       <p className="mt-3 text-xs leading-relaxed text-zinc-500">Test runner: CLI {status?.version || "0.2.1"}{status?.sourceCommit && /^[a-f0-9]{7,40}$/i.test(status.sourceCommit) ? ` · source ${status.sourceCommit.slice(0, 8)}` : ""}. Byte-verified against published npm version {status?.publishedVersion || "0.2.1"}.</p>
+      <ol aria-label="Your Mainnet test steps" className="mt-5 grid gap-3 rounded-lg border border-zinc-800 bg-zinc-900/30 p-4 text-sm sm:grid-cols-3">
+        <li><span className="font-medium text-zinc-100">1. Connect Freighter</span><span className="mt-1 block text-xs leading-relaxed text-zinc-400">Sign a fee-free ownership check. Nothing is broadcast.</span></li>
+        <li><span className="font-medium text-zinc-100">2. Approve funding</span><span className="mt-1 block text-xs leading-relaxed text-zinc-400">Review and sign a transfer of 6 XLM + 0.03 USDC, plus the funding fee.</span></li>
+        <li><span className="font-medium text-zinc-100">3. Run the CLI test</span><span className="mt-1 block text-xs leading-relaxed text-zinc-400">Authorize the three purchases and follow the results and budget check.</span></li>
+      </ol>
+      <p className="mt-3 text-xs leading-relaxed text-zinc-400">You approve ownership and funding in Freighter. After you press Run, the CLI signs the mandate and allowance using the funded test payer, then the consumer agent makes the payments. Your funding-account key stays in Freighter.</p>
 
       {(error || status?.error || run?.error) && <p role="alert" className="mt-4 break-words rounded-lg border border-amber-800/60 bg-amber-950/20 p-3 text-sm text-amber-200">{error || run?.error || status?.error}</p>}
       {!status && !error && <p role="status" className="mt-5 flex items-center gap-2 text-sm text-zinc-400"><Loader2 className="h-4 w-4 animate-spin" />Loading test status…</p>}
