@@ -3,11 +3,37 @@ import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { Keypair } from "@stellar/stellar-sdk";
-import { CLI_TEST_SOURCE, CLI_TEST_VERSION, cleanCliLog, cliPaidArguments, cliPaidDirectory, cliPaidEnvironment, createCliEvidenceHeartbeat } from "../lib/cli-test-runner";
+import { CLI_TEST_SOURCE, CLI_TEST_VERSION, cleanCliLog, cliPaidArguments, cliPaidDirectory, cliPaidEnvironment, createCliEvidenceHeartbeat, launchCliTest } from "../lib/cli-test-runner";
+import type { CliTestRow, CliTestStore } from "../lib/cli-test-store";
 
 test("paid command fixes Mainnet, three-cent budget, price and named generated identities", () => {
   const merchant = Keypair.random().publicKey();
   assert.deepEqual(cliPaidArguments(merchant), ["demo", "research-agent", "--network", "mainnet", "--user-signer", "cli-payer", "--agent-signer", "cli-agent", "--agent-secret-env", "CLI_TEST_AGENT_SECRET", "--merchant", merchant, "--budget", "0.03", "--price", "0.01", "--confirm-real-usdc"]);
+});
+
+test("registered setup resume adds only the exact receipt flag to the unchanged Mainnet command", () => {
+  const merchant = Keypair.fromRawEd25519Seed(Buffer.alloc(32, 71)).publicKey();
+  const registrationHash = "a41fe8e9cbc237686ff535906caa0290e0c2468662a4e751ba251526d58a77e6";
+  assert.deepEqual(cliPaidArguments(merchant, registrationHash), [...cliPaidArguments(merchant), "--resume-setup-registration", registrationHash]);
+  for (const invalid of ["", registrationHash.toUpperCase(), "a".repeat(63), "a".repeat(65), "g".repeat(64), "../registration", `${registrationHash}\n`, `${registrationHash} --network testnet`]) {
+    assert.throws(() => cliPaidArguments(merchant, invalid), /Invalid registration receipt/);
+  }
+});
+
+test("registered setup resume uses one separate directory and rejects mismatched contexts before side effects", () => {
+  const id = "9f54b4f8-554b-4e92-acfd-4dd25631cbcc";
+  const hash = "a41fe8e9cbc237686ff535906caa0290e0c2468662a4e751ba251526d58a77e6";
+  assert.equal(cliPaidDirectory(id, "registered-setup-repair-1"), `${cliPaidDirectory(id)}/registered-setup-repair-1`);
+  assert.notEqual(cliPaidDirectory(id, "registered-setup-repair-1"), cliPaidDirectory(id, "preflight-repair-1"));
+  for (const invalid of ["registered-setup-repair-2", "../registered-setup-repair-1", "/tmp/elsewhere", "registered-setup-repair-1/../original"]) {
+    assert.throws(() => cliPaidDirectory(id, invalid as never), /Invalid CLI execution context/);
+  }
+  const store = new Proxy({} as CliTestStore, { get() { assert.fail("invalid recovery must not touch the store"); } });
+  const row = { id, merchant: Keypair.fromRawEd25519Seed(Buffer.alloc(32, 72)).publicKey() } as CliTestRow;
+  assert.throws(() => launchCliTest(store, row, "synthetic-token", "registered-setup-repair-1"), /Registration recovery context differs/);
+  assert.throws(() => launchCliTest(store, row, "synthetic-token", undefined, hash), /Registration recovery context differs/);
+  assert.throws(() => launchCliTest(store, row, "synthetic-token", "preflight-repair-1", hash), /Registration recovery context differs/);
+  assert.throws(() => launchCliTest(store, row, "synthetic-token", "registered-setup-repair-1", "../elsewhere"), /Invalid registration receipt/);
 });
 
 test("paid child gets only scoped actor credentials and a fixed signer path", () => {

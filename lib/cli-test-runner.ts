@@ -6,13 +6,15 @@ import { tmpdir } from "node:os";
 import type { CliTestStore, CliTestRow, CliTestPatch } from "./cli-test-store";
 
 export const CLI_TEST_VERSION = "0.2.1";
-export const CLI_TEST_SOURCE = "0be7bf8c9f938e5ebe42c0c35db54d8061b37333";
+export const CLI_TEST_SOURCE = "8c74bef3af3ce7aee0ab2c8da6f126706a8a4e18";
 const runtime = globalThis as typeof globalThis & { __ackrateCliTests?: Map<string, Promise<void>> };
 runtime.__ackrateCliTests ??= new Map();
 
-export function cliPaidArguments(merchant: string): string[] {
+export function cliPaidArguments(merchant: string, registrationHash?: string): string[] {
+  if (registrationHash !== undefined && !/^[a-f0-9]{64}$/.test(registrationHash)) throw new Error("Invalid registration receipt");
   return ["demo", "research-agent", "--network", "mainnet", "--user-signer", "cli-payer", "--agent-signer", "cli-agent",
-    "--agent-secret-env", "CLI_TEST_AGENT_SECRET", "--merchant", merchant, "--budget", "0.03", "--price", "0.01", "--confirm-real-usdc"];
+    "--agent-secret-env", "CLI_TEST_AGENT_SECRET", "--merchant", merchant, "--budget", "0.03", "--price", "0.01", "--confirm-real-usdc",
+    ...(registrationHash ? ["--resume-setup-registration", registrationHash] : [])];
 }
 
 export function cliPaidEnvironment(directory: string, secrets: { payer: string; agent: string }, merchant: string): NodeJS.ProcessEnv {
@@ -26,10 +28,10 @@ export function cleanCliLog(value: string): string {
     .replace(/(stellar tx sign )[A-Za-z0-9+/=]+/g, "$1[transaction omitted]").slice(-180_000);
 }
 
-export type CliPreflightRepair = "preflight-repair-1";
+export type CliPreflightRepair = "preflight-repair-1" | "registered-setup-repair-1";
 export function cliPaidDirectory(id: string, attempt?: CliPreflightRepair): string {
   if (!/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(id)
-    || (attempt !== undefined && attempt !== "preflight-repair-1")) throw new Error("Invalid CLI execution context");
+    || (attempt !== undefined && attempt !== "preflight-repair-1" && attempt !== "registered-setup-repair-1")) throw new Error("Invalid CLI execution context");
   const root = join(tmpdir(), "ackrate-cli-paid", id);
   return attempt ? join(root, attempt) : root;
 }
@@ -82,16 +84,18 @@ async function receiptEvidence(directory: string): Promise<string> {
 
 /** The DB run claim precedes spawning. A browser disconnect never starts a
  * replacement process. Failed/interrupted rows cannot be reset by this API. */
-export function launchCliTest(store: CliTestStore, row: CliTestRow, token: string, attempt?: CliPreflightRepair): void {
+export function launchCliTest(store: CliTestStore, row: CliTestRow, token: string, attempt?: CliPreflightRepair, registrationHash?: string): void {
+  if ((attempt === "registered-setup-repair-1") !== (registrationHash !== undefined)) throw new Error("Registration recovery context differs");
+  cliPaidArguments(row.merchant, registrationHash);
   if (runtime.__ackrateCliTests!.has(row.id)) return;
-  const job = execute(store, row, token, attempt).finally(() => runtime.__ackrateCliTests!.delete(row.id));
+  const job = execute(store, row, token, attempt, registrationHash).finally(() => runtime.__ackrateCliTests!.delete(row.id));
   runtime.__ackrateCliTests!.set(row.id, job);
   void job.catch(() => undefined);
 }
 
-async function execute(store: CliTestStore, initial: CliTestRow, token: string, attempt?: CliPreflightRepair): Promise<void> {
+async function execute(store: CliTestStore, initial: CliTestRow, token: string, attempt?: CliPreflightRepair, registrationHash?: string): Promise<void> {
   let row = initial;
-  let logs = cleanCliLog(`${initial.logs}\n${attempt ? "Pre-registration repair; original output retained above.\n" : ""}ACKRATE CLI ${CLI_TEST_VERSION} · source ${CLI_TEST_SOURCE}\nMainnet · three purchases at 0.01 USDC · maximum 0.03 USDC\n`);
+  let logs = cleanCliLog(`${initial.logs}\n${registrationHash ? `Resume existing registration ${registrationHash}; no new registration or funding.\n` : attempt ? "Pre-registration repair; original output retained above.\n" : ""}ACKRATE CLI ${CLI_TEST_VERSION} · source ${CLI_TEST_SOURCE}\nMainnet · three purchases at 0.01 USDC · maximum 0.03 USDC\n`);
   let queue = Promise.resolve();
   const save = (patch: CliTestPatch) => {
     queue = queue.then(async () => { row = await store.update(row.id, token, row.version, patch); });
@@ -110,7 +114,7 @@ async function execute(store: CliTestStore, initial: CliTestRow, token: string, 
       || createHash("sha256").update(await readFile(bundle)).digest("hex") !== manifest.sha256) throw new Error("CLI integrity check failed");
     const secrets = await store.secrets(row.id, token);
     await save({ logs });
-    const child = spawn(process.execPath, [bundle, ...cliPaidArguments(row.merchant)], {
+    const child = spawn(process.execPath, [bundle, ...cliPaidArguments(row.merchant, registrationHash)], {
       cwd: directory, env: cliPaidEnvironment(directory, secrets, row.merchant), stdio: ["ignore", "pipe", "pipe"],
     });
     const append = (chunk: Buffer) => { logs = cleanCliLog(logs + chunk.toString()); };

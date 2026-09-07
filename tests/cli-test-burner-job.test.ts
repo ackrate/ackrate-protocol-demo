@@ -4,10 +4,10 @@ import { createCipheriv, createDecipheriv, hkdfSync, randomBytes } from "node:cr
 import type { QueryResultRow } from "pg";
 import { Account, Keypair, StrKey } from "@stellar/stellar-sdk";
 import { CLI_TEST_BURNER_OWNER } from "../lib/cli-test-burner";
-import { CLI_BURNER_JOB_ID, createCliBurnerJobController, readCliBurnerSubmission, startCliBurnerJob, verifyCliBurnerRenewal, verifyCliPreflightRepairProof, type CliBurnerJobDependencies } from "../lib/cli-test-burner-job";
+import { CLI_BURNER_JOB_ID, CLI_REGISTERED_SETUP_HASH, createCliBurnerJobController, readCliBurnerSubmission, startCliBurnerJob, verifyCliBurnerRenewal, verifyCliPreflightRepairProof, verifyCliRegisteredSetupProof, type CliBurnerJobDependencies } from "../lib/cli-test-burner-job";
 import { buildCliFunding } from "../lib/cli-test-transactions";
 import type { CliFundingExpiryProof } from "../lib/cli-test-funding-expiry";
-import type { CliUnstartedProof } from "../lib/cli-test-unstarted-proof";
+import type { CliUnstartedProof, CliRegisteredSetupProof } from "../lib/cli-test-unstarted-proof";
 import type { CliTestRow, CliTestStore } from "../lib/cli-test-store";
 import type { PostgresQueryable } from "../lib/wallet/postgres";
 
@@ -537,4 +537,135 @@ test("preflight proof binding rejects changed identity, funding hash, sequence, 
     { initialActorSequence: ((100n << 32n) + 1n).toString() }, { horizonClosedAt: NOW + 610 }, { rpcLedger: 109 }, { observedAt: NOW + 490 }]) {
     assert.throws(() => verifyCliPreflightRepairProof(f.failed, { ...f.proof, ...patch }, NOW + 611));
   }
+});
+
+// Only the public identifiers are those of the narrowly permitted recovery.
+// All storage, accounts, timestamps, proofs, and child effects are synthetic.
+function registeredSetupFixture() {
+  const db = new FakeDatabase();
+  const id = "9f54b4f8-554b-4e92-acfd-4dd25631cbcc";
+  const fundingHash = "39196eaa6c7b20257da4dcf011ac24e984da1e50a0f308d072ca43cdf27b9c55";
+  let row: CliTestRow = { id, owner: CLI_TEST_BURNER_OWNER, version: 20, state: "failed",
+    payer: StrKey.encodeEd25519PublicKey(Buffer.alloc(32, 62)), agent: StrKey.encodeEd25519PublicKey(Buffer.alloc(32, 63)), merchant: StrKey.encodeEd25519PublicKey(Buffer.alloc(32, 64)),
+    fundingHash, fundingXdr: "synthetic-retained-funding", fundingExpiresAt: NOW - 1000,
+    logs: `${PREFLIGHT_LOG}\nExisting registration ${CLI_REGISTERED_SETUP_HASH}\nCLI test signer RPC response is invalid`,
+    error: "synthetic oversized RPC response", createdAt: NOW - 2000, updatedAt: NOW - 601,
+    startedAt: NOW - 1000, finishedAt: NOW - 601, expiresAt: NOW + 86400 };
+  const failed = structuredClone(row);
+  const unstarted: CliUnstartedProof = { kind: "funded-unstarted", runId: id, fundingHash, owner: row.owner,
+    payer: row.payer, agent: row.agent, merchant: row.merchant, finishedAt: NOW - 1800, fundingLedger: 100,
+    initialActorSequence: (100n << 32n).toString(), horizonLedger: 110, horizonClosedAt: NOW - 1199, rpcLedger: 111, observedAt: NOW - 1199 };
+  const proof: CliRegisteredSetupProof = { ...unstarted, kind: "registered-unspent", finishedAt: row.finishedAt!,
+    registrationHash: CLI_REGISTERED_SETUP_HASH, registrationLedger: 120, mandateExpiry: NOW + 600,
+    horizonLedger: 130, horizonClosedAt: NOW, rpcLedger: 131, observedAt: NOW };
+  db.job = { job_id: CLI_BURNER_JOB_ID, owner: row.owner, version: 10, state: "failed", session_id: id,
+    sealed: null, funding_hash: fundingHash, created_at: row.createdAt, updated_at: row.updatedAt, error: row.error };
+  const priorPreflight = { version: 1, prior: { logs: PREFLIGHT_LOG, finishedAt: unstarted.finishedAt }, proof: unstarted };
+  replaceSyntheticCapability(db, { sessionId: id, token: TOKEN, signedFundingXdr: "synthetic-retained-signed-funding", submitAttempts: 1, preflightRepair: priorPreflight });
+  const calls = { creates: 0, prepares: 0, submits: 0, secrets: 0, proofs: 0, launches: 0 };
+  let result: "succeeded" | "failed" | "running" = "succeeded";
+  const store = {
+    async create() { calls.creates++; throw new Error("recovery must not create accounts"); },
+    async secrets() { calls.secrets++; throw new Error("unit test must not retrieve keys"); },
+    async read(selectedId: string, token: string) { return selectedId === id && token === TOKEN ? structuredClone(row) : null; },
+    async update(selectedId: string, token: string, version: number, patch: Partial<CliTestRow>) {
+      assert.equal(selectedId, id); assert.equal(token, TOKEN);
+      if (row.version !== version) throw new Error("synthetic CAS conflict");
+      row = { ...row, ...patch, version: row.version + 1 }; return structuredClone(row);
+    },
+  } as CliTestStore;
+  const deps: CliBurnerJobDependencies = {
+    async ready() {}, async sleep() {}, now: () => NOW, maxPolls: 12,
+    async prepare() { calls.prepares++; throw new Error("recovery must not prepare funding"); },
+    async submit() { calls.submits++; throw new Error("recovery must not submit funding"); },
+    validate() { throw new Error("recovery must not validate a new funding envelope"); },
+    async reconcile() { throw new Error("confirmed funding must not reenter reconciliation"); },
+    async proveRegisteredSetup(candidate) { calls.proofs++; assert.deepEqual(candidate, failed); return proof; },
+    launch(candidate, token, attempt, registrationHash) {
+      calls.launches++;
+      assert.equal(db.job?.state, "running"); assert.equal(candidate.state, "running"); assert.equal(token, TOKEN);
+      assert.equal(attempt, "registered-setup-repair-1"); assert.equal(registrationHash, CLI_REGISTERED_SETUP_HASH);
+      for (const field of ["id", "fundingHash", "owner", "payer", "agent", "merchant"] as const) assert.equal(candidate[field], failed[field]);
+      assert.ok(candidate.logs.startsWith(failed.logs));
+      const sealed = decodedCapability(db);
+      assert.deepEqual(sealed.preflightRepair, priorPreflight);
+      assert.deepEqual(sealed.registeredSetupRepair, { version: 1,
+        prior: { logs: failed.logs, error: failed.error, startedAt: failed.startedAt, finishedAt: failed.finishedAt }, proof });
+      row = { ...candidate, state: result, version: candidate.version + 1,
+        logs: `${candidate.logs}\nsynthetic resumed setup ${result}`, finishedAt: NOW + 10 };
+    },
+  };
+  return { db, store, deps, calls, failed, proof, controller: () => createCliBurnerJobController(db, store, SECRET, deps),
+    result: (value: typeof result) => { result = value; } };
+}
+
+test("registered setup recovery claims once across replicas and retains exact registration, actors, funding, and logs", async () => {
+  const f = registeredSetupFixture();
+  await Promise.all(Array.from({ length: 12 }, () => f.controller().run()));
+  await Promise.all(Array.from({ length: 6 }, () => f.controller().run()));
+  assert.equal(f.calls.launches, 1); assert.equal(f.db.job?.state, "succeeded");
+  for (const field of ["creates", "prepares", "submits", "secrets"] as const) assert.equal(f.calls[field], 0, field);
+  assert.equal(f.db.job?.funding_hash, f.failed.fundingHash); assert.equal(f.db.job?.session_id, f.failed.id);
+  const status = await f.controller().status(false);
+  assert.ok(status.run?.logs.startsWith(f.failed.logs)); assert.match(status.run!.logs, /no new funding/);
+  for (const forbidden of [TOKEN, "synthetic-retained-signed-funding", "synthetic-retained-funding", "sealed", "registeredSetupRepair"]) assert.ok(!JSON.stringify(status).includes(forbidden));
+});
+
+test("registered setup recovery marker survives interrupted claim without a later launch", async () => {
+  const f = registeredSetupFixture(); f.db.throwAfterState = "funded";
+  await f.controller().run(); assert.equal(f.db.job?.state, "funded");
+  const marker = decodedCapability(f.db).registeredSetupRepair; assert.ok(marker);
+  await f.controller().run(); await f.controller().run();
+  assert.deepEqual(decodedCapability(f.db).registeredSetupRepair, marker);
+  assert.equal(f.calls.launches, 0); assert.equal(f.calls.submits, 0); assert.equal(f.calls.creates, 0);
+});
+
+test("a second registered setup failure and a retained running child never receive another launch", async () => {
+  for (const result of ["failed", "running"] as const) {
+    const f = registeredSetupFixture(); f.result(result); await f.controller().run();
+    const marker = decodedCapability(f.db).registeredSetupRepair; const proofs = f.calls.proofs;
+    f.deps.now = () => NOW + 1000;
+    await Promise.all(Array.from({ length: 6 }, () => f.controller().run()));
+    assert.equal(f.calls.launches, 1); assert.equal(f.calls.proofs, proofs); assert.equal(f.db.job?.state, result);
+    assert.deepEqual(decodedCapability(f.db).registeredSetupRepair, marker);
+    assert.equal(f.calls.submits, 0); assert.equal(f.calls.prepares, 0); assert.equal(f.calls.creates, 0);
+  }
+});
+
+test("registered recovery requires the pinned failure and previous preflight marker", async () => {
+  for (const patch of [{ logs: "unknown failure" }, { logs: `${registeredSetupFixture().failed.logs}\nmandate and contract allowance confirmed` },
+    { logs: `${registeredSetupFixture().failed.logs}\nSaved reference-agent evidence` }, { logs: `${registeredSetupFixture().failed.logs}\nVerified result` }]) {
+    const f = registeredSetupFixture(); await f.store.update(f.failed.id, TOKEN, f.failed.version, patch);
+    await f.controller().run(); assert.equal(f.calls.proofs, 0); assert.equal(f.calls.launches, 0);
+  }
+  const f = registeredSetupFixture(); const capability = decodedCapability(f.db); delete capability.preflightRepair; replaceSyntheticCapability(f.db, capability);
+  await f.controller().run(); assert.equal(f.calls.proofs, 0); assert.equal(f.calls.launches, 0);
+});
+
+test("registered proof rejects scope, hash, ledger ordering, expiry, and stale or future evidence without claiming", async () => {
+  const f = registeredSetupFixture();
+  assert.doesNotThrow(() => verifyCliRegisteredSetupProof(f.failed, f.proof, NOW));
+  const invalid: Partial<CliRegisteredSetupProof>[] = [{ kind: "funded-unstarted" as never }, { runId: SESSION_ID }, { fundingHash: HASH },
+    { registrationHash: HASH }, { owner: f.failed.payer }, { payer: f.failed.agent }, { agent: f.failed.merchant }, { merchant: f.failed.payer },
+    { finishedAt: f.failed.finishedAt! - 1 }, { initialActorSequence: ((100n << 32n) + 1n).toString() },
+    { registrationLedger: 99 }, { horizonLedger: 119 }, { rpcLedger: 129 }, { mandateExpiry: NOW + 120 },
+    { mandateExpiry: NOW - 1 }, { horizonClosedAt: NOW - 1 }, { horizonClosedAt: NOW + 1 }, { observedAt: NOW - 121 }, { observedAt: NOW + 1 }, { observedAt: NaN }];
+  for (const patch of invalid) {
+    assert.throws(() => verifyCliRegisteredSetupProof(f.failed, { ...f.proof, ...patch }, NOW));
+    const candidate = registeredSetupFixture(); const before = structuredClone(candidate.db.job);
+    candidate.deps.proveRegisteredSetup = async () => ({ ...candidate.proof, ...patch });
+    await candidate.controller().run(); assert.deepEqual(candidate.db.job, before);
+    assert.equal(candidate.calls.launches, 0); assert.equal(candidate.calls.submits, 0); assert.equal(candidate.calls.creates, 0);
+  }
+  for (const patch of [{ id: SESSION_ID }, { fundingHash: HASH }, { state: "running" as const }]) {
+    assert.throws(() => verifyCliRegisteredSetupProof({ ...f.failed, ...patch }, f.proof, NOW));
+  }
+});
+
+test("registered proof read failures and unexpired prior packets preserve the failed record", async () => {
+  const f = registeredSetupFixture(); const before = structuredClone(f.db.job);
+  f.deps.proveRegisteredSetup = async () => { throw new Error("synthetic uncertain chain evidence"); };
+  await f.controller().run(); assert.deepEqual(f.db.job, before); assert.equal(f.calls.launches, 0);
+  const early = registeredSetupFixture(); early.deps.now = () => NOW - 1;
+  await early.controller().run(); assert.equal(early.calls.proofs, 0); assert.equal(early.calls.launches, 0);
 });

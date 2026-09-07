@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { Account, Keypair, xdr } from "@stellar/stellar-sdk";
-import { buildCliFunding, CLI_MAINNET_PASSPHRASE } from "../lib/cli-test-transactions";
-import { proveCliTestUnstarted, type CliUnstartedContext, type CliUnstartedReads } from "../lib/cli-test-unstarted-proof";
+import { Account, Address, Contract, Keypair, TransactionBuilder, nativeToScVal, xdr } from "@stellar/stellar-sdk";
+import { buildCliFunding, CLI_MAINNET_PASSPHRASE, CLI_MAINNET_REGISTRY, CLI_USDC_SAC } from "../lib/cli-test-transactions";
+import { proveCliRegisteredSetup, proveCliTestUnstarted, type CliUnstartedContext, type CliUnstartedReads } from "../lib/cli-test-unstarted-proof";
 
 const NOW = 1_900_000_000;
 const iso = (seconds: number) => new Date(seconds * 1000).toISOString().replace(".000Z", "Z");
@@ -37,7 +37,38 @@ function fixture() {
       return values.snapshot;
     },
   };
-  return { row, values, reads, snapshots: () => snapshots };
+  return { row, values, reads, owner, actors, snapshots: () => snapshots };
+}
+
+function registeredFixture() {
+  const f = fixture(); const registeredAt = NOW - 800;
+  const row = { ...f.row, registrationHash: "" };
+  const registration: Record<string, unknown> = {};
+  function replace(options: { args?: xdr.ScVal[]; contract?: string; method?: string; sequence?: string;
+    signers?: Keypair[]; duplicateOperation?: boolean } = {}) {
+    const args = options.args ?? [row.payer, row.agent, row.merchant, CLI_USDC_SAC].map(value => new Address(value).toScVal()).concat([
+      nativeToScVal(300_000n, { type: "i128" }), nativeToScVal(BigInt(NOW + 2000), { type: "u64" }), xdr.ScVal.scvBytes(Buffer.alloc(32, 7)),
+    ]);
+    const operation = new Contract(options.contract ?? CLI_MAINNET_REGISTRY).call(options.method ?? "register_mandate", ...args);
+    const builder = new TransactionBuilder(new Account(row.payer, options.sequence ?? (1000n << 32n).toString()), {
+      fee: "3035068", networkPassphrase: CLI_MAINNET_PASSPHRASE,
+      timebounds: { minTime: registeredAt - 30, maxTime: registeredAt + 60 },
+    }).addOperation(operation);
+    if (options.duplicateOperation) builder.addOperation(operation);
+    const tx = builder.build(); for (const signer of options.signers ?? [f.actors.payer]) tx.sign(signer);
+    row.registrationHash = tx.hash().toString("hex");
+    Object.assign(registration, { hash: row.registrationHash, source_account: row.payer, successful: true,
+      ledger: 1050, created_at: iso(registeredAt), envelope_xdr: tx.toXDR() });
+    return args;
+  }
+  const args = replace();
+  f.values.snapshot.entries[0] = account(row.payer, ((1000n << 32n) + 1n).toString());
+  f.values.snapshot.entries[0].lastModifiedLedgerSeq = 1050;
+  const reads = { ...f.reads, async getFundingTransaction(hash: string) {
+    if (hash === row.registrationHash) return registration;
+    return f.reads.getFundingTransaction(hash);
+  } };
+  return { ...f, row, reads, registration, replace, args };
 }
 
 test("exact funded and unstarted actors produce one bound immutable proof", async () => {
@@ -87,5 +118,65 @@ test("provider failures have no fallback and do not disclose provider error deta
     const f = fixture(); f.reads[method] = async () => { throw new Error("sensitive-provider-detail"); };
     await assert.rejects(proveCliTestUnstarted(f.row, f.reads, NOW), error =>
       error instanceof Error && /unavailable/.test(error.message) && !error.message.includes("sensitive-provider-detail"));
+  }
+});
+
+test("registered-only proof binds the one payer transaction without weakening unstarted proof", async () => {
+  const f = registeredFixture(); const proof = await proveCliRegisteredSetup(f.row, f.reads, NOW);
+  assert.equal(proof.kind, "registered-unspent"); assert.equal(proof.registrationHash, f.row.registrationHash);
+  assert.equal(proof.registrationLedger, 1050); assert.equal(proof.mandateExpiry, NOW + 2000);
+  assert.equal(proof.initialActorSequence, (1000n << 32n).toString());
+  assert.equal(proof.fundingHash, f.row.fundingHash); assert.equal(f.snapshots(), 1); assert.ok(Object.isFrozen(proof));
+  await assert.rejects(proveCliTestUnstarted(f.row, f.reads, NOW), /sequence changed/);
+});
+
+test("registered-only proof rejects wrong, failed, malformed, or late registration evidence", async () => {
+  for (const patch of [{ hash: "a".repeat(64) }, { source_account: Keypair.random().publicKey() }, { successful: false },
+    { ledger: 999 }, { ledger: 1101 }, { created_at: iso(NOW - 699) }, { created_at: iso(NOW - 1000) }, { envelope_xdr: "bad" }]) {
+    const f = registeredFixture(); Object.assign(f.registration, patch);
+    await assert.rejects(proveCliRegisteredSetup(f.row, f.reads, NOW)); assert.equal(f.snapshots(), 0);
+  }
+  const f = registeredFixture(); f.row.registrationHash = f.row.fundingHash;
+  await assert.rejects(proveCliRegisteredSetup(f.row, f.reads, NOW), /identity/);
+});
+
+test("registered-only proof checks authentic signed operation scope, amount, expiry, and credential", async () => {
+  for (let index = 0; index < 7; index++) {
+    const f = registeredFixture(); const args = [...f.args];
+    args[index] = index < 4 ? new Address(Keypair.random().publicKey()).toScVal()
+      : index === 4 ? nativeToScVal(300_001n, { type: "i128" })
+      : index === 5 ? nativeToScVal(BigInt(NOW), { type: "u64" }) : xdr.ScVal.scvBytes(Buffer.alloc(31));
+    f.replace({ args }); await assert.rejects(proveCliRegisteredSetup(f.row, f.reads, NOW), /scope, or expiry/);
+  }
+  for (const modify of [
+    (f: ReturnType<typeof registeredFixture>) => f.replace({ contract: CLI_USDC_SAC }),
+    (f: ReturnType<typeof registeredFixture>) => f.replace({ method: "execute" }),
+    (f: ReturnType<typeof registeredFixture>) => f.replace({ args: [...f.args, xdr.ScVal.scvVoid()] }),
+    (f: ReturnType<typeof registeredFixture>) => f.replace({ args: f.args.map((arg, index) => index === 5 ? nativeToScVal(BigInt(NOW + 3000), { type: "u64" }) : arg) }),
+    (f: ReturnType<typeof registeredFixture>) => f.replace({ sequence: ((1000n << 32n) + 1n).toString() }),
+    (f: ReturnType<typeof registeredFixture>) => f.replace({ signers: [] }),
+    (f: ReturnType<typeof registeredFixture>) => f.replace({ signers: [f.actors.agent] }),
+    (f: ReturnType<typeof registeredFixture>) => f.replace({ signers: [f.actors.payer, f.actors.agent] }),
+    (f: ReturnType<typeof registeredFixture>) => f.replace({ duplicateOperation: true }),
+  ]) {
+    const f = registeredFixture(); modify(f); await assert.rejects(proveCliRegisteredSetup(f.row, f.reads, NOW));
+  }
+});
+
+test("registered-only proof requires exact payer plus-one and unchanged other actors in one fresh snapshot", async () => {
+  for (const [index, increment] of [[0, 0n], [0, 2n], [1, 1n], [2, 1n]] as const) {
+    const f = registeredFixture(); const address = [f.row.payer, f.row.agent, f.row.merchant][index];
+    f.values.snapshot.entries[index] = account(address, ((1000n << 32n) + increment).toString());
+    f.values.snapshot.entries[index].lastModifiedLedgerSeq = 1050;
+    await assert.rejects(proveCliRegisteredSetup(f.row, f.reads, NOW), /sequence changed/);
+  }
+  for (const change of [
+    (f: ReturnType<typeof registeredFixture>) => { f.values.snapshot.entries[0].lastModifiedLedgerSeq = 1049; },
+    (f: ReturnType<typeof registeredFixture>) => { f.values.ledger.closed_at = iso(f.row.finishedAt + 600); },
+    (f: ReturnType<typeof registeredFixture>) => { f.values.snapshot.latestLedger = 1099; },
+    (f: ReturnType<typeof registeredFixture>) => { f.values.network.passphrase = "wrong"; },
+    (f: ReturnType<typeof registeredFixture>) => { f.values.funding.successful = false; },
+  ]) {
+    const f = registeredFixture(); change(f); await assert.rejects(proveCliRegisteredSetup(f.row, f.reads, NOW));
   }
 });

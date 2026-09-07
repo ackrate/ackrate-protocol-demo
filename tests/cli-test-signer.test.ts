@@ -178,10 +178,12 @@ test("approval RPC uses only pinned endpoint with bounded timeout and checks Mai
     assert.ok(init.signal);
     const request = JSON.parse(String(init.body));
     calls.push(request.method);
-    return new Response(JSON.stringify({ jsonrpc: "2.0", id: 1, result: request.method === "getNetwork" ? { passphrase: MAINNET_PASSPHRASE } : { sequence: ledger } }));
+    assert.equal(init.cache, "no-store");
+    assert.deepEqual(Object.keys(request).sort(), ["id", "jsonrpc", "method"]);
+    return new Response(JSON.stringify({ jsonrpc: "2.0", id: 1, result: request.method === "getNetwork" ? { passphrase: MAINNET_PASSPHRASE } : { status: "healthy", latestLedger: ledger } }));
   });
   assert.equal(await readCliTestLatestLedger(), ledger);
-  assert.deepEqual(calls, ["getNetwork", "getLatestLedger"]);
+  assert.deepEqual(calls, ["getNetwork", "getHealth"]);
 });
 
 test("wrong network, malformed ledger, and failed RPC never yield approval evidence", async (t) => {
@@ -191,7 +193,7 @@ test("wrong network, malformed ledger, and failed RPC never yield approval evide
     let calls = 0;
     const mocked = t.mock.method(globalThis, "fetch", async () => {
       calls += 1;
-      return new Response(JSON.stringify({ jsonrpc: "2.0", id: 1, result: calls === 1 ? { passphrase: result.passphrase } : { sequence: result.sequence } }));
+      return new Response(JSON.stringify({ jsonrpc: "2.0", id: 1, result: calls === 1 ? { passphrase: result.passphrase } : { status: "healthy", latestLedger: result.sequence } }));
     });
     await assert.rejects(readCliTestLatestLedger(), /network|ledger/);
     assert.equal(calls, result.passphrase === Networks.TESTNET ? 1 : 2);
@@ -203,6 +205,64 @@ test("wrong network, malformed ledger, and failed RPC never yield approval evide
   await assert.rejects(readCliTestLatestLedger(), /unavailable/);
   await assert.rejects(runCliTestSigner(signArgs(tx(USDC_SAC, "approve", approval())), { env, nowSeconds: now }), /unavailable/);
   assert.equal(signatures, 0);
+});
+
+test("allowance signing uses compact health when default latest-ledger metadata exceeds the response bound", async (t) => {
+  const defaultLatestLedger = { id: "a".repeat(64), protocolVersion: 27, sequence: ledger, closeTime: String(now),
+    headerXdr: "AAAA", metadataXdr: "A".repeat(150_000) };
+  assert.ok(Buffer.byteLength(JSON.stringify(defaultLatestLedger)) > 65_536);
+  const calls: string[] = [];
+  t.mock.method(globalThis, "fetch", async (url: string, init: RequestInit) => {
+    assert.equal(url, MAINNET_RPC);
+    const request = JSON.parse(String(init.body)); calls.push(request.method);
+    const result = request.method === "getNetwork" ? { passphrase: MAINNET_PASSPHRASE, protocolVersion: 27 }
+      : request.method === "getHealth" ? { status: "healthy", latestLedger: ledger, latestLedgerCloseTime: String(now),
+        oldestLedger: ledger - 17_280, oldestLedgerCloseTime: String(now - 86_400), ledgerRetentionWindow: 17_281 }
+      : defaultLatestLedger;
+    return new Response(JSON.stringify({ jsonrpc: "2.0", id: 1, result }));
+  });
+  const unsigned = tx(USDC_SAC, "approve", approval());
+  const signed = TransactionBuilder.fromXDR(await runCliTestSigner(signArgs(unsigned), { env, nowSeconds: now }), MAINNET_PASSPHRASE) as Transaction;
+  assert.equal(signed.hash().toString("hex"), unsigned.hash().toString("hex"));
+  assert.equal(signed.signatures.length, 1); assert.ok(payer.verify(signed.hash(), signed.signatures[0].signature()));
+  assert.deepEqual(calls, ["getNetwork", "getHealth"]);
+});
+
+test("health identity, error, status, and ledger validation fail closed before any signature", async (t) => {
+  let signatures = 0;
+  t.mock.method(Keypair.prototype, "sign", () => { signatures++; assert.fail("invalid health evidence cannot sign"); });
+  const results = [
+    ...[0, -1, null, "65000000", 1.5, 0x1_0000_0000].map((latestLedger) => ({ jsonrpc: "2.0", id: 1, result: { status: "healthy", latestLedger } })),
+    { jsonrpc: "2.0", id: 1, result: { status: "unhealthy", latestLedger: ledger } },
+    { jsonrpc: "2.0", id: 1, result: { latestLedger: ledger } },
+    { jsonrpc: "1.0", id: 1, result: { status: "healthy", latestLedger: ledger } },
+    { jsonrpc: "2.0", id: 2, result: { status: "healthy", latestLedger: ledger } },
+    { jsonrpc: "2.0", id: 1, error: null, result: { status: "healthy", latestLedger: ledger } },
+    { jsonrpc: "2.0", id: 1, error: { code: -32000, message: "synthetic service failure" } },
+    { jsonrpc: "2.0", id: 1, result: [] },
+  ];
+  for (const health of results) {
+    const mocked = t.mock.method(globalThis, "fetch", async (_url: string, init: RequestInit) => new Response(JSON.stringify(
+      JSON.parse(String(init.body)).method === "getNetwork" ? { jsonrpc: "2.0", id: 1, result: { passphrase: MAINNET_PASSPHRASE } } : health,
+    )));
+    await assert.rejects(runCliTestSigner(signArgs(tx(USDC_SAC, "approve", approval())), { env, nowSeconds: now }), /RPC.*invalid/);
+    mocked.mock.restore();
+  }
+  assert.equal(signatures, 0);
+});
+
+test("oversized or malformed RPC bodies remain bounded even when content length is absent", async (t) => {
+  for (const declared of [true, false]) {
+    let cancelled = false;
+    const mocked = t.mock.method(globalThis, "fetch", async () => new Response(new ReadableStream({
+      start(controller) { controller.enqueue(new TextEncoder().encode("A".repeat(65_537))); },
+      cancel() { cancelled = true; },
+    }), { headers: declared ? { "content-length": "65537" } : undefined }));
+    await assert.rejects(readCliTestLatestLedger(), /RPC response is invalid/);
+    assert.equal(cancelled, true); mocked.mock.restore();
+  }
+  t.mock.method(globalThis, "fetch", async () => new Response("not JSON"));
+  await assert.rejects(readCliTestLatestLedger(), /RPC response is invalid/);
 });
 
 test("script runs as an external executable and signs generated-key registration without network", async () => {

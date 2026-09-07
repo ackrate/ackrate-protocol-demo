@@ -361,11 +361,11 @@ test("PostgreSQL preparation failure remains blocked without replacement account
   });
 });
 
-function unstartedFixtureProof(row: Parameters<NonNullable<CliBurnerJobDependencies["proveUnstarted"]>>[0]) {
+function unstartedFixtureProof(row: Parameters<NonNullable<CliBurnerJobDependencies["proveUnstarted"]>>[0], observedAt = now()) {
   return { kind: "funded-unstarted" as const, runId: row.id, fundingHash: row.fundingHash!,
     owner: row.owner, payer: row.payer, agent: row.agent, merchant: row.merchant, finishedAt: row.finishedAt!,
     fundingLedger: 100, initialActorSequence: (100n << 32n).toString(),
-    horizonLedger: 200, horizonClosedAt: now() - 5, rpcLedger: 200, observedAt: now() };
+    horizonLedger: 200, horizonClosedAt: observedAt - 5, rpcLedger: 200, observedAt };
 }
 
 test("PostgreSQL proven pre-registration failure permits only one same-funded recovery across replicas", async () => {
@@ -398,17 +398,20 @@ test("PostgreSQL proven pre-registration failure permits only one same-funded re
 
 test("PostgreSQL preflight proof mismatches and stale/too-early evidence never claim recovery", async () => {
   await withPostgres(async (db, engine) => {
-    const fixture = burnerFixture(db, { preflightFailure: true }); fixture.deps.now = () => now() - 1_000;
-    await fixture.controller.run(); fixture.deps.now = now; fixture.deps.maxPolls = 1;
+    // Freeze both the verifier clock and proof timestamps. A one-second future
+    // proof must stay future even if another test or build delays this loop.
+    const observedAt = now();
+    const fixture = burnerFixture(db, { preflightFailure: true }); fixture.deps.now = () => observedAt - 1_000;
+    await fixture.controller.run(); fixture.deps.now = () => observedAt; fixture.deps.maxPolls = 1;
     const failed = (await fixture.controller.status()).run!;
     const patches = [
       { fundingHash: "f".repeat(64) }, { runId: "different-run" }, { owner: OWNER }, { payer: OWNER },
       { agent: OWNER }, { merchant: OWNER }, { initialActorSequence: "1" }, { rpcLedger: 99 },
-      { observedAt: now() - 121 }, { observedAt: now() + 1 }, { horizonClosedAt: now() - 200 },
+      { observedAt: observedAt - 121 }, { observedAt: observedAt + 1 }, { horizonClosedAt: observedAt - 200 },
       { horizonClosedAt: failed.finishedAt! + 600 }, { fundingLedger: 201 },
     ];
     for (const patch of patches) {
-      fixture.deps.proveUnstarted = async (row) => ({ ...unstartedFixtureProof(row), ...patch });
+      fixture.deps.proveUnstarted = async (row) => ({ ...unstartedFixtureProof(row, observedAt), ...patch });
       await createCliBurnerJobController(db, fixture.store, TEST_SECRET, fixture.deps).run();
       assert.equal((await fixture.controller.status()).state, "failed", JSON.stringify(patch));
     }

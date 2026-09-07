@@ -104,25 +104,47 @@ export async function readCliTestLatestLedger() {
   const signal = AbortSignal.timeout(8_000);
   async function read(method) {
     const response = await fetch(MAINNET_RPC, {
-      method: "POST", redirect: "error", signal,
+      method: "POST", redirect: "error", cache: "no-store", signal,
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ jsonrpc: "2.0", id: 1, method }),
     });
     if (!response.ok) throw new Error("CLI test signer RPC is unavailable");
-    const body = await response.text();
-    if (body.length > 65_536) throw new Error("CLI test signer RPC response is invalid");
+    if (!response.body || Number(response.headers.get("content-length")) > 65_536) {
+      await response.body?.cancel();
+      throw new Error("CLI test signer RPC response is invalid");
+    }
+    const reader = response.body.getReader();
+    const chunks = []; let length = 0;
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        length += value.byteLength;
+        if (length > 65_536) {
+          await reader.cancel();
+          throw new Error("CLI test signer RPC response is invalid");
+        }
+        chunks.push(value);
+      }
+    } finally { reader.releaseLock(); }
+    const body = Buffer.concat(chunks).toString("utf8");
     let data;
     try { data = JSON.parse(body); } catch { throw new Error("CLI test signer RPC response is invalid"); }
-    if (data?.jsonrpc !== "2.0" || data.id !== 1 || data.error || !data.result) throw new Error("CLI test signer RPC response is invalid");
+    if (data?.jsonrpc !== "2.0" || data.id !== 1 || "error" in data || !data.result
+      || typeof data.result !== "object" || Array.isArray(data.result)) throw new Error("CLI test signer RPC response is invalid");
     return data.result;
   }
   const network = await read("getNetwork");
   if (network.passphrase !== MAINNET_PASSPHRASE) throw new Error("CLI test signer RPC network does not match Mainnet");
-  const latest = await read("getLatestLedger");
-  if (!Number.isSafeInteger(latest.sequence) || latest.sequence <= 0 || latest.sequence > 0xffff_ffff) {
+  // getLatestLedger includes potentially large LedgerCloseMeta XDR. getHealth
+  // exposes the same node's latest sequence without downloading ledger contents.
+  // https://developers.stellar.org/docs/data/apis/rpc/api-reference/methods/getHealth
+  const health = await read("getHealth");
+  if (health.status !== "healthy" || !Number.isSafeInteger(health.latestLedger)
+    || health.latestLedger <= 0 || health.latestLedger > 0xffff_ffff) {
     throw new Error("CLI test signer RPC ledger is invalid");
   }
-  return latest.sequence;
+  return health.latestLedger;
 }
 
 /** Minimal external Stellar CLI surface. No arbitrary identity, path, or command is accepted. */

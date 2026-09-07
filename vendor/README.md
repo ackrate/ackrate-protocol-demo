@@ -29,7 +29,7 @@ identities. Version/help success alone is not evidence of a completed payment.
 ## Freighter-funded CLI test
 
 `ackrate-cli-test.mjs` is the separate **0.2.1 source build** from
-[`ackrate/ackrate-protocol` commit 0be7bf8](https://github.com/ackrate/ackrate-protocol/commit/0be7bf8c9f938e5ebe42c0c35db54d8061b37333).
+[`ackrate/ackrate-protocol` commit 8c74bef](https://github.com/ackrate/ackrate-protocol/commit/8c74bef3af3ce7aee0ab2c8da6f126706a8a4e18).
 It exactly matches the prepared CLI archive; `cli-test-build.json` pins its SHA-256.
 It is not described as a published npm 0.2.1 release. Anonymous version/help inspection
 continues to use the unchanged public npm 0.2.0 executable above.
@@ -50,6 +50,17 @@ write: retain the locked run and reconcile the public account/contract history m
 Do not treat this interface as a guarantee of crash-safe exact-delivery recovery.
 
 ## One-off server-funded CLI test
+
+The retained run's registration succeeded before an oversized ledger-response
+check refused allowance signing. A separate one-time registered-setup recovery
+is pinned to that run and receipt. It verifies exact funding and registration,
+the payer's single registration sequence increment, unchanged agent/merchant
+sequences, and a fresh ledger after prior unsigned packets expired. The CLI
+independently verifies the active, untouched mandate before skipping registration
+and completing its allowance. It does not fund again, create another mandate,
+extend expiry, or resume an already-paid run. Prior logs and directories remain.
+The allowance signer now queries compact `getHealth` after verifying Mainnet;
+oversized, unhealthy, wrong-network or malformed responses still refuse signing.
 
 An operator can configure `ACKRATE_CLI_BURNER_MNEMONIC` as a **sealed, server-only
 Railway variable**. The value is the English BIP39 phrase only, not a `NAME=value`

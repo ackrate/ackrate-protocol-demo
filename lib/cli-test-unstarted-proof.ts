@@ -1,6 +1,6 @@
-import { Keypair, StrKey, Transaction, TransactionBuilder, rpc, xdr } from "@stellar/stellar-sdk";
+import { Address, Keypair, StrKey, Transaction, TransactionBuilder, rpc, xdr } from "@stellar/stellar-sdk";
 import { boundedResponseJson } from "./wallet/http";
-import { CLI_MAINNET_HORIZON, CLI_MAINNET_PASSPHRASE, CLI_MAINNET_RPC, CLI_MAX_XDR_LENGTH, verifyCliFundingSigned } from "./cli-test-transactions";
+import { CLI_MAINNET_HORIZON, CLI_MAINNET_PASSPHRASE, CLI_MAINNET_REGISTRY, CLI_MAINNET_RPC, CLI_MAX_XDR_LENGTH, CLI_USDC_SAC, verifyCliFundingSigned } from "./cli-test-transactions";
 
 export interface CliUnstartedContext {
   id: string; state: "failed"; finishedAt: number; fundingHash: string;
@@ -11,6 +11,10 @@ export interface CliUnstartedProof {
   readonly owner: string; readonly payer: string; readonly agent: string; readonly merchant: string;
   readonly finishedAt: number; readonly fundingLedger: number; readonly initialActorSequence: string;
   readonly horizonLedger: number; readonly horizonClosedAt: number; readonly rpcLedger: number; readonly observedAt: number;
+}
+export interface CliRegisteredSetupProof extends Omit<CliUnstartedProof, "kind"> {
+  readonly kind: "registered-unspent";
+  readonly registrationHash: string; readonly registrationLedger: number; readonly mandateExpiry: number;
 }
 export interface CliUnstartedReads {
   getFundingTransaction(hash: string): Promise<unknown>;
@@ -55,6 +59,61 @@ function defaultReads(): CliUnstartedReads {
  * after every packet the failed process could have prepared has expired. */
 export async function proveCliTestUnstarted(input: CliUnstartedContext, reads?: CliUnstartedReads,
   nowSeconds = Math.floor(Date.now() / 1000)): Promise<CliUnstartedProof> {
+  const proof = await proveSetupState(input, reads, nowSeconds);
+  if (proof.kind !== "funded-unstarted") throw new Error("Unstarted proof type differs.");
+  return proof;
+}
+
+/** Separate registered-only proof: no resetting, signing, submitting, or launch.
+ * The reference CLI must independently revalidate the registration and mandate. */
+export async function proveCliRegisteredSetup(input: CliUnstartedContext & { registrationHash: string }, reads?: CliUnstartedReads,
+  nowSeconds = Math.floor(Date.now() / 1000)): Promise<CliRegisteredSetupProof> {
+  if (typeof input.registrationHash !== "string" || !/^[a-f0-9]{64}$/.test(input.registrationHash)
+    || input.registrationHash === input.fundingHash) throw new Error("Registered setup transaction identity is invalid.");
+  const proof = await proveSetupState(input, reads, nowSeconds, input.registrationHash);
+  if (proof.kind !== "registered-unspent") throw new Error("Registered setup proof type differs.");
+  return proof;
+}
+
+function verifyRegistration(raw: unknown, row: CliUnstartedContext, hash: string, fundingLedger: number, fundingTime: number, now: number) {
+  const registration = object(raw); const registeredAt = timestamp(registration.created_at);
+  if (registration.hash !== hash || registration.source_account !== row.payer || registration.successful !== true
+    || !integer(registration.ledger, 0xffff_ffff) || registration.ledger < fundingLedger
+    || !integer(registeredAt) || registeredAt < fundingTime || registeredAt > row.finishedAt
+    || typeof registration.envelope_xdr !== "string" || registration.envelope_xdr.length > CLI_MAX_XDR_LENGTH) throw new Error("Exact successful registration is not verified.");
+  try {
+    const tx = TransactionBuilder.fromXDR(registration.envelope_xdr, CLI_MAINNET_PASSPHRASE);
+    const payer = Keypair.fromPublicKey(row.payer);
+    if (!(tx instanceof Transaction) || tx.hash().toString("hex") !== hash || tx.source !== row.payer
+      || tx.sequence !== ((BigInt(fundingLedger) << 32n) + 1n).toString()
+      || tx.operations.length !== 1 || tx.memo.type !== "none" || BigInt(tx.fee) < 100n || BigInt(tx.fee) > 5_000_000n
+      || tx.signatures.length !== 1 || !payer.signatureHint().equals(tx.signatures[0].hint())
+      || !payer.verify(tx.hash(), tx.signatures[0].signature())
+      || !tx.timeBounds || BigInt(tx.timeBounds.minTime) > BigInt(registeredAt) || BigInt(tx.timeBounds.maxTime) < BigInt(registeredAt)) throw new Error();
+    const op = tx.operations[0];
+    if (op.type !== "invokeHostFunction" || (op.source && op.source !== row.payer)
+      || op.func.switch().name !== "hostFunctionTypeInvokeContract") throw new Error();
+    const invocation = op.func.invokeContract(); const args = invocation.args();
+    const addressMatches = (value: xdr.ScVal, expected: string) => value.switch().name === "scvAddress" && Address.fromScVal(value).toString() === expected;
+    if (Address.fromScAddress(invocation.contractAddress()).toString() !== CLI_MAINNET_REGISTRY
+      || invocation.functionName().toString() !== "register_mandate" || args.length !== 7
+      || !addressMatches(args[0], row.payer) || !addressMatches(args[1], row.agent) || !addressMatches(args[2], row.merchant) || !addressMatches(args[3], CLI_USDC_SAC)
+      || args[4].switch().name !== "scvI128" || args[4].i128().hi().toString() !== "0" || args[4].i128().lo().toString() !== "300000"
+      || args[5].switch().name !== "scvU64" || BigInt(args[5].u64().toString()) <= BigInt(now)
+      || BigInt(args[5].u64().toString()) > BigInt(registeredAt + 3700)
+      || args[6].switch().name !== "scvBytes" || args[6].bytes().length !== 32 || (op.auth ?? []).length > 1) throw new Error();
+    for (const auth of op.auth ?? []) {
+      const root = auth.rootInvocation();
+      if (auth.credentials().switch().name !== "sorobanCredentialsSourceAccount"
+        || root.function().switch().name !== "sorobanAuthorizedFunctionTypeContractFn"
+        || !root.function().contractFn().toXDR().equals(invocation.toXDR()) || root.subInvocations().length !== 0) throw new Error();
+    }
+    return { ledger: registration.ledger, expiry: Number(args[5].u64().toString()) };
+  } catch { throw new Error("Registration signature, sequence, actors, scope, or expiry differs."); }
+}
+
+async function proveSetupState(input: CliUnstartedContext, reads: CliUnstartedReads | undefined,
+  nowSeconds: number, registrationHash?: string): Promise<CliUnstartedProof | CliRegisteredSetupProof> {
   const row = { ...input };
   if (row.state !== "failed" || !/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(row.id)
     || !/^[a-f0-9]{64}$/.test(row.fundingHash) || !integer(row.finishedAt) || !integer(nowSeconds)
@@ -62,9 +121,10 @@ export async function proveCliTestUnstarted(input: CliUnstartedContext, reads?: 
     || ![row.owner, row.payer, row.agent, row.merchant].every((address) => typeof address === "string" && StrKey.isValidEd25519PublicKey(address))
     || new Set([row.owner, row.payer, row.agent, row.merchant]).size !== 4) throw new Error("Unstarted test context is invalid or not yet expired.");
   const services = reads ?? defaultReads();
-  let fundingRaw: unknown; let ledgerRaw: unknown; let networkRaw: unknown;
-  try { [fundingRaw, ledgerRaw, networkRaw] = await Promise.all([
+  let fundingRaw: unknown; let ledgerRaw: unknown; let networkRaw: unknown; let registrationRaw: unknown;
+  try { [fundingRaw, ledgerRaw, networkRaw, registrationRaw] = await Promise.all([
     services.getFundingTransaction(row.fundingHash), services.getLatestHorizonLedger(), services.getNetwork(),
+    registrationHash ? services.getFundingTransaction(registrationHash) : undefined,
   ]); } catch { throw new Error("Unstarted test chain evidence is unavailable."); }
   const network = object(networkRaw);
   if ("error" in network || network.passphrase !== CLI_MAINNET_PASSPHRASE) throw new Error("Unstarted test network is not Mainnet.");
@@ -87,10 +147,11 @@ export async function proveCliTestUnstarted(input: CliUnstartedContext, reads?: 
       || agent.type !== "createAccount" || agent.destination !== row.agent
       || merchant.type !== "createAccount" || merchant.destination !== row.merchant) throw new Error();
   } catch { throw new Error("Funding signatures, actors, or capped operations differ."); }
+  const registration = registrationHash ? verifyRegistration(registrationRaw, row, registrationHash, funding.ledger, fundingTime, nowSeconds) : undefined;
   const records = object(object(ledgerRaw)._embedded).records;
   if (!Array.isArray(records) || records.length !== 1) throw new Error("Unstarted test ledger evidence is malformed.");
   const ledger = object(records[0]); const closedAt = timestamp(ledger.closed_at);
-  if (!integer(ledger.sequence, 0xffff_ffff) || ledger.sequence < funding.ledger || !integer(closedAt)
+  if (!integer(ledger.sequence, 0xffff_ffff) || ledger.sequence < (registration?.ledger ?? funding.ledger) || !integer(closedAt)
     || closedAt <= row.finishedAt + 600 || closedAt > nowSeconds || nowSeconds - closedAt > 120) throw new Error("Unstarted test ledger is stale or prior packets have not expired.");
   const actors = [row.payer, row.agent, row.merchant];
   const keys = actors.map((address) => xdr.LedgerKey.account(new xdr.LedgerKeyAccount({ accountId: Keypair.fromPublicKey(address).xdrAccountId() })));
@@ -109,12 +170,17 @@ export async function proveCliTestUnstarted(input: CliUnstartedContext, reads?: 
     const encoded = entry.key.toXDR("base64"); const index = keys.findIndex((key) => key.toXDR("base64") === encoded);
     if (index < 0 || !remaining.delete(encoded)) throw new Error("Unstarted test actor snapshot has mismatched or duplicate keys.");
     const account = entry.val.account();
+    const expectedSequence = registration && index === 0 ? (BigInt(initialSequence) + 1n).toString() : initialSequence;
     if (account.accountId().toXDR("base64") !== Keypair.fromPublicKey(actors[index]).xdrAccountId().toXDR("base64")
-      || account.seqNum().toString() !== initialSequence) throw new Error("An actor sequence changed; this test cannot restart.");
+      || account.seqNum().toString() !== expectedSequence
+      || (registration && index === 0 && entry.lastModifiedLedgerSeq < registration.ledger)) throw new Error("An actor sequence changed; this test cannot restart.");
   }
   if (remaining.size !== 0) throw new Error("Unstarted test actor evidence is incomplete.");
-  return Object.freeze({ kind: "funded-unstarted", runId: row.id, fundingHash: row.fundingHash,
+  const common = { runId: row.id, fundingHash: row.fundingHash,
     owner: row.owner, payer: row.payer, agent: row.agent, merchant: row.merchant,
     finishedAt: row.finishedAt, fundingLedger: funding.ledger, initialActorSequence: initialSequence,
-    horizonLedger: ledger.sequence, horizonClosedAt: closedAt, rpcLedger: snapshot.latestLedger, observedAt: nowSeconds });
+    horizonLedger: ledger.sequence, horizonClosedAt: closedAt, rpcLedger: snapshot.latestLedger, observedAt: nowSeconds };
+  return registration && registrationHash
+    ? Object.freeze({ ...common, kind: "registered-unspent", registrationHash, registrationLedger: registration.ledger, mandateExpiry: registration.expiry })
+    : Object.freeze({ ...common, kind: "funded-unstarted" });
 }
