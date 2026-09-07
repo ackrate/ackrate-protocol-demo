@@ -3,12 +3,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getAddress, getNetworkDetails, requestAccess, signTransaction } from "@stellar/freighter-api";
 import { Download, ExternalLink, Loader2, WalletCards } from "lucide-react";
+import { cliLogParts, cliLogText, cliReceiptLinks, shortCliHash, type CliReceiptLink } from "../lib/cli-test-links";
 
 const PUBLIC_NETWORK = "Public Global Stellar Network ; September 2015";
 const API = "/api/cli/test";
 const STORAGE_PREFIX = "ackrate:cli-test:funding:v1:";
 const ACCOUNT = /^G[A-Z2-7]{55}$/;
-const HASH = /^[a-f0-9]{64}$/i;
 
 type TestRun = {
   id: string;
@@ -50,10 +50,6 @@ const stateLabels: Record<TestRun["state"], string> = {
   succeeded: "CLI test completed",
   failed: "Test needs attention",
 };
-
-function cleanLog(value: string): string {
-  return value.replace(/\x1b\[[0-?]*[ -/]*[@-~]/g, "").replace(/\r/g, "");
-}
 
 function errorText(error: unknown): string {
   return error instanceof Error ? error.message : "The request could not be completed. Refresh the status before retrying.";
@@ -110,10 +106,18 @@ export default function CliMainnetTest() {
   const mounted = useRef(true);
   const requestId = useRef(0);
   const appliedId = useRef(0);
+  const receiptHistory = useRef<{ runId: string; links: CliReceiptLink[] }>({ runId: "", links: [] });
 
   const applyStatus = useCallback((next: TestStatus, id: number) => {
     if (!mounted.current || id < appliedId.current) return;
     appliedId.current = id;
+    const runId = next.run?.id || "";
+    const previous = receiptHistory.current.runId === runId ? receiptHistory.current.links : [];
+    const links = new Map(previous.map((receipt) => [receipt.hash, receipt]));
+    for (const receipt of cliReceiptLinks(next.run?.logs || "", next.run?.fundingHash)) {
+      if (!links.has(receipt.hash) || receipt.label !== "Transaction") links.set(receipt.hash, receipt);
+    }
+    receiptHistory.current = { runId, links: [...links.values()] };
     setStatus(next);
     setSavedFunding(next.run ? readSavedFunding(next.run) : null);
     setNow(Date.now());
@@ -270,11 +274,10 @@ export default function CliMainnetTest() {
     });
   }
 
-  const logs = cleanLog(typeof run?.logs === "string" ? run.logs : "");
-  const txHashes = Array.from(new Set([
-    ...(run?.fundingHash && HASH.test(run.fundingHash) ? [run.fundingHash.toLowerCase()] : []),
-    ...Array.from(logs.matchAll(/https:\/\/stellar\.expert\/explorer\/public\/tx\/([a-f0-9]{64})\b/gi), (match) => match[1]!.toLowerCase()),
-  ]));
+  const rawLogs = typeof run?.logs === "string" ? run.logs : "";
+  const logs = cliLogText(rawLogs);
+  const logParts = cliLogParts(rawLogs.split("\n\nSaved reference-agent evidence")[0]);
+  const txLinks = receiptHistory.current.runId === run?.id ? receiptHistory.current.links : [];
   const fundingExpired = Boolean(run?.fundingExpiresAt && run.fundingExpiresAt * 1_000 <= now);
   const canResume = Boolean(savedFunding && run && ["prepared", "funding"].includes(run.state));
   const buttonClass = "inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-zinc-100 px-4 py-2.5 text-sm font-semibold text-zinc-950 transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-40";
@@ -291,7 +294,7 @@ export default function CliMainnetTest() {
   }
 
   return (
-    <section aria-labelledby="cli-mainnet-test-title" className="rounded-xl border border-zinc-700 bg-zinc-950 p-5 sm:p-6">
+    <section aria-labelledby="cli-mainnet-test-title" className="min-w-0 max-w-full rounded-xl border border-zinc-700 bg-zinc-950 p-5 sm:p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 id="cli-mainnet-test-title" className="text-xl font-semibold text-zinc-100">Test the CLI with Freighter</h2>
@@ -325,7 +328,7 @@ export default function CliMainnetTest() {
           <p className="text-base font-semibold text-zinc-100">6 XLM + 0.03 USDC, plus network fees</p>
           <p className="mt-2 text-sm leading-relaxed text-zinc-400">This is a real transfer to three server-managed test accounts. The XLM supports account reserves and operating balances; reserves are not network fees. The payer account uses the 0.03 USDC for the three research purchases.</p>
           <dl className="mt-4 grid gap-3 text-xs">
-            {[["Your funding account", run.owner], ["Test payer · server managed", run.payer], ["Test agent · server managed", run.agent], ["Test merchant · server managed", run.merchant]].map(([label, address]) => <div key={label} className="grid gap-1 sm:grid-cols-[190px_1fr]"><dt className="text-zinc-400">{label}</dt><dd className="break-all font-mono text-zinc-200">{address}</dd></div>)}
+            {[["Your funding account", run.owner], ["Test payer · server managed", run.payer], ["Test agent · server managed", run.agent], ["Test merchant · server managed", run.merchant]].map(([label, address]) => <div key={label} className="grid min-w-0 gap-1 sm:grid-cols-[150px_minmax(0,1fr)]"><dt className="text-zinc-400">{label}</dt><dd className="min-w-0 break-all font-mono text-zinc-200">{address}</dd></div>)}
           </dl>
         </div>
 
@@ -347,10 +350,11 @@ export default function CliMainnetTest() {
         {run.state === "running" && <p className="text-sm text-zinc-400">The server is running the CLI. Progress updates every two seconds and remains available after a page refresh.</p>}
         {run.state === "failed" && <p className="text-sm leading-relaxed text-zinc-400">Review the retained output and transaction links before taking another action. A failed run does not prove that no funds moved.</p>}
 
-        {txHashes.length > 0 && <div className="flex flex-wrap gap-x-5 gap-y-2">{txHashes.map((hash) => <a key={hash} className="inline-flex items-center gap-1.5 font-mono text-xs text-zinc-300 underline underline-offset-4 hover:text-white" href={`https://stellar.expert/explorer/public/tx/${hash}`} target="_blank" rel="noreferrer">{hash === run.fundingHash?.toLowerCase() ? "Funding" : "Transaction"} {hash.slice(0, 8)}…{hash.slice(-6)}<ExternalLink className="h-3 w-3" /></a>)}</div>}
-        {logs && <div className="overflow-hidden rounded-lg border border-zinc-800">
+        {txLinks.length > 0 && <section aria-label="Transactions" className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-2">{txLinks.map(({ hash, label }) => <a key={hash} className="min-w-0 rounded-lg border border-zinc-700 bg-zinc-900/50 px-3 py-2 text-zinc-200 visited:text-zinc-200 hover:border-zinc-400 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-300" href={`https://stellar.expert/explorer/public/tx/${hash}`} target="_blank" rel="noopener noreferrer" title={`${label}: ${hash}`} aria-label={`${label}: ${hash} — open Stellar explorer in a new tab`}><span className="block text-xs font-medium">{label}</span><span className="mt-1 flex items-center gap-1.5 font-mono text-xs text-zinc-400">{shortCliHash(hash)}<ExternalLink className="h-3 w-3 shrink-0" aria-hidden /></span></a>)}</section>}
+        {logs && <div className="min-w-0 max-w-full overflow-hidden rounded-lg border border-zinc-800">
           <div className="flex items-center justify-between gap-3 border-b border-zinc-800 px-3 py-2"><span className="text-xs font-medium text-zinc-400">CLI output</span><button type="button" onClick={downloadLog} className="inline-flex items-center gap-1.5 text-xs text-zinc-300 hover:text-white"><Download className="h-3.5 w-3.5" />Download log</button></div>
-          <pre className="max-h-96 overflow-auto whitespace-pre-wrap break-words bg-black p-4 text-xs leading-relaxed text-zinc-300">{logs}</pre>
+          <pre aria-label="CLI output" className="max-h-96 min-w-0 overflow-auto whitespace-pre-wrap break-words [overflow-wrap:anywhere] bg-black p-4 text-xs leading-relaxed text-zinc-300">{logParts.map((part, index) => part.href ? <a key={index} href={part.href} target="_blank" rel="noopener noreferrer" title={part.href} className="rounded text-zinc-100 underline underline-offset-4 visited:text-zinc-100 hover:text-white focus-visible:outline focus-visible:outline-2">{part.text}<span className="sr-only"> — open Stellar explorer in a new tab</span></a> : part.text)}</pre>
+          {rawLogs.includes("\n\nSaved reference-agent evidence") && <p className="border-t border-zinc-800 px-3 py-2 text-xs text-zinc-400">Full reference-agent evidence and transaction URLs are included in Download log.</p>}
         </div>}
       </div>}
       <div className="mt-5 flex flex-wrap items-center gap-4">

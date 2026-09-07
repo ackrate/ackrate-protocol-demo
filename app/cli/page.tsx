@@ -133,8 +133,8 @@ export default function CliPage() {
 
   return (
     <main className="relative mx-auto w-full max-w-6xl px-4 py-8 sm:px-5">
-      <section className="grid gap-8 py-6 lg:grid-cols-[0.8fr_1.2fr] lg:items-start">
-        <motion.div {...fade()} className="flex flex-col justify-center">
+      <section className="grid min-w-0 gap-8 py-6 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:items-start">
+        <motion.div {...fade()} className="flex min-w-0 flex-col justify-center">
           <div className="inline-flex w-fit items-center gap-2 rounded-full border border-emerald-300/20 bg-emerald-400/10 px-3.5 py-1.5 text-[11px] font-semibold tracking-[0.18em] text-emerald-200">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 shadow-[0_0_10px_rgba(110,231,183,0.95)]" />
             MAINNET CLI
@@ -193,7 +193,7 @@ export default function CliPage() {
           </div>
         </motion.div>
 
-        <motion.div {...fade(0.08)}><CliMainnetTestPanel /></motion.div>
+        <motion.div {...fade(0.08)} className="min-w-0"><CliMainnetTestPanel /></motion.div>
       </section>
 
       <details className="mb-8 rounded-xl border border-zinc-800 bg-zinc-950 p-4" onToggle={(event) => {

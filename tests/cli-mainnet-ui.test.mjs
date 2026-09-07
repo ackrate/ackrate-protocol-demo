@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import vm from "node:vm";
 import ts from "typescript";
+import * as cliTestLinks from "../lib/cli-test-links.ts";
 
 // Exercise the actual component callbacks with synthetic hooks, storage and
 // Freighter/API responses. This is not a DOM/browser or live-payment test.
@@ -76,6 +77,7 @@ function harness(initial = base(), options = {}) {
       if (name === "react") return hooks;
       if (name === "react/jsx-runtime") return { jsx: (type, props) => ({ type, props }), jsxs: (type, props) => ({ type, props }) };
       if (name === "@stellar/freighter-api") return api;
+      if (name === "../lib/cli-test-links") return cliTestLinks;
       if (name === "lucide-react") return Object.fromEntries(["Download", "ExternalLink", "Loader2", "WalletCards"].map((key) => [key, key]));
       throw new Error(`Unexpected import: ${name}`);
     },
@@ -128,6 +130,8 @@ function harness(initial = base(), options = {}) {
     : value && typeof value === "object" ? text(value.props?.children)
       : typeof value === "string" || typeof value === "number" ? String(value) : "";
   h.text = () => text(tree);
+  h.nodes = () => nodes(tree);
+  h.textOf = text;
   h.find = (type, label) => nodes(tree).find((node) => node.type === type && (label === undefined || text(node).includes(label)));
   h.click = (label) => {
     const button = h.find("button", label);
@@ -257,7 +261,7 @@ test("polling updates funding/running state and stops at completion, retaining p
   h.status.run.logs = "\u001b[32mdone\u001b[0m <script>inert text</script>";
   await h.tick();
   assert.match(h.text(), /CLI test completed/);
-  assert.equal(h.find("pre").props.children, "done <script>inert text</script>");
+  assert.equal(h.textOf(h.find("pre")), "done <script>inert text</script>");
   assert.equal(h.find("pre").props.dangerouslySetInnerHTML, undefined);
   assert.equal([...h.timers.values()].some((timer) => timer.delay === 2000), false);
 });
@@ -300,4 +304,56 @@ test("expired funding cannot be signed and retry errors remain visible", async (
   retry.click("Resume saved"); await retry.settle();
   assert.equal(retry.posts().length, 0);
   assert.match(retry.text(), /original funding account/);
+});
+
+const explorer = (hash) => `https://stellar.expert/explorer/public/tx/${hash}`;
+const renderedExplorerLinks = (h) => h.nodes().filter((node) => node.type === "a" && /^https:\/\/stellar\.expert\/explorer\/public\/tx\/[a-f0-9]{64}$/.test(node.props.href));
+
+test("completed human output renders compact native explorer anchors that remain after interaction and rerender", async () => {
+  const funding = "a".repeat(64), registered = "b".repeat(64), paid = "c".repeat(64);
+  const logs = `register=\x1b]8;;${explorer(registered)}\x07opaque terminal label\x1b]8;;\x07\nmarket delivered after verified payment tx=${explorer(paid)}\n<script>inert evidence text</script>`;
+  const h = harness({ ...base(), run: { ...run("succeeded"), fundingHash: funding, logs } }); await h.settle();
+  assert.doesNotMatch(h.text(), /\x1b|\x07/);
+  assert.match(h.text(), /<script>inert evidence text<\/script>/);
+  const initial = renderedExplorerLinks(h);
+  const cards = h.nodes().find((node) => node.props?.["aria-label"] === "Transactions");
+  assert.ok(cards, "persistent receipts have a named region separate from the raw log");
+  assert.match(cards.props.className, /min-w-0/);
+  assert.match(h.find("pre").props.className, /min-w-0/);
+  assert.match(h.find("pre").props.className, /overflow-wrap:anywhere/);
+  for (const hash of [funding, registered, paid]) assert.ok(initial.some((node) => node.props.href === explorer(hash)));
+  for (const anchor of initial) {
+    assert.equal(anchor.props.target, "_blank"); assert.match(anchor.props.rel, /noreferrer/);
+    assert.equal(anchor.props.onClick, undefined, "explorer anchors must not clear component state or trigger an action");
+    assert.ok(h.textOf(anchor).length < 100, "full URLs and hashes must not stretch link labels");
+    assert.equal(anchor.props.dangerouslySetInnerHTML, undefined);
+    assert.match(anchor.props.className, /visited:text-/, "visited links retain an explicit readable color");
+  }
+  const inOutput = h.nodes().filter((node) => node.type === "pre").flatMap((node) => {
+    const collect = (value) => Array.isArray(value) ? value.flatMap(collect)
+      : value && typeof value === "object" ? [value, ...collect(value.props?.children)] : [];
+    return collect(node);
+  }).filter((node) => node.type === "a");
+  assert.ok(inOutput.some((node) => node.props.href === explorer(registered)), "OSC8 receipt is clickable inside the log");
+  assert.ok(inOutput.some((node) => node.props.href === explorer(paid)), "plain receipt URL is clickable inside the log");
+  h.render(); await h.settle();
+  assert.deepEqual(new Set(renderedExplorerLinks(h).map((node) => node.props.href)), new Set(initial.map((node) => node.props.href)));
+  assert.equal(h.posts().length, 0); assert.equal(h.signs().length, 0);
+});
+
+test("same-run receipt cards survive shorter logs and refresh errors but never leak into another run", async () => {
+  const funding = "d".repeat(64), paid = "e".repeat(64), next = "f".repeat(64);
+  const h = harness({ ...base(), run: { ...run("succeeded"), fundingHash: funding, logs: `payment ${explorer(paid)}` } }); await h.settle();
+  h.status.run.logs = "A later shorter completion summary";
+  h.click("Refresh status"); await h.settle();
+  for (const hash of [funding, paid]) assert.ok(renderedExplorerLinks(h).some((node) => node.props.href === explorer(hash)), "same-run previously observed receipt remains available");
+  h.onGet = (response) => response({ error: "Synthetic status unavailable" }, false);
+  h.click("Refresh status"); await h.settle();
+  assert.ok(renderedExplorerLinks(h).some((node) => node.props.href === explorer(paid)));
+  delete h.onGet;
+  h.status.run = { ...run("succeeded"), id: "separate-human-run", fundingHash: next, logs: "New run" };
+  h.click("Refresh status"); await h.settle();
+  const hrefs = renderedExplorerLinks(h).map((node) => node.props.href);
+  assert.ok(hrefs.includes(explorer(next))); assert.ok(!hrefs.includes(explorer(funding))); assert.ok(!hrefs.includes(explorer(paid)));
+  assert.equal(h.posts().length, 0); assert.equal(h.signs().length, 0);
 });
