@@ -66,9 +66,9 @@ export default function Intro({ onDone }: { onDone: () => void }) {
     const target = new Float32Array(COUNT * 3);
     const colors = new Float32Array(COUNT * 3);
     const positions = new Float32Array(COUNT * 3);
-    const cA = new THREE.Color("#34d399");
-    const cB = new THREE.Color("#5eead4");
-    const cC = new THREE.Color("#f0fff9");
+    const cA = new THREE.Color("#ff1300");
+    const cB = new THREE.Color("#ff5a1f");
+    const cC = new THREE.Color("#ffd0b5");
     const R = 4.3;
     const golden = Math.PI * (1 + Math.sqrt(5));
     for (let i = 0; i < COUNT; i++) {
@@ -110,7 +110,7 @@ export default function Intro({ onDone }: { onDone: () => void }) {
 
     const coreMat = new THREE.SpriteMaterial({
       map: glow,
-      color: new THREE.Color("#5eead4"),
+      color: new THREE.Color("#ff2100"),
       transparent: true,
       depthWrite: false,
       blending: THREE.AdditiveBlending,
@@ -199,7 +199,7 @@ export default function Intro({ onDone }: { onDone: () => void }) {
   const tagVisible = phase >= 2 && phase < 3;
 
   return (
-    <div className="relative h-full w-full overflow-hidden bg-[#03070a]">
+    <div className="relative h-full w-full overflow-hidden bg-black">
       <div ref={mountRef} className="absolute inset-0" />
       <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
         <motion.div
@@ -212,7 +212,7 @@ export default function Intro({ onDone }: { onDone: () => void }) {
           transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
           className="text-6xl font-black tracking-tight sm:text-8xl"
         >
-          <span className="bg-gradient-to-r from-emerald-300 via-teal-200 to-emerald-400 bg-clip-text text-transparent drop-shadow-[0_0_40px_rgba(52,211,153,0.5)]">
+          <span className="bg-gradient-to-r from-red-300 via-red-500 to-orange-400 bg-clip-text text-transparent drop-shadow-[0_0_40px_rgba(255,32,0,0.58)]">
             ACKRATE
           </span>
         </motion.div>
@@ -220,7 +220,7 @@ export default function Intro({ onDone }: { onDone: () => void }) {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: tagVisible ? 1 : 0, y: tagVisible ? 0 : 10 }}
           transition={{ duration: 0.8, ease: "easeOut" }}
-          className="mt-4 text-[11px] font-medium tracking-[0.34em] text-emerald-100/70 sm:text-sm"
+          className="mt-4 text-[11px] font-medium tracking-[0.34em] text-white/60 sm:text-sm"
         >
           AGENT PAYMENTS, ENFORCED ON-CHAIN
         </motion.p>
@@ -229,7 +229,7 @@ export default function Intro({ onDone }: { onDone: () => void }) {
         initial={{ opacity: 0 }}
         animate={{ opacity: phase < 3 ? 1 : 0 }}
         transition={{ delay: 1.3, duration: 0.6 }}
-        className="pointer-events-none absolute inset-x-0 bottom-7 text-center text-[10px] tracking-[0.25em] text-emerald-100/35"
+        className="pointer-events-none absolute inset-x-0 bottom-7 text-center text-[10px] tracking-[0.25em] text-white/30"
       >
         CLICK OR PRESS ANY KEY TO SKIP
       </motion.div>

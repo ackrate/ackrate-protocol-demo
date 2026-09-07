@@ -35,7 +35,7 @@ export default function IntroGate() {
           initial={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.7, ease: "easeInOut" }}
-          className="fixed inset-0 z-[100] bg-[#03070a]"
+          className="fixed inset-0 z-[100] bg-black"
         >
           <Intro onDone={() => setShow(false)} />
         </motion.div>

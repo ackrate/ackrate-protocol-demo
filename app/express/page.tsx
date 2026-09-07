@@ -141,26 +141,26 @@ export default function ExpressPage() {
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.45 }}
-        className="relative overflow-hidden rounded-[2rem] border border-emerald-300/20 bg-[#06100d]/95 shadow-[0_28px_100px_-38px_rgba(16,185,129,0.55)]"
+        className="relative overflow-hidden rounded-[2rem] border border-neutral-300/20 bg-[#090909]/95 shadow-[0_28px_100px_-38px_rgba(255,255,255,0.55)]"
       >
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_80%_10%,rgba(52,211,153,0.13),transparent_34%)]" aria-hidden />
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_80%_10%,rgba(255,255,255,0.13),transparent_34%)]" aria-hidden />
         <div className="relative grid gap-10 px-5 py-8 sm:px-8 sm:py-12 lg:grid-cols-[1.25fr_0.75fr] lg:items-center lg:px-12 lg:py-16">
           <div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-400/25 bg-emerald-400/[0.07] px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-emerald-300">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.9)]" />
+            <div className="inline-flex items-center gap-2 rounded-full border border-neutral-400/25 bg-neutral-400/[0.07] px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-300">
+              <span className="h-1.5 w-1.5 rounded-full bg-neutral-400 shadow-[0_0_12px_rgba(255,255,255,0.9)]" />
               Live on Stellar Mainnet · Circle USDC
             </div>
-            <h1 className="mt-6 max-w-3xl text-4xl font-black tracking-[-0.045em] text-emerald-50 sm:text-6xl lg:text-7xl">
+            <h1 className="mt-6 max-w-3xl text-4xl font-black tracking-[-0.045em] text-neutral-50 sm:text-6xl lg:text-7xl">
               Agent payments with limits that hold.
             </h1>
-            <p className="mt-6 max-w-2xl text-base leading-8 text-emerald-100/65 sm:text-lg">
+            <p className="mt-6 max-w-2xl text-base leading-8 text-neutral-100/65 sm:text-lg">
               Give an agent permission to buy what it needs—not access to your wallet. ACKRATE binds every payment to a wallet-approved budget, merchant, and expiry, then enforces those terms on Stellar Mainnet before Circle USDC moves.
             </p>
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
               <Link
                 href="/wallet"
-                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-400 to-teal-300 px-6 py-3 text-sm font-black text-[#06241a] shadow-[0_12px_38px_-10px_rgba(52,211,153,0.8)] transition hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-200"
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-neutral-400 to-neutral-300 px-6 py-3 text-sm font-black text-[#000000] shadow-[0_12px_38px_-10px_rgba(255,255,255,0.8)] transition hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-200"
               >
                 <CircleDollarSign className="h-4 w-4" aria-hidden />
                 Run the $0.01 USDC payment
@@ -170,7 +170,7 @@ export default function ExpressPage() {
                 href={`https://stellar.expert/explorer/public/contract/${MAINNET_REGISTRY}`}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-emerald-400/25 bg-black/20 px-5 py-3 text-sm font-semibold text-emerald-100/80 transition hover:border-emerald-400/45 hover:text-emerald-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/60"
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-neutral-400/25 bg-black/20 px-5 py-3 text-sm font-semibold text-neutral-100/80 transition hover:border-neutral-400/45 hover:text-neutral-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-300/60"
               >
                 View Mainnet contract
                 <ExternalLink className="h-3.5 w-3.5" aria-hidden />
@@ -178,10 +178,10 @@ export default function ExpressPage() {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-emerald-400/20 bg-black/30 p-5 sm:p-6">
+          <div className="rounded-2xl border border-neutral-400/20 bg-black/30 p-5 sm:p-6">
             <div className="flex items-center justify-between gap-3">
-              <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-emerald-300/65">Reference payment</span>
-              <span className="rounded-full border border-emerald-400/20 bg-emerald-400/[0.07] px-2.5 py-1 text-[10px] font-bold text-emerald-300">MAINNET</span>
+              <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-300/65">Reference payment</span>
+              <span className="rounded-full border border-neutral-400/20 bg-neutral-400/[0.07] px-2.5 py-1 text-[10px] font-bold text-neutral-300">MAINNET</span>
             </div>
             <div className="mt-5 grid grid-cols-2 gap-3">
               <Metric value="$0.01" label="USDC per request" />
@@ -195,23 +195,23 @@ export default function ExpressPage() {
                   href={`https://stellar.expert/explorer/public/tx/${mainnetPayment.txHash}`}
                   target="_blank"
                   rel="noreferrer"
-                  className="group flex items-center justify-between gap-3 rounded-xl border border-emerald-400/30 bg-emerald-400/[0.07] p-3.5 transition hover:border-emerald-400/50"
+                  className="group flex items-center justify-between gap-3 rounded-xl border border-neutral-400/30 bg-neutral-400/[0.07] p-3.5 transition hover:border-neutral-400/50"
                 >
                   <span className="flex min-w-0 items-center gap-3">
-                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-emerald-400 text-[#06241a]">
+                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-neutral-400 text-[#000000]">
                       <Check className="h-4 w-4" aria-hidden />
                     </span>
                     <span className="min-w-0">
-                      <span className="block text-xs font-bold text-emerald-100">Payment confirmed</span>
-                      <span className="mt-0.5 block truncate font-mono text-[10px] text-emerald-100/45">{short(mainnetPayment.txHash)}</span>
+                      <span className="block text-xs font-bold text-neutral-100">Payment confirmed</span>
+                      <span className="mt-0.5 block truncate font-mono text-[10px] text-neutral-100/45">{short(mainnetPayment.txHash)}</span>
                     </span>
                   </span>
-                  <ExternalLink className="h-4 w-4 shrink-0 text-emerald-300" aria-hidden />
+                  <ExternalLink className="h-4 w-4 shrink-0 text-neutral-300" aria-hidden />
                 </a>
               ) : (
                 <div className="flex items-start gap-3">
-                  <Fingerprint className="mt-0.5 h-5 w-5 shrink-0 text-emerald-300/70" aria-hidden />
-                  <p className="text-xs leading-5 text-emerald-100/50">
+                  <Fingerprint className="mt-0.5 h-5 w-5 shrink-0 text-neutral-300/70" aria-hidden />
+                  <p className="text-xs leading-5 text-neutral-100/50">
                     Complete a payment to place its Stellar Explorer receipt here automatically.
                   </p>
                 </div>
@@ -219,23 +219,23 @@ export default function ExpressPage() {
             </div>
             <div className="mt-5 border-t border-white/10 pt-5">
               <div className="flex items-center justify-between gap-3">
-                <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-emerald-300/65">Live settlement proof</span>
-                <span className="text-[10px] font-semibold text-emerald-100/40">3 × $0.01 USDC</span>
+                <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-300/65">Live settlement proof</span>
+                <span className="text-[10px] font-semibold text-neutral-100/40">3 × $0.01 USDC</span>
               </div>
               <div className="mt-3 space-y-2">
                 {MAINNET_RECEIPTS.map((receipt) => <ReceiptRow key={receipt.hash} {...receipt} />)}
               </div>
-              <p className="mt-3 text-[10px] leading-4 text-emerald-100/35">The fourth request exceeded the $0.03 mandate and was rejected before broadcast.</p>
+              <p className="mt-3 text-[10px] leading-4 text-neutral-100/35">The fourth request exceeded the $0.03 mandate and was rejected before broadcast.</p>
             </div>
             <div className="mt-5 border-t border-white/10 pt-5">
               <div className="flex items-center justify-between gap-3">
-                <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-emerald-300/65">Your Freighter balance</span>
+                <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-300/65">Your Freighter balance</span>
                 {walletBalances && (
                   <button
                     type="button"
                     onClick={() => void connectWallet()}
                     disabled={walletBusy}
-                    className="grid h-8 w-8 place-items-center rounded-lg border border-white/10 text-emerald-100/45 transition hover:border-emerald-400/35 hover:text-emerald-200 disabled:opacity-40"
+                    className="grid h-8 w-8 place-items-center rounded-lg border border-white/10 text-neutral-100/45 transition hover:border-neutral-400/35 hover:text-neutral-200 disabled:opacity-40"
                     aria-label="Refresh wallet balances"
                   >
                     <RefreshCw className={`h-3.5 w-3.5 ${walletBusy ? "animate-spin" : ""}`} aria-hidden />
@@ -248,14 +248,14 @@ export default function ExpressPage() {
                     <Balance value={walletBalances.xlm} asset="XLM" />
                     <Balance value={walletBalances.usdc} asset="USDC" />
                   </div>
-                  <div className="mt-3 truncate font-mono text-[9px] text-emerald-100/30">{walletBalances.address}</div>
+                  <div className="mt-3 truncate font-mono text-[9px] text-neutral-100/30">{walletBalances.address}</div>
                 </div>
               ) : (
                 <button
                   type="button"
                   onClick={() => void connectWallet()}
                   disabled={walletBusy}
-                  className="mt-3 inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-xl border border-emerald-400/25 bg-emerald-400/[0.06] px-4 py-2.5 text-xs font-bold text-emerald-200 transition hover:border-emerald-400/45 hover:bg-emerald-400/[0.1] disabled:opacity-50"
+                  className="mt-3 inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-xl border border-neutral-400/25 bg-neutral-400/[0.06] px-4 py-2.5 text-xs font-bold text-neutral-200 transition hover:border-neutral-400/45 hover:bg-neutral-400/[0.1] disabled:opacity-50"
                 >
                   {walletBusy ? <RefreshCw className="h-3.5 w-3.5 animate-spin" aria-hidden /> : <WalletCards className="h-3.5 w-3.5" aria-hidden />}
                   {walletBusy ? "Reading Mainnet balances…" : "Show my XLM + USDC"}
@@ -271,23 +271,23 @@ export default function ExpressPage() {
         initial={{ opacity: 0, y: 18 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.08, duration: 0.45 }}
-        className="mt-8 overflow-hidden rounded-[2rem] border border-emerald-300/15 bg-[#07110e]/85"
+        className="mt-8 overflow-hidden rounded-[2rem] border border-neutral-300/15 bg-[#07110e]/85"
       >
         <div className="border-b border-white/10 px-5 py-6 sm:px-8">
-          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-emerald-300/65">One request, independently verifiable</p>
-          <h2 className="mt-2 text-2xl font-black tracking-tight text-emerald-50 sm:text-3xl">From HTTP 402 to paid delivery</h2>
+          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-300/65">One request, independently verifiable</p>
+          <h2 className="mt-2 text-2xl font-black tracking-tight text-neutral-50 sm:text-3xl">From HTTP 402 to paid delivery</h2>
         </div>
         <ol className="grid lg:grid-cols-4">
           {steps.map(({ number, icon: Icon, title, description }, index) => (
             <li key={number} className={`relative p-5 sm:p-7 ${index ? "border-t border-white/10 lg:border-l lg:border-t-0" : ""}`}>
               <div className="flex items-center justify-between gap-3">
-                <span className="grid h-10 w-10 place-items-center rounded-xl border border-emerald-400/20 bg-emerald-400/[0.07] text-emerald-300">
+                <span className="grid h-10 w-10 place-items-center rounded-xl border border-neutral-400/20 bg-neutral-400/[0.07] text-neutral-300">
                   <Icon className="h-5 w-5" aria-hidden />
                 </span>
-                <span className="font-mono text-[10px] text-emerald-100/25">{number}</span>
+                <span className="font-mono text-[10px] text-neutral-100/25">{number}</span>
               </div>
-              <h3 className="mt-5 text-base font-bold text-emerald-100">{title}</h3>
-              <p className="mt-2 text-sm leading-6 text-emerald-100/50">{description}</p>
+              <h3 className="mt-5 text-base font-bold text-neutral-100">{title}</h3>
+              <p className="mt-2 text-sm leading-6 text-neutral-100/50">{description}</p>
             </li>
           ))}
         </ol>
@@ -298,20 +298,20 @@ export default function ExpressPage() {
           initial={{ opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.14, duration: 0.45 }}
-          className="rounded-[2rem] border border-emerald-300/15 bg-[#07110e]/85 p-5 sm:p-8"
+          className="rounded-[2rem] border border-neutral-300/15 bg-[#07110e]/85 p-5 sm:p-8"
         >
-          <div className="grid h-11 w-11 place-items-center rounded-xl bg-emerald-400/10 text-emerald-300">
+          <div className="grid h-11 w-11 place-items-center rounded-xl bg-neutral-400/10 text-neutral-300">
             <LockKeyhole className="h-5 w-5" aria-hidden />
           </div>
-          <h2 className="mt-5 text-2xl font-black tracking-tight text-emerald-50">The agent never gets your wallet.</h2>
-          <p className="mt-3 text-sm leading-7 text-emerald-100/55">
+          <h2 className="mt-5 text-2xl font-black tracking-tight text-neutral-50">The agent never gets your wallet.</h2>
+          <p className="mt-3 text-sm leading-7 text-neutral-100/55">
             Freighter handles every user signature. The SDK prepares the request; MandateRegistry decides whether the payment is authorized. Application code cannot raise the ceiling, change the merchant, or extend the deadline.
           </p>
-          <div className="mt-6 rounded-xl border border-emerald-400/15 bg-black/25 p-4 font-mono text-[11px] leading-6 text-emerald-100/55">
-            <div><span className="text-emerald-300">network</span>  Stellar Mainnet</div>
-            <div><span className="text-emerald-300">asset</span>    Circle USDC</div>
-            <div><span className="text-emerald-300">contract</span> {short(MAINNET_REGISTRY, 10)}</div>
-            <div><span className="text-emerald-300">policy</span>   merchant + amount + expiry</div>
+          <div className="mt-6 rounded-xl border border-neutral-400/15 bg-black/25 p-4 font-mono text-[11px] leading-6 text-neutral-100/55">
+            <div><span className="text-neutral-300">network</span>  Stellar Mainnet</div>
+            <div><span className="text-neutral-300">asset</span>    Circle USDC</div>
+            <div><span className="text-neutral-300">contract</span> {short(MAINNET_REGISTRY, 10)}</div>
+            <div><span className="text-neutral-300">policy</span>   merchant + amount + expiry</div>
           </div>
         </motion.section>
 
@@ -319,18 +319,18 @@ export default function ExpressPage() {
           initial={{ opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2, duration: 0.45 }}
-          className="rounded-[2rem] border border-emerald-300/15 bg-[#07110e]/85 p-5 sm:p-8"
+          className="rounded-[2rem] border border-neutral-300/15 bg-[#07110e]/85 p-5 sm:p-8"
         >
-          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-emerald-300/65">Control surface</p>
-          <h2 className="mt-2 text-2xl font-black tracking-tight text-emerald-50">Designed for accountable autonomy.</h2>
+          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-300/65">Control surface</p>
+          <h2 className="mt-2 text-2xl font-black tracking-tight text-neutral-50">Designed for accountable autonomy.</h2>
           <div className="mt-6 grid gap-3 sm:grid-cols-2">
             {controls.map(([title, description]) => (
               <div key={title} className="rounded-xl border border-white/10 bg-black/20 p-4">
-                <div className="flex items-center gap-2 text-sm font-bold text-emerald-100">
-                  <Check className="h-4 w-4 shrink-0 text-emerald-300" aria-hidden />
+                <div className="flex items-center gap-2 text-sm font-bold text-neutral-100">
+                  <Check className="h-4 w-4 shrink-0 text-neutral-300" aria-hidden />
                   {title}
                 </div>
-                <p className="mt-2 text-xs leading-5 text-emerald-100/45">{description}</p>
+                <p className="mt-2 text-xs leading-5 text-neutral-100/45">{description}</p>
               </div>
             ))}
           </div>
@@ -353,17 +353,17 @@ export default function ExpressPage() {
         initial={{ opacity: 0, y: 18 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.32, duration: 0.45 }}
-        className="mt-8 flex flex-col items-start justify-between gap-6 rounded-[2rem] border border-emerald-400/20 bg-gradient-to-br from-emerald-400/[0.09] to-transparent p-6 sm:flex-row sm:items-center sm:p-8"
+        className="mt-8 flex flex-col items-start justify-between gap-6 rounded-[2rem] border border-neutral-400/20 bg-gradient-to-br from-neutral-400/[0.09] to-transparent p-6 sm:flex-row sm:items-center sm:p-8"
       >
         <div>
-          <h2 className="text-2xl font-black tracking-tight text-emerald-50">See the policy hold under real payment pressure.</h2>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-emerald-100/55">
+          <h2 className="text-2xl font-black tracking-tight text-neutral-50">See the policy hold under real payment pressure.</h2>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-neutral-100/55">
             Authorize three one-cent purchases. The fourth request exceeds the mandate and is rejected by the contract before settlement.
           </p>
         </div>
         <Link
           href="/wallet"
-          className="inline-flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-xl bg-emerald-400 px-5 py-3 text-sm font-black text-[#06241a] transition hover:bg-emerald-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-200"
+          className="inline-flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-xl bg-neutral-400 px-5 py-3 text-sm font-black text-[#000000] transition hover:bg-neutral-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-200"
         >
           Open Mainnet demo
           <ArrowRight className="h-4 w-4" aria-hidden />
@@ -381,16 +381,16 @@ function ReceiptRow({ label, hash }: { label: string; hash: string }) {
     window.setTimeout(() => setCopied(false), 1_500);
   };
   return (
-    <div className="flex items-center gap-2 rounded-xl border border-emerald-400/15 bg-black/20 px-3 py-2.5">
-      <Check className="h-3.5 w-3.5 shrink-0 text-emerald-300" aria-hidden />
+    <div className="flex items-center gap-2 rounded-xl border border-neutral-400/15 bg-black/20 px-3 py-2.5">
+      <Check className="h-3.5 w-3.5 shrink-0 text-neutral-300" aria-hidden />
       <span className="min-w-0 flex-1">
-        <span className="block text-[11px] font-bold text-emerald-100">{label}</span>
-        <code className="block truncate text-[9px] text-emerald-100/35">{short(hash, 6)}</code>
+        <span className="block text-[11px] font-bold text-neutral-100">{label}</span>
+        <code className="block truncate text-[9px] text-neutral-100/35">{short(hash, 6)}</code>
       </span>
       <button
         type="button"
         onClick={() => void copyHash()}
-        className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-white/10 text-emerald-100/45 transition hover:border-emerald-400/35 hover:text-emerald-200"
+        className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-white/10 text-neutral-100/45 transition hover:border-neutral-400/35 hover:text-neutral-200"
         aria-label={`Copy ${label} transaction hash`}
         title={copied ? "Copied" : "Copy transaction hash"}
       >
@@ -400,7 +400,7 @@ function ReceiptRow({ label, hash }: { label: string; hash: string }) {
         href={`https://stellar.expert/explorer/public/tx/${hash}`}
         target="_blank"
         rel="noreferrer"
-        className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-emerald-400/20 text-emerald-300 transition hover:border-emerald-400/45 hover:bg-emerald-400/[0.08]"
+        className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-neutral-400/20 text-neutral-300 transition hover:border-neutral-400/45 hover:bg-neutral-400/[0.08]"
         aria-label={`Open ${label} in Stellar Explorer`}
         title="Open in Stellar Explorer"
       >
@@ -413,18 +413,18 @@ function ReceiptRow({ label, hash }: { label: string; hash: string }) {
 function Metric({ value, label }: { value: string; label: string }) {
   return (
     <div className="rounded-xl border border-white/10 bg-black/25 p-3.5">
-      <div className="text-xl font-black tabular-nums text-emerald-200">{value}</div>
-      <div className="mt-1 text-[9px] font-bold uppercase tracking-[0.13em] text-emerald-100/35">{label}</div>
+      <div className="text-xl font-black tabular-nums text-neutral-200">{value}</div>
+      <div className="mt-1 text-[9px] font-bold uppercase tracking-[0.13em] text-neutral-100/35">{label}</div>
     </div>
   );
 }
 
 function Balance({ value, asset }: { value: string; asset: "XLM" | "USDC" }) {
   return (
-    <div className="rounded-xl border border-emerald-400/15 bg-emerald-400/[0.045] px-3.5 py-3">
+    <div className="rounded-xl border border-neutral-400/15 bg-neutral-400/[0.045] px-3.5 py-3">
       <div className="flex items-baseline gap-1.5">
-        <span className="text-lg font-black tabular-nums text-emerald-100">{value}</span>
-        <span className="text-[10px] font-bold text-emerald-300/70">{asset}</span>
+        <span className="text-lg font-black tabular-nums text-neutral-100">{value}</span>
+        <span className="text-[10px] font-bold text-neutral-300/70">{asset}</span>
       </div>
     </div>
   );
@@ -432,10 +432,10 @@ function Balance({ value, asset }: { value: string; asset: "XLM" | "USDC" }) {
 
 function ToolkitCard({ icon: Icon, title, copy }: { icon: typeof Bot; title: string; copy: string }) {
   return (
-    <div className="rounded-2xl border border-emerald-300/15 bg-[#07110e]/85 p-5">
-      <Icon className="h-5 w-5 text-emerald-300" aria-hidden />
-      <h2 className="mt-4 text-base font-bold text-emerald-100">{title}</h2>
-      <p className="mt-2 text-xs leading-5 text-emerald-100/45">{copy}</p>
+    <div className="rounded-2xl border border-neutral-300/15 bg-[#07110e]/85 p-5">
+      <Icon className="h-5 w-5 text-neutral-300" aria-hidden />
+      <h2 className="mt-4 text-base font-bold text-neutral-100">{title}</h2>
+      <p className="mt-2 text-xs leading-5 text-neutral-100/45">{copy}</p>
     </div>
   );
 }

@@ -33,11 +33,11 @@ const STARTER_KITS = HACKATHON_STARTER_CATALOG.kits;
 const STARTER_CATEGORIES = ["All", ...Array.from(new Set(STARTER_KITS.map((kit) => kit.category)))];
 const STARTER_ARCHIVES = new Map(STARTER_MANIFEST.kits.map((entry) => [entry.slug, entry]));
 const STARTER_ACCENTS = [
-  { number: "bg-sky-400/10 text-sky-300", category: "border-sky-400/20 bg-sky-400/[0.07] text-sky-200/80" },
+  { number: "bg-neutral-400/10 text-neutral-300", category: "border-neutral-400/20 bg-neutral-400/[0.07] text-neutral-200/80" },
   { number: "bg-violet-400/10 text-violet-300", category: "border-violet-400/20 bg-violet-400/[0.07] text-violet-200/80" },
   { number: "bg-fuchsia-400/10 text-fuchsia-300", category: "border-fuchsia-400/20 bg-fuchsia-400/[0.07] text-fuchsia-200/80" },
   { number: "bg-amber-400/10 text-amber-300", category: "border-amber-400/20 bg-amber-400/[0.07] text-amber-200/80" },
-  { number: "bg-cyan-400/10 text-cyan-300", category: "border-cyan-400/20 bg-cyan-400/[0.07] text-cyan-200/80" },
+  { number: "bg-neutral-400/10 text-neutral-300", category: "border-neutral-400/20 bg-neutral-400/[0.07] text-neutral-200/80" },
 ] as const;
 
 type InstallerShell = "posix" | "powershell";
@@ -420,14 +420,14 @@ export default function SolutionsPage() {
       <div className="glow" aria-hidden />
 
       <motion.header {...fade()} className="mx-auto max-w-4xl text-center">
-        <div className="inline-flex items-center gap-2 rounded-full glass px-3.5 py-1.5 text-[11px] font-semibold tracking-[0.18em] text-emerald-300/90">
-          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.9)]" />
+        <div className="inline-flex items-center gap-2 rounded-full glass px-3.5 py-1.5 text-[11px] font-semibold tracking-[0.18em] text-neutral-300/90">
+          <span className="h-1.5 w-1.5 rounded-full bg-neutral-400 shadow-[0_0_10px_rgba(255,255,255,0.9)]" />
           20 STARTER PACKS · ABOUT 60 SECONDS
         </div>
         <h1 className="mt-5 text-4xl font-black tracking-tight sm:text-6xl">
-          Pick a starter. Copy one command. <span className="bg-gradient-to-r from-emerald-300 via-teal-200 to-emerald-400 bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(52,211,153,0.25)]">Start building.</span>
+          Pick a starter. Copy one command. <span className="bg-gradient-to-r from-neutral-300 via-neutral-200 to-neutral-400 bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(255,255,255,0.25)]">Start building.</span>
         </h1>
-        <p className="mx-auto mt-5 max-w-2xl text-sm leading-relaxed text-emerald-100/70 sm:text-lg">
+        <p className="mx-auto mt-5 max-w-2xl text-sm leading-relaxed text-neutral-100/70 sm:text-lg">
           Open an empty folder in VS Code. Pick one of the 20 packs below, copy its setup command, paste it into the terminal, and press Enter. Your project will be populated and ready to run.
         </p>
         <div className="mt-7 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
@@ -435,12 +435,12 @@ export default function SolutionsPage() {
             href="#starter-packs"
             whileHover={{ scale: 1.025, y: -1 }}
             whileTap={{ scale: 0.98 }}
-            className="inline-flex min-h-12 items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-gradient-to-r from-emerald-400 to-teal-300 px-6 py-3 text-sm font-black text-[#06241a] shadow-[0_10px_36px_-8px_rgba(52,211,153,0.75)] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-200 disabled:cursor-not-allowed disabled:opacity-55 disabled:shadow-none"
+            className="inline-flex min-h-12 items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-gradient-to-r from-neutral-400 to-neutral-300 px-6 py-3 text-sm font-black text-[#000000] shadow-[0_10px_36px_-8px_rgba(255,255,255,0.75)] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-200 disabled:cursor-not-allowed disabled:opacity-55 disabled:shadow-none"
           >
             <Layers3 className="h-4 w-4" aria-hidden /> Choose a starter
           </motion.a>
         </div>
-        <p className="mt-3 text-xs text-emerald-100/40"><a href="https://nodejs.org/en/download" target="_blank" rel="noreferrer" className="font-semibold text-emerald-300/80 underline decoration-emerald-400/30 underline-offset-4 hover:text-emerald-200">Requires Node.js 20+</a> · no GitHub repo or wallet needed · testnet only · private keys stay on your computer</p>
+        <p className="mt-3 text-xs text-neutral-100/40"><a href="https://nodejs.org/en/download" target="_blank" rel="noreferrer" className="font-semibold text-neutral-300/80 underline decoration-neutral-400/30 underline-offset-4 hover:text-neutral-200">Requires Node.js 20+</a> · no GitHub repo or wallet needed · testnet only · private keys stay on your computer</p>
       </motion.header>
 
       <AnimatePresence>
@@ -460,11 +460,11 @@ export default function SolutionsPage() {
 
       <motion.section id="starter-packs" {...fade(0.14)} className="mt-12 scroll-mt-24">
         <div className="mx-auto max-w-3xl text-center">
-          <div className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-emerald-300/70">
+          <div className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-neutral-300/70">
             <Layers3 className="h-4 w-4" aria-hidden /> Choose from 20 starter packs
           </div>
-          <h2 className="mt-3 text-3xl font-black tracking-tight text-emerald-50 sm:text-4xl">Pick one. Copy one command. Done.</h2>
-          <p className="mt-3 text-sm leading-relaxed text-emerald-100/55">The setup command downloads your chosen pack, fills your empty folder, and installs everything. When it finishes, run <code className="text-emerald-300">npm run demo</code>.</p>
+          <h2 className="mt-3 text-3xl font-black tracking-tight text-neutral-50 sm:text-4xl">Pick one. Copy one command. Done.</h2>
+          <p className="mt-3 text-sm leading-relaxed text-neutral-100/55">The setup command downloads your chosen pack, fills your empty folder, and installs everything. When it finishes, run <code className="text-neutral-300">npm run demo</code>.</p>
         </div>
 
         <div className="mx-auto mt-6 grid max-w-4xl gap-3 sm:grid-cols-2">
@@ -474,23 +474,23 @@ export default function SolutionsPage() {
           <GuideStep number="04" title="Run your project" detail="Type npm run demo and press Enter" complete={false} active={false} />
         </div>
 
-        <div className="mt-7 overflow-hidden rounded-3xl border border-emerald-300/15 bg-[#06100d]/80">
+        <div className="mt-7 overflow-hidden rounded-3xl border border-neutral-300/15 bg-[#090909]/80">
           <div className="border-b border-white/10 bg-white/[0.025] p-4 sm:p-5">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <label className="relative block min-w-0 flex-1 lg:max-w-md">
                 <span className="sr-only">Search starter kits</span>
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-emerald-100/35" aria-hidden />
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-100/35" aria-hidden />
                 <input
                   type="search"
                   value={starterQuery}
                   onChange={(event) => setStarterQuery(event.target.value)}
                   placeholder="Search payments, compute, data, agents…"
-                  className="min-h-11 w-full rounded-xl border border-white/10 bg-black/30 py-2.5 pl-10 pr-3 text-sm text-emerald-100 outline-none placeholder:text-emerald-100/30 focus:border-emerald-400/40 focus:ring-2 focus:ring-emerald-300/15"
+                  className="min-h-11 w-full rounded-xl border border-white/10 bg-black/30 py-2.5 pl-10 pr-3 text-sm text-neutral-100 outline-none placeholder:text-neutral-100/30 focus:border-neutral-400/40 focus:ring-2 focus:ring-neutral-300/15"
                 />
               </label>
-              <div className="flex items-center justify-between gap-3 text-xs text-emerald-100/45 lg:justify-end">
-                <span><strong className="text-emerald-200">{visibleStarterKits.length}</strong> of {STARTER_KITS.length} starters</span>
-                <a href="/starters/v1/manifest.json" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 font-semibold text-emerald-300/75 hover:text-emerald-200">
+              <div className="flex items-center justify-between gap-3 text-xs text-neutral-100/45 lg:justify-end">
+                <span><strong className="text-neutral-200">{visibleStarterKits.length}</strong> of {STARTER_KITS.length} starters</span>
+                <a href="/starters/v1/manifest.json" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 font-semibold text-neutral-300/75 hover:text-neutral-200">
                   Integrity manifest <ExternalLink className="h-3 w-3" aria-hidden />
                 </a>
               </div>
@@ -502,7 +502,7 @@ export default function SolutionsPage() {
                   type="button"
                   onClick={() => setStarterCategory(category)}
                   aria-pressed={starterCategory === category}
-                  className={`shrink-0 rounded-full border px-3 py-1.5 text-[11px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/60 ${starterCategory === category ? "border-emerald-400/35 bg-emerald-400/15 text-emerald-200" : "border-white/10 bg-black/20 text-emerald-100/45 hover:border-emerald-400/25 hover:text-emerald-100/75"}`}
+                  className={`shrink-0 rounded-full border px-3 py-1.5 text-[11px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-300/60 ${starterCategory === category ? "border-neutral-400/35 bg-neutral-400/15 text-neutral-200" : "border-white/10 bg-black/20 text-neutral-100/45 hover:border-neutral-400/25 hover:text-neutral-100/75"}`}
                 >
                   {category}
                 </button>
@@ -520,30 +520,30 @@ export default function SolutionsPage() {
                 const runCopyKey = `starter-run-${kit.slug}`;
                 const commandPanelId = `starter-commands-${kit.slug}`;
                 return (
-                  <article key={kit.id} className={`flex min-w-0 flex-col overflow-hidden rounded-2xl glass transition ${selected ? "ring-1 ring-emerald-300/45" : ""}`}>
+                  <article key={kit.id} className={`flex min-w-0 flex-col overflow-hidden rounded-2xl glass transition ${selected ? "ring-1 ring-neutral-300/45" : ""}`}>
                     <div className="flex min-w-0 items-start justify-between gap-3 border-b border-white/10 bg-black/20 px-4 py-3">
                       <div className="flex min-w-0 items-center gap-3">
                         <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl font-mono text-xs font-black ${accent.number}`}>{String(starterIndex + 1).padStart(2, "0")}</span>
                         <div className="min-w-0">
-                          <h3 className="text-sm font-bold leading-snug text-emerald-100">{kit.title}</h3>
-                          <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-emerald-100/40">
+                          <h3 className="text-sm font-bold leading-snug text-neutral-100">{kit.title}</h3>
+                          <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-neutral-100/40">
                             <span className={`rounded-full border px-1.5 py-0.5 ${accent.category}`}>{kit.category}</span><span>{kit.difficulty}</span>
                           </div>
                         </div>
                       </div>
-                      <code className="shrink-0 rounded-lg border border-emerald-400/15 bg-emerald-400/[0.06] px-2 py-1 text-[9px] text-emerald-300/70">GET only</code>
+                      <code className="shrink-0 rounded-lg border border-neutral-400/15 bg-neutral-400/[0.06] px-2 py-1 text-[9px] text-neutral-300/70">GET only</code>
                     </div>
 
                     <div className="flex flex-1 flex-col p-4">
-                      <p className="text-sm leading-relaxed text-emerald-100/60">{kit.summary}</p>
-                      <code className="mt-3 block overflow-x-auto whitespace-nowrap rounded-xl border border-white/8 bg-black/25 px-3 py-2 text-[10px] text-emerald-200/65">{kit.paidResource}</code>
+                      <p className="text-sm leading-relaxed text-neutral-100/60">{kit.summary}</p>
+                      <code className="mt-3 block overflow-x-auto whitespace-nowrap rounded-xl border border-white/8 bg-black/25 px-3 py-2 text-[10px] text-neutral-200/65">{kit.paidResource}</code>
                       <div className="mt-3 rounded-xl border border-red-400/15 bg-red-400/[0.035] p-3">
                         <div className="text-[9px] font-bold uppercase tracking-[0.14em] text-red-300/60">Enforced boundary</div>
-                        <p className="mt-1.5 text-[11px] leading-relaxed text-emerald-100/50">{kit.negativePath.outcome}</p>
+                        <p className="mt-1.5 text-[11px] leading-relaxed text-neutral-100/50">{kit.negativePath.outcome}</p>
                       </div>
                       <div className="mt-3 flex flex-wrap gap-1.5">
                         {kit.features.slice(0, 5).map((feature) => (
-                          <span key={feature} className="rounded-full border border-white/10 bg-white/[0.025] px-2 py-1 text-[9px] font-medium text-emerald-100/40">{feature}</span>
+                          <span key={feature} className="rounded-full border border-white/10 bg-white/[0.025] px-2 py-1 text-[9px] font-medium text-neutral-100/40">{feature}</span>
                         ))}
                       </div>
 
@@ -553,12 +553,12 @@ export default function SolutionsPage() {
                           onClick={() => setSelectedStarterSlug(selected ? "" : kit.slug)}
                           aria-expanded={selected}
                           aria-controls={commandPanelId}
-                          className="inline-flex min-h-10 min-w-0 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-400 to-teal-300 px-3 py-2 text-xs font-black text-[#06241a] transition hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-200"
+                          className="inline-flex min-h-10 min-w-0 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-neutral-400 to-neutral-300 px-3 py-2 text-xs font-black text-[#000000] transition hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-200"
                         >
                           {selected ? <Check className="h-3.5 w-3.5" aria-hidden /> : <Layers3 className="h-3.5 w-3.5" aria-hidden />}
                           <span className="truncate">{selected ? "Selected" : "Use this starter"}</span>
                         </button>
-                        <a href={`https://github.com/ackrate/ackrate-protocol-demo/blob/main/starters/${kit.slug}/README.md`} target="_blank" rel="noreferrer" className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl border border-white/15 px-3 py-2 text-xs font-semibold text-emerald-100/60 transition hover:border-emerald-400/35 hover:text-emerald-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/60">
+                        <a href={`https://github.com/ackrate/ackrate-protocol-demo/blob/main/starters/${kit.slug}/README.md`} target="_blank" rel="noreferrer" className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl border border-white/15 px-3 py-2 text-xs font-semibold text-neutral-100/60 transition hover:border-neutral-400/35 hover:text-neutral-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-300/60">
                           Read the README <ExternalLink className="h-3.5 w-3.5" aria-hidden />
                         </a>
                       </div>
@@ -573,14 +573,14 @@ export default function SolutionsPage() {
                             className="overflow-hidden"
                           >
                             <div className="mt-4 space-y-3 border-t border-white/10 pt-4">
-                              <p className="rounded-xl border border-emerald-400/15 bg-emerald-400/[0.04] p-3 text-xs leading-relaxed text-emerald-100/55"><strong className="text-emerald-200">Before you begin:</strong> install <a href="https://nodejs.org/en/download" target="_blank" rel="noreferrer" className="font-semibold text-emerald-300 underline decoration-emerald-400/30 underline-offset-4 hover:text-emerald-200">Node.js 20 or newer</a>, then choose your computer below.</p>
+                              <p className="rounded-xl border border-neutral-400/15 bg-neutral-400/[0.04] p-3 text-xs leading-relaxed text-neutral-100/55"><strong className="text-neutral-200">Before you begin:</strong> install <a href="https://nodejs.org/en/download" target="_blank" rel="noreferrer" className="font-semibold text-neutral-300 underline decoration-neutral-400/30 underline-offset-4 hover:text-neutral-200">Node.js 20 or newer</a>, then choose your computer below.</p>
                               <InstallerShellPicker value={installerShell} onChange={setInstallerShell} />
-                              <p className="text-xs leading-relaxed text-emerald-100/55"><strong className="text-emerald-100">Open an empty folder in VS Code.</strong> Open its terminal, copy command 1, paste it, and press Enter.</p>
+                              <p className="text-xs leading-relaxed text-neutral-100/55"><strong className="text-neutral-100">Open an empty folder in VS Code.</strong> Open its terminal, copy command 1, paste it, and press Enter.</p>
                               <CommandBlock label="1 · Populate this empty folder" value={starterCommand(kit.slug, installerShell)} copyKey={setupCopyKey} copied={copied} onCopy={copyValue} />
-                              <p className="text-[11px] leading-relaxed text-emerald-100/40">The installer verifies the download before extracting any file.</p>
-                              <p className="text-xs leading-relaxed text-emerald-100/55">When command 1 finishes, your starter is installed. Copy command 2 into the same terminal and press Enter.</p>
+                              <p className="text-[11px] leading-relaxed text-neutral-100/40">The installer verifies the download before extracting any file.</p>
+                              <p className="text-xs leading-relaxed text-neutral-100/55">When command 1 finishes, your starter is installed. Copy command 2 into the same terminal and press Enter.</p>
                               <CommandBlock label="2 · Run your starter" value="npm run demo" copyKey={runCopyKey} copied={copied} onCopy={copyValue} />
-                              <p className="rounded-xl border border-emerald-400/15 bg-emerald-400/[0.04] p-3 text-xs leading-relaxed text-emerald-100/55"><strong className="text-emerald-200">Then just read the screen.</strong> Six numbered steps explain the practice accounts, HTTP 402, contract payment, HTTP 200 result, Stellar proof links, and this starter&apos;s safety check.</p>
+                              <p className="rounded-xl border border-neutral-400/15 bg-neutral-400/[0.04] p-3 text-xs leading-relaxed text-neutral-100/55"><strong className="text-neutral-200">Then just read the screen.</strong> Six numbered steps explain the practice accounts, HTTP 402, contract payment, HTTP 200 result, Stellar proof links, and this starter&apos;s safety check.</p>
                             </div>
                           </motion.div>
                         )}
@@ -593,9 +593,9 @@ export default function SolutionsPage() {
           ) : (
             <div className="grid min-h-56 place-items-center p-6 text-center">
               <div>
-                <Search className="mx-auto h-6 w-6 text-emerald-100/25" aria-hidden />
-                <p className="mt-3 text-sm text-emerald-100/45">No starters match that search and category.</p>
-                <button type="button" onClick={() => { setStarterQuery(""); setStarterCategory("All"); }} className="mt-3 text-xs font-semibold text-emerald-300 hover:text-emerald-200">Clear filters</button>
+                <Search className="mx-auto h-6 w-6 text-neutral-100/25" aria-hidden />
+                <p className="mt-3 text-sm text-neutral-100/45">No starters match that search and category.</p>
+                <button type="button" onClick={() => { setStarterQuery(""); setStarterCategory("All"); }} className="mt-3 text-xs font-semibold text-neutral-300 hover:text-neutral-200">Clear filters</button>
               </div>
             </div>
           )}
@@ -603,15 +603,15 @@ export default function SolutionsPage() {
 
         <div className="mx-auto mt-6 flex max-w-4xl flex-col gap-4 rounded-2xl border border-white/10 bg-black/20 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
           <div>
-            <div className="text-sm font-bold text-emerald-100">Optional hosted walkthrough: Research Source Scout</div>
-            <p className="mt-1 text-xs leading-relaxed text-emerald-100/45">Use the browser companion only after you have picked a starter. It shows the live 402 → payment → 200 flow, three settlements, and the contract-blocked fourth purchase.</p>
+            <div className="text-sm font-bold text-neutral-100">Optional hosted walkthrough: Research Source Scout</div>
+            <p className="mt-1 text-xs leading-relaxed text-neutral-100/45">Use the browser companion only after you have picked a starter. It shows the live 402 → payment → 200 flow, three settlements, and the contract-blocked fourth purchase.</p>
           </div>
           <button
             type="button"
             onClick={() => setShowHostedDemo((current) => !current)}
             aria-expanded={showHostedDemo}
             aria-controls="optional-hosted-demo"
-            className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl border border-emerald-400/30 bg-emerald-400/[0.08] px-4 py-2.5 text-sm font-semibold text-emerald-200 transition hover:border-emerald-300/50 hover:bg-emerald-400/[0.12] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/60"
+            className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl border border-neutral-400/30 bg-neutral-400/[0.08] px-4 py-2.5 text-sm font-semibold text-neutral-200 transition hover:border-neutral-300/50 hover:bg-neutral-400/[0.12] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-300/60"
           >
             <Play className="h-4 w-4" aria-hidden /> {showHostedDemo ? "Hide walkthrough" : "Open hosted walkthrough"}
           </button>
@@ -620,21 +620,21 @@ export default function SolutionsPage() {
 
       {showHostedDemo && (
         <div id="optional-hosted-demo">
-      <motion.section {...fade(0.08)} className="relative mt-10 overflow-hidden rounded-3xl border border-emerald-300/15 bg-[#06100d]/80 shadow-[0_24px_90px_-32px_rgba(16,185,129,0.5)] backdrop-blur-xl">
+      <motion.section {...fade(0.08)} className="relative mt-10 overflow-hidden rounded-3xl border border-neutral-300/15 bg-[#090909]/80 shadow-[0_24px_90px_-32px_rgba(255,255,255,0.5)] backdrop-blur-xl">
         <div className="border-b border-white/10 bg-white/[0.025] px-4 py-4 sm:px-6">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <div className="flex items-center gap-2">
-                <span className={`h-2 w-2 rounded-full ${complete ? "bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]" : persisted ? "animate-pulse bg-sky-400" : "bg-white/25"}`} />
-                <h2 className="text-sm font-bold tracking-wide text-emerald-100">GUIDED SETUP</h2>
+                <span className={`h-2 w-2 rounded-full ${complete ? "bg-neutral-400 shadow-[0_0_8px_rgba(255,255,255,0.8)]" : persisted ? "animate-pulse bg-neutral-400" : "bg-white/25"}`} />
+                <h2 className="text-sm font-bold tracking-wide text-neutral-100">GUIDED SETUP</h2>
               </div>
-              <p className="mt-2 text-xs text-emerald-100/45">One setup command, one run command, then inspect the evidence.</p>
+              <p className="mt-2 text-xs text-neutral-100/45">One setup command, one run command, then inspect the evidence.</p>
               <div className="mt-3 flex flex-wrap gap-2">
                 <button
                   type="button"
                   onClick={createWorkspace}
                   disabled={creating || Boolean(persisted)}
-                  className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-400 to-teal-300 px-4 py-2 text-xs font-black text-[#06241a] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-200 disabled:cursor-not-allowed disabled:opacity-55"
+                  className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-neutral-400 to-neutral-300 px-4 py-2 text-xs font-black text-[#000000] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-200 disabled:cursor-not-allowed disabled:opacity-55"
                 >
                   {creating ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> : persisted ? <Check className="h-3.5 w-3.5" aria-hidden /> : <Play className="h-3.5 w-3.5" aria-hidden />}
                   {creating ? "Starting…" : persisted ? "Demo ready" : "Start demo"}
@@ -643,7 +643,7 @@ export default function SolutionsPage() {
                   type="button"
                   onClick={resetWorkspace}
                   disabled={!persisted || resetting}
-                  className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-white/15 px-4 py-2 text-xs font-semibold text-emerald-100/70 transition hover:border-emerald-400/35 disabled:cursor-not-allowed disabled:opacity-35"
+                  className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-white/15 px-4 py-2 text-xs font-semibold text-neutral-100/70 transition hover:border-neutral-400/35 disabled:cursor-not-allowed disabled:opacity-35"
                 >
                   {resetting ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> : <RotateCcw className="h-3.5 w-3.5" aria-hidden />}
                   Reset
@@ -666,15 +666,15 @@ export default function SolutionsPage() {
             <GuideStep number="04" title="See the proof" detail="Three deliveries succeed and the fourth is blocked" complete={complete} active={delivered.length > 0 && !complete} />
 
             {persisted && (
-              <div className="mt-4 rounded-2xl border border-emerald-400/20 bg-black/25 p-4">
-                <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-emerald-300/60">Hosted Express endpoint</div>
-                <code className="mt-2 block break-all text-[11px] leading-relaxed text-emerald-200 [overflow-wrap:anywhere]">{persisted.workspace.endpointBase}</code>
+              <div className="mt-4 rounded-2xl border border-neutral-400/20 bg-black/25 p-4">
+                <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-neutral-300/60">Hosted Express endpoint</div>
+                <code className="mt-2 block break-all text-[11px] leading-relaxed text-neutral-200 [overflow-wrap:anywhere]">{persisted.workspace.endpointBase}</code>
                 <dl className="mt-3 grid gap-2 sm:grid-cols-2">
                   <Fact label="Price">{persisted.workspace.priceXlm} XLM / request</Fact>
                   <Fact label="Budget">{persisted.workspace.budgetXlm} XLM on-chain</Fact>
                   <Fact label="Merchant"><code>{short(persisted.workspace.merchant)}</code></Fact>
                   <Fact label="Contract">
-                    <a href={contractUrl(persisted.workspace.contractId)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-emerald-300 hover:text-emerald-200">
+                    <a href={contractUrl(persisted.workspace.contractId)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-neutral-300 hover:text-neutral-200">
                       <code>{short(persisted.workspace.contractId)}</code><ExternalLink className="h-3 w-3" aria-hidden />
                     </a>
                   </Fact>
@@ -685,25 +685,25 @@ export default function SolutionsPage() {
 
           <div className="min-w-0 overflow-hidden rounded-2xl glass">
             <div className="flex items-center justify-between gap-3 border-b border-white/10 bg-black/20 px-4 py-3">
-              <div className="flex items-center gap-2 text-sm font-semibold text-emerald-100">
-                <Terminal className="h-4 w-4 text-emerald-400" aria-hidden />
+              <div className="flex items-center gap-2 text-sm font-semibold text-neutral-100">
+                <Terminal className="h-4 w-4 text-neutral-400" aria-hidden />
                 VS Code terminal
               </div>
-              <span className="rounded-full border border-white/10 bg-black/25 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-100/45">blank folder</span>
+              <span className="rounded-full border border-white/10 bg-black/25 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-neutral-100/45">blank folder</span>
             </div>
             <div className="space-y-4 p-4">
-              <p className="text-xs leading-relaxed text-emerald-100/55"><strong className="text-emerald-200">Requirement:</strong> <a href="https://nodejs.org/en/download" target="_blank" rel="noreferrer" className="font-semibold text-emerald-300 underline decoration-emerald-400/30 underline-offset-4 hover:text-emerald-200">Node.js 20 or newer</a>.</p>
+              <p className="text-xs leading-relaxed text-neutral-100/55"><strong className="text-neutral-200">Requirement:</strong> <a href="https://nodejs.org/en/download" target="_blank" rel="noreferrer" className="font-semibold text-neutral-300 underline decoration-neutral-400/30 underline-offset-4 hover:text-neutral-200">Node.js 20 or newer</a>.</p>
               <InstallerShellPicker value={installerShell} onChange={setInstallerShell} />
               <CommandBlock label="1 · Set up the project" value={starterCommand("research-source-scout", installerShell)} copyKey="setup" copied={copied} onCopy={copyValue} />
               <CommandBlock label="2 · Run the demo" value={runCommand} copyKey="run" copied={copied} onCopy={copyValue} disabled={!persisted} />
-              <div className="rounded-xl border border-emerald-400/15 bg-[#020806] p-3 font-mono text-[11px] leading-relaxed text-emerald-100/65">
-                <div className="text-emerald-300">$ expected output</div>
-                <div className={sawChallenge ? "text-emerald-200" : "text-emerald-100/35"}>{sawChallenge ? "✓ 402 Payment Required" : "· waiting for the local consumer"}</div>
-                <div className={sawPayment ? "text-emerald-200" : "text-emerald-100/35"}>{sawPayment ? "✓ contract payment confirmed" : "· settlement pending"}</div>
-                <div className={delivered.length ? "text-emerald-200" : "text-emerald-100/35"}>{delivered.length ? `✓ ${delivered.length}/3 protected responses delivered` : "· protected response pending"}</div>
-                <div className={blocked ? "text-red-300" : "text-emerald-100/35"}>{blocked ? "✓ fourth purchase rejected by MandateRegistry" : "· contract limit check pending"}</div>
+              <div className="rounded-xl border border-neutral-400/15 bg-[#020806] p-3 font-mono text-[11px] leading-relaxed text-neutral-100/65">
+                <div className="text-neutral-300">$ expected output</div>
+                <div className={sawChallenge ? "text-neutral-200" : "text-neutral-100/35"}>{sawChallenge ? "✓ 402 Payment Required" : "· waiting for the local consumer"}</div>
+                <div className={sawPayment ? "text-neutral-200" : "text-neutral-100/35"}>{sawPayment ? "✓ contract payment confirmed" : "· settlement pending"}</div>
+                <div className={delivered.length ? "text-neutral-200" : "text-neutral-100/35"}>{delivered.length ? `✓ ${delivered.length}/3 protected responses delivered` : "· protected response pending"}</div>
+                <div className={blocked ? "text-red-300" : "text-neutral-100/35"}>{blocked ? "✓ fourth purchase rejected by MandateRegistry" : "· contract limit check pending"}</div>
               </div>
-              <p className="text-[11px] leading-relaxed text-emerald-100/40">The scaffold contains the actual consumer and fulfillment source. Add <code className="text-emerald-300">.ackrate/</code> to no other workflow: it is already ignored and stores local recovery evidence.</p>
+              <p className="text-[11px] leading-relaxed text-neutral-100/40">The scaffold contains the actual consumer and fulfillment source. Add <code className="text-neutral-300">.ackrate/</code> to no other workflow: it is already ignored and stores local recovery evidence.</p>
             </div>
           </div>
         </div>
@@ -713,10 +713,10 @@ export default function SolutionsPage() {
         <div className="min-w-0 overflow-hidden rounded-2xl glass">
           <div className="flex items-center justify-between gap-3 border-b border-white/10 bg-black/20 px-4 py-3">
             <div className="flex items-center gap-2">
-              <Server className="h-4 w-4 text-emerald-400" aria-hidden />
-              <h2 className="text-sm font-semibold text-emerald-100">Live session</h2>
+              <Server className="h-4 w-4 text-neutral-400" aria-hidden />
+              <h2 className="text-sm font-semibold text-neutral-100">Live session</h2>
             </div>
-            <span className="text-[11px] text-emerald-100/35">polling hosted /express</span>
+            <span className="text-[11px] text-neutral-100/35">polling hosted /express</span>
           </div>
           <div className="h-[360px] overflow-auto p-4">
             {visibleEvents.length ? (
@@ -728,8 +728,8 @@ export default function SolutionsPage() {
             ) : (
               <div className="grid h-full place-items-center text-center">
                 <div>
-                  <Server className="mx-auto h-6 w-6 text-emerald-100/25" aria-hidden />
-                  <p className="mt-3 text-sm text-emerald-100/40">Your local requests will appear here.</p>
+                  <Server className="mx-auto h-6 w-6 text-neutral-100/25" aria-hidden />
+                  <p className="mt-3 text-sm text-neutral-100/40">Your local requests will appear here.</p>
                 </div>
               </div>
             )}
@@ -739,10 +739,10 @@ export default function SolutionsPage() {
         <div className="min-w-0 overflow-hidden rounded-2xl glass">
           <div className="flex items-center justify-between gap-3 border-b border-white/10 bg-black/20 px-4 py-3">
             <div className="flex items-center gap-2">
-              <ExternalLink className="h-4 w-4 text-emerald-400" aria-hidden />
-              <h2 className="text-sm font-semibold text-emerald-100">Settlement evidence</h2>
+              <ExternalLink className="h-4 w-4 text-neutral-400" aria-hidden />
+              <h2 className="text-sm font-semibold text-neutral-100">Settlement evidence</h2>
             </div>
-            <span className="text-[11px] text-emerald-100/35">Stellar testnet</span>
+            <span className="text-[11px] text-neutral-100/35">Stellar testnet</span>
           </div>
           <div className="h-[360px] overflow-auto p-4">
             {transactions.length ? (
@@ -753,21 +753,21 @@ export default function SolutionsPage() {
                     href={txUrl(transaction.hash)}
                     target="_blank"
                     rel="noreferrer"
-                    className="flex min-w-0 items-center justify-between gap-3 rounded-xl border border-emerald-400/20 bg-emerald-400/[0.05] px-3 py-3 transition hover:border-emerald-400/40 hover:bg-emerald-400/10"
+                    className="flex min-w-0 items-center justify-between gap-3 rounded-xl border border-neutral-400/20 bg-neutral-400/[0.05] px-3 py-3 transition hover:border-neutral-400/40 hover:bg-neutral-400/10"
                   >
                     <div className="min-w-0">
-                      <div className="text-xs font-semibold text-emerald-100">{index + 1}. {transaction.resource}</div>
-                      <code className="mt-1 block truncate text-[10px] text-emerald-300/65">{transaction.hash}</code>
+                      <div className="text-xs font-semibold text-neutral-100">{index + 1}. {transaction.resource}</div>
+                      <code className="mt-1 block truncate text-[10px] text-neutral-300/65">{transaction.hash}</code>
                     </div>
-                    <ExternalLink className="h-4 w-4 shrink-0 text-emerald-300" aria-hidden />
+                    <ExternalLink className="h-4 w-4 shrink-0 text-neutral-300" aria-hidden />
                   </a>
                 ))}
               </div>
             ) : (
               <div className="grid h-full place-items-center text-center">
                 <div>
-                  <ShieldCheck className="mx-auto h-6 w-6 text-emerald-100/25" aria-hidden />
-                  <p className="mt-3 text-sm text-emerald-100/40">Verified transaction links appear after settlement.</p>
+                  <ShieldCheck className="mx-auto h-6 w-6 text-neutral-100/25" aria-hidden />
+                  <p className="mt-3 text-sm text-neutral-100/40">Verified transaction links appear after settlement.</p>
                 </div>
               </div>
             )}
@@ -779,11 +779,11 @@ export default function SolutionsPage() {
 
       <motion.section {...fade(0.16)} className="mt-12">
         <div className="mx-auto max-w-3xl text-center">
-          <div className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-emerald-300/70">
+          <div className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-neutral-300/70">
             <BookOpen className="h-4 w-4" aria-hidden /> Guided concepts
           </div>
-          <h2 className="mt-3 text-3xl font-black tracking-tight text-emerald-50 sm:text-4xl">Understand every enforcement boundary.</h2>
-          <p className="mt-3 text-sm leading-relaxed text-emerald-100/55">Run the happy path first, then change one input at a time and observe where the request fails closed.</p>
+          <h2 className="mt-3 text-3xl font-black tracking-tight text-neutral-50 sm:text-4xl">Understand every enforcement boundary.</h2>
+          <p className="mt-3 text-sm leading-relaxed text-neutral-100/55">Run the happy path first, then change one input at a time and observe where the request fails closed.</p>
         </div>
         <div className="mx-auto mt-7 grid max-w-4xl gap-3">
           {LESSONS.map(({ id, title, Icon, summary, code }) => {
@@ -794,19 +794,19 @@ export default function SolutionsPage() {
                   type="button"
                   onClick={() => setOpenLesson(open ? "" : id)}
                   aria-expanded={open}
-                  className="flex w-full items-center gap-3 px-4 py-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-300/60 sm:px-5"
+                  className="flex w-full items-center gap-3 px-4 py-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-neutral-300/60 sm:px-5"
                 >
-                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-emerald-400/10 text-emerald-300"><Icon className="h-4 w-4" aria-hidden /></span>
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-neutral-400/10 text-neutral-300"><Icon className="h-4 w-4" aria-hidden /></span>
                   <span className="min-w-0 flex-1">
-                    <span className="block text-sm font-bold text-emerald-100">{title}</span>
-                    <span className="mt-1 block text-xs leading-relaxed text-emerald-100/50">{summary}</span>
+                    <span className="block text-sm font-bold text-neutral-100">{title}</span>
+                    <span className="mt-1 block text-xs leading-relaxed text-neutral-100/50">{summary}</span>
                   </span>
-                  <ChevronDown className={`h-4 w-4 shrink-0 text-emerald-100/40 transition ${open ? "rotate-180" : ""}`} aria-hidden />
+                  <ChevronDown className={`h-4 w-4 shrink-0 text-neutral-100/40 transition ${open ? "rotate-180" : ""}`} aria-hidden />
                 </button>
                 <AnimatePresence initial={false}>
                   {open && (
                     <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-                      <pre className="overflow-auto border-t border-white/10 bg-black/35 p-4 font-mono text-[11px] leading-relaxed text-emerald-100/75 sm:px-5"><code>{code}</code></pre>
+                      <pre className="overflow-auto border-t border-white/10 bg-black/35 p-4 font-mono text-[11px] leading-relaxed text-neutral-100/75 sm:px-5"><code>{code}</code></pre>
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -816,14 +816,14 @@ export default function SolutionsPage() {
         </div>
       </motion.section>
 
-      <motion.section {...fade(0.2)} className="mt-12 overflow-hidden rounded-3xl border border-emerald-300/15 bg-[#06100d]/80">
+      <motion.section {...fade(0.2)} className="mt-12 overflow-hidden rounded-3xl border border-neutral-300/15 bg-[#090909]/80">
         <div className="flex flex-col gap-4 border-b border-white/10 bg-white/[0.025] px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <div>
             <div className="flex items-center gap-2">
-              <FileCode2 className="h-4 w-4 text-emerald-400" aria-hidden />
-              <h2 className="text-sm font-bold text-emerald-100">Reveal the implementation</h2>
+              <FileCode2 className="h-4 w-4 text-neutral-400" aria-hidden />
+              <h2 className="text-sm font-bold text-neutral-100">Reveal the implementation</h2>
             </div>
-            <p className="mt-1 text-xs text-emerald-100/45">Selected excerpts from the generated files in your project—no conceptual substitute code.</p>
+            <p className="mt-1 text-xs text-neutral-100/45">Selected excerpts from the generated files in your project—no conceptual substitute code.</p>
           </div>
           <div className="flex rounded-lg border border-white/10 bg-black/25 p-0.5" role="tablist" aria-label="Starter source preview">
             {(["hosted", "consumer", "fulfillment"] as const).map((tab) => (
@@ -833,7 +833,7 @@ export default function SolutionsPage() {
                 role="tab"
                 aria-selected={advancedTab === tab}
                 onClick={() => setAdvancedTab(tab)}
-                className={`rounded-md px-3 py-1.5 text-[11px] font-semibold capitalize transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/60 ${advancedTab === tab ? "bg-emerald-400/15 text-emerald-200" : "text-emerald-100/40 hover:text-emerald-100/75"}`}
+                className={`rounded-md px-3 py-1.5 text-[11px] font-semibold capitalize transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-300/60 ${advancedTab === tab ? "bg-neutral-400/15 text-neutral-200" : "text-neutral-100/40 hover:text-neutral-100/75"}`}
               >
                 {tab}
               </button>
@@ -841,11 +841,11 @@ export default function SolutionsPage() {
           </div>
         </div>
         <div className="grid min-w-0 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
-          <pre className="min-h-[300px] overflow-auto whitespace-pre p-4 font-mono text-[11px] leading-relaxed text-emerald-100/80 sm:p-6 sm:text-xs"><code>{advancedTab === "hosted" ? HOSTED_PREVIEW : advancedTab === "consumer" ? CONSUMER_PREVIEW : FULFILLMENT_PREVIEW}</code></pre>
+          <pre className="min-h-[300px] overflow-auto whitespace-pre p-4 font-mono text-[11px] leading-relaxed text-neutral-100/80 sm:p-6 sm:text-xs"><code>{advancedTab === "hosted" ? HOSTED_PREVIEW : advancedTab === "consumer" ? CONSUMER_PREVIEW : FULFILLMENT_PREVIEW}</code></pre>
           <div className="border-t border-white/10 bg-black/20 p-5 lg:border-l lg:border-t-0">
-            <div className="flex items-center gap-2 text-sm font-semibold text-emerald-100"><Code2 className="h-4 w-4 text-emerald-400" aria-hidden />Advanced mode</div>
-            <p className="mt-3 text-sm leading-relaxed text-emerald-100/55">The guided command runs <code className="text-emerald-300">src/hosted.mjs</code> against this page. Run <code className="text-emerald-300">npm run demo</code> for the complete local consumer-and-fulfillment flow, then edit either side directly.</p>
-            <a href="https://github.com/ackrate/ackrate-protocol-demo/tree/main/starters/research-source-scout" target="_blank" rel="noreferrer" className="mt-5 inline-flex items-center gap-2 rounded-xl border border-white/15 px-4 py-2.5 text-sm font-semibold text-emerald-100/75 transition hover:border-emerald-400/40 hover:text-emerald-100">
+            <div className="flex items-center gap-2 text-sm font-semibold text-neutral-100"><Code2 className="h-4 w-4 text-neutral-400" aria-hidden />Advanced mode</div>
+            <p className="mt-3 text-sm leading-relaxed text-neutral-100/55">The guided command runs <code className="text-neutral-300">src/hosted.mjs</code> against this page. Run <code className="text-neutral-300">npm run demo</code> for the complete local consumer-and-fulfillment flow, then edit either side directly.</p>
+            <a href="https://github.com/ackrate/ackrate-protocol-demo/tree/main/starters/research-source-scout" target="_blank" rel="noreferrer" className="mt-5 inline-flex items-center gap-2 rounded-xl border border-white/15 px-4 py-2.5 text-sm font-semibold text-neutral-100/75 transition hover:border-neutral-400/40 hover:text-neutral-100">
               Open starter source <ExternalLink className="h-3.5 w-3.5" aria-hidden />
             </a>
           </div>
@@ -857,13 +857,13 @@ export default function SolutionsPage() {
 
 function GuideStep({ number, title, detail, complete, active }: { number: string; title: string; detail: string; complete: boolean; active: boolean }) {
   return (
-    <div className={`flex min-w-0 items-center gap-3 rounded-xl border px-3.5 py-3 transition ${complete ? "border-emerald-400/30 bg-emerald-400/[0.07]" : active ? "border-sky-400/30 bg-sky-400/[0.05]" : "border-white/10 bg-black/20"}`}>
-      <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg font-mono text-xs font-bold ${complete ? "bg-emerald-400 text-[#06241a]" : "bg-white/[0.05] text-emerald-100/45"}`}>{complete ? <Check className="h-4 w-4" aria-hidden /> : number}</span>
+    <div className={`flex min-w-0 items-center gap-3 rounded-xl border px-3.5 py-3 transition ${complete ? "border-neutral-400/30 bg-neutral-400/[0.07]" : active ? "border-neutral-400/30 bg-neutral-400/[0.05]" : "border-white/10 bg-black/20"}`}>
+      <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg font-mono text-xs font-bold ${complete ? "bg-neutral-400 text-[#000000]" : "bg-white/[0.05] text-neutral-100/45"}`}>{complete ? <Check className="h-4 w-4" aria-hidden /> : number}</span>
       <div className="min-w-0 flex-1">
-        <div className="text-sm font-semibold text-emerald-100">{title}</div>
-        <div className="mt-0.5 text-xs leading-relaxed text-emerald-100/45">{detail}</div>
+        <div className="text-sm font-semibold text-neutral-100">{title}</div>
+        <div className="mt-0.5 text-xs leading-relaxed text-neutral-100/45">{detail}</div>
       </div>
-      {active && <Loader2 className="h-4 w-4 shrink-0 animate-spin text-sky-300" aria-hidden />}
+      {active && <Loader2 className="h-4 w-4 shrink-0 animate-spin text-neutral-300" aria-hidden />}
     </div>
   );
 }
@@ -875,7 +875,7 @@ function InstallerShellPicker({ value, onChange }: { value: InstallerShell; onCh
   ];
   return (
     <div>
-      <div className="mb-2 text-[10px] font-bold uppercase tracking-[0.14em] text-emerald-100/35">Choose your computer</div>
+      <div className="mb-2 text-[10px] font-bold uppercase tracking-[0.14em] text-neutral-100/35">Choose your computer</div>
       <div className="inline-flex max-w-full rounded-lg border border-white/10 bg-black/25 p-0.5" role="tablist" aria-label="Starter installer command">
         {choices.map((choice) => (
           <button
@@ -884,7 +884,7 @@ function InstallerShellPicker({ value, onChange }: { value: InstallerShell; onCh
             role="tab"
             aria-selected={value === choice.value}
             onClick={() => onChange(choice.value)}
-            className={`rounded-md px-3 py-1.5 text-[11px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/60 ${value === choice.value ? "bg-emerald-400/15 text-emerald-200" : "text-emerald-100/40 hover:text-emerald-100/75"}`}
+            className={`rounded-md px-3 py-1.5 text-[11px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-300/60 ${value === choice.value ? "bg-neutral-400/15 text-neutral-200" : "text-neutral-100/40 hover:text-neutral-100/75"}`}
           >
             {choice.label}
           </button>
@@ -899,12 +899,12 @@ function CommandBlock({ label, value, copyKey, copied, onCopy, disabled = false 
   return (
     <div className={`overflow-hidden rounded-xl border border-white/10 bg-black/40 ${disabled ? "opacity-45" : ""}`}>
       <div className="flex items-center justify-between gap-2 border-b border-white/8 px-3 py-2">
-        <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-emerald-100/35">{label}</span>
-        <button type="button" disabled={disabled} onClick={() => void onCopy(value, copyKey)} className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.04] px-2 py-1 text-[10px] font-semibold text-emerald-100/55 transition hover:border-emerald-400/35 hover:text-emerald-200 disabled:cursor-not-allowed">
+        <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-neutral-100/35">{label}</span>
+        <button type="button" disabled={disabled} onClick={() => void onCopy(value, copyKey)} className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.04] px-2 py-1 text-[10px] font-semibold text-neutral-100/55 transition hover:border-neutral-400/35 hover:text-neutral-200 disabled:cursor-not-allowed">
           {didCopy ? <Check className="h-3 w-3" aria-hidden /> : <Copy className="h-3 w-3" aria-hidden />}{didCopy ? "Copied" : "Copy"}
         </button>
       </div>
-      <pre className="max-w-full overflow-auto whitespace-pre-wrap break-words p-3 font-mono text-[11px] leading-relaxed text-emerald-200/80 [overflow-wrap:anywhere]"><code>{value}</code></pre>
+      <pre className="max-w-full overflow-auto whitespace-pre-wrap break-words p-3 font-mono text-[11px] leading-relaxed text-neutral-200/80 [overflow-wrap:anywhere]"><code>{value}</code></pre>
     </div>
   );
 }
@@ -926,11 +926,11 @@ function EventRow({ event }: { event: DemoEvent }) {
   const rejected = event.type === "purchase_blocked";
   const hash = hashValue(event.hash);
   return (
-    <div className={`flex min-w-0 items-start gap-3 rounded-xl border px-3 py-2.5 ${rejected ? "border-red-400/20 bg-red-400/[0.05]" : ok ? "border-emerald-400/20 bg-emerald-400/[0.04]" : warn ? "border-amber-400/20 bg-amber-400/[0.04]" : "border-white/10 bg-black/20"}`}>
-      <span className={`mt-1 h-2 w-2 shrink-0 rounded-full ${rejected ? "bg-red-400" : ok ? "bg-emerald-400" : warn ? "bg-amber-400" : "bg-sky-400"}`} />
+    <div className={`flex min-w-0 items-start gap-3 rounded-xl border px-3 py-2.5 ${rejected ? "border-red-400/20 bg-red-400/[0.05]" : ok ? "border-neutral-400/20 bg-neutral-400/[0.04]" : warn ? "border-amber-400/20 bg-amber-400/[0.04]" : "border-white/10 bg-black/20"}`}>
+      <span className={`mt-1 h-2 w-2 shrink-0 rounded-full ${rejected ? "bg-red-400" : ok ? "bg-neutral-400" : warn ? "bg-amber-400" : "bg-neutral-400"}`} />
       <div className="min-w-0 flex-1">
-        <div className="text-xs font-semibold text-emerald-100/85">{labels[event.type] || event.type}</div>
-        {hash && <code className="mt-1 block truncate text-[10px] text-emerald-300/55">{hash}</code>}
+        <div className="text-xs font-semibold text-neutral-100/85">{labels[event.type] || event.type}</div>
+        {hash && <code className="mt-1 block truncate text-[10px] text-neutral-300/55">{hash}</code>}
       </div>
     </div>
   );
@@ -939,18 +939,18 @@ function EventRow({ event }: { event: DemoEvent }) {
 function Fact({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="min-w-0 rounded-xl border border-white/8 bg-white/[0.025] p-3">
-      <dt className="text-[9px] font-bold uppercase tracking-[0.14em] text-emerald-100/35">{label}</dt>
-      <dd className="mt-1 min-w-0 break-words text-[11px] text-emerald-100/65 [overflow-wrap:anywhere]">{children}</dd>
+      <dt className="text-[9px] font-bold uppercase tracking-[0.14em] text-neutral-100/35">{label}</dt>
+      <dd className="mt-1 min-w-0 break-words text-[11px] text-neutral-100/65 [overflow-wrap:anywhere]">{children}</dd>
     </div>
   );
 }
 
 function Stat({ label, value, tone, compact = false }: { label: string; value: string | number; tone: "emerald" | "red" | "muted"; compact?: boolean }) {
-  const color = tone === "emerald" ? "text-emerald-300" : tone === "red" ? "text-red-300" : "text-emerald-100/70";
+  const color = tone === "emerald" ? "text-neutral-300" : tone === "red" ? "text-red-300" : "text-neutral-100/70";
   return (
     <div className="min-w-0 rounded-xl border border-white/10 bg-black/25 px-2 py-2.5">
       <div className={`${compact ? "text-sm" : "text-xl"} truncate font-black tabular-nums ${color}`}>{value}</div>
-      <div className="mt-0.5 truncate text-[9px] font-semibold uppercase tracking-[0.14em] text-emerald-100/35">{label}</div>
+      <div className="mt-0.5 truncate text-[9px] font-semibold uppercase tracking-[0.14em] text-neutral-100/35">{label}</div>
     </div>
   );
 }

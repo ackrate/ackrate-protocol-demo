@@ -15,8 +15,8 @@ export default function SiteFooter() {
     <footer className="mt-16 border-t border-white/10 bg-black/20">
       <div className="mx-auto grid w-full max-w-6xl gap-8 px-5 py-10 sm:grid-cols-[1.25fr_1fr] sm:px-6 lg:px-8">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-300">ACKRATE · live protocol</p>
-          <p className="mt-3 max-w-xl text-sm leading-relaxed text-emerald-50/60">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/80">ACKRATE · live protocol</p>
+          <p className="mt-3 max-w-xl text-sm leading-relaxed text-white/45">
             Open-source agent payment infrastructure with bounded mandates, Circle USDC settlement on Stellar Mainnet,
             and transaction evidence anyone can inspect.
           </p>
@@ -24,7 +24,7 @@ export default function SiteFooter() {
         <nav className="grid content-start gap-2 sm:grid-cols-2" aria-label="ACKRATE ecosystem links">
           {links.map((link) => (
             <a
-              className="rounded-lg px-3 py-2 text-sm text-white/55 transition hover:bg-white/[0.04] hover:text-emerald-200"
+              className="rounded-lg px-3 py-2 text-sm text-white/55 transition hover:bg-white/[0.04] hover:text-white"
               href={link.href}
               key={link.href}
             >

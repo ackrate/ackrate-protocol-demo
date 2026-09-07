@@ -7,8 +7,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description: "Live agentic payments SDK documentation and Stellar testnet demonstrations.",
     start_url: "/",
     display: "standalone",
-    background_color: "#04070a",
-    theme_color: "#34d399",
+    background_color: "#000000",
+    theme_color: "#000000",
     icons: [
       { src: "/icon.svg", sizes: "any", type: "image/svg+xml" },
       { src: "/apple-icon", sizes: "180x180", type: "image/png" },

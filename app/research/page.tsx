@@ -6,19 +6,19 @@ import { txUrl, accountUrl, contractUrl } from "@/lib/explorer";
 import ReactMarkdown, { type Components } from "react-markdown";
 
 const mdComponents: Components = {
-  h1: ({ node, ...p }) => <h2 className="mb-2 mt-4 text-base font-semibold text-emerald-200 first:mt-0" {...p} />,
-  h2: ({ node, ...p }) => <h2 className="mb-2 mt-4 text-base font-semibold text-emerald-200 first:mt-0" {...p} />,
-  h3: ({ node, ...p }) => <h3 className="mb-1.5 mt-3 text-sm font-semibold text-emerald-200/90 first:mt-0" {...p} />,
-  p: ({ node, ...p }) => <p className="mb-2.5 leading-relaxed text-emerald-50/90 last:mb-0" {...p} />,
-  ul: ({ node, ...p }) => <ul className="mb-2.5 list-disc space-y-1 pl-5 marker:text-emerald-400/70 last:mb-0" {...p} />,
-  ol: ({ node, ...p }) => <ol className="mb-2.5 list-decimal space-y-1 pl-5 marker:text-emerald-400/70 last:mb-0" {...p} />,
-  li: ({ node, ...p }) => <li className="leading-relaxed text-emerald-50/90" {...p} />,
+  h1: ({ node, ...p }) => <h2 className="mb-2 mt-4 text-base font-semibold text-neutral-200 first:mt-0" {...p} />,
+  h2: ({ node, ...p }) => <h2 className="mb-2 mt-4 text-base font-semibold text-neutral-200 first:mt-0" {...p} />,
+  h3: ({ node, ...p }) => <h3 className="mb-1.5 mt-3 text-sm font-semibold text-neutral-200/90 first:mt-0" {...p} />,
+  p: ({ node, ...p }) => <p className="mb-2.5 leading-relaxed text-neutral-50/90 last:mb-0" {...p} />,
+  ul: ({ node, ...p }) => <ul className="mb-2.5 list-disc space-y-1 pl-5 marker:text-neutral-400/70 last:mb-0" {...p} />,
+  ol: ({ node, ...p }) => <ol className="mb-2.5 list-decimal space-y-1 pl-5 marker:text-neutral-400/70 last:mb-0" {...p} />,
+  li: ({ node, ...p }) => <li className="leading-relaxed text-neutral-50/90" {...p} />,
   strong: ({ node, ...p }) => <strong className="font-semibold text-white" {...p} />,
-  em: ({ node, ...p }) => <em className="italic text-emerald-100" {...p} />,
-  a: ({ node, ...p }) => <a className="text-emerald-400 underline underline-offset-2 hover:text-emerald-300" target="_blank" rel="noreferrer" {...p} />,
-  hr: () => <hr className="my-3 border-emerald-400/15" />,
-  code: ({ node, ...p }) => <code className="rounded bg-black/30 px-1 py-0.5 font-mono text-[12px] text-emerald-100" {...p} />,
-  blockquote: ({ node, ...p }) => <blockquote className="my-2 border-l-2 border-emerald-400/30 pl-3 italic text-emerald-100/80" {...p} />,
+  em: ({ node, ...p }) => <em className="italic text-neutral-100" {...p} />,
+  a: ({ node, ...p }) => <a className="text-neutral-400 underline underline-offset-2 hover:text-neutral-300" target="_blank" rel="noreferrer" {...p} />,
+  hr: () => <hr className="my-3 border-neutral-400/15" />,
+  code: ({ node, ...p }) => <code className="rounded bg-black/30 px-1 py-0.5 font-mono text-[12px] text-neutral-100" {...p} />,
+  blockquote: ({ node, ...p }) => <blockquote className="my-2 border-l-2 border-neutral-400/30 pl-3 italic text-neutral-100/80" {...p} />,
 };
 
 type Wallet = {
@@ -203,9 +203,9 @@ export default function ResearchPage() {
       >
         <motion.div
           variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }}
-          className="inline-flex items-center gap-2 rounded-full glass px-3.5 py-1.5 text-[11px] font-semibold tracking-[0.18em] text-emerald-300/90"
+          className="inline-flex items-center gap-2 rounded-full glass px-3.5 py-1.5 text-[11px] font-semibold tracking-[0.18em] text-neutral-300/90"
         >
-          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.9)]" />
+          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-neutral-400 shadow-[0_0_10px_rgba(255,255,255,0.9)]" />
           STELLAR TESTNET · @ackrate/core 0.3.1
         </motion.div>
         <motion.h1
@@ -214,24 +214,24 @@ export default function ResearchPage() {
           className="mt-5 text-4xl font-black leading-[1.04] tracking-tight sm:text-6xl"
         >
           A research agent that{" "}
-          <span className="bg-gradient-to-r from-emerald-300 via-teal-200 to-emerald-400 bg-clip-text text-transparent drop-shadow-[0_0_34px_rgba(52,211,153,0.28)]">
+          <span className="bg-gradient-to-r from-neutral-300 via-neutral-200 to-neutral-400 bg-clip-text text-transparent drop-shadow-[0_0_34px_rgba(255,255,255,0.28)]">
             pays for what it reads
           </span>
           , capped on-chain.
         </motion.h1>
         <motion.p
           variants={{ hidden: { opacity: 0, y: 14 }, show: { opacity: 1, y: 0 } }}
-          className="mt-5 max-w-2xl text-base leading-relaxed text-emerald-100/70 sm:text-lg"
+          className="mt-5 max-w-2xl text-base leading-relaxed text-neutral-100/70 sm:text-lg"
         >
-          Give an AI agent a <b className="text-emerald-200">{BUDGET} XLM</b> budget and a question. It autonomously buys
-          paid data sources (<b className="text-emerald-200">1 XLM</b> each) to answer it, every purchase a real Stellar
-          payment. The <b className="text-emerald-200">MandateRegistry</b> contract enforces the cap: once the budget is
-          spent it <b className="text-emerald-200">blocks</b> the next purchase, so the agent cannot overspend even when it
+          Give an AI agent a <b className="text-neutral-200">{BUDGET} XLM</b> budget and a question. It autonomously buys
+          paid data sources (<b className="text-neutral-200">1 XLM</b> each) to answer it, every purchase a real Stellar
+          payment. The <b className="text-neutral-200">MandateRegistry</b> contract enforces the cap: once the budget is
+          spent it <b className="text-neutral-200">blocks</b> the next purchase, so the agent cannot overspend even when it
           wants more.
         </motion.p>
         <motion.div variants={{ hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0 } }} className="mt-6 flex flex-wrap gap-2.5 text-xs">
           {["Autonomous agent", "Budget enforced on-chain", "LLM Agnostic Agent", "Testnet payments"].map((t) => (
-            <span key={t} className="rounded-full border border-emerald-400/20 bg-emerald-400/[0.06] px-3 py-1 text-emerald-200/80">
+            <span key={t} className="rounded-full border border-neutral-400/20 bg-neutral-400/[0.06] px-3 py-1 text-neutral-200/80">
               {t}
             </span>
           ))}
@@ -241,8 +241,8 @@ export default function ResearchPage() {
       <AnimatePresence>
         {busy && (
           <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}
-            className="mb-4 flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-2.5 text-sm text-emerald-200">
-            <span className="h-2 w-2 animate-ping rounded-full bg-emerald-400" /> {busy}
+            className="mb-4 flex items-center gap-2 rounded-xl border border-neutral-500/30 bg-neutral-500/10 px-4 py-2.5 text-sm text-neutral-200">
+            <span className="h-2 w-2 animate-ping rounded-full bg-neutral-400" /> {busy}
           </motion.div>
         )}
       </AnimatePresence>
@@ -258,15 +258,15 @@ export default function ResearchPage() {
         )}
         {wallet && (
           <div className="flex flex-wrap items-center gap-2">
-            <a href={accountUrl(wallet.agentPublic)} target="_blank" rel="noreferrer" className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-sm text-emerald-100/75 hover:border-emerald-400/30">
-              Agent <code className="text-emerald-300">{short(wallet.agentPublic)}</code> ↗
+            <a href={accountUrl(wallet.agentPublic)} target="_blank" rel="noreferrer" className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-sm text-neutral-100/75 hover:border-neutral-400/30">
+              Agent <code className="text-neutral-300">{short(wallet.agentPublic)}</code> ↗
             </a>
-            <a href={contractUrl(wallet.contractId)} target="_blank" rel="noreferrer" className="rounded-full border border-emerald-400/30 bg-emerald-400/10 px-3 py-1.5 text-sm text-emerald-300 transition hover:bg-emerald-400/20">
+            <a href={contractUrl(wallet.contractId)} target="_blank" rel="noreferrer" className="rounded-full border border-neutral-400/30 bg-neutral-400/10 px-3 py-1.5 text-sm text-neutral-300 transition hover:bg-neutral-400/20">
               Contract <code>{short(wallet.contractId)}</code> ↗
             </a>
             {bal && (
-              <a href={accountUrl(wallet.merchantPublic)} target="_blank" rel="noreferrer" className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-sm text-emerald-100/75 hover:border-emerald-400/30">
-                Data marketplace earned <b className="text-emerald-300">{Math.max(0, bal.merchant - 10000).toFixed(0)} XLM</b> ↗
+              <a href={accountUrl(wallet.merchantPublic)} target="_blank" rel="noreferrer" className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-sm text-neutral-100/75 hover:border-neutral-400/30">
+                Data marketplace earned <b className="text-neutral-300">{Math.max(0, bal.merchant - 10000).toFixed(0)} XLM</b> ↗
               </a>
             )}
           </div>
@@ -277,13 +277,13 @@ export default function ResearchPage() {
         {mandateId && (
           <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="mb-7">
             <div className="h-2.5 w-full max-w-md overflow-hidden rounded-full bg-black/40 ring-1 ring-white/10">
-              <motion.div className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-teal-300" animate={{ width: `${pct}%` }} transition={{ type: "spring", stiffness: 120, damping: 20 }} />
+              <motion.div className="h-full rounded-full bg-gradient-to-r from-neutral-400 to-neutral-300" animate={{ width: `${pct}%` }} transition={{ type: "spring", stiffness: 120, damping: 20 }} />
             </div>
-            <div className="mt-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-emerald-100/60">
+            <div className="mt-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-neutral-100/60">
               <span>{spent} / {BUDGET} XLM spent · mandate <code>{short(mandateId)}</code></span>
               {activeLLM && (
-                <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2 py-0.5 text-emerald-300">
-                  <span className={`h-1.5 w-1.5 rounded-full bg-emerald-400 ${running ? "animate-pulse" : ""}`} />
+                <span className="inline-flex items-center gap-1 rounded-full border border-neutral-400/30 bg-neutral-400/10 px-2 py-0.5 text-neutral-300">
+                  <span className={`h-1.5 w-1.5 rounded-full bg-neutral-400 ${running ? "animate-pulse" : ""}`} />
                   {activeLLM}
                 </span>
               )}
@@ -294,19 +294,19 @@ export default function ResearchPage() {
 
       {/* Question + run */}
       <section className="mb-8 rounded-2xl glass p-4 sm:p-5">
-        <label className="mb-2 block text-xs font-semibold tracking-wide text-emerald-100/60">RESEARCH QUESTION</label>
+        <label className="mb-2 block text-xs font-semibold tracking-wide text-neutral-100/60">RESEARCH QUESTION</label>
         <textarea
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
           disabled={running}
           rows={2}
-          className="w-full resize-none rounded-xl border border-white/10 bg-black/30 px-3.5 py-2.5 text-sm text-emerald-50 outline-none placeholder:text-emerald-100/30 focus:border-emerald-400/40 disabled:opacity-60"
+          className="w-full resize-none rounded-xl border border-white/10 bg-black/30 px-3.5 py-2.5 text-sm text-neutral-50 outline-none placeholder:text-neutral-100/30 focus:border-neutral-400/40 disabled:opacity-60"
           placeholder="Ask the agent anything…"
         />
         <div className="mt-3 flex flex-wrap gap-2">
           {PRESETS.map((p) => (
             <button key={p} onClick={() => setQuestion(p)} disabled={running}
-              className={`rounded-full border px-3 py-1.5 text-xs transition disabled:opacity-50 ${question === p ? "border-emerald-400/40 bg-emerald-400/10 text-emerald-200" : "border-white/10 bg-white/[0.03] text-emerald-100/60 hover:border-emerald-400/30"}`}>
+              className={`rounded-full border px-3 py-1.5 text-xs transition disabled:opacity-50 ${question === p ? "border-neutral-400/40 bg-neutral-400/10 text-neutral-200" : "border-white/10 bg-white/[0.03] text-neutral-100/60 hover:border-neutral-400/30"}`}>
               {p}
             </button>
           ))}
@@ -315,17 +315,17 @@ export default function ResearchPage() {
           <Btn onClick={runResearch} disabled={!ready || running || revoked || !question.trim()}>
             {running ? "Agent researching…" : revoked ? "Mandate revoked" : "▶ Run research agent"}
           </Btn>
-          {!ready && <span className="ml-3 text-xs text-emerald-100/40">Create a wallet and authorize the agent first.</span>}
+          {!ready && <span className="ml-3 text-xs text-neutral-100/40">Create a wallet and authorize the agent first.</span>}
         </div>
       </section>
 
       {/* Live LLM engine indicator — shows which provider is serving, and any failover */}
       {(running || activeLLM) && (
-        <div className="mb-3 flex items-center gap-2.5 rounded-xl border border-emerald-400/25 bg-emerald-400/[0.06] px-4 py-2.5 text-sm">
-          <span className={`h-2 w-2 rounded-full bg-emerald-400 ${running ? "animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.9)]" : ""}`} />
-          <span className="font-semibold tracking-wide text-emerald-200">LLM engine</span>
-          <span className="text-emerald-100/75">{activeLLM || "starting…"}</span>
-          <span className="ml-auto text-xs text-emerald-100/45">dual-provider failover</span>
+        <div className="mb-3 flex items-center gap-2.5 rounded-xl border border-neutral-400/25 bg-neutral-400/[0.06] px-4 py-2.5 text-sm">
+          <span className={`h-2 w-2 rounded-full bg-neutral-400 ${running ? "animate-pulse shadow-[0_0_8px_rgba(255,255,255,0.9)]" : ""}`} />
+          <span className="font-semibold tracking-wide text-neutral-200">LLM engine</span>
+          <span className="text-neutral-100/75">{activeLLM || "starting…"}</span>
+          <span className="ml-auto text-xs text-neutral-100/45">dual-provider failover</span>
         </div>
       )}
 
@@ -337,29 +337,29 @@ export default function ResearchPage() {
               if (s.kind === "orchestrator")
                 return (
                   <motion.div key={s.id} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }}
-                    className="flex flex-wrap items-center gap-2 rounded-lg border border-emerald-400/25 bg-emerald-400/[0.07] px-3 py-1.5 text-xs">
-                    <span className="text-emerald-400">⚙</span>
-                    <span className="font-semibold tracking-[0.14em] text-emerald-300">ORCHESTRATOR</span>
-                    <span className="text-emerald-100/55">selected</span>
-                    <span className="rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2 py-0.5 font-semibold text-emerald-200">{s.engine}</span>
-                    <span className="text-emerald-100/45">· turn {s.turn}</span>
+                    className="flex flex-wrap items-center gap-2 rounded-lg border border-neutral-400/25 bg-neutral-400/[0.07] px-3 py-1.5 text-xs">
+                    <span className="text-neutral-400">⚙</span>
+                    <span className="font-semibold tracking-[0.14em] text-neutral-300">ORCHESTRATOR</span>
+                    <span className="text-neutral-100/55">selected</span>
+                    <span className="rounded-full border border-neutral-400/30 bg-neutral-400/10 px-2 py-0.5 font-semibold text-neutral-200">{s.engine}</span>
+                    <span className="text-neutral-100/45">· turn {s.turn}</span>
                   </motion.div>
                 );
               if (s.kind === "narration")
                 return (
-                  <motion.div key={s.id} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} className="flex gap-2.5 text-sm text-emerald-100/70">
-                    <span className="mt-0.5 shrink-0 text-emerald-400/70">▸</span>
+                  <motion.div key={s.id} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} className="flex gap-2.5 text-sm text-neutral-100/70">
+                    <span className="mt-0.5 shrink-0 text-neutral-400/70">▸</span>
                     <span className="italic">{s.text}</span>
                   </motion.div>
                 );
               if (s.kind === "final")
                 return (
                   <motion.div key={s.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-                    className="overflow-hidden rounded-2xl border border-emerald-400/30 bg-emerald-400/[0.06] p-4 sm:p-5">
-                    <div className="mb-2 flex items-center gap-2 text-xs font-semibold tracking-wide text-emerald-300">
+                    className="overflow-hidden rounded-2xl border border-neutral-400/30 bg-neutral-400/[0.06] p-4 sm:p-5">
+                    <div className="mb-2 flex items-center gap-2 text-xs font-semibold tracking-wide text-neutral-300">
                       <span>✦</span> AGENT&apos;S SYNTHESIZED ANSWER
                     </div>
-                    <div className="text-sm leading-relaxed text-emerald-50">
+                    <div className="text-sm leading-relaxed text-neutral-50">
                       <ReactMarkdown components={mdComponents}>{s.text}</ReactMarkdown>
                     </div>
                   </motion.div>
@@ -368,21 +368,21 @@ export default function ResearchPage() {
               return (
                 <motion.div key={s.id} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}
                   transition={{ type: "spring", stiffness: 300, damping: 26 }}
-                  className={`overflow-hidden rounded-2xl border bg-white/[0.035] p-4 transition-colors ${s.status === "blocked" ? "border-red-500/30" : s.status === "ok" ? "border-emerald-400/25" : "border-white/10"}`}>
+                  className={`overflow-hidden rounded-2xl border bg-white/[0.035] p-4 transition-colors ${s.status === "blocked" ? "border-red-500/30" : s.status === "ok" ? "border-neutral-400/25" : "border-white/10"}`}>
                   <div className="flex items-start gap-3">
                     <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-black/40 text-lg ring-1 ring-white/10">{s.icon}</div>
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="font-semibold">{s.label}</span>
-                        {s.status === "pending" && <span className="flex items-center gap-1 text-xs text-emerald-100/50"><span className="h-1.5 w-1.5 animate-ping rounded-full bg-emerald-400" /> paying 1 XLM…</span>}
+                        {s.status === "pending" && <span className="flex items-center gap-1 text-xs text-neutral-100/50"><span className="h-1.5 w-1.5 animate-ping rounded-full bg-neutral-400" /> paying 1 XLM…</span>}
                         {s.status === "ok" && s.hash && (
-                          <a href={txUrl(s.hash)} target="_blank" rel="noreferrer" className="text-xs text-emerald-400 hover:underline">paid 1 XLM ✓ {short(s.hash)} ↗</a>
+                          <a href={txUrl(s.hash)} target="_blank" rel="noreferrer" className="text-xs text-neutral-400 hover:underline">paid 1 XLM ✓ {short(s.hash)} ↗</a>
                         )}
                         {s.status === "blocked" && <span className="text-xs font-semibold text-red-300">⛔ blocked · {s.blockReason}</span>}
                       </div>
-                      <div className="mt-0.5 text-xs text-emerald-100/55">{s.reason}</div>
+                      <div className="mt-0.5 text-xs text-neutral-100/55">{s.reason}</div>
                       {s.findings && (
-                        <div className="mt-2.5 whitespace-pre-wrap rounded-lg border border-white/10 bg-black/25 p-2.5 font-mono text-[11px] leading-relaxed text-emerald-100/75">{s.findings}</div>
+                        <div className="mt-2.5 whitespace-pre-wrap rounded-lg border border-white/10 bg-black/25 p-2.5 font-mono text-[11px] leading-relaxed text-neutral-100/75">{s.findings}</div>
                       )}
                     </div>
                   </div>
@@ -390,12 +390,12 @@ export default function ResearchPage() {
               );
             })}
             {running && (
-              <div className="flex items-center gap-2 px-1 text-xs text-emerald-100/40">
-                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" /> agent working…
+              <div className="flex items-center gap-2 px-1 text-xs text-neutral-100/40">
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-neutral-400" /> agent working…
               </div>
             )}
             {done && !running && (
-              <div className="px-1 text-xs text-emerald-100/40">Run complete · {spent} of {BUDGET} sources purchased on-chain.</div>
+              <div className="px-1 text-xs text-neutral-100/40">Run complete · {spent} of {BUDGET} sources purchased on-chain.</div>
             )}
           </motion.div>
         )}
@@ -408,29 +408,29 @@ export default function ResearchPage() {
             <span className="flex gap-1.5" aria-hidden>
               <span className="h-2.5 w-2.5 rounded-full bg-red-400/70" />
               <span className="h-2.5 w-2.5 rounded-full bg-amber-400/70" />
-              <span className="h-2.5 w-2.5 rounded-full bg-emerald-400/70" />
+              <span className="h-2.5 w-2.5 rounded-full bg-neutral-400/70" />
             </span>
             <span className="ml-1.5 flex items-center gap-2">
-              <span className={`h-2 w-2 rounded-full ${running ? "animate-pulse bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.9)]" : "bg-emerald-400/50"}`} />
+              <span className={`h-2 w-2 rounded-full ${running ? "animate-pulse bg-neutral-400 shadow-[0_0_8px_rgba(255,255,255,0.9)]" : "bg-neutral-400/50"}`} />
               On-chain activity
             </span>
           </div>
-          <span className="text-xs text-emerald-100/40">live · click any row to open the explorer</span>
+          <span className="text-xs text-neutral-100/40">live · click any row to open the explorer</span>
         </div>
         <div className="max-h-72 overflow-y-auto p-2 font-mono text-xs">
           {activity.length === 0 ? (
-            <div className="px-2 py-6 text-center text-emerald-100/35">Nothing yet — create a wallet, authorize the agent, and run a question to see real transactions stream in.</div>
+            <div className="px-2 py-6 text-center text-neutral-100/35">Nothing yet — create a wallet, authorize the agent, and run a question to see real transactions stream in.</div>
           ) : (
             <AnimatePresence initial={false}>
               {activity.map((a) => {
                 const href = a.hash ? txUrl(a.hash) : a.account ? accountUrl(a.account) : undefined;
-                const dot = a.status === "ok" ? "bg-emerald-400" : a.status === "blocked" ? "bg-red-400" : "bg-sky-400";
+                const dot = a.status === "ok" ? "bg-neutral-400" : a.status === "blocked" ? "bg-red-400" : "bg-neutral-400";
                 const Row = (
                   <div className="flex items-center gap-2.5 rounded-lg px-2 py-1.5 hover:bg-white/[0.04]">
                     <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${dot}`} />
-                    <span className="min-w-0 flex-1 truncate text-emerald-100/80">{a.label}</span>
-                    {a.hash && <span className="shrink-0 text-emerald-400/80">{short(a.hash)} ↗</span>}
-                    {!a.hash && a.account && <span className="shrink-0 text-sky-300/80">acct ↗</span>}
+                    <span className="min-w-0 flex-1 truncate text-neutral-100/80">{a.label}</span>
+                    {a.hash && <span className="shrink-0 text-neutral-400/80">{short(a.hash)} ↗</span>}
+                    {!a.hash && a.account && <span className="shrink-0 text-neutral-300/80">acct ↗</span>}
                   </div>
                 );
                 return (
@@ -444,7 +444,7 @@ export default function ResearchPage() {
         </div>
       </section>
 
-      <footer className="mt-10 text-center text-xs leading-relaxed text-emerald-100/40">
+      <footer className="mt-10 text-center text-xs leading-relaxed text-neutral-100/40">
         Stellar testnet · the agent is an <code>LLM</code> · every source purchase routes through <code>MandateRegistry.execute_payment</code> · the contract rejects any purchase past the budget.
       </footer>
     </main>
@@ -456,7 +456,7 @@ function Btn({ children, onClick, disabled, ghost }: { children: React.ReactNode
     <motion.button whileTap={{ scale: 0.96 }} whileHover={disabled ? {} : { scale: 1.03, y: -1 }} onClick={onClick} disabled={disabled}
       className={ghost
         ? "rounded-xl border border-red-400/40 bg-red-400/[0.04] px-5 py-2.5 text-sm font-semibold text-red-300 transition hover:border-red-400/70 hover:bg-red-400/10 disabled:opacity-50"
-        : "rounded-xl bg-gradient-to-r from-emerald-400 to-teal-300 px-5 py-2.5 text-sm font-bold text-[#06241a] shadow-[0_8px_30px_-6px_rgba(52,211,153,0.6)] transition hover:shadow-[0_10px_42px_-4px_rgba(52,211,153,0.85)] disabled:opacity-40 disabled:shadow-none"}>
+        : "rounded-xl bg-gradient-to-r from-neutral-400 to-neutral-300 px-5 py-2.5 text-sm font-bold text-[#000000] shadow-[0_8px_30px_-6px_rgba(255,255,255,0.6)] transition hover:shadow-[0_10px_42px_-4px_rgba(255,255,255,0.85)] disabled:opacity-40 disabled:shadow-none"}>
       {children}
     </motion.button>
   );

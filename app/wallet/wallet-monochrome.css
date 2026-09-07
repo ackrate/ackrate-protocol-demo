@@ -6,7 +6,7 @@
   --text: #ededed;
   --muted: #888;
   --emerald: #fff;
-  --emerald-strong: #e5e5e5;
+  --neutral-strong: #e5e5e5;
   --cyan: #a3a3a3;
   background: #000;
   color: var(--text);
@@ -44,7 +44,7 @@
   background: rgba(0, 0, 0, 0.82);
 }
 
-.wallet-preview .brand span,
+.wallet-preview .brand .brand-letter,
 .wallet-preview .step.complete > span,
 .wallet-preview .active-banner > span,
 .wallet-preview .report-ready-notice > span,

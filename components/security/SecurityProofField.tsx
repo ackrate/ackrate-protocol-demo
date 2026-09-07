@@ -29,18 +29,18 @@ export default function SecurityProofField() {
 
         const core = new THREE.Mesh(
           new THREE.IcosahedronGeometry(1.35, 2),
-          new THREE.MeshBasicMaterial({ color: 0x34d399, wireframe: true, transparent: true, opacity: 0.32 }),
+          new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true, transparent: true, opacity: 0.28 }),
         );
         field.add(core);
 
         const shell = new THREE.LineSegments(
           new THREE.EdgesGeometry(new THREE.IcosahedronGeometry(2.15, 1)),
-          new THREE.LineBasicMaterial({ color: 0x5eead4, transparent: true, opacity: 0.16 }),
+          new THREE.LineBasicMaterial({ color: 0xd4d4d8, transparent: true, opacity: 0.14 }),
         );
         field.add(shell);
 
         const nodeGeometry = new THREE.SphereGeometry(0.075, 16, 16);
-        const nodeMaterial = new THREE.MeshBasicMaterial({ color: 0x6ee7b7 });
+        const nodeMaterial = new THREE.MeshBasicMaterial({ color: 0xe4e4e7 });
         const nodes: THREE.Mesh[] = [];
         for (let index = 0; index < 6; index += 1) {
           const angle = (index / 6) * Math.PI * 2;
@@ -56,7 +56,7 @@ export default function SecurityProofField() {
         linksGeometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
         field.add(new THREE.LineSegments(
           linksGeometry,
-          new THREE.LineBasicMaterial({ color: 0x34d399, transparent: true, opacity: 0.24 }),
+          new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.2 }),
         ));
 
         renderer = new WebGPURenderer({ antialias: true, alpha: true });

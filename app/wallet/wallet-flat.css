@@ -25,7 +25,7 @@ body:has(.wallet-flat)::before { content: none; }
   --text: #ededed;
   --muted: #a1a1a1;
   --emerald: #ededed;
-  --emerald-strong: #fff;
+  --neutral-strong: #fff;
   --cyan: #d4d4d4;
   min-height: 100svh;
   overflow: visible;
@@ -73,6 +73,7 @@ body:has(.wallet-flat)::before { content: none; }
   background: #000;
 }
 .wallet-preview.wallet-flow.wallet-flat .flow-brand { font-size: 13px; gap: 10px; }
+.wallet-preview.wallet-flow.wallet-flat .flow-brand .ackrate-solar-mark { margin: -5px -2px -5px -5px; }
 .wallet-preview.wallet-flow.wallet-flat .flow-brand-mark {
   display: grid;
   place-items: center;

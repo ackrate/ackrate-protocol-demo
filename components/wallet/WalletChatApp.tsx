@@ -52,6 +52,7 @@ import { allowanceTransactionIsFresh, canStartFreshWalletLimit, mandateCanAfford
 import { allowanceConflictsWithRegistration, confirmedRegistrationSequence } from "@/lib/wallet/allowance-sequence";
 import { nextWalletNotification, safeWalletError, type WalletNotification } from "@/lib/wallet/notifications";
 import { assertRegistrationMandate, readRegistrationConfirmation, registrationNeedsReconciliation, type PendingRegistration, type RegistrationState } from "../../lib/wallet/registration-recovery";
+import AckrateSolarMark from "../AckrateSolarMark";
 
 type Phase = "idle" | "authenticating" | "adding-asset" | "registering" | "approving" | "active" | "revoking";
 
@@ -1227,7 +1228,7 @@ export function WalletChatApp() {
       <main className="wallet-preview app-frame">
         <div className="aurora" aria-hidden />
         <header className="topbar">
-          <Link href="/" className="brand"><span>R</span> ACKRATE</Link>
+          <Link href="/" className="brand" aria-label="ACKRATE home"><AckrateSolarMark size={40} /> ACKRATE</Link>
           <div className="topbar-center"><span className="pulse-dot" /> Wallet & payments</div>
           <div className="topbar-actions">
             <Link href="/wallet/diagnostics" className="nav-link">Diagnostics</Link>
@@ -1474,7 +1475,7 @@ export function WalletChatApp() {
   return (
     <main className={`wallet-preview wallet-flow wallet-flat${resultVisible ? " wallet-result-mode" : ""}`}>
       <header className="flow-header">
-        <Link href="/" className="flow-brand"><span className="flow-brand-mark"><ShieldCheck size={19} aria-hidden="true" /></span><strong>ACKRATE</strong></Link>
+        <Link href="/" className="flow-brand" aria-label="ACKRATE home"><AckrateSolarMark size={42} /><strong>ACKRATE</strong></Link>
         <div className="flow-network"><span />{config?.networkLabel ?? "Loading Mainnet"}</div>
         <div className="flow-header-actions">
           {(connected || walletAddress) && (

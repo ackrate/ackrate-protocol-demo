@@ -164,7 +164,7 @@ export default function SecurityEvidenceClient() {
     <main className="mx-auto w-full max-w-6xl px-4 pb-16 pt-12 sm:px-6 lg:pt-20">
       {/* Production deployment marker for the Mainnet V2 evidence surface. */}
       <header className="max-w-3xl">
-        <p className="text-xs font-bold uppercase tracking-[0.16em] text-emerald-300">MandateRegistry V2 · Stellar Mainnet</p>
+        <p className="text-xs font-bold uppercase tracking-[0.16em] text-neutral-300">MandateRegistry V2 · Stellar Mainnet</p>
         <h1 className="mt-4 text-4xl font-black tracking-[-0.04em] text-white sm:text-6xl">Four checks. Direct evidence.</h1>
         <p className="mt-5 text-base leading-7 text-white/55 sm:text-lg">
           Open a card to replay its recorded result, inspect the exact command, and follow the proof to the contract or source code.
@@ -178,16 +178,16 @@ export default function SecurityEvidenceClient() {
           const running = runningId === card.id;
           const shown = running ? visibleSteps : card.steps.length;
           return (
-            <article className={`overflow-hidden rounded-2xl border ${open ? "border-emerald-300/30 bg-emerald-300/[0.045]" : "border-white/10 bg-white/[0.02]"}`} key={card.id}>
+            <article className={`overflow-hidden rounded-2xl border ${open ? "border-neutral-300/30 bg-neutral-300/[0.045]" : "border-white/10 bg-white/[0.02]"}`} key={card.id}>
               <button
                 type="button"
                 onClick={() => setOpenId(open ? "" : card.id)}
                 className="flex w-full items-start gap-4 p-5 text-left sm:p-6"
                 aria-expanded={open}
               >
-                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-emerald-300/20 bg-emerald-300/10 text-emerald-200"><Icon className="h-5 w-5" /></span>
+                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-neutral-300/20 bg-neutral-300/10 text-neutral-200"><Icon className="h-5 w-5" /></span>
                 <span className="min-w-0 flex-1">
-                  <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-emerald-300">{card.result}</span>
+                  <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-neutral-300">{card.result}</span>
                   <strong className="mt-1 block text-lg text-white">{card.label}</strong>
                   <span className="mt-2 block text-sm leading-6 text-white/50">{card.summary}</span>
                 </span>
@@ -202,17 +202,17 @@ export default function SecurityEvidenceClient() {
                       {running ? "Replaying…" : "Replay check"}
                     </button>
                   </div>
-                  <pre className="mt-3 overflow-x-auto rounded-lg bg-black/35 p-3 text-xs leading-5 text-emerald-100/70"><code>{card.command}</code></pre>
+                  <pre className="mt-3 overflow-x-auto rounded-lg bg-black/35 p-3 text-xs leading-5 text-neutral-100/70"><code>{card.command}</code></pre>
                   <ol className="mt-4 space-y-2" aria-live="polite">
                     {card.steps.slice(0, shown).map((step) => (
-                      <li className="flex gap-2 text-sm leading-5 text-white/65" key={step}><Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" />{step}</li>
+                      <li className="flex gap-2 text-sm leading-5 text-white/65" key={step}><Check className="mt-0.5 h-4 w-4 shrink-0 text-neutral-300" />{step}</li>
                     ))}
                   </ol>
                   <p className="mt-5 text-sm leading-6 text-white/60"><strong className="text-white/85">Proves:</strong> {card.proves}</p>
                   <p className="mt-2 text-xs leading-5 text-amber-100/55"><strong className="text-amber-100/75">Boundary:</strong> {card.boundary}</p>
                   <div className="mt-5 flex flex-wrap gap-x-4 gap-y-2">
                     {card.links.map((link) => (
-                      <a className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-300 hover:text-emerald-200" href={link.href} target="_blank" rel="noreferrer" key={link.href}>
+                      <a className="inline-flex items-center gap-1.5 text-xs font-bold text-neutral-300 hover:text-neutral-200" href={link.href} target="_blank" rel="noreferrer" key={link.href}>
                         {link.label} <ArrowUpRight className="h-3.5 w-3.5" />
                       </a>
                     ))}
@@ -226,7 +226,7 @@ export default function SecurityEvidenceClient() {
 
       <footer className="mt-10 border-t border-white/10 pt-6 text-sm leading-6 text-white/45">
         <p>
-          Contract <a className="break-all font-mono text-emerald-300 hover:text-emerald-200" href={EXPLORER} target="_blank" rel="noreferrer">{CONTRACT}</a><br />
+          Contract <a className="break-all font-mono text-neutral-300 hover:text-neutral-200" href={EXPLORER} target="_blank" rel="noreferrer">{CONTRACT}</a><br />
           Reviewed WASM <span className="break-all font-mono text-white/65">{WASM_HASH}</span>
         </p>
         <p className="mt-4 max-w-3xl">
@@ -235,7 +235,7 @@ export default function SecurityEvidenceClient() {
         <p className="mt-3 max-w-3xl">
           Source-to-chain proof is separate from an explorer verification badge. The linked source-verification record documents the explorer intake issue and the independently matching build and on-chain hashes.
         </p>
-        <a className="mt-4 inline-flex items-center gap-1.5 font-bold text-emerald-300 hover:text-emerald-200" href={REPORT} target="_blank" rel="noreferrer">Read the concise verification record <ArrowUpRight className="h-4 w-4" /></a>
+        <a className="mt-4 inline-flex items-center gap-1.5 font-bold text-neutral-300 hover:text-neutral-200" href={REPORT} target="_blank" rel="noreferrer">Read the concise verification record <ArrowUpRight className="h-4 w-4" /></a>
       </footer>
     </main>
   );

@@ -135,15 +135,15 @@ export default function CliPage() {
     <main className="relative mx-auto w-full max-w-6xl px-4 py-8 sm:px-5">
       <section className="grid min-w-0 gap-8 py-6 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:items-start">
         <motion.div {...fade()} className="flex min-w-0 flex-col justify-center">
-          <div className="inline-flex w-fit items-center gap-2 rounded-full border border-emerald-300/20 bg-emerald-400/10 px-3.5 py-1.5 text-[11px] font-semibold tracking-[0.18em] text-emerald-200">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 shadow-[0_0_10px_rgba(110,231,183,0.95)]" />
+          <div className="inline-flex w-fit items-center gap-2 rounded-full border border-neutral-300/20 bg-neutral-400/10 px-3.5 py-1.5 text-[11px] font-semibold tracking-[0.18em] text-neutral-200">
+            <span className="h-1.5 w-1.5 rounded-full bg-neutral-300 shadow-[0_0_10px_rgba(255,255,255,0.95)]" />
             MAINNET CLI
           </div>
           <h1 className="mt-5 max-w-3xl text-4xl font-black leading-[1.02] tracking-tight sm:text-6xl">
             Run the Mainnet CLI.
           </h1>
-          <p className="mt-5 max-w-2xl text-base leading-relaxed text-emerald-100/70 sm:text-lg">
-            <code className="rounded bg-black/30 px-1.5 py-0.5 font-mono text-sm text-emerald-100">{PACKAGE}</code>
+          <p className="mt-5 max-w-2xl text-base leading-relaxed text-neutral-100/70 sm:text-lg">
+            <code className="rounded bg-black/30 px-1.5 py-0.5 font-mono text-sm text-neutral-100">{PACKAGE}</code>
             {" "}runs the consumer and fulfillment agents against the official Stellar Mainnet contract and Circle USDC.
             Connect Freighter, approve test funding, then start your own Mainnet run. Follow each step and inspect your own results and receipts.
           </p>
@@ -151,11 +151,11 @@ export default function CliPage() {
           <div className="mt-5 grid grid-cols-2 gap-2.5">
             {PROOF.map(({ label, value, Icon }) => (
               <div key={label} className="rounded-lg border border-white/10 bg-black/20 px-3 py-2.5">
-                <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.14em] text-emerald-300/60">
+                <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.14em] text-neutral-300/60">
                   <Icon className="h-3 w-3" aria-hidden />
                   {label}
                 </div>
-                <div className="mt-1.5 font-mono text-xs text-emerald-50">{value}</div>
+                <div className="mt-1.5 font-mono text-xs text-neutral-50">{value}</div>
               </div>
             ))}
           </div>
@@ -165,7 +165,7 @@ export default function CliPage() {
               href="https://www.npmjs.com/package/@ackrate/cli"
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-2 rounded-xl border border-white/15 px-4 py-2.5 text-sm font-semibold text-emerald-100/80 transition hover:border-emerald-400/40 hover:text-emerald-100"
+              className="inline-flex items-center gap-2 rounded-xl border border-white/15 px-4 py-2.5 text-sm font-semibold text-neutral-100/80 transition hover:border-neutral-400/40 hover:text-neutral-100"
             >
               npm package
               <ExternalLink className="h-4 w-4" aria-hidden />
@@ -185,8 +185,8 @@ export default function CliPage() {
               "Every spend routes through MandateRegistry.execute_payment.",
               "The demo intentionally spends until the contract blocks the next purchase.",
             ].map((text) => (
-              <div key={text} className="flex gap-3 text-sm leading-relaxed text-emerald-100/70">
-                <CheckCircle2 className="mt-0.5 h-4 w-4 flex-none text-emerald-300" aria-hidden />
+              <div key={text} className="flex gap-3 text-sm leading-relaxed text-neutral-100/70">
+                <CheckCircle2 className="mt-0.5 h-4 w-4 flex-none text-neutral-300" aria-hidden />
                 <span>{text}</span>
               </div>
             ))}
@@ -208,7 +208,7 @@ export default function CliPage() {
                 type="button"
                 onClick={() => void run(q.cmd)}
                 disabled={running || !ready}
-                className="inline-flex items-center gap-1.5 rounded-md border border-emerald-400/20 bg-emerald-500/10 px-3 py-1.5 font-mono text-[12px] text-emerald-200 transition hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-40"
+                className="inline-flex items-center gap-1.5 rounded-md border border-neutral-400/20 bg-neutral-500/10 px-3 py-1.5 font-mono text-[12px] text-neutral-200 transition hover:bg-neutral-500/20 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 <Terminal className="h-3.5 w-3.5" aria-hidden />
                 Show {q.label}
@@ -216,19 +216,19 @@ export default function CliPage() {
             ))}
           </div>
 
-          <div className="mt-4 overflow-hidden rounded-xl border border-emerald-400/20 bg-black shadow-[0_0_44px_rgba(16,185,129,0.14)]">
-            <div className="flex items-center gap-2 border-b border-emerald-400/10 px-4 py-2 font-mono text-[12px] text-emerald-300/70">
+          <div className="mt-4 overflow-hidden rounded-xl border border-neutral-400/20 bg-black shadow-[0_0_44px_rgba(255,255,255,0.14)]">
+            <div className="flex items-center gap-2 border-b border-neutral-400/10 px-4 py-2 font-mono text-[12px] text-neutral-300/70">
               <span className="h-3 w-3 rounded-full bg-red-400/70" />
               <span className="h-3 w-3 rounded-full bg-amber-400/70" />
-              <span className="h-3 w-3 rounded-full bg-emerald-400/70" />
+              <span className="h-3 w-3 rounded-full bg-neutral-400/70" />
               <span className="ml-2">@ackrate/cli {VERSION} · {running ? "inspecting" : ready ? "ready" : "loading"}</span>
             </div>
             <div ref={hostRef} className="h-[320px] w-full px-3 py-2" />
           </div>
 
-          <div className="mt-3 flex flex-col gap-2 px-1 text-xs text-emerald-50/50 sm:flex-row sm:items-center sm:justify-between">
+          <div className="mt-3 flex flex-col gap-2 px-1 text-xs text-neutral-50/50 sm:flex-row sm:items-center sm:justify-between">
             <span>Payment success requires confirmed receipts and delivered results.</span>
-            <a className="inline-flex items-center gap-1 text-emerald-400 underline underline-offset-2 hover:text-emerald-300" href={`https://stellar.expert/explorer/public/contract/${CONTRACT}`} target="_blank" rel="noreferrer">
+            <a className="inline-flex items-center gap-1 text-neutral-400 underline underline-offset-2 hover:text-neutral-300" href={`https://stellar.expert/explorer/public/contract/${CONTRACT}`} target="_blank" rel="noreferrer">
               Contract {CONTRACT.slice(0, 6)}...{CONTRACT.slice(-4)}
               <ArrowRight className="h-3.5 w-3.5" aria-hidden />
             </a>
@@ -237,25 +237,25 @@ export default function CliPage() {
 
       <motion.section {...fade(0.16)} className="grid gap-4 pb-12 lg:grid-cols-[0.9fr_1.1fr]">
         <div className="rounded-xl border border-white/10 bg-black/25 p-5">
-          <div className="flex items-center gap-2 text-sm font-semibold text-emerald-100">
-            <WalletCards className="h-4 w-4 text-emerald-300" aria-hidden />
+          <div className="flex items-center gap-2 text-sm font-semibold text-neutral-100">
+            <WalletCards className="h-4 w-4 text-neutral-300" aria-hidden />
             Published install commands
           </div>
           <Code>{INSTALL}</Code>
         </div>
         <div className="rounded-xl border border-white/10 bg-black/25 p-5">
-          <div className="flex items-center gap-2 text-sm font-semibold text-emerald-100">
-            <ShieldCheck className="h-4 w-4 text-emerald-300" aria-hidden />
+          <div className="flex items-center gap-2 text-sm font-semibold text-neutral-100">
+            <ShieldCheck className="h-4 w-4 text-neutral-300" aria-hidden />
             Commands
           </div>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             {COMMANDS.map(({ name, desc, Icon }) => (
               <div key={name} className="rounded-lg border border-white/10 bg-black/30 p-3">
                 <div className="flex items-center gap-2">
-                  <Icon className="h-4 w-4 text-emerald-300" aria-hidden />
-                  <code className="text-xs text-emerald-300">ackrate {name}</code>
+                  <Icon className="h-4 w-4 text-neutral-300" aria-hidden />
+                  <code className="text-xs text-neutral-300">ackrate {name}</code>
                 </div>
-                <p className="mt-2 text-xs leading-relaxed text-emerald-100/60">{desc}</p>
+                <p className="mt-2 text-xs leading-relaxed text-neutral-100/60">{desc}</p>
               </div>
             ))}
           </div>
@@ -267,7 +267,7 @@ export default function CliPage() {
 
 function Code({ children }: { children: string }) {
   return (
-    <pre className="mt-4 overflow-x-auto rounded-xl border border-white/10 bg-black/35 p-4 text-xs leading-relaxed text-emerald-100/90">
+    <pre className="mt-4 overflow-x-auto rounded-xl border border-white/10 bg-black/35 p-4 text-xs leading-relaxed text-neutral-100/90">
       <code>{children}</code>
     </pre>
   );

@@ -107,9 +107,9 @@ export default function Page() {
       >
         <motion.div
           variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }}
-          className="inline-flex items-center gap-2 rounded-full glass px-3.5 py-1.5 text-[11px] font-semibold tracking-[0.18em] text-emerald-300/90"
+          className="inline-flex items-center gap-2 rounded-full glass px-3.5 py-1.5 text-[11px] font-semibold tracking-[0.18em] text-neutral-300/90"
         >
-          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.9)]" />
+          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-neutral-400 shadow-[0_0_10px_rgba(255,255,255,0.9)]" />
           STELLAR TESTNET · @ackrate/core 0.3.1
         </motion.div>
         <motion.h1
@@ -118,23 +118,23 @@ export default function Page() {
           className="mt-5 text-4xl font-black leading-[1.04] tracking-tight sm:text-6xl"
         >
           Video, paid by your{" "}
-          <span className="bg-gradient-to-r from-emerald-300 via-teal-200 to-emerald-400 bg-clip-text text-transparent drop-shadow-[0_0_34px_rgba(52,211,153,0.28)]">
+          <span className="bg-gradient-to-r from-neutral-300 via-neutral-200 to-neutral-400 bg-clip-text text-transparent drop-shadow-[0_0_34px_rgba(255,255,255,0.28)]">
             AI agent
           </span>
           , capped on-chain.
         </motion.h1>
         <motion.p
           variants={{ hidden: { opacity: 0, y: 14 }, show: { opacity: 1, y: 0 } }}
-          className="mt-5 max-w-2xl text-base leading-relaxed text-emerald-100/70 sm:text-lg"
+          className="mt-5 max-w-2xl text-base leading-relaxed text-neutral-100/70 sm:text-lg"
         >
-          Give an agent a <b className="text-emerald-200">{BUDGET} XLM</b> budget and let it pay-per-play. Every unlock is a
-          real Stellar payment, and the <b className="text-emerald-200">MandateRegistry</b> contract enforces the cap. After{" "}
-          {BUDGET} videos it <b className="text-emerald-200">blocks</b> the next payment, and you can{" "}
-          <b className="text-emerald-200">revoke</b> anytime.
+          Give an agent a <b className="text-neutral-200">{BUDGET} XLM</b> budget and let it pay-per-play. Every unlock is a
+          real Stellar payment, and the <b className="text-neutral-200">MandateRegistry</b> contract enforces the cap. After{" "}
+          {BUDGET} videos it <b className="text-neutral-200">blocks</b> the next payment, and you can{" "}
+          <b className="text-neutral-200">revoke</b> anytime.
         </motion.p>
         <motion.div variants={{ hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0 } }} className="mt-6 flex flex-wrap gap-2.5 text-xs">
           {["Enforced on-chain", "SDK can't overspend", "Testnet payments", "Revocable anytime"].map((t) => (
-            <span key={t} className="rounded-full border border-emerald-400/20 bg-emerald-400/[0.06] px-3 py-1 text-emerald-200/80">
+            <span key={t} className="rounded-full border border-neutral-400/20 bg-neutral-400/[0.06] px-3 py-1 text-neutral-200/80">
               {t}
             </span>
           ))}
@@ -144,8 +144,8 @@ export default function Page() {
       <AnimatePresence>
         {busy && (
           <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}
-            className="mb-4 flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-2.5 text-sm text-emerald-200">
-            <span className="h-2 w-2 animate-ping rounded-full bg-emerald-400" /> {busy}
+            className="mb-4 flex items-center gap-2 rounded-xl border border-neutral-500/30 bg-neutral-500/10 px-4 py-2.5 text-sm text-neutral-200">
+            <span className="h-2 w-2 animate-ping rounded-full bg-neutral-400" /> {busy}
           </motion.div>
         )}
       </AnimatePresence>
@@ -161,15 +161,15 @@ export default function Page() {
         )}
         {wallet && (
           <div className="flex flex-wrap items-center gap-2">
-            <a href={accountUrl(wallet.agentPublic)} target="_blank" rel="noreferrer" className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-sm text-emerald-100/75 hover:border-emerald-400/30">
-              Agent <code className="text-emerald-300">{short(wallet.agentPublic)}</code> ↗
+            <a href={accountUrl(wallet.agentPublic)} target="_blank" rel="noreferrer" className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-sm text-neutral-100/75 hover:border-neutral-400/30">
+              Agent <code className="text-neutral-300">{short(wallet.agentPublic)}</code> ↗
             </a>
-            <a href={contractUrl(wallet.contractId)} target="_blank" rel="noreferrer" className="rounded-full border border-emerald-400/30 bg-emerald-400/10 px-3 py-1.5 text-sm text-emerald-300 transition hover:bg-emerald-400/20">
+            <a href={contractUrl(wallet.contractId)} target="_blank" rel="noreferrer" className="rounded-full border border-neutral-400/30 bg-neutral-400/10 px-3 py-1.5 text-sm text-neutral-300 transition hover:bg-neutral-400/20">
               Contract <code>{short(wallet.contractId)}</code> ↗
             </a>
             {bal && (
-              <a href={accountUrl(wallet.merchantPublic)} target="_blank" rel="noreferrer" className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-sm text-emerald-100/75 hover:border-emerald-400/30">
-                Creator earned <b className="text-emerald-300">{Math.max(0, bal.merchant - 10000).toFixed(0)} XLM</b> ↗
+              <a href={accountUrl(wallet.merchantPublic)} target="_blank" rel="noreferrer" className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-sm text-neutral-100/75 hover:border-neutral-400/30">
+                Creator earned <b className="text-neutral-300">{Math.max(0, bal.merchant - 10000).toFixed(0)} XLM</b> ↗
               </a>
             )}
           </div>
@@ -180,9 +180,9 @@ export default function Page() {
         {mandateId && (
           <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="mb-7">
             <div className="h-2.5 w-full max-w-md overflow-hidden rounded-full bg-black/40 ring-1 ring-white/10">
-              <motion.div className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-teal-300" animate={{ width: `${pct}%` }} transition={{ type: "spring", stiffness: 120, damping: 20 }} />
+              <motion.div className="h-full rounded-full bg-gradient-to-r from-neutral-400 to-neutral-300" animate={{ width: `${pct}%` }} transition={{ type: "spring", stiffness: 120, damping: 20 }} />
             </div>
-            <div className="mt-1.5 text-xs text-emerald-100/60">{spent} / {BUDGET} XLM spent · mandate <code>{short(mandateId)}</code></div>
+            <div className="mt-1.5 text-xs text-neutral-100/60">{spent} / {BUDGET} XLM spent · mandate <code>{short(mandateId)}</code></div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -201,7 +201,7 @@ export default function Page() {
               variants={{ hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } }}
               whileHover={{ y: -5 }}
               transition={{ type: "spring", stiffness: 300, damping: 24 }}
-              className="group relative overflow-hidden rounded-2xl glass sheen shadow-[0_10px_40px_-12px_rgba(0,0,0,0.6)] transition-shadow hover:shadow-[0_22px_60px_-16px_rgba(52,211,153,0.28)]"
+              className="group relative overflow-hidden rounded-2xl glass sheen shadow-[0_10px_40px_-12px_rgba(0,0,0,0.6)] transition-shadow hover:shadow-[0_22px_60px_-16px_rgba(255,255,255,0.28)]"
             >
               <div className="relative aspect-video w-full overflow-hidden bg-black">
                 {hash ? (
@@ -218,7 +218,7 @@ export default function Page() {
                         </motion.div>
                       ) : (
                         <motion.button whileTap={{ scale: 0.94 }} whileHover={{ scale: 1.04 }} onClick={() => playVideo(v)} disabled={!mandateId || !!busy}
-                          className="flex items-center gap-2 rounded-full bg-emerald-400/95 px-4 py-2 text-sm font-bold text-[#06241a] shadow-lg shadow-emerald-500/30 disabled:opacity-40">
+                          className="flex items-center gap-2 rounded-full bg-neutral-400/95 px-4 py-2 text-sm font-bold text-[#000000] shadow-lg shadow-neutral-500/30 disabled:opacity-40">
                           ▶ Unlock · {PRICE} XLM
                         </motion.button>
                       )}
@@ -228,9 +228,9 @@ export default function Page() {
               </div>
               <div className="p-3.5">
                 <div className="truncate font-semibold">{v.title}</div>
-                <div className="mt-0.5 flex items-center justify-between gap-2 text-xs text-emerald-100/55">
+                <div className="mt-0.5 flex items-center justify-between gap-2 text-xs text-neutral-100/55">
                   <span>{v.channel}</span>
-                  {hash && <a href={txUrl(hash)} target="_blank" rel="noreferrer" className="text-emerald-400 hover:underline">paid ✓</a>}
+                  {hash && <a href={txUrl(hash)} target="_blank" rel="noreferrer" className="text-neutral-400 hover:underline">paid ✓</a>}
                 </div>
               </div>
             </motion.div>
@@ -245,29 +245,29 @@ export default function Page() {
             <span className="flex gap-1.5" aria-hidden>
               <span className="h-2.5 w-2.5 rounded-full bg-red-400/70" />
               <span className="h-2.5 w-2.5 rounded-full bg-amber-400/70" />
-              <span className="h-2.5 w-2.5 rounded-full bg-emerald-400/70" />
+              <span className="h-2.5 w-2.5 rounded-full bg-neutral-400/70" />
             </span>
             <span className="ml-1.5 flex items-center gap-2">
-              <span className={`h-2 w-2 rounded-full ${busy ? "animate-pulse bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.9)]" : "bg-emerald-400/50"}`} />
+              <span className={`h-2 w-2 rounded-full ${busy ? "animate-pulse bg-neutral-400 shadow-[0_0_8px_rgba(255,255,255,0.9)]" : "bg-neutral-400/50"}`} />
               On-chain activity
             </span>
           </div>
-          <span className="text-xs text-emerald-100/40">live · click any row to open the explorer</span>
+          <span className="text-xs text-neutral-100/40">live · click any row to open the explorer</span>
         </div>
         <div className="max-h-72 overflow-y-auto p-2 font-mono text-xs">
           {activity.length === 0 ? (
-            <div className="px-2 py-6 text-center text-emerald-100/35">Nothing yet — create a wallet and authorize the agent to see real transactions stream in.</div>
+            <div className="px-2 py-6 text-center text-neutral-100/35">Nothing yet — create a wallet and authorize the agent to see real transactions stream in.</div>
           ) : (
             <AnimatePresence initial={false}>
               {activity.map((a) => {
                 const href = a.hash ? txUrl(a.hash) : a.account ? accountUrl(a.account) : undefined;
-                const dot = a.status === "ok" ? "bg-emerald-400" : a.status === "blocked" ? "bg-red-400" : "bg-sky-400";
+                const dot = a.status === "ok" ? "bg-neutral-400" : a.status === "blocked" ? "bg-red-400" : "bg-neutral-400";
                 const Row = (
                   <div className="flex items-center gap-2.5 rounded-lg px-2 py-1.5 hover:bg-white/[0.04]">
                     <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${dot}`} />
-                    <span className="min-w-0 flex-1 truncate text-emerald-100/80">{a.label}</span>
-                    {a.hash && <span className="shrink-0 text-emerald-400/80">{short(a.hash)} ↗</span>}
-                    {!a.hash && a.account && <span className="shrink-0 text-sky-300/80">acct ↗</span>}
+                    <span className="min-w-0 flex-1 truncate text-neutral-100/80">{a.label}</span>
+                    {a.hash && <span className="shrink-0 text-neutral-400/80">{short(a.hash)} ↗</span>}
+                    {!a.hash && a.account && <span className="shrink-0 text-neutral-300/80">acct ↗</span>}
                   </div>
                 );
                 return (
@@ -281,7 +281,7 @@ export default function Page() {
         </div>
       </section>
 
-      <footer className="mt-10 text-center text-xs leading-relaxed text-emerald-100/40">
+      <footer className="mt-10 text-center text-xs leading-relaxed text-neutral-100/40">
         Stellar testnet · payments route through <code>MandateRegistry.execute_payment</code> · the contract rejects any payment past the mandate.
       </footer>
     </main>
@@ -293,7 +293,7 @@ function Btn({ children, onClick, disabled, ghost }: { children: React.ReactNode
     <motion.button whileTap={{ scale: 0.96 }} whileHover={disabled ? {} : { scale: 1.03, y: -1 }} onClick={onClick} disabled={disabled}
       className={ghost
         ? "rounded-xl border border-red-400/40 bg-red-400/[0.04] px-5 py-2.5 text-sm font-semibold text-red-300 transition hover:border-red-400/70 hover:bg-red-400/10 disabled:opacity-50"
-        : "rounded-xl bg-gradient-to-r from-emerald-400 to-teal-300 px-5 py-2.5 text-sm font-bold text-[#06241a] shadow-[0_8px_30px_-6px_rgba(52,211,153,0.6)] transition hover:shadow-[0_10px_42px_-4px_rgba(52,211,153,0.85)] disabled:opacity-40 disabled:shadow-none"}>
+        : "rounded-xl bg-gradient-to-r from-neutral-400 to-neutral-300 px-5 py-2.5 text-sm font-bold text-[#000000] shadow-[0_8px_30px_-6px_rgba(255,255,255,0.6)] transition hover:shadow-[0_10px_42px_-4px_rgba(255,255,255,0.85)] disabled:opacity-40 disabled:shadow-none"}>
       {children}
     </motion.button>
   );
