@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { Keypair } from "@stellar/stellar-sdk";
-import { CLI_TEST_SOURCE, CLI_TEST_VERSION, cleanCliLog, cliPaidArguments, cliPaidEnvironment, createCliEvidenceHeartbeat } from "../lib/cli-test-runner";
+import { CLI_TEST_SOURCE, CLI_TEST_VERSION, cleanCliLog, cliPaidArguments, cliPaidDirectory, cliPaidEnvironment, createCliEvidenceHeartbeat } from "../lib/cli-test-runner";
 
 test("paid command fixes Mainnet, three-cent budget, price and named generated identities", () => {
   const merchant = Keypair.random().publicKey();
@@ -35,6 +35,18 @@ test("logs strip terminal escape sequences and redact generated secret-key strin
   const key = Keypair.random().secret();
   assert.equal(cleanCliLog(`\x1b[32mhello\x1b[0m ${key}`), "hello [redacted key]");
   assert.equal(cleanCliLog("x".repeat(200_000)).length, 180_000);
+  assert.equal(cleanCliLog("Command failed: stellar tx sign AAAAabcd0123+/== --quiet"), "Command failed: stellar tx sign [transaction omitted] --quiet");
+});
+
+test("a proven pre-registration repair has a separate bounded directory and preserves the original journal", async () => {
+  const id = "9f54b4f8-554b-4e92-acfd-4dd25631cbcc";
+  const initial = cliPaidDirectory(id);
+  assert.equal(cliPaidDirectory(id, "preflight-repair-1"), `${initial}/preflight-repair-1`);
+  assert.throws(() => cliPaidDirectory("../elsewhere"));
+  assert.throws(() => cliPaidDirectory(id, "../elsewhere" as never));
+  const source = await readFile(new URL("../lib/cli-test-runner.ts", import.meta.url), "utf8");
+  assert.match(source, /initial\.logs/);
+  assert.doesNotMatch(source, /\b(?:rm|unlink|rmdir)\s*\(/);
 });
 
 test("signer runtime symlink uses a relative target", async () => {

@@ -22,7 +22,16 @@ export function cliPaidEnvironment(directory: string, secrets: { payer: string; 
 }
 
 export function cleanCliLog(value: string): string {
-  return value.replace(/\x1b\[[0-?]*[ -/]*[@-~]/g, "").replace(/S[A-Z2-7]{55}/g, "[redacted key]").slice(-180_000);
+  return value.replace(/\x1b\[[0-?]*[ -/]*[@-~]/g, "").replace(/S[A-Z2-7]{55}/g, "[redacted key]")
+    .replace(/(stellar tx sign )[A-Za-z0-9+/=]+/g, "$1[transaction omitted]").slice(-180_000);
+}
+
+export type CliPreflightRepair = "preflight-repair-1";
+export function cliPaidDirectory(id: string, attempt?: CliPreflightRepair): string {
+  if (!/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(id)
+    || (attempt !== undefined && attempt !== "preflight-repair-1")) throw new Error("Invalid CLI execution context");
+  const root = join(tmpdir(), "ackrate-cli-paid", id);
+  return attempt ? join(root, attempt) : root;
 }
 
 /** Stop starts a one-way drain: a delayed snapshot/store write must settle
@@ -73,23 +82,23 @@ async function receiptEvidence(directory: string): Promise<string> {
 
 /** The DB run claim precedes spawning. A browser disconnect never starts a
  * replacement process. Failed/interrupted rows cannot be reset by this API. */
-export function launchCliTest(store: CliTestStore, row: CliTestRow, token: string): void {
+export function launchCliTest(store: CliTestStore, row: CliTestRow, token: string, attempt?: CliPreflightRepair): void {
   if (runtime.__ackrateCliTests!.has(row.id)) return;
-  const job = execute(store, row, token).finally(() => runtime.__ackrateCliTests!.delete(row.id));
+  const job = execute(store, row, token, attempt).finally(() => runtime.__ackrateCliTests!.delete(row.id));
   runtime.__ackrateCliTests!.set(row.id, job);
   void job.catch(() => undefined);
 }
 
-async function execute(store: CliTestStore, initial: CliTestRow, token: string): Promise<void> {
+async function execute(store: CliTestStore, initial: CliTestRow, token: string, attempt?: CliPreflightRepair): Promise<void> {
   let row = initial;
-  let logs = `ACKRATE CLI ${CLI_TEST_VERSION} · source ${CLI_TEST_SOURCE}\nMainnet · three purchases at 0.01 USDC · maximum 0.03 USDC\n`;
+  let logs = cleanCliLog(`${initial.logs}\n${attempt ? "Pre-registration repair; original output retained above.\n" : ""}ACKRATE CLI ${CLI_TEST_VERSION} · source ${CLI_TEST_SOURCE}\nMainnet · three purchases at 0.01 USDC · maximum 0.03 USDC\n`);
   let queue = Promise.resolve();
   const save = (patch: CliTestPatch) => {
     queue = queue.then(async () => { row = await store.update(row.id, token, row.version, patch); });
     return queue;
   };
   try {
-    const directory = join(tmpdir(), "ackrate-cli-paid", row.id);
+    const directory = cliPaidDirectory(row.id, attempt);
     await mkdir(join(directory, "bin"), { recursive: true, mode: 0o700 });
     await chmod(directory, 0o700);
     // Narrow external-signing adapter, not the Stellar CLI executable.

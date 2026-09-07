@@ -4,9 +4,10 @@ import { createCipheriv, createDecipheriv, hkdfSync, randomBytes } from "node:cr
 import type { QueryResultRow } from "pg";
 import { Account, Keypair, StrKey } from "@stellar/stellar-sdk";
 import { CLI_TEST_BURNER_OWNER } from "../lib/cli-test-burner";
-import { CLI_BURNER_JOB_ID, createCliBurnerJobController, readCliBurnerSubmission, startCliBurnerJob, verifyCliBurnerRenewal, type CliBurnerJobDependencies } from "../lib/cli-test-burner-job";
+import { CLI_BURNER_JOB_ID, createCliBurnerJobController, readCliBurnerSubmission, startCliBurnerJob, verifyCliBurnerRenewal, verifyCliPreflightRepairProof, type CliBurnerJobDependencies } from "../lib/cli-test-burner-job";
 import { buildCliFunding } from "../lib/cli-test-transactions";
 import type { CliFundingExpiryProof } from "../lib/cli-test-funding-expiry";
+import type { CliUnstartedProof } from "../lib/cli-test-unstarted-proof";
 import type { CliTestRow, CliTestStore } from "../lib/cli-test-store";
 import type { PostgresQueryable } from "../lib/wallet/postgres";
 
@@ -436,5 +437,104 @@ test("cryptographic renewal permits only new time bounds with identical actors, 
   assert.throws(() => verifyCliBurnerRenewal(f.row, f.original.preparedXdr, f.renewed, f.proof, f.later), /signatures/);
   for (const patch of [{ originalHash: HASH }, { currentOwnerSequence: "100" }, { horizonClosedAt: f.original.expiresAt }, { rpcLedger: 99 }, { observedAt: f.later - 121 }, { payer: f.row.agent }]) {
     assert.throws(() => verifyCliBurnerRenewal(f.row, f.original.signedXdr, f.renewed, { ...f.proof, ...patch }, f.later));
+  }
+});
+
+const PREFLIGHT_LOG = "CLI test signer refuses transaction source, signatures, operations, fee, or time bounds";
+async function preflightFixture() {
+  const f = fixture(); f.setMode("running"); await f.controller().run();
+  const running = (await f.store.read(SESSION_ID, TOKEN))!;
+  const failed = await f.store.update(SESSION_ID, TOKEN, running.version, {
+    state: "failed", error: "synthetic local signer preflight refusal", logs: PREFLIGHT_LOG, finishedAt: NOW + 10,
+  });
+  await f.controller().run(); assert.equal(f.db.job?.state, "failed");
+  f.deps.now = () => NOW + 611;
+  const proof: CliUnstartedProof = { kind: "funded-unstarted", runId: SESSION_ID, fundingHash: HASH,
+    owner: failed.owner, payer: failed.payer, agent: failed.agent, merchant: failed.merchant, finishedAt: NOW + 10,
+    fundingLedger: 100, initialActorSequence: (100n << 32n).toString(), horizonLedger: 110,
+    horizonClosedAt: NOW + 611, rpcLedger: 111, observedAt: NOW + 611 };
+  let proofs = 0;
+  let recoveredMode: "success" | "running" = "success";
+  f.deps.proveUnstarted = async () => { proofs++; return proof; };
+  f.deps.prepare = async () => { throw new Error("preflight recovery must not prepare or fund"); };
+  f.deps.submit = async () => { throw new Error("preflight recovery must not submit funding"); };
+  const originalLaunch = f.deps.launch;
+  f.deps.launch = (row, token, attempt) => {
+    assert.equal(attempt, "preflight-repair-1"); assert.equal(row.id, failed.id); assert.equal(row.fundingHash, HASH);
+    assert.equal(row.owner, failed.owner); assert.equal(row.payer, failed.payer); assert.equal(row.agent, failed.agent); assert.equal(row.merchant, failed.merchant);
+    assert.ok(row.logs.includes(PREFLIGHT_LOG));
+    const marker = decodedCapability(f.db).preflightRepair as { prior: { logs: string; finishedAt: number }; proof: CliUnstartedProof };
+    assert.equal(marker.prior.logs, failed.logs); assert.equal(marker.prior.finishedAt, failed.finishedAt); assert.deepEqual(marker.proof, proof);
+    f.setMode(recoveredMode); originalLaunch(row, token, attempt);
+  };
+  return { ...f, failed, proof, proofs: () => proofs, setRecoveredMode: (mode: "success" | "running") => { recoveredMode = mode; } };
+}
+
+test("concurrent unstarted recovery launches once with original funding, actors, history, and isolated attempt", async () => {
+  const f = await preflightFixture(); const fundingHash = f.db.job!.funding_hash;
+  await Promise.all(Array.from({ length: 12 }, () => f.controller().run())); await f.controller().run();
+  assert.deepEqual(f.counters(), { creates: 1, submits: 1, launches: 2 });
+  assert.equal(f.db.job?.state, "succeeded"); assert.equal(f.db.job?.funding_hash, fundingHash); assert.equal(f.db.job?.session_id, SESSION_ID);
+  const capability = decodedCapability(f.db);
+  assert.equal(capability.token, TOKEN); assert.equal(capability.signedFundingXdr, "synthetic-owner-signed-envelope");
+  assert.ok(capability.preflightRepair);
+  const before = f.counters(); await f.controller().status(); assert.deepEqual(f.counters(), before);
+});
+
+test("no unstarted recovery before the prior signing window expires", async () => {
+  const f = await preflightFixture(); f.deps.now = () => NOW + 610;
+  const retained = structuredClone(f.db.job); await f.controller().run();
+  assert.deepEqual(f.db.job, retained); assert.equal(f.proofs(), 0);
+  assert.deepEqual(f.counters(), { creates: 1, submits: 1, launches: 1 });
+});
+
+test("rejected chain proof preserves failed state with no funding or second launch", async () => {
+  const f = await preflightFixture(); const retained = structuredClone(f.db.job);
+  f.deps.proveUnstarted = async () => { throw new Error("actor sequence advanced or chain evidence uncertain"); };
+  await f.controller().run();
+  assert.deepEqual(f.db.job, retained); assert.deepEqual(f.counters(), { creates: 1, submits: 1, launches: 1 });
+});
+
+test("ordinary paid failures cannot enter the narrowly allowed signer preflight recovery", async () => {
+  for (const logs of ["unknown CLI failure", `${PREFLIGHT_LOG}\nmandate and contract allowance confirmed`, `${PREFLIGHT_LOG}\nSaved reference-agent evidence`]) {
+    const f = await preflightFixture(); const current = (await f.store.read(SESSION_ID, TOKEN))!;
+    await f.store.update(SESSION_ID, TOKEN, current.version, { logs });
+    await f.controller().run(); assert.equal(f.proofs(), 0);
+    assert.deepEqual(f.counters(), { creates: 1, submits: 1, launches: 1 });
+  }
+});
+
+test("preflight recovery marker survives interruption without a restart launch", async () => {
+  const f = await preflightFixture(); f.db.throwAfterState = "funded";
+  await f.controller().run(); assert.equal(f.db.job?.state, "funded"); assert.ok(decodedCapability(f.db).preflightRepair);
+  await f.controller().run(); assert.deepEqual(f.counters(), { creates: 1, submits: 1, launches: 1 });
+});
+
+test("a second preflight failure cannot receive another recovery", async () => {
+  const f = await preflightFixture(); const launch = f.deps.launch;
+  f.setRecoveredMode("running");
+  f.deps.launch = (row, token, attempt) => {
+    launch(row, token, attempt);
+    // Simulate the repaired child also failing, after its launch count advanced.
+    void f.store.update(row.id, token, row.version, {
+      state: "failed", logs: PREFLIGHT_LOG, finishedAt: NOW + 620,
+    });
+  };
+  await f.controller().run();
+  // Allow the synthetic child final save to settle before a later deployment.
+  await new Promise((resolve) => setImmediate(resolve));
+  f.deps.now = () => NOW + 1300;
+  await f.controller().run(); await f.controller().run();
+  assert.equal(f.db.job?.state, "failed");
+  assert.deepEqual(f.counters(), { creates: 1, submits: 1, launches: 2 });
+  assert.ok(decodedCapability(f.db).preflightRepair);
+});
+
+test("preflight proof binding rejects changed identity, funding hash, sequence, cutoff, and stale evidence", async () => {
+  const f = await preflightFixture();
+  assert.doesNotThrow(() => verifyCliPreflightRepairProof(f.failed, f.proof, NOW + 611));
+  for (const patch of [{ runId: "another-run" }, { fundingHash: RENEWED_HASH }, { payer: f.failed.agent }, { finishedAt: NOW + 9 },
+    { initialActorSequence: ((100n << 32n) + 1n).toString() }, { horizonClosedAt: NOW + 610 }, { rpcLedger: 109 }, { observedAt: NOW + 490 }]) {
+    assert.throws(() => verifyCliPreflightRepairProof(f.failed, { ...f.proof, ...patch }, NOW + 611));
   }
 });

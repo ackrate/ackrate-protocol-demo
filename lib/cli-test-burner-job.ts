@@ -9,6 +9,7 @@ import { CLI_TEST_SOURCE, CLI_TEST_VERSION, launchCliTest } from "./cli-test-run
 import { createCliTestStore, type CliTestRow, type CliTestStore } from "./cli-test-store";
 import { buildCliFunding, CLI_MAINNET_HORIZON, CLI_MAINNET_PASSPHRASE, verifyCliFundingSigned } from "./cli-test-transactions";
 import { proveCliFundingExpiredUnused, type CliFundingExpiryProof } from "./cli-test-funding-expiry";
+import { proveCliTestUnstarted, type CliUnstartedProof } from "./cli-test-unstarted-proof";
 import { createPostgresClient, type PostgresQueryable } from "./wallet/postgres";
 import { boundedResponseJson } from "./wallet/http";
 
@@ -22,6 +23,7 @@ interface Job extends QueryResultRow {
 interface Capability {
   sessionId: string; token: string; signedFundingXdr?: string; submitAttempts?: number;
   renewal?: { version: 1; original: CliBurnerFunding & { submitAttempts: number }; proof: CliFundingExpiryProof };
+  preflightRepair?: { version: 1; prior: { logs: string; error?: string; startedAt?: number; finishedAt: number }; proof: CliUnstartedProof };
 }
 export interface CliBurnerFunding { preparedXdr: string; signedXdr: string; hash: string; expiresAt: number }
 export interface CliBurnerSubmission { httpStatus?: number; transactionCode?: string; operationCodes?: string[] }
@@ -29,12 +31,13 @@ export interface CliBurnerJobDependencies {
   ready(): Promise<void>;
   prepare(row: CliTestRow, token: string, originalSequence?: string): Promise<CliBurnerFunding>;
   proveUnused?(row: CliTestRow): Promise<CliFundingExpiryProof>;
+  proveUnstarted?(row: CliTestRow): Promise<CliUnstartedProof>;
   verifyExpiredOriginal?(row: CliTestRow, signedXdr: string, proof: CliFundingExpiryProof, now: number): void;
   verifyRenewal?(row: CliTestRow, originalSignedXdr: string, funding: CliBurnerFunding, proof: CliFundingExpiryProof, now: number): void;
   validate(row: CliTestRow, signedXdr: string): void;
   submit(signedXdr: string): Promise<CliBurnerSubmission | void>;
   reconcile(row: CliTestRow, token: string): Promise<CliTestRow>;
-  launch(row: CliTestRow, token: string): void;
+  launch(row: CliTestRow, token: string, attempt?: "preflight-repair-1"): void;
   sleep(milliseconds: number): Promise<void>;
   now(): number;
   maxPolls?: number;
@@ -49,6 +52,27 @@ const STATES: JobState[] = ["initializing", "prepared", "funding", "funded", "ru
 const RELEASE = { version: CLI_TEST_VERSION, sourceCommit: CLI_TEST_SOURCE };
 const JOB_COLUMNS = "job_id, owner, version, state, session_id, sealed, funding_hash, created_at, updated_at, error";
 const RESULT_CODE = /^(?:tx|op)_[a-z0-9_]{1,64}$/;
+
+function isUnstartedCandidate(row: CliTestRow): boolean {
+  return row.state === "failed" && Number.isSafeInteger(row.finishedAt) && row.finishedAt! > 0
+    && row.logs.includes("CLI test signer refuses transaction source, signatures, operations, fee, or time bounds")
+    && !["mandate and contract allowance confirmed", "Saved reference-agent evidence", "Verified result"].some((text) => row.logs.includes(text));
+}
+
+/** The proof is produced from pinned chain reads; this also binds every field
+ * to the exact failed run before its one recovery marker may be claimed. */
+export function verifyCliPreflightRepairProof(row: CliTestRow, proof: CliUnstartedProof, now: number): void {
+  if (!isUnstartedCandidate(row) || proof.kind !== "funded-unstarted" || proof.runId !== row.id
+    || proof.fundingHash !== row.fundingHash || proof.finishedAt !== row.finishedAt
+    || ["owner", "payer", "agent", "merchant"].some((field) => proof[field as "owner"] !== row[field as "owner"])
+    || ![proof.finishedAt, proof.fundingLedger, proof.horizonLedger, proof.horizonClosedAt, proof.rpcLedger, proof.observedAt, now].every((value) => Number.isSafeInteger(value) && value > 0)
+    || proof.initialActorSequence !== (BigInt(proof.fundingLedger) << 32n).toString()
+    || proof.horizonClosedAt <= proof.finishedAt + 600 || proof.horizonClosedAt > proof.observedAt
+    || proof.horizonLedger < proof.fundingLedger || proof.rpcLedger < proof.horizonLedger
+    || proof.observedAt > now || now - proof.observedAt > 120 || proof.observedAt - proof.horizonClosedAt > 120) {
+    throw new Error("failed CLI preflight recovery evidence does not match");
+  }
+}
 
 function verifiedRenewalOriginal(row: CliTestRow, signedXdr: string, proof: CliFundingExpiryProof, now: number): Transaction {
   if (!row.fundingXdr || !row.fundingHash || !row.fundingExpiresAt) throw new Error("missing original funding");
@@ -139,7 +163,7 @@ export function createCliBurnerJobController(db: PostgresQueryable, store: CliTe
       try { capability = JSON.parse(plaintext.toString("utf8")); } finally { plaintext.fill(0); }
       if (capability.sessionId !== job.session_id || !/^[a-f0-9-]{36}$/.test(capability.sessionId)
         || !/^[A-Za-z0-9_-]{43}$/.test(capability.token)
-        || Object.keys(capability).some((field) => !["sessionId", "token", "signedFundingXdr", "submitAttempts", "renewal"].includes(field))
+        || Object.keys(capability).some((field) => !["sessionId", "token", "signedFundingXdr", "submitAttempts", "renewal", "preflightRepair"].includes(field))
         || (capability.submitAttempts !== undefined && (!Number.isSafeInteger(capability.submitAttempts) || capability.submitAttempts < 1 || capability.submitAttempts > 3))
         || (capability.signedFundingXdr !== undefined && (typeof capability.signedFundingXdr !== "string" || capability.signedFundingXdr.length > 131_072))) throw new Error();
       if (capability.renewal) {
@@ -151,6 +175,14 @@ export function createCliBurnerJobController(db: PostgresQueryable, store: CliTe
           || !/^[a-f0-9]{64}$/.test(original.hash) || !Number.isSafeInteger(original.expiresAt)
           || !Number.isSafeInteger(original.submitAttempts) || original.submitAttempts < 1 || original.submitAttempts > 3) throw new Error();
       } else if (capability.renewal !== undefined) throw new Error();
+      if (capability.preflightRepair) {
+        const repair = capability.preflightRepair;
+        if (repair.version !== 1 || !repair.prior || !repair.proof || repair.proof.kind !== "funded-unstarted"
+          || Object.keys(repair).sort().join(",") !== "prior,proof,version"
+          || typeof repair.prior.logs !== "string" || Buffer.byteLength(repair.prior.logs) > 200 * 1024
+          || !Number.isSafeInteger(repair.prior.finishedAt) || repair.prior.finishedAt <= 0
+          || (repair.prior.error !== undefined && (typeof repair.prior.error !== "string" || Buffer.byteLength(repair.prior.error) > 4096))) throw new Error();
+      } else if (capability.preflightRepair !== undefined) throw new Error();
       return capability;
     } catch { throw new Error("retained burner job capability cannot be recovered"); }
   }
@@ -246,8 +278,35 @@ export function createCliBurnerJobController(db: PostgresQueryable, store: CliTe
       const polls = Math.min(Math.max(deps.maxPolls ?? 360, 1), 360);
       for (let attempt = 0; attempt < polls; attempt++) {
         job = await load();
-        if (!job || ["succeeded", "failed", "blocked", "initializing"].includes(job.state)) return;
+        if (!job || ["succeeded", "blocked", "initializing"].includes(job.state)) return;
         const { capability, row } = await session(job);
+        if (job.state === "failed") {
+          if (capability.preflightRepair || !deps.proveUnstarted || !isUnstartedCandidate(row)) return;
+          if (deps.now() <= row.finishedAt! + 600) { await deps.sleep(2_000); continue; }
+          let proof: CliUnstartedProof;
+          try { proof = await deps.proveUnstarted(row); verifyCliPreflightRepairProof(row, proof, deps.now()); }
+          catch { await deps.sleep(2_000); continue; /* No proof failure permits recovery. */ }
+          const repairCapability: Capability = { ...capability, preflightRepair: { version: 1,
+            prior: { logs: row.logs, finishedAt: row.finishedAt!, ...(row.error ? { error: row.error } : {}), ...(row.startedAt ? { startedAt: row.startedAt } : {}) }, proof } };
+          // Funding is already confirmed. No build/sign/submit path is entered.
+          // This marker is permanent even if a crash precedes the session update.
+          const repairClaim = await transition(job, "funded", { sealed: seal(repairCapability), error: "" });
+          if (!repairClaim) continue;
+          job = repairClaim;
+          let recovered = false;
+          for (let retry = 0; retry < 3 && !recovered; retry++) {
+            const fresh = await store.read(row.id, capability.token);
+            if (!fresh || fresh.state !== "failed" || fresh.fundingHash !== row.fundingHash || fresh.finishedAt !== row.finishedAt
+              || ["id", "owner", "payer", "agent", "merchant"].some((field) => fresh[field as "owner"] !== row[field as "owner"])) return;
+            try {
+              await store.update(row.id, capability.token, fresh.version, { state: "funded", error: "",
+                logs: `${fresh.logs}\nPrior local signer refusal retained above. All three actor sequences remain unused and prior packets are expired at ledger ${proof.rpcLedger}. One same-funded-run preflight recovery authorized; no new funding.\n` });
+              recovered = true;
+            } catch { /* Retry only an unchanged failed session under this owned marker. */ }
+          }
+          if (!recovered) return;
+          continue;
+        }
         if (job.state === "prepared") {
           if (row.state !== "prepared" || !capability.signedFundingXdr) throw new Error("funding preparation state differs");
           deps.validate(row, capability.signedFundingXdr);
@@ -327,11 +386,11 @@ export function createCliBurnerJobController(db: PostgresQueryable, store: CliTe
             catch { /* Retry only this owned claim while the exact session remains funded. */ }
           }
           if (!running) return;
-          deps.launch(running, capability.token);
+          deps.launch(running, capability.token, capability.preflightRepair ? "preflight-repair-1" : undefined);
           continue;
         } else if (job.state === "running") {
           if (row.state === "succeeded") { await transition(job, "succeeded"); return; }
-          if (row.state === "failed") { await transition(job, "failed", { error: "The CLI stopped before completion; this job will not restart." }); return; }
+          if (row.state === "failed") { await transition(job, "failed", { error: "The CLI stopped before completion; its evidence is retained for verification." }); continue; }
           if (row.state !== "running") return;
         }
         await deps.sleep(2_000);
@@ -408,6 +467,11 @@ function defaultController() {
       return proveCliFundingExpiredUnused({ owner: row.owner, payer: row.payer, agent: row.agent, merchant: row.merchant,
         fundingXdr: row.fundingXdr, fundingHash: row.fundingHash, fundingExpiresAt: row.fundingExpiresAt });
     },
+    proveUnstarted: (row) => {
+      if (row.state !== "failed" || !row.finishedAt || !row.fundingHash) throw new Error("missing failed CLI preflight context");
+      return proveCliTestUnstarted({ id: row.id, state: "failed", finishedAt: row.finishedAt, fundingHash: row.fundingHash,
+        owner: row.owner, payer: row.payer, agent: row.agent, merchant: row.merchant });
+    },
     validate: (row, signedXdr) => {
       if (!row.fundingXdr || !row.fundingHash || row.owner !== CLI_TEST_BURNER_OWNER) throw new Error("missing exact funding context");
       const tx = verifyCliFundingSigned(row.fundingXdr, signedXdr, CLI_TEST_BURNER_OWNER);
@@ -418,7 +482,7 @@ function defaultController() {
       return readCliBurnerSubmission(response);
     },
     reconcile: (row, token) => reconcileFunding(store, row, token),
-    launch: (row, token) => launchCliTest(store, row, token),
+    launch: (row, token, attempt) => launchCliTest(store, row, token, attempt),
     sleep: (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)),
     now: () => Math.floor(Date.now() / 1000),
   });

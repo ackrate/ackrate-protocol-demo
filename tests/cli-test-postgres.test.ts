@@ -118,10 +118,11 @@ test("PostgreSQL JSONB keeps encrypted capability binding and rejects wrong secr
   });
 });
 
-function burnerFixture(db: PostgresQueryable, options: { uncertain?: boolean; block?: boolean } = {}) {
+function burnerFixture(db: PostgresQueryable, options: { uncertain?: boolean; block?: boolean; preflightFailure?: boolean } = {}) {
   const store = createCliTestStore(db, TEST_SECRET);
   const calls = { prepared: 0, validated: 0, submitted: 0, launched: 0 };
   const envelopes: string[] = [];
+  const launchAttempts: Array<string | undefined> = [];
   let completion: Promise<unknown> = Promise.resolve();
   const deps: CliBurnerJobDependencies = {
     ready: async () => undefined,
@@ -142,14 +143,18 @@ function burnerFixture(db: PostgresQueryable, options: { uncertain?: boolean; bl
       if (options.uncertain) throw new Error("fixture unknown funding response");
     },
     reconcile: async (row, token) => options.uncertain ? row : store.update(row.id, token, row.version, { state: "funded" }),
-    launch: (row, token) => {
+    launch: (row, token, attempt) => {
       calls.launched++;
-      completion = store.update(row.id, token, row.version, { state: "succeeded", logs: "fixture completed", finishedAt: now() });
+      launchAttempts.push(attempt);
+      completion = store.update(row.id, token, row.version, options.preflightFailure ? {
+        state: "failed", logs: `${row.logs}\nCLI test signer refuses transaction source, signatures, operations, fee, or time bounds\n`,
+        error: "fixture local signer refusal", finishedAt: now() - 700,
+      } : { state: "succeeded", logs: attempt ? `${row.logs}\nfixture completed` : "fixture completed", finishedAt: now() });
     },
     sleep: async () => { await completion; },
     now, maxPolls: 12,
   };
-  return { store, calls, envelopes, deps, controller: createCliBurnerJobController(db, store, TEST_SECRET, deps) };
+  return { store, calls, envelopes, launchAttempts, deps, controller: createCliBurnerJobController(db, store, TEST_SECRET, deps) };
 }
 
 // Decode only this test's in-memory fixture capability, using its fixed fixture
@@ -353,5 +358,76 @@ test("PostgreSQL preparation failure remains blocked without replacement account
     assert.equal(fixture.calls.submitted, 0);
     assert.equal(fixture.calls.launched, 0);
     assert.equal((await engine.query("SELECT count(*)::int AS count FROM ackrate_cli_test_runs")).rows[0].count, 1);
+  });
+});
+
+function unstartedFixtureProof(row: Parameters<NonNullable<CliBurnerJobDependencies["proveUnstarted"]>>[0]) {
+  return { kind: "funded-unstarted" as const, runId: row.id, fundingHash: row.fundingHash!,
+    owner: row.owner, payer: row.payer, agent: row.agent, merchant: row.merchant, finishedAt: row.finishedAt!,
+    fundingLedger: 100, initialActorSequence: (100n << 32n).toString(),
+    horizonLedger: 200, horizonClosedAt: now() - 5, rpcLedger: 200, observedAt: now() };
+}
+
+test("PostgreSQL proven pre-registration failure permits only one same-funded recovery across replicas", async () => {
+  await withPostgres(async (db, engine) => {
+    const options = { preflightFailure: true };
+    const fixture = burnerFixture(db, options); fixture.deps.now = () => now() - 1_000;
+    await fixture.controller.run();
+    assert.equal((await fixture.controller.status()).state, "failed");
+    const original = (await fixture.controller.status()).run!;
+    const originalCapability = await fixtureCapability(engine);
+    options.preflightFailure = false; fixture.deps.now = now;
+    fixture.deps.proveUnstarted = async (row) => unstartedFixtureProof(row);
+    await Promise.all(Array.from({ length: 12 }, () => createCliBurnerJobController(db, fixture.store, TEST_SECRET, fixture.deps).run()));
+    await fixture.controller.run();
+    const status = await fixture.controller.status();
+    const capability = await fixtureCapability(engine);
+    assert.equal(status.state, "succeeded");
+    assert.equal(fixture.calls.prepared, 1); assert.equal(fixture.calls.submitted, 1);
+    assert.equal(fixture.calls.launched, 2, "one original failed process plus exactly one recovery");
+    assert.deepEqual(fixture.launchAttempts, [undefined, "preflight-repair-1"]);
+    for (const key of ["id", "owner", "payer", "agent", "merchant", "fundingHash"] as const) assert.equal(status.run![key], original[key]);
+    for (const key of ["sessionId", "token", "signedFundingXdr"]) assert.equal(capability[key], originalCapability[key]);
+    const repair = capability.preflightRepair as { version: number; prior: { logs: string; error: string; finishedAt: number } };
+    assert.equal(repair.version, 1); assert.equal(repair.prior.logs, original.logs);
+    assert.equal(repair.prior.error, original.error); assert.equal(repair.prior.finishedAt, original.finishedAt);
+    assert.ok(status.run!.logs.startsWith(original.logs), "old local failure output is retained");
+    assert.equal((await engine.query("SELECT count(*)::int AS count FROM ackrate_cli_test_runs")).rows[0].count, 1);
+  });
+});
+
+test("PostgreSQL preflight proof mismatches and stale/too-early evidence never claim recovery", async () => {
+  await withPostgres(async (db, engine) => {
+    const fixture = burnerFixture(db, { preflightFailure: true }); fixture.deps.now = () => now() - 1_000;
+    await fixture.controller.run(); fixture.deps.now = now; fixture.deps.maxPolls = 1;
+    const failed = (await fixture.controller.status()).run!;
+    const patches = [
+      { fundingHash: "f".repeat(64) }, { runId: "different-run" }, { owner: OWNER }, { payer: OWNER },
+      { agent: OWNER }, { merchant: OWNER }, { initialActorSequence: "1" }, { rpcLedger: 99 },
+      { observedAt: now() - 121 }, { observedAt: now() + 1 }, { horizonClosedAt: now() - 200 },
+      { horizonClosedAt: failed.finishedAt! + 600 }, { fundingLedger: 201 },
+    ];
+    for (const patch of patches) {
+      fixture.deps.proveUnstarted = async (row) => ({ ...unstartedFixtureProof(row), ...patch });
+      await createCliBurnerJobController(db, fixture.store, TEST_SECRET, fixture.deps).run();
+      assert.equal((await fixture.controller.status()).state, "failed", JSON.stringify(patch));
+    }
+    fixture.deps.proveUnstarted = async () => { throw new Error("fixture RPC unavailable"); };
+    await fixture.controller.run();
+    assert.equal((await fixtureCapability(engine)).preflightRepair, undefined);
+    assert.equal(fixture.calls.launched, 1); assert.equal(fixture.calls.submitted, 1);
+  });
+});
+
+test("PostgreSQL a second pre-registration failure cannot consume another recovery or funding", async () => {
+  await withPostgres(async (db, engine) => {
+    const fixture = burnerFixture(db, { preflightFailure: true }); fixture.deps.now = () => now() - 1_000;
+    await fixture.controller.run(); fixture.deps.now = now;
+    fixture.deps.proveUnstarted = async (row) => unstartedFixtureProof(row);
+    await fixture.controller.run(); await fixture.controller.run();
+    await Promise.all(Array.from({ length: 4 }, () => createCliBurnerJobController(db, fixture.store, TEST_SECRET, fixture.deps).run()));
+    assert.equal((await fixture.controller.status()).state, "failed");
+    assert.equal(fixture.calls.launched, 2); assert.equal(fixture.calls.prepared, 1); assert.equal(fixture.calls.submitted, 1);
+    assert.equal((await fixtureCapability(engine)).preflightRepair !== undefined, true);
   });
 });

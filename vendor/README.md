@@ -94,9 +94,28 @@ from those funded accounts. The burner phrase is used only for this exact fundin
 signature; it is not persisted in PostgreSQL, passed to the CLI, logged, or sent
 to a browser. Generated test-account keys remain encrypted in PostgreSQL.
 
+The isolated payer signer permits only the exact registration and capped
+allowance, with a maximum fee of **0.50 XLM per setup transaction**. The previous
+0.10-XLM ceiling rejected the real registration's 0.3035068-XLM maximum fee before
+signing. Raising this local ceiling does not transfer additional funds from the
+burner or change the 0.03-USDC purchase limit; fees use the existing actor balances.
+
+For that specific pre-registration refusal only, one same-funded-run repair is
+allowed after a fresh proof of the successful exact funding receipt, all three
+actor sequences still equal to their creation sequence, and a closed ledger more
+than 600 seconds after the failed process ended. Any applied actor transaction,
+wrong or unavailable chain evidence, prior repair, or recorded delivery blocks
+this path. A permanent encrypted claim retains the failed output and proof before
+launch. The repair uses a separate `preflight-repair-1` directory without deleting
+the original journal. It cannot retry after registration or a purchase has been
+applied, and it cannot allocate new funds. Interrupted claims stay locked for
+manual reconciliation. This is not general automatic paid-demo resumption.
+
 The read-only `/api/cli/test/burner` response and `/cli` show progress and saved
 evidence. A failed or ambiguous submitted run is retained for reconciliation,
-never restarted or given another funding allocation automatically. An expired
+never restarted after applied setup/payment or given another funding allocation.
+The narrow, unused-actor pre-registration repair above is the only process retry.
+An expired
 funding envelope can only take the proof-guarded, same-actor path described above.
 A completed deployment is not payment evidence;
 only successful CLI checks and independently verified Mainnet receipts can close

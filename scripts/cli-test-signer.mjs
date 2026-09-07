@@ -8,7 +8,7 @@ export const MAINNET_RPC = "https://mainnet.sorobanrpc.com";
 export const MAINNET_REGISTRY = "CCLZEBJXG4YVJEPBCR5F27N733BCK5HQJWZZGB3K54JVODY3VAGP4HWR";
 export const USDC_SAC = "CCW67TSZV3SSS2HXMBQ5JFGCKJNXKZM7UQUWUZPUTHXSTZLEO7SJMI75";
 const MAX_XDR_LENGTH = 131_072;
-const MAX_FEE = 1_000_000n; // 0.10 XLM, including Soroban resource fees.
+const MAX_FEE = 5_000_000n; // 0.50 XLM, including Soroban resource fees; no new funding.
 const BUDGET = 300_000n;
 const APPROVAL_LEDGER_WINDOW = 17_280; // Published CLI token helper's default.
 

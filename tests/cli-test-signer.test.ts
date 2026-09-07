@@ -77,6 +77,14 @@ test("adapter refuses shell/path/extra flags, alternate network/RPC, and agent s
   }
 });
 
+test("registration accepts the observed Mainnet resource fee within a fixed half-XLM ceiling", () => {
+  for (const fee of ["3035068", "5000000"]) {
+    const transaction = tx(MAINNET_REGISTRY, "register_mandate", registration(), { fee });
+    assert.equal(validateCliPayerTransaction(transaction.toXDR(), config).method, "register_mandate");
+  }
+  assert.throws(() => validateCliPayerTransaction(tx(MAINNET_REGISTRY, "register_mandate", registration(), { fee: "5000001" }).toXDR(), config), /fee/);
+});
+
 test("registration rejects each changed actor, asset, budget, type, expiry, credential, and extra argument", () => {
   const changes: [number, xdr.ScVal][] = [
     [0, address(rogue.publicKey())], [1, address(rogue.publicKey())], [2, address(rogue.publicKey())], [3, address(MAINNET_REGISTRY)],
@@ -109,7 +117,7 @@ test("allowance rejects changed owner/spender/amount/types and stale or excessiv
 test("adapter refuses arbitrary functions/contracts, classical payments, fee bumps, unsafe fees and time bounds", () => {
   for (const transaction of [tx(MAINNET_REGISTRY, "execute_payment"), tx(USDC_SAC, "transfer"), tx(USDC_SAC),
     tx(MAINNET_REGISTRY, "register_mandate", registration(), { source: config.agent }),
-    tx(MAINNET_REGISTRY, "register_mandate", registration(), { fee: "1000001" }),
+    tx(MAINNET_REGISTRY, "register_mandate", registration(), { fee: "5000001" }),
     tx(MAINNET_REGISTRY, "register_mandate", registration(), { fee: "99" }),
     tx(MAINNET_REGISTRY, "register_mandate", registration(), { maxTime: 0 }),
     tx(MAINNET_REGISTRY, "register_mandate", registration(), { maxTime: now }),
