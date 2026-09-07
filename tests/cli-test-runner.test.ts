@@ -5,6 +5,7 @@ import test from "node:test";
 import { Keypair } from "@stellar/stellar-sdk";
 import { CLI_TEST_SOURCE, CLI_TEST_VERSION, cleanCliLog, cliPaidArguments, cliPaidDirectory, cliPaidEnvironment, createCliEvidenceHeartbeat, launchCliTest } from "../lib/cli-test-runner";
 import type { CliTestRow, CliTestStore } from "../lib/cli-test-store";
+import { CLI_VERSION } from "../lib/cli-runner";
 
 test("paid command fixes Mainnet, three-cent budget, price and named generated identities", () => {
   const merchant = Keypair.random().publicKey();
@@ -48,13 +49,19 @@ test("paid child gets only scoped actor credentials and a fixed signer path", ()
   assert.equal(Object.keys(env).some((key) => /mnemonic|seed|burner/i.test(key)), false);
 });
 
-test("test bundle integrity and provenance are explicit, distinct from npm inspection", async () => {
+test("paid and inspection bundles match the published CLI release and pinned source provenance", async () => {
   const manifest = JSON.parse(await readFile(new URL("../vendor/cli-test-build.json", import.meta.url), "utf8"));
   const bundle = await readFile(new URL("../vendor/ackrate-cli-test.mjs", import.meta.url));
+  const inspection = await readFile(new URL("../vendor/ackrate-cli.mjs", import.meta.url));
   assert.equal(manifest.version, CLI_TEST_VERSION);
   assert.equal(manifest.sourceCommit, CLI_TEST_SOURCE);
   assert.equal(createHash("sha256").update(bundle).digest("hex"), manifest.sha256);
-  assert.match(manifest.provenance, /not yet a published npm/);
+  assert.equal(CLI_VERSION, CLI_TEST_VERSION);
+  assert.deepEqual(inspection, bundle);
+  assert.equal(manifest.publishedPackage, "@ackrate/cli@0.2.1");
+  assert.equal(manifest.npmIntegrity, "sha512-kVNd5oYGeXaipN3HXCyI1izktSkAbWxtbz+FUuiElpzVs5c73MG+DsXskb9bRocA5VcvQQXjh1AGFkNTzhxhfQ==");
+  assert.match(manifest.provenance, /byte-for-byte verified against the public npm/);
+  assert.doesNotMatch(manifest.provenance, /not yet|unpublished/);
 });
 
 test("logs strip terminal escape sequences and redact generated secret-key strings", () => {

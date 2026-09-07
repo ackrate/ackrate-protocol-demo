@@ -14,7 +14,7 @@ const OWNER = `G${"A".repeat(55)}`;
 const OTHER = `G${"B".repeat(55)}`;
 const MAINNET = "Public Global Stellar Network ; September 2015";
 const STORAGE = "ackrate:cli-test:funding:v1:run-1";
-const base = () => ({ ready: true, version: "0.2.1", sourceCommit: "0be7bf8", publishedVersion: "0.2.0" });
+const base = () => ({ ready: true, version: "0.2.1", sourceCommit: "8c74bef", publishedVersion: "0.2.1" });
 const run = (state = "prepared") => ({
   id: "run-1", state, owner: OWNER, payer: OTHER, agent: `G${"C".repeat(55)}`,
   merchant: `G${"D".repeat(55)}`, fundingXdr: "synthetic-original-envelope",
@@ -169,8 +169,9 @@ test("challenge response needs no ready field; preparation is separate from fund
   assert.equal(h.signs().length, 1);
   assert.deepEqual(JSON.parse(JSON.stringify(h.signs()[0].opts)), { networkPassphrase: MAINNET, address: OWNER });
   assert.equal(h.find("button", "Fund test").props.disabled, true);
-  assert.match(h.text(), /0\.2\.1 source build/);
-  assert.match(h.text(), /Published npm version: 0\.2\.0/);
+  assert.match(h.text(), /Test runner: CLI 0\.2\.1/);
+  assert.match(h.text(), /Byte-verified against published npm version 0\.2\.1/);
+  assert.doesNotMatch(h.text(), /source build|unpublished|0\.2\.0/);
 });
 
 test("wrong Mainnet network or signer prevents preparation", async () => {

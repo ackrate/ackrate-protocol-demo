@@ -1,5 +1,5 @@
 /** Hosted inspection runs the published Mainnet CLI without deployment secrets. */
-export const CLI_VERSION = "0.2.0";
+export const CLI_VERSION = "0.2.1";
 export const CLI_MAINNET_CONTRACT = "CCLZEBJXG4YVJEPBCR5F27N733BCK5HQJWZZGB3K54JVODY3VAGP4HWR";
 const COMMANDS = [
   ["--version"], ["--help"], ["demo"], ["demo", "--help"],

@@ -2,5 +2,7 @@
   "version": "0.2.1",
   "sourceCommit": "8c74bef3af3ce7aee0ab2c8da6f126706a8a4e18",
   "sha256": "c2e6c113a6fdcad618927c59a304da525628041c7d10626d430712c2f7e2ce69",
-  "provenance": "Source-built CLI from ackrate/ackrate-protocol; this is not yet a published npm 0.2.1 release."
+  "publishedPackage": "@ackrate/cli@0.2.1",
+  "npmIntegrity": "sha512-kVNd5oYGeXaipN3HXCyI1izktSkAbWxtbz+FUuiElpzVs5c73MG+DsXskb9bRocA5VcvQQXjh1AGFkNTzhxhfQ==",
+  "provenance": "CLI built from ackrate/ackrate-protocol, byte-for-byte verified against the public npm @ackrate/cli@0.2.1 executable."
 }

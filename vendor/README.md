@@ -1,6 +1,6 @@
 # vendor/ackrate-cli.mjs
 
-A self-contained executable from the published **[@ackrate/cli 0.2.0](https://www.npmjs.com/package/@ackrate/cli/v/0.2.0)**
+A self-contained executable from the published **[@ackrate/cli 0.2.1](https://www.npmjs.com/package/@ackrate/cli/v/0.2.1)**
 package, used by `/api/cli`. The hosted `/cli` selects Mainnet and the official
 [MandateRegistry](https://stellar.expert/explorer/public/contract/CCLZEBJXG4YVJEPBCR5F27N733BCK5HQJWZZGB3K54JVODY3VAGP4HWR).
 
@@ -10,17 +10,19 @@ public npm tarball. It is not rebuilt from unpublished workspace changes.
 
 ## Verify or update
 
-The package dependency and lockfile are also pinned to 0.2.0. For a future update,
+The package dependency and lockfile are also pinned to 0.2.1. For a future update,
 download the selected public package in a fresh temporary directory, verify its
 npm integrity, copy its executable, and update the version/hash regression together.
 
 ```
-npm view @ackrate/cli@0.2.0 dist.integrity
+npm view @ackrate/cli@0.2.1 dist.integrity
 node vendor/ackrate-cli.mjs --version
 shasum -a 256 vendor/ackrate-cli.mjs
 ```
 
-Executable SHA-256: `b719eb1e780f85daa20a3d86c2f82d80b5789574c079e459b5fc640fb174b125`.
+Executable SHA-256: `c2e6c113a6fdcad618927c59a304da525628041c7d10626d430712c2f7e2ce69`.
+
+Public npm tarball integrity: `sha512-kVNd5oYGeXaipN3HXCyI1izktSkAbWxtbz+FUuiElpzVs5c73MG+DsXskb9bRocA5VcvQQXjh1AGFkNTzhxhfQ==`.
 
 The anonymous terminal does not inherit server signing credentials. Mainnet paid
 commands require explicit real-USDC authorization and designated funded signing
@@ -28,11 +30,12 @@ identities. Version/help success alone is not evidence of a completed payment.
 
 ## Freighter-funded CLI test
 
-`ackrate-cli-test.mjs` is the separate **0.2.1 source build** from
+`ackrate-cli-test.mjs` is the **published 0.2.1 executable**, built from
 [`ackrate/ackrate-protocol` commit 8c74bef](https://github.com/ackrate/ackrate-protocol/commit/8c74bef3af3ce7aee0ab2c8da6f126706a8a4e18).
-It exactly matches the prepared CLI archive; `cli-test-build.json` pins its SHA-256.
-It is not described as a published npm 0.2.1 release. Anonymous version/help inspection
-continues to use the unchanged public npm 0.2.0 executable above.
+Its bytes were verified against a fresh public npm download on 2026-09-07;
+`cli-test-build.json` pins its source commit, executable SHA-256, and npm integrity.
+The paid runner and anonymous version/help inspection use byte-identical executables.
+Their execution permissions remain separate: inspection does not inherit signing credentials.
 
 The authenticated `/api/cli/test` runner executes this CLI with its reference
 consumer and fulfillment agents. A narrow external signer adapter supplies only
@@ -124,10 +127,12 @@ manual reconciliation. This is not general automatic paid-demo resumption.
 
 The read-only `/api/cli/test/burner` response and `/cli` show progress and saved
 evidence. A failed or ambiguous submitted run is retained for reconciliation,
-never restarted after applied setup/payment or given another funding allocation.
-The narrow, unused-actor pre-registration repair above is the only process retry.
-An expired
+never given another funding allocation or restarted after a purchase. Only the two
+separately proof-gated, one-time setup repairs described above can launch another
+process: untouched pre-registration setup, or the exact registered-but-unspent
+setup. Neither is general paid-run recovery. An expired
 funding envelope can only take the proof-guarded, same-actor path described above.
 A completed deployment is not payment evidence;
 only successful CLI checks and independently verified Mainnet receipts can close
-the acceptance test. The source-build versus public-npm distinction above remains.
+the acceptance test. Both executables match the published npm release; publication
+and version/help output alone do not establish payment success.

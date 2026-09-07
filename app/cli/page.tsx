@@ -17,13 +17,13 @@ import "@xterm/xterm/css/xterm.css";
 import CliMainnetTestPanel from "../../components/CliMainnetTestPanel";
 
 const PACKAGE = "@ackrate/cli";
-const VERSION = "0.2.0";
+const VERSION = "0.2.1";
 const COMMAND = "ackrate";
 const CONTRACT = "CCLZEBJXG4YVJEPBCR5F27N733BCK5HQJWZZGB3K54JVODY3VAGP4HWR";
 
-const INSTALL = `npx @ackrate/cli@0.2.0 demo research-agent --network mainnet
+const INSTALL = `npx @ackrate/cli@0.2.1 demo research-agent --network mainnet
 
-npm install -g @ackrate/cli@0.2.0
+npm install -g @ackrate/cli@0.2.1
 ackrate --help`;
 
 const QUICK = [
@@ -173,7 +173,7 @@ export default function CliPage() {
           </div>
 
           <p className="mt-5 rounded-lg border border-white/15 bg-black/30 p-4 text-sm leading-relaxed text-zinc-300">
-            The paid test uses CLI 0.2.1 built from source; the published npm release is {VERSION}.
+            The paid test and command inspection use CLI {VERSION}; both executables match the published npm release byte for byte.
             Funding transfers real assets to three dedicated server-managed accounts. The test then makes
             three 0.01 USDC purchases and checks the contract&apos;s budget limit.
           </p>

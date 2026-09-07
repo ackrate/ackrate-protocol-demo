@@ -18,7 +18,7 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 const HEADERS = { "cache-control": "no-store, max-age=0", "x-content-type-options": "nosniff", "x-robots-tag": "noindex, nofollow" };
-const RELEASE = { version: CLI_TEST_VERSION, sourceCommit: CLI_TEST_SOURCE, publishedVersion: "0.2.0" };
+const RELEASE = { version: CLI_TEST_VERSION, sourceCommit: CLI_TEST_SOURCE, publishedVersion: "0.2.1" };
 const GAddress = z.string().refine(StrKey.isValidEd25519PublicKey);
 const Body = z.discriminatedUnion("action", [
   z.object({ action: z.literal("challenge"), owner: GAddress }).strict(),

@@ -281,7 +281,7 @@ export default function CliMainnetTest() {
 
   function downloadLog() {
     if (!run) return;
-    const text = `ACKRATE CLI Mainnet test\nRun: ${run.id}\nState: ${run.state}\nSource build: ${status?.version}\nCommit: ${status?.sourceCommit}\n\n${logs}`;
+    const text = `ACKRATE CLI Mainnet test\nRun: ${run.id}\nState: ${run.state}\nPublished CLI: ${status?.version}\nCommit: ${status?.sourceCommit}\n\n${logs}`;
     const url = URL.createObjectURL(new Blob([text], { type: "text/plain;charset=utf-8" }));
     const link = document.createElement("a");
     link.href = url;
@@ -299,7 +299,7 @@ export default function CliMainnetTest() {
         </div>
         <span className="rounded-full border border-zinc-700 px-3 py-1 text-xs text-zinc-300">Mainnet · real funds</span>
       </div>
-      <p className="mt-3 text-xs leading-relaxed text-zinc-500">Test runner: CLI {status?.version || "0.2.1"} source build{status?.sourceCommit && /^[a-f0-9]{7,40}$/i.test(status.sourceCommit) ? ` · ${status.sourceCommit.slice(0, 8)}` : ""}. Published npm version: {status?.publishedVersion || "0.2.0"}.</p>
+      <p className="mt-3 text-xs leading-relaxed text-zinc-500">Test runner: CLI {status?.version || "0.2.1"}{status?.sourceCommit && /^[a-f0-9]{7,40}$/i.test(status.sourceCommit) ? ` · source ${status.sourceCommit.slice(0, 8)}` : ""}. Byte-verified against published npm version {status?.publishedVersion || "0.2.1"}.</p>
 
       {(error || status?.error || run?.error) && <p role="alert" className="mt-4 break-words rounded-lg border border-amber-800/60 bg-amber-950/20 p-3 text-sm text-amber-200">{error || run?.error || status?.error}</p>}
       {!status && !error && <p role="status" className="mt-5 flex items-center gap-2 text-sm text-zinc-400"><Loader2 className="h-4 w-4 animate-spin" />Loading test status…</p>}

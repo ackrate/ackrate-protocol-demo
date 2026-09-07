@@ -4467,7 +4467,7 @@ var require_safer = __commonJS({
   "node_modules/safer-buffer/safer.js"(exports, module) {
     "use strict";
     var buffer = __require("buffer");
-    var Buffer13 = buffer.Buffer;
+    var Buffer14 = buffer.Buffer;
     var safer = {};
     var key;
     for (key in buffer) {
@@ -4476,12 +4476,12 @@ var require_safer = __commonJS({
       safer[key] = buffer[key];
     }
     var Safer = safer.Buffer = {};
-    for (key in Buffer13) {
-      if (!Buffer13.hasOwnProperty(key)) continue;
+    for (key in Buffer14) {
+      if (!Buffer14.hasOwnProperty(key)) continue;
       if (key === "allocUnsafe" || key === "allocUnsafeSlow") continue;
-      Safer[key] = Buffer13[key];
+      Safer[key] = Buffer14[key];
     }
-    safer.Buffer.prototype = Buffer13.prototype;
+    safer.Buffer.prototype = Buffer14.prototype;
     if (!Safer.from || Safer.from === Uint8Array.from) {
       Safer.from = function(value, encodingOrOffset, length) {
         if (typeof value === "number") {
@@ -4490,7 +4490,7 @@ var require_safer = __commonJS({
         if (value && typeof value.length === "undefined") {
           throw new TypeError("The first argument must be one of type string, Buffer, ArrayBuffer, Array, or Array-like Object. Received type " + typeof value);
         }
-        return Buffer13(value, encodingOrOffset, length);
+        return Buffer14(value, encodingOrOffset, length);
       };
     }
     if (!Safer.alloc) {
@@ -4501,7 +4501,7 @@ var require_safer = __commonJS({
         if (size < 0 || size >= 2 * (1 << 30)) {
           throw new RangeError('The value "' + size + '" is invalid for option "size"');
         }
-        var buf = Buffer13(size);
+        var buf = Buffer14(size);
         if (!fill || fill.length === 0) {
           buf.fill(0);
         } else if (typeof encoding === "string") {
@@ -4596,7 +4596,7 @@ var require_merge_exports = __commonJS({
 var require_internal = __commonJS({
   "node_modules/iconv-lite/encodings/internal.js"(exports, module) {
     "use strict";
-    var Buffer13 = require_safer().Buffer;
+    var Buffer14 = require_safer().Buffer;
     module.exports = {
       // Encodings
       utf8: { type: "_internal", bomAware: true },
@@ -4620,7 +4620,7 @@ var require_internal = __commonJS({
       } else if (this.enc === "cesu8") {
         this.enc = "utf8";
         this.encoder = InternalEncoderCesu8;
-        if (Buffer13.from("eda0bdedb2a9", "hex").toString() !== "\u{1F4A9}") {
+        if (Buffer14.from("eda0bdedb2a9", "hex").toString() !== "\u{1F4A9}") {
           this.decoder = InternalDecoderCesu8;
           this.defaultCharUnicode = iconv.defaultCharUnicode;
         }
@@ -4633,8 +4633,8 @@ var require_internal = __commonJS({
       this.decoder = new StringDecoder(codec.enc);
     }
     InternalDecoder.prototype.write = function(buf) {
-      if (!Buffer13.isBuffer(buf)) {
-        buf = Buffer13.from(buf);
+      if (!Buffer14.isBuffer(buf)) {
+        buf = Buffer14.from(buf);
       }
       return this.decoder.write(buf);
     };
@@ -4645,7 +4645,7 @@ var require_internal = __commonJS({
       this.enc = codec.enc;
     }
     InternalEncoder.prototype.write = function(str) {
-      return Buffer13.from(str, this.enc);
+      return Buffer14.from(str, this.enc);
     };
     InternalEncoder.prototype.end = function() {
     };
@@ -4657,15 +4657,15 @@ var require_internal = __commonJS({
       var completeQuads = str.length - str.length % 4;
       this.prevStr = str.slice(completeQuads);
       str = str.slice(0, completeQuads);
-      return Buffer13.from(str, "base64");
+      return Buffer14.from(str, "base64");
     };
     InternalEncoderBase64.prototype.end = function() {
-      return Buffer13.from(this.prevStr, "base64");
+      return Buffer14.from(this.prevStr, "base64");
     };
     function InternalEncoderCesu8(options, codec) {
     }
     InternalEncoderCesu8.prototype.write = function(str) {
-      var buf = Buffer13.alloc(str.length * 3);
+      var buf = Buffer14.alloc(str.length * 3);
       var bufIdx = 0;
       for (var i = 0; i < str.length; i++) {
         var charCode = str.charCodeAt(i);
@@ -4761,13 +4761,13 @@ var require_internal = __commonJS({
           str = str.slice(0, str.length - 1);
         }
       }
-      return Buffer13.from(str, this.enc);
+      return Buffer14.from(str, this.enc);
     };
     InternalEncoderUtf8.prototype.end = function() {
       if (this.highSurrogate) {
         var str = this.highSurrogate;
         this.highSurrogate = "";
-        return Buffer13.from(str, this.enc);
+        return Buffer14.from(str, this.enc);
       }
     };
   }
@@ -4777,7 +4777,7 @@ var require_internal = __commonJS({
 var require_utf32 = __commonJS({
   "node_modules/iconv-lite/encodings/utf32.js"(exports) {
     "use strict";
-    var Buffer13 = require_safer().Buffer;
+    var Buffer14 = require_safer().Buffer;
     exports._utf32 = Utf32Codec;
     function Utf32Codec(codecOptions, iconv) {
       this.iconv = iconv;
@@ -4795,8 +4795,8 @@ var require_utf32 = __commonJS({
       this.highSurrogate = 0;
     }
     Utf32Encoder.prototype.write = function(str) {
-      var src = Buffer13.from(str, "ucs2");
-      var dst = Buffer13.alloc(src.length * 2 + 4);
+      var src = Buffer14.from(str, "ucs2");
+      var dst = Buffer14.alloc(src.length * 2 + 4);
       var write32 = this.isLE ? dst.writeUInt32LE : dst.writeUInt32BE;
       var offset = 0;
       for (var i = 0; i < src.length; i += 2) {
@@ -4832,7 +4832,7 @@ var require_utf32 = __commonJS({
       if (!this.highSurrogate) {
         return;
       }
-      var buf = Buffer13.alloc(4);
+      var buf = Buffer14.alloc(4);
       if (this.isLE) {
         buf.writeUInt32LE(this.highSurrogate, 0);
       } else {
@@ -4852,7 +4852,7 @@ var require_utf32 = __commonJS({
       }
       var i = 0;
       var codepoint = 0;
-      var dst = Buffer13.alloc(src.length + 4);
+      var dst = Buffer14.alloc(src.length + 4);
       var offset = 0;
       var isLE = this.isLE;
       var overflow = this.overflow;
@@ -5012,7 +5012,7 @@ var require_utf32 = __commonJS({
 var require_utf16 = __commonJS({
   "node_modules/iconv-lite/encodings/utf16.js"(exports) {
     "use strict";
-    var Buffer13 = require_safer().Buffer;
+    var Buffer14 = require_safer().Buffer;
     exports.utf16be = Utf16BECodec;
     function Utf16BECodec() {
     }
@@ -5022,7 +5022,7 @@ var require_utf16 = __commonJS({
     function Utf16BEEncoder() {
     }
     Utf16BEEncoder.prototype.write = function(str) {
-      var buf = Buffer13.from(str, "ucs2");
+      var buf = Buffer14.from(str, "ucs2");
       for (var i = 0; i < buf.length; i += 2) {
         var tmp = buf[i];
         buf[i] = buf[i + 1];
@@ -5039,7 +5039,7 @@ var require_utf16 = __commonJS({
       if (buf.length == 0) {
         return "";
       }
-      var buf2 = Buffer13.alloc(buf.length + 1);
+      var buf2 = Buffer14.alloc(buf.length + 1);
       var i = 0;
       var j = 0;
       if (this.overflowByte !== -1) {
@@ -5155,7 +5155,7 @@ var require_utf16 = __commonJS({
 var require_utf7 = __commonJS({
   "node_modules/iconv-lite/encodings/utf7.js"(exports) {
     "use strict";
-    var Buffer13 = require_safer().Buffer;
+    var Buffer14 = require_safer().Buffer;
     exports.utf7 = Utf7Codec;
     exports.unicode11utf7 = "utf7";
     function Utf7Codec(codecOptions, iconv) {
@@ -5169,7 +5169,7 @@ var require_utf7 = __commonJS({
       this.iconv = codec.iconv;
     }
     Utf7Encoder.prototype.write = function(str) {
-      return Buffer13.from(str.replace(nonDirectChars, function(chunk) {
+      return Buffer14.from(str.replace(nonDirectChars, function(chunk) {
         return "+" + (chunk === "+" ? "" : this.iconv.encode(chunk, "utf16-be").toString("base64").replace(/=+$/, "")) + "-";
       }.bind(this)));
     };
@@ -5207,7 +5207,7 @@ var require_utf7 = __commonJS({
               res += "+";
             } else {
               var b64str = base64Accum + this.iconv.decode(buf.slice(lastI, i2), "ascii");
-              res += this.iconv.decode(Buffer13.from(b64str, "base64"), "utf16-be");
+              res += this.iconv.decode(Buffer14.from(b64str, "base64"), "utf16-be");
             }
             if (buf[i2] != minusChar) {
               i2--;
@@ -5225,7 +5225,7 @@ var require_utf7 = __commonJS({
         var canBeDecoded = b64str.length - b64str.length % 8;
         base64Accum = b64str.slice(canBeDecoded);
         b64str = b64str.slice(0, canBeDecoded);
-        res += this.iconv.decode(Buffer13.from(b64str, "base64"), "utf16-be");
+        res += this.iconv.decode(Buffer14.from(b64str, "base64"), "utf16-be");
       }
       this.inBase64 = inBase64;
       this.base64Accum = base64Accum;
@@ -5234,7 +5234,7 @@ var require_utf7 = __commonJS({
     Utf7Decoder.prototype.end = function() {
       var res = "";
       if (this.inBase64 && this.base64Accum.length > 0) {
-        res = this.iconv.decode(Buffer13.from(this.base64Accum, "base64"), "utf16-be");
+        res = this.iconv.decode(Buffer14.from(this.base64Accum, "base64"), "utf16-be");
       }
       this.inBase64 = false;
       this.base64Accum = "";
@@ -5250,14 +5250,14 @@ var require_utf7 = __commonJS({
     function Utf7IMAPEncoder(options, codec) {
       this.iconv = codec.iconv;
       this.inBase64 = false;
-      this.base64Accum = Buffer13.alloc(6);
+      this.base64Accum = Buffer14.alloc(6);
       this.base64AccumIdx = 0;
     }
     Utf7IMAPEncoder.prototype.write = function(str) {
       var inBase64 = this.inBase64;
       var base64Accum = this.base64Accum;
       var base64AccumIdx = this.base64AccumIdx;
-      var buf = Buffer13.alloc(str.length * 5 + 10);
+      var buf = Buffer14.alloc(str.length * 5 + 10);
       var bufIdx = 0;
       for (var i2 = 0; i2 < str.length; i2++) {
         var uChar = str.charCodeAt(i2);
@@ -5296,7 +5296,7 @@ var require_utf7 = __commonJS({
       return buf.slice(0, bufIdx);
     };
     Utf7IMAPEncoder.prototype.end = function() {
-      var buf = Buffer13.alloc(10);
+      var buf = Buffer14.alloc(10);
       var bufIdx = 0;
       if (this.inBase64) {
         if (this.base64AccumIdx > 0) {
@@ -5333,7 +5333,7 @@ var require_utf7 = __commonJS({
               res += "&";
             } else {
               var b64str = base64Accum + this.iconv.decode(buf.slice(lastI, i2), "ascii").replace(/,/g, "/");
-              res += this.iconv.decode(Buffer13.from(b64str, "base64"), "utf16-be");
+              res += this.iconv.decode(Buffer14.from(b64str, "base64"), "utf16-be");
             }
             if (buf[i2] != minusChar) {
               i2--;
@@ -5351,7 +5351,7 @@ var require_utf7 = __commonJS({
         var canBeDecoded = b64str.length - b64str.length % 8;
         base64Accum = b64str.slice(canBeDecoded);
         b64str = b64str.slice(0, canBeDecoded);
-        res += this.iconv.decode(Buffer13.from(b64str, "base64"), "utf16-be");
+        res += this.iconv.decode(Buffer14.from(b64str, "base64"), "utf16-be");
       }
       this.inBase64 = inBase64;
       this.base64Accum = base64Accum;
@@ -5360,7 +5360,7 @@ var require_utf7 = __commonJS({
     Utf7IMAPDecoder.prototype.end = function() {
       var res = "";
       if (this.inBase64 && this.base64Accum.length > 0) {
-        res = this.iconv.decode(Buffer13.from(this.base64Accum, "base64"), "utf16-be");
+        res = this.iconv.decode(Buffer14.from(this.base64Accum, "base64"), "utf16-be");
       }
       this.inBase64 = false;
       this.base64Accum = "";
@@ -5373,7 +5373,7 @@ var require_utf7 = __commonJS({
 var require_sbcs_codec = __commonJS({
   "node_modules/iconv-lite/encodings/sbcs-codec.js"(exports) {
     "use strict";
-    var Buffer13 = require_safer().Buffer;
+    var Buffer14 = require_safer().Buffer;
     exports._sbcs = SBCSCodec;
     function SBCSCodec(codecOptions, iconv) {
       if (!codecOptions) {
@@ -5389,8 +5389,8 @@ var require_sbcs_codec = __commonJS({
         }
         codecOptions.chars = asciiString + codecOptions.chars;
       }
-      this.decodeBuf = Buffer13.from(codecOptions.chars, "ucs2");
-      var encodeBuf = Buffer13.alloc(65536, iconv.defaultCharSingleByte.charCodeAt(0));
+      this.decodeBuf = Buffer14.from(codecOptions.chars, "ucs2");
+      var encodeBuf = Buffer14.alloc(65536, iconv.defaultCharSingleByte.charCodeAt(0));
       for (var i = 0; i < codecOptions.chars.length; i++) {
         encodeBuf[codecOptions.chars.charCodeAt(i)] = i;
       }
@@ -5402,7 +5402,7 @@ var require_sbcs_codec = __commonJS({
       this.encodeBuf = codec.encodeBuf;
     }
     SBCSEncoder.prototype.write = function(str) {
-      var buf = Buffer13.alloc(str.length);
+      var buf = Buffer14.alloc(str.length);
       for (var i = 0; i < str.length; i++) {
         buf[i] = this.encodeBuf[str.charCodeAt(i)];
       }
@@ -5415,7 +5415,7 @@ var require_sbcs_codec = __commonJS({
     }
     SBCSDecoder.prototype.write = function(buf) {
       var decodeBuf = this.decodeBuf;
-      var newBuf = Buffer13.alloc(buf.length * 2);
+      var newBuf = Buffer14.alloc(buf.length * 2);
       var idx1 = 0;
       var idx2 = 0;
       for (var i = 0; i < buf.length; i++) {
@@ -6045,7 +6045,7 @@ var require_sbcs_data_generated = __commonJS({
 var require_dbcs_codec = __commonJS({
   "node_modules/iconv-lite/encodings/dbcs-codec.js"(exports) {
     "use strict";
-    var Buffer13 = require_safer().Buffer;
+    var Buffer14 = require_safer().Buffer;
     exports._dbcs = DBCSCodec;
     var UNASSIGNED = -1;
     var GB18030_CODE = -2;
@@ -6281,7 +6281,7 @@ var require_dbcs_codec = __commonJS({
       this.gb18030 = codec.gb18030;
     }
     DBCSEncoder.prototype.write = function(str) {
-      var newBuf = Buffer13.alloc(str.length * (this.gb18030 ? 4 : 3));
+      var newBuf = Buffer14.alloc(str.length * (this.gb18030 ? 4 : 3));
       var leadSurrogate = this.leadSurrogate;
       var seqObj = this.seqObj;
       var nextChar = -1;
@@ -6385,7 +6385,7 @@ var require_dbcs_codec = __commonJS({
       if (this.leadSurrogate === -1 && this.seqObj === void 0) {
         return;
       }
-      var newBuf = Buffer13.alloc(10);
+      var newBuf = Buffer14.alloc(10);
       var j = 0;
       if (this.seqObj) {
         var dbcsCode = this.seqObj[DEF_CHAR];
@@ -6416,7 +6416,7 @@ var require_dbcs_codec = __commonJS({
       this.gb18030 = codec.gb18030;
     }
     DBCSDecoder.prototype.write = function(buf) {
-      var newBuf = Buffer13.alloc(buf.length * 2);
+      var newBuf = Buffer14.alloc(buf.length * 2);
       var nodeIdx = this.nodeIdx;
       var prevBytes = this.prevBytes;
       var prevOffset = this.prevBytes.length;
@@ -8025,7 +8025,7 @@ var require_encodings = __commonJS({
 var require_streams = __commonJS({
   "node_modules/iconv-lite/lib/streams.js"(exports, module) {
     "use strict";
-    var Buffer13 = require_safer().Buffer;
+    var Buffer14 = require_safer().Buffer;
     module.exports = function(streamModule) {
       var Transform = streamModule.Transform;
       function IconvLiteEncoderStream(conv, options) {
@@ -8065,7 +8065,7 @@ var require_streams = __commonJS({
           chunks.push(chunk);
         });
         this.on("end", function() {
-          cb(null, Buffer13.concat(chunks));
+          cb(null, Buffer14.concat(chunks));
         });
         return this;
       };
@@ -8079,7 +8079,7 @@ var require_streams = __commonJS({
         constructor: { value: IconvLiteDecoderStream }
       });
       IconvLiteDecoderStream.prototype._transform = function(chunk, encoding, done) {
-        if (!Buffer13.isBuffer(chunk) && !(chunk instanceof Uint8Array)) {
+        if (!Buffer14.isBuffer(chunk) && !(chunk instanceof Uint8Array)) {
           return done(new Error("Iconv decoding stream needs buffers as its input."));
         }
         try {
@@ -8122,7 +8122,7 @@ var require_streams = __commonJS({
 var require_lib = __commonJS({
   "node_modules/iconv-lite/lib/index.js"(exports, module) {
     "use strict";
-    var Buffer13 = require_safer().Buffer;
+    var Buffer14 = require_safer().Buffer;
     var bomHandling = require_bom_handling();
     var mergeModules = require_merge_exports();
     module.exports.encodings = null;
@@ -8133,7 +8133,7 @@ var require_lib = __commonJS({
       var encoder = module.exports.getEncoder(encoding, options);
       var res = encoder.write(str);
       var trail = encoder.end();
-      return trail && trail.length > 0 ? Buffer13.concat([res, trail]) : res;
+      return trail && trail.length > 0 ? Buffer14.concat([res, trail]) : res;
     };
     module.exports.decode = function decode(buf, encoding, options) {
       if (typeof buf === "string") {
@@ -8141,7 +8141,7 @@ var require_lib = __commonJS({
           console.error("Iconv-lite warning: decode()-ing strings is deprecated. Refer to https://github.com/ashtuchkin/iconv-lite/wiki/Use-Buffers-when-decoding");
           module.exports.skipDecodeWarning = true;
         }
-        buf = Buffer13.from("" + (buf || ""), "binary");
+        buf = Buffer14.from("" + (buf || ""), "binary");
       }
       var decoder = module.exports.getDecoder(encoding, options);
       var res = decoder.write(buf);
@@ -32492,7 +32492,7 @@ var require_utils3 = __commonJS({
     var proxyaddr = require_proxy_addr();
     var qs = require_lib2();
     var querystring = __require("node:querystring");
-    var { Buffer: Buffer13 } = __require("node:buffer");
+    var { Buffer: Buffer14 } = __require("node:buffer");
     exports.methods = METHODS.map((method) => method.toLowerCase());
     exports.etag = createETagGenerator({ weak: false });
     exports.wetag = createETagGenerator({ weak: true });
@@ -32596,7 +32596,7 @@ var require_utils3 = __commonJS({
     };
     function createETagGenerator(options) {
       return function generateETag(body, encoding) {
-        var buf = !Buffer13.isBuffer(body) ? Buffer13.from(body, encoding) : body;
+        var buf = !Buffer14.isBuffer(body) ? Buffer14.from(body, encoding) : body;
         return etag(buf, options);
       };
     }
@@ -54881,7 +54881,7 @@ var require_response = __commonJS({
     var extname = path.extname;
     var resolve5 = path.resolve;
     var vary = require_vary();
-    var { Buffer: Buffer13 } = __require("node:buffer");
+    var { Buffer: Buffer14 } = __require("node:buffer");
     var res = Object.create(http.ServerResponse.prototype);
     module.exports = res;
     res.status = function status(code) {
@@ -54945,12 +54945,12 @@ var require_response = __commonJS({
       var generateETag = !this.get("ETag") && typeof etagFn === "function";
       var len;
       if (chunk !== void 0) {
-        if (Buffer13.isBuffer(chunk)) {
+        if (Buffer14.isBuffer(chunk)) {
           len = chunk.length;
         } else if (!generateETag && chunk.length < 1e3) {
-          len = Buffer13.byteLength(chunk, encoding);
+          len = Buffer14.byteLength(chunk, encoding);
         } else {
-          chunk = Buffer13.from(chunk, encoding);
+          chunk = Buffer14.from(chunk, encoding);
           encoding = void 0;
           len = chunk.length;
         }
@@ -55212,7 +55212,7 @@ var require_response = __commonJS({
         }
       });
       this.status(status);
-      this.set("Content-Length", Buffer13.byteLength(body));
+      this.set("Content-Length", Buffer14.byteLength(body));
       if (this.req.method === "HEAD") {
         this.end();
       } else {
@@ -57112,8 +57112,8 @@ var Agent = class {
   proofPolicy;
   receiptStore;
   pendingSettlement;
-  paymentClaimOwner = /* @__PURE__ */ Symbol("ackrate-payment-claim");
   paymentClaimKey;
+  paymentClaim;
   constructor(net, mandate2, agentSigner, proofPolicy = "legacy-compatible", receiptStore) {
     this.net = net;
     this.mandate = mandate2;
@@ -57121,28 +57121,65 @@ var Agent = class {
     this.proofPolicy = proofPolicy;
     this.receiptStore = receiptStore;
   }
-  claimPaymentOperation() {
-    if (this.paymentClaimKey)
-      throw new Error("another payment operation is already active on this agent");
-    const key = `${this.net.networkPassphrase}
+  synchronizePaymentClaim() {
+    if (this.paymentClaim?.released) {
+      this.pendingSettlement = void 0;
+      this.paymentClaimKey = void 0;
+      this.paymentClaim = void 0;
+    }
+  }
+  mandatePaymentKey() {
+    return `${this.net.networkPassphrase}
 ${this.net.mandateRegistryId}
 ${this.mandate.id}`;
+  }
+  claimPaymentOperation() {
+    this.synchronizePaymentClaim();
+    if (this.paymentClaimKey)
+      throw new Error("another payment operation is already active on this agent");
+    const key = this.mandatePaymentKey();
     if (activeMandatePaymentClaims.has(key)) {
       throw new Error("another payment operation for this mandate is already active");
     }
-    activeMandatePaymentClaims.set(key, this.paymentClaimOwner);
+    this.paymentClaim = { released: false };
+    activeMandatePaymentClaims.set(key, this.paymentClaim);
     this.paymentClaimKey = key;
+  }
+  /** Recovery may share the exact retained operation, never an active broadcast
+   * or a different receipt. All attached agents observe its eventual release. */
+  claimRecoveryOperation(settlement2, preparationClaim) {
+    this.synchronizePaymentClaim();
+    const key = this.mandatePaymentKey();
+    const existing = activeMandatePaymentClaims.get(key);
+    if (existing) {
+      const held = existing.settlement;
+      if (!held && (existing !== preparationClaim || existing !== this.paymentClaim || this.pendingSettlement !== void 0) || held !== void 0 && (held.txHash !== settlement2.txHash || held.mandateId !== settlement2.mandateId || held.amount !== settlement2.amount || held.submittedAt !== settlement2.submittedAt || held.validUntil !== settlement2.validUntil || held.receiptId !== settlement2.receiptId)) {
+        throw new Error("another payment operation for this mandate is already active");
+      }
+      this.paymentClaim = existing;
+      this.paymentClaimKey = key;
+    } else if (!existing) {
+      this.claimPaymentOperation();
+    }
+    if (this.pendingSettlement && this.pendingSettlement.txHash !== settlement2.txHash) {
+      throw new Error("a different pending settlement is already locked on this agent");
+    }
+    this.pendingSettlement = this.paymentClaim.settlement ?? settlement2;
+    this.paymentClaim.settlement = this.pendingSettlement;
   }
   releasePaymentOperation() {
     const key = this.paymentClaimKey;
     if (!key)
       return;
-    if (activeMandatePaymentClaims.get(key) === this.paymentClaimOwner) {
+    if (activeMandatePaymentClaims.get(key) === this.paymentClaim) {
       activeMandatePaymentClaims.delete(key);
+      this.paymentClaim.released = true;
     }
     this.paymentClaimKey = void 0;
+    this.paymentClaim = void 0;
   }
-  async hydratePendingReceipt() {
+  async hydratePendingReceipt(preparationClaim) {
+    this.synchronizePaymentClaim();
     if (this.pendingSettlement || !this.receiptStore)
       return void 0;
     const receipts = await this.receiptStore.listPending();
@@ -57163,9 +57200,7 @@ ${this.mandate.id}`;
     if (receipt.receiptId !== expectedId || receipt.txHash !== receipt.proof.txHash || receipt.mandateId !== receipt.proof.mandateId || !Number.isSafeInteger(receipt.submittedAt) || !Number.isSafeInteger(receipt.validUntil) || receipt.submittedAt <= 0 || receipt.validUntil <= receipt.submittedAt) {
       throw new Error("settlement receipt store returned invalid recovery evidence");
     }
-    if (!this.paymentClaimKey)
-      this.claimPaymentOperation();
-    this.pendingSettlement = Object.freeze({
+    this.claimRecoveryOperation(Object.freeze({
       txHash: receipt.txHash,
       mandateId: receipt.mandateId,
       amount: receipt.amount,
@@ -57173,7 +57208,7 @@ ${this.mandate.id}`;
       submittedAt: receipt.submittedAt,
       validUntil: receipt.validUntil,
       receiptId: receipt.receiptId
-    });
+    }), preparationClaim);
     return receipt;
   }
   /** Execute a mandate-validated payment of `amount` (human, e.g. "1.00").
@@ -57186,7 +57221,7 @@ ${this.mandate.id}`;
     this.claimPaymentOperation();
     let retainClaim = false;
     try {
-      const outstandingReceipt = await this.hydratePendingReceipt();
+      const outstandingReceipt = await this.hydratePendingReceipt(this.paymentClaim);
       if (outstandingReceipt) {
         retainClaim = true;
         throw new DeliveryPendingError(outstandingReceipt, new Error("an unresolved receipt from a prior process must be reconciled or delivered first"));
@@ -57270,14 +57305,18 @@ ${this.mandate.id}`;
     } finally {
       if (!retainClaim)
         this.releasePaymentOperation();
+      else if (this.paymentClaim)
+        this.paymentClaim.settlement = this.pendingSettlement;
     }
   }
   getPendingSettlement() {
+    this.synchronizePaymentClaim();
     return this.pendingSettlement;
   }
   /** Query RPC for a previously prepared/submitted transaction without creating
    *  a new one. Pass a durable journal record after process restart. */
   async reconcilePendingSettlement(restored) {
+    this.synchronizePaymentClaim();
     if (restored) {
       if (restored.mandateId !== this.mandate.id || !/^[0-9a-f]{64}$/.test(restored.txHash) || !/^(?:unknown|\d+)$/.test(restored.expectedSeq) || !Number.isSafeInteger(restored.submittedAt) || !Number.isSafeInteger(restored.validUntil) || restored.submittedAt <= 0 || restored.validUntil <= restored.submittedAt || restored.receiptId !== void 0 && !/^[0-9a-f]{64}$/.test(restored.receiptId)) {
         throw new Error("pending settlement journal record is invalid or belongs to another mandate");
@@ -57290,37 +57329,50 @@ ${this.mandate.id}`;
       }
       this.pendingSettlement = Object.freeze({ ...restored });
     }
-    if (!this.paymentClaimKey)
-      this.claimPaymentOperation();
-    try {
-      await this.hydratePendingReceipt();
-    } catch (error) {
-      if (!this.pendingSettlement)
-        this.releasePaymentOperation();
-      throw error;
-    }
+    await this.hydratePendingReceipt();
     const settlement2 = this.pendingSettlement;
     if (!settlement2) {
-      this.releasePaymentOperation();
+      if (activeMandatePaymentClaims.has(this.mandatePaymentKey())) {
+        throw new Error("another payment operation for this mandate is already active");
+      }
       return { kind: "none" };
     }
+    this.claimRecoveryOperation(settlement2);
+    const recoveryClaim = this.paymentClaim;
+    const requireCurrentRecovery = () => {
+      if (this.paymentClaim !== recoveryClaim || recoveryClaim.released) {
+        throw new Error("payment operation changed during settlement reconciliation; pending state was retained");
+      }
+    };
     const server = new rpc4.Server(this.net.rpcUrl, { allowHttp: this.net.rpcUrl.startsWith("http://") });
+    const identity = await server.getNetwork();
+    if (identity.passphrase !== this.net.networkPassphrase) {
+      throw new Error("RPC network identity does not match the pending settlement network; pending state was retained");
+    }
+    requireCurrentRecovery();
     const response = await server.getTransaction(settlement2.txHash);
+    requireCurrentRecovery();
     if (response.status === rpc4.Api.GetTransactionStatus.NOT_FOUND) {
+      if (!Number.isSafeInteger(response.latestLedgerCloseTime) || response.latestLedgerCloseTime <= 0 || !Number.isSafeInteger(response.oldestLedgerCloseTime) || response.oldestLedgerCloseTime <= 0 || response.oldestLedgerCloseTime > response.latestLedgerCloseTime)
+        return { kind: "pending", settlement: settlement2 };
       if (settlement2.submittedAt > 0 && settlement2.validUntil > 0 && response.latestLedgerCloseTime > settlement2.validUntil && response.oldestLedgerCloseTime <= settlement2.submittedAt) {
-        this.pendingSettlement = void 0;
         if (settlement2.receiptId)
           await this.receiptStore?.clearPending(settlement2.receiptId);
-        this.releasePaymentOperation();
+        if (this.paymentClaim === recoveryClaim && !recoveryClaim.released) {
+          this.pendingSettlement = void 0;
+          this.releasePaymentOperation();
+        }
         return { kind: "expired", settlement: settlement2 };
       }
       return { kind: "pending", settlement: settlement2 };
     }
     if (response.status === rpc4.Api.GetTransactionStatus.FAILED) {
-      this.pendingSettlement = void 0;
       if (settlement2.receiptId)
         await this.receiptStore?.clearPending(settlement2.receiptId);
-      this.releasePaymentOperation();
+      if (this.paymentClaim === recoveryClaim && !recoveryClaim.released) {
+        this.pendingSettlement = void 0;
+        this.releasePaymentOperation();
+      }
       return { kind: "failed", settlement: settlement2 };
     }
     if (response.status === rpc4.Api.GetTransactionStatus.SUCCESS) {
@@ -57337,6 +57389,7 @@ ${this.mandate.id}`;
    * `pay`, never signs, and never creates another on-chain transaction.
    */
   async retryDelivery(receipt, init) {
+    this.synchronizePaymentClaim();
     if (!this.receiptStore)
       throw new Error("a SettlementReceiptStore is required to retry delivery safely");
     if (receipt.mandateId !== this.mandate.id || receipt.proof.mandateId !== this.mandate.id) {
@@ -57381,8 +57434,15 @@ ${this.mandate.id}`;
         throw new Error("x402: bound receipt does not match its delivery target");
       }
     }
-    if (!this.paymentClaimKey)
-      this.claimPaymentOperation();
+    this.claimRecoveryOperation(Object.freeze({
+      txHash: receipt.txHash,
+      mandateId: receipt.mandateId,
+      amount: receipt.amount,
+      expectedSeq: "unknown",
+      submittedAt: receipt.submittedAt,
+      validUntil: receipt.validUntil,
+      receiptId: receipt.receiptId
+    }));
     const headers = new Headers(init?.headers);
     headers.set(X_PAYMENT_HEADER, encodePaymentProof(proof));
     if (receipt.proofVersion === 2) {
@@ -57414,6 +57474,7 @@ ${this.mandate.id}`;
    * succeeds, the retained receipt keeps every new payment fail-closed.
    */
   async acknowledgeDelivery(receipt) {
+    this.synchronizePaymentClaim();
     if (!this.receiptStore)
       throw new Error("a SettlementReceiptStore is required to acknowledge delivery");
     if (receipt.mandateId !== this.mandate.id || receipt.proof.mandateId !== this.mandate.id) {
@@ -57436,14 +57497,26 @@ ${this.mandate.id}`;
     if (receipt.receiptId !== expectedId) {
       throw new Error("x402: cannot acknowledge a receipt with an invalid integrity id");
     }
+    this.claimRecoveryOperation(Object.freeze({
+      txHash: receipt.txHash,
+      mandateId: receipt.mandateId,
+      amount: receipt.amount,
+      expectedSeq: "unknown",
+      submittedAt: receipt.submittedAt,
+      validUntil: receipt.validUntil,
+      receiptId: receipt.receiptId
+    }));
+    const acknowledgmentClaim = this.paymentClaim;
     try {
       await this.receiptStore.clearPending(receipt.receiptId);
     } catch (cause) {
       throw new DeliveryPendingError(receipt, cause);
     }
-    if (this.pendingSettlement?.txHash === receipt.txHash)
-      this.pendingSettlement = void 0;
-    this.releasePaymentOperation();
+    if (this.paymentClaim === acknowledgmentClaim && !acknowledgmentClaim.released) {
+      if (this.pendingSettlement?.txHash === receipt.txHash)
+        this.pendingSettlement = void 0;
+      this.releasePaymentOperation();
+    }
   }
   /**
    * x402 round-trip. GET `url`; if the server answers 402 Payment Required, read
@@ -57711,7 +57784,7 @@ async function stellarCliSigner(identityInput, net) {
   if (!StrKey4.isValidEd25519PublicKey(publicKey)) {
     throw new Error(`Stellar identity ${JSON.stringify(identity)} did not resolve to a G-account`);
   }
-  const signTransaction = async (xdr3, options) => {
+  const signTransaction = async (xdr4, options) => {
     if (options?.networkPassphrase && options.networkPassphrase !== net.networkPassphrase) {
       throw new Error("external signer refused a conflicting network passphrase");
     }
@@ -57721,7 +57794,7 @@ async function stellarCliSigner(identityInput, net) {
     const signedTxXdr = await stellar([
       "tx",
       "sign",
-      xdr3,
+      xdr4,
       "--sign-with-key",
       identity,
       "--network-passphrase",
@@ -57802,8 +57875,11 @@ function creditFunding(entry, address, asset) {
   }
   return { balance: balance2, sendable: balance2 - selling, receivable: limit - balance2 - buying };
 }
-async function requireMainnetFunding(server, asset, user, agent, merchant, requiredUsdc) {
+async function requireMainnetFunding(server, asset, user, agent, merchant, requiredUsdc, minimumUserSpendableXlm = MINIMUM_SPENDABLE_XLM) {
   if (requiredUsdc <= 0n || requiredUsdc > I64_MAX) throw new Error("required USDC must be a positive i64 amount");
+  if (minimumUserSpendableXlm !== MINIMUM_SPENDABLE_XLM && minimumUserSpendableXlm !== 500000n) {
+    throw new Error("unsupported Mainnet payer fee floor");
+  }
   const [latest, userAccount, agentAccount, merchantAccount, userLine, merchantLine] = await Promise.all([
     server.getLatestLedger(),
     server.getAccountEntry(user),
@@ -57819,8 +57895,8 @@ async function requireMainnetFunding(server, asset, user, agent, merchant, requi
   const agentNative = nativeFunding(agentAccount, agent, latest.headerXdr.baseReserve());
   const userCredit = creditFunding(userLine, user, asset);
   const merchantCredit = creditFunding(merchantLine, merchant, asset);
-  if (userNative.spendable < MINIMUM_SPENDABLE_XLM || agentNative.spendable < MINIMUM_SPENDABLE_XLM) {
-    throw new Error("mainnet user and agent must each have at least 0.50 spendable XLM above reserves, sponsorship obligations, and selling liabilities for fees");
+  if (userNative.spendable < minimumUserSpendableXlm || agentNative.spendable < MINIMUM_SPENDABLE_XLM) {
+    throw new Error(minimumUserSpendableXlm === MINIMUM_SPENDABLE_XLM ? "mainnet user and agent must each have at least 0.50 spendable XLM above reserves, sponsorship obligations, and selling liabilities for fees" : "resumed Mainnet setup requires at least 0.05 payer and 0.50 agent spendable XLM above reserves and liabilities for fees");
   }
   if (userCredit.sendable < requiredUsdc) throw new Error("mainnet user spendable USDC is below the required amount after selling liabilities");
   if (merchantCredit.receivable < requiredUsdc) throw new Error("mainnet merchant USDC receive capacity is below the required amount after trustline limits and buying liabilities");
@@ -58058,17 +58134,540 @@ async function runMandateCreate(opts = {}) {
 }
 
 // packages/cli/src/settlement-store.ts
-import { randomUUID } from "node:crypto";
+import { randomUUID as randomUUID4 } from "node:crypto";
 import {
-  chmod,
-  lstat,
-  mkdir,
-  open,
-  readFile,
-  rename,
-  rm
+  chmod as chmod4,
+  lstat as lstat2,
+  mkdir as mkdir4,
+  open as open4,
+  readFile as readFile4,
+  readdir,
+  rename as rename4,
+  rm as rm4
 } from "node:fs/promises";
 import { join as join3 } from "node:path";
+
+// apps/consumer-agent/src/receipt-store.ts
+import { randomUUID } from "node:crypto";
+import { chmod, mkdir, open, readFile, rename, rm } from "node:fs/promises";
+import { dirname, resolve as resolve2 } from "node:path";
+var EMPTY = { version: 2, pending: {} };
+var pathQueues = /* @__PURE__ */ new Map();
+function validateSettlementReceipt(value) {
+  if (!value || typeof value !== "object") throw new Error("receipt store contains a non-object receipt");
+  const receipt = value;
+  const keys = Object.keys(receipt).sort();
+  const expectedKeys = [
+    "amount",
+    "mandateId",
+    "method",
+    "proof",
+    "proofVersion",
+    "receiptId",
+    "submittedAt",
+    "txHash",
+    "url",
+    "validUntil"
+  ];
+  if (keys.length !== expectedKeys.length || keys.some((key, index) => key !== expectedKeys[index]) || typeof receipt.receiptId !== "string" || !/^[0-9a-f]{64}$/.test(receipt.receiptId) || receipt.proofVersion !== 1 && receipt.proofVersion !== 2 || typeof receipt.url !== "string" || typeof receipt.method !== "string" || typeof receipt.txHash !== "string" || typeof receipt.mandateId !== "string" || typeof receipt.amount !== "string" || !Number.isSafeInteger(receipt.submittedAt) || !Number.isSafeInteger(receipt.validUntil) || receipt.submittedAt <= 0 || receipt.validUntil <= receipt.submittedAt) {
+    throw new Error("receipt store contains an invalid receipt envelope");
+  }
+  const proof = decodePaymentProof(encodePaymentProof(receipt.proof));
+  if (proof.txHash !== receipt.txHash || proof.mandateId !== receipt.mandateId) {
+    throw new Error("receipt store contains mismatched settlement evidence");
+  }
+  const expectedId = createSettlementReceiptId({
+    proofVersion: receipt.proofVersion,
+    url: receipt.url,
+    method: receipt.method,
+    txHash: receipt.txHash,
+    mandateId: receipt.mandateId,
+    amount: receipt.amount,
+    submittedAt: receipt.submittedAt,
+    validUntil: receipt.validUntil,
+    proof
+  });
+  if (receipt.receiptId !== expectedId) {
+    throw new Error("receipt store contains a receipt with an invalid integrity id");
+  }
+  return Object.freeze({ ...receipt, proof: Object.freeze(proof) });
+}
+var FileSettlementReceiptStore = class {
+  filePath;
+  constructor(filePath) {
+    if (!filePath || filePath.trim() !== filePath) {
+      throw new Error("receipt file path must be a non-empty exact string");
+    }
+    this.filePath = resolve2(filePath);
+  }
+  async savePending(receipt) {
+    await this.serial(async () => {
+      const file = await this.load();
+      file.pending[receipt.receiptId] = validateSettlementReceipt(receipt);
+      await this.write(file);
+    });
+  }
+  async clearPending(receiptId) {
+    await this.serial(async () => {
+      const file = await this.load();
+      delete file.pending[receiptId];
+      await this.write(file);
+    });
+  }
+  async listPending() {
+    return this.serial(async () => Object.values((await this.load()).pending).map(validateSettlementReceipt));
+  }
+  async serial(operation) {
+    const previous = pathQueues.get(this.filePath) ?? Promise.resolve();
+    const current = previous.then(operation, operation);
+    const tail = current.then(() => void 0, () => void 0);
+    pathQueues.set(this.filePath, tail);
+    try {
+      return await current;
+    } finally {
+      if (pathQueues.get(this.filePath) === tail) pathQueues.delete(this.filePath);
+    }
+  }
+  async load() {
+    let raw;
+    try {
+      raw = await readFile(this.filePath, "utf8");
+    } catch (error) {
+      if (error.code === "ENOENT") {
+        return { version: EMPTY.version, pending: {} };
+      }
+      throw error;
+    }
+    const parsed = JSON.parse(raw);
+    if (Object.keys(parsed).sort().join(",") !== "pending,version" || parsed.version !== 2 || !parsed.pending || typeof parsed.pending !== "object" || Array.isArray(parsed.pending)) {
+      throw new Error("receipt store schema is invalid");
+    }
+    const pending = {};
+    for (const [id, receipt] of Object.entries(parsed.pending)) {
+      const checked = validateSettlementReceipt(receipt);
+      if (id !== checked.receiptId) throw new Error("receipt store key does not match receipt id");
+      pending[id] = checked;
+    }
+    return { version: 2, pending };
+  }
+  async write(file) {
+    const directory = dirname(this.filePath);
+    await mkdir(directory, { recursive: true, mode: 448 });
+    const temporary = `${this.filePath}.${process.pid}.${randomUUID()}.tmp`;
+    let handle;
+    try {
+      handle = await open(temporary, "wx", 384);
+      await handle.writeFile(`${JSON.stringify(file, null, 2)}
+`, "utf8");
+      await handle.sync();
+      await handle.close();
+      handle = void 0;
+      await rename(temporary, this.filePath);
+      await chmod(this.filePath, 384);
+      const directoryHandle = await open(directory, "r");
+      try {
+        await directoryHandle.sync();
+      } finally {
+        await directoryHandle.close();
+      }
+    } finally {
+      await handle?.close().catch(() => void 0);
+      await rm(temporary, { force: true }).catch(() => void 0);
+    }
+  }
+};
+
+// apps/consumer-agent/src/outcome-store.ts
+import { createHash as createHash2, randomUUID as randomUUID2 } from "node:crypto";
+import { chmod as chmod2, lstat, mkdir as mkdir2, open as open2, readFile as readFile2, rename as rename2, rm as rm2 } from "node:fs/promises";
+import { dirname as dirname2, resolve as resolve3 } from "node:path";
+var EMPTY2 = { version: 1, records: {} };
+var pathQueues2 = /* @__PURE__ */ new Map();
+var MAX_FILE_BYTES = 4 * 1024 * 1024;
+function exactKeys3(value, expected) {
+  const actual = Object.keys(value).sort();
+  const sorted = [...expected].sort();
+  return actual.length === sorted.length && actual.every((key, index) => key === sorted[index]);
+}
+function hashParts(parts) {
+  return createHash2("sha256").update(JSON.stringify(parts), "utf8").digest("hex");
+}
+function createPurchaseIdentity(input) {
+  if (!/^[0-9a-f]{64}$/.test(input.mandateId)) throw new Error("purchase identity mandate id is invalid");
+  if (!input.sourceId || input.sourceId.trim() !== input.sourceId) throw new Error("purchase source id is invalid");
+  const parsed = new URL(input.url);
+  if (parsed.protocol !== "https:" && parsed.protocol !== "http:" || parsed.toString() !== input.url) {
+    throw new Error("purchase identity URL must be an exact absolute HTTP(S) URL");
+  }
+  const identity = {
+    key: hashParts(["ackrate-consumer-request-v1", input.mandateId, "GET", input.url, input.sourceId]),
+    mandateId: input.mandateId,
+    method: "GET",
+    url: input.url,
+    sourceId: input.sourceId
+  };
+  return Object.freeze(identity);
+}
+function validateIdentity(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error("purchase identity is not an object");
+  }
+  const identity = value;
+  if (!exactKeys3(identity, ["key", "mandateId", "method", "url", "sourceId"]) || identity.method !== "GET") {
+    throw new Error("purchase identity schema is invalid");
+  }
+  const expected = createPurchaseIdentity(identity);
+  if (expected.key !== identity.key) throw new Error("purchase identity key is invalid");
+  return expected;
+}
+function outcomeDigest(outcome) {
+  const detail = outcome.kind === "delivered" ? [outcome.receiptId, outcome.txHash, outcome.name, outcome.data] : outcome.kind === "terminal" ? [outcome.receiptId, outcome.txHash, outcome.reason] : [outcome.reason];
+  return hashParts([
+    "ackrate-consumer-outcome-v1",
+    outcome.version,
+    outcome.identity.key,
+    outcome.completedAt,
+    outcome.kind,
+    ...detail
+  ]);
+}
+function createStoredPurchaseOutcome(input) {
+  const identity = validateIdentity(input.identity);
+  const completedAt = input.completedAt ?? Math.floor(Date.now() / 1e3);
+  const withoutId = Object.freeze({ version: 1, ...input, identity, completedAt });
+  return Object.freeze({ ...withoutId, outcomeId: outcomeDigest(withoutId) });
+}
+function validateOutcome(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error("purchase outcome is not an object");
+  }
+  const outcome = value;
+  const expectedKeys = outcome.kind === "delivered" ? ["version", "outcomeId", "identity", "completedAt", "kind", "receiptId", "txHash", "name", "data"] : outcome.kind === "terminal" ? ["version", "outcomeId", "identity", "completedAt", "kind", "receiptId", "txHash", "reason"] : ["version", "outcomeId", "identity", "completedAt", "kind", "reason"];
+  if (!exactKeys3(outcome, expectedKeys) || outcome.version !== 1 || outcome.kind !== "delivered" && outcome.kind !== "terminal" && outcome.kind !== "rejected" || !Number.isSafeInteger(outcome.completedAt) || outcome.completedAt <= 0) {
+    throw new Error("purchase outcome schema is invalid");
+  }
+  if (outcome.kind === "delivered") {
+    if (!/^[0-9a-f]{64}$/.test(outcome.receiptId) || !/^[0-9a-f]{64}$/.test(outcome.txHash) || typeof outcome.name !== "string" || typeof outcome.data !== "string") throw new Error("delivered purchase outcome is invalid");
+  } else if (outcome.kind === "terminal") {
+    if (!/^[0-9a-f]{64}$/.test(outcome.receiptId) || !/^[0-9a-f]{64}$/.test(outcome.txHash) || typeof outcome.reason !== "string") throw new Error("terminal purchase outcome is invalid");
+  } else if (typeof outcome.reason !== "string") {
+    throw new Error("rejected purchase outcome is invalid");
+  }
+  const identity = validateIdentity(outcome.identity);
+  const normalized = Object.freeze({ ...outcome, identity });
+  const { outcomeId: _outcomeId, ...withoutId } = normalized;
+  if (outcome.outcomeId !== outcomeDigest(withoutId)) throw new Error("purchase outcome integrity id is invalid");
+  return normalized;
+}
+function validateRecord(key, value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("purchase record is invalid");
+  const record2 = value;
+  const identity = validateIdentity(record2.identity);
+  if (identity.key !== key) throw new Error("purchase record key does not match its identity");
+  if (record2.kind === "executing") {
+    if (!exactKeys3(record2, ["kind", "identity", "executionId", "startedAt"]) || !/^[0-9a-f-]{36}$/.test(record2.executionId) || !Number.isSafeInteger(record2.startedAt) || record2.startedAt <= 0) throw new Error("executing purchase record is invalid");
+    return Object.freeze({ ...record2, identity });
+  }
+  if (record2.kind === "completed" && exactKeys3(record2, ["kind", "identity", "outcome"])) {
+    const outcome = validateOutcome(record2.outcome);
+    if (outcome.identity.key !== identity.key) throw new Error("completed outcome identity mismatch");
+    return Object.freeze({ ...record2, identity, outcome });
+  }
+  throw new Error("purchase record schema is invalid");
+}
+var FilePurchaseOutcomeStore = class {
+  filePath;
+  constructor(filePath) {
+    if (!filePath || filePath.trim() !== filePath) throw new Error("outcome file path must be a non-empty exact string");
+    this.filePath = resolve3(filePath);
+  }
+  async lookup(identity) {
+    const checked = validateIdentity(identity);
+    return this.serial(async () => {
+      const record2 = (await this.load()).records[checked.key];
+      if (!record2) return { kind: "missing" };
+      return record2.kind === "completed" ? { kind: "completed", outcome: record2.outcome } : { kind: "executing", executionId: record2.executionId };
+    });
+  }
+  async claim(identity, executionId, startedAt) {
+    const checked = validateIdentity(identity);
+    if (!/^[0-9a-f-]{36}$/.test(executionId) || !Number.isSafeInteger(startedAt) || startedAt <= 0) {
+      throw new Error("purchase execution claim is invalid");
+    }
+    return this.serial(async () => {
+      const file = await this.load();
+      const existing = file.records[checked.key];
+      if (existing?.kind === "completed") return { kind: "completed", outcome: existing.outcome };
+      if (existing?.kind === "executing") return { kind: "executing", executionId: existing.executionId };
+      file.records[checked.key] = Object.freeze({ kind: "executing", identity: checked, executionId, startedAt });
+      await this.write(file);
+      return { kind: "claimed" };
+    });
+  }
+  async complete(identity, executionId, outcome) {
+    const checked = validateIdentity(identity);
+    const accepted = validateOutcome(outcome);
+    if (accepted.identity.key !== checked.key) throw new Error("purchase completion identity mismatch");
+    return this.serial(async () => {
+      const file = await this.load();
+      const existing = file.records[checked.key];
+      if (!existing) throw new Error("purchase completion has no execution claim");
+      if (existing.kind === "completed") {
+        if (existing.outcome.outcomeId !== accepted.outcomeId) throw new Error("purchase outcome is already immutable");
+        return existing.outcome;
+      }
+      if (existing.executionId !== executionId) throw new Error("purchase completion belongs to another execution");
+      file.records[checked.key] = Object.freeze({ kind: "completed", identity: checked, outcome: accepted });
+      await this.write(file);
+      return accepted;
+    });
+  }
+  async serial(operation) {
+    const previous = pathQueues2.get(this.filePath) ?? Promise.resolve();
+    const current = previous.then(operation, operation);
+    const tail = current.then(() => void 0, () => void 0);
+    pathQueues2.set(this.filePath, tail);
+    try {
+      return await current;
+    } finally {
+      if (pathQueues2.get(this.filePath) === tail) pathQueues2.delete(this.filePath);
+    }
+  }
+  async load() {
+    let raw;
+    try {
+      const info = await lstat(this.filePath);
+      if (!info.isFile() || info.isSymbolicLink() || (info.mode & 63) !== 0 || info.size > MAX_FILE_BYTES) {
+        throw new Error("outcome store file is not a bounded private regular file");
+      }
+      raw = await readFile2(this.filePath, "utf8");
+    } catch (error) {
+      if (error.code === "ENOENT") return { version: EMPTY2.version, records: {} };
+      throw error;
+    }
+    const parsed = JSON.parse(raw);
+    if (!exactKeys3(parsed, ["version", "records"]) || parsed.version !== 1 || !parsed.records || typeof parsed.records !== "object" || Array.isArray(parsed.records)) throw new Error("outcome store schema is invalid");
+    const records = {};
+    for (const [key, value] of Object.entries(parsed.records)) records[key] = validateRecord(key, value);
+    return { version: 1, records };
+  }
+  async write(file) {
+    const directory = dirname2(this.filePath);
+    await mkdir2(directory, { recursive: true, mode: 448 });
+    await chmod2(directory, 448);
+    const temporary = `${this.filePath}.${process.pid}.${randomUUID2()}.tmp`;
+    let handle;
+    try {
+      handle = await open2(temporary, "wx", 384);
+      await handle.writeFile(`${JSON.stringify(file, null, 2)}
+`, "utf8");
+      await handle.sync();
+      await handle.close();
+      handle = void 0;
+      await rename2(temporary, this.filePath);
+      await chmod2(this.filePath, 384);
+      const directoryHandle = await open2(directory, "r");
+      try {
+        await directoryHandle.sync();
+      } finally {
+        await directoryHandle.close();
+      }
+    } finally {
+      await handle?.close().catch(() => void 0);
+      await rm2(temporary, { force: true }).catch(() => void 0);
+    }
+  }
+};
+
+// apps/fulfillment-agent/src/redemption-store.ts
+import { createHash as createHash3, randomUUID as randomUUID3 } from "node:crypto";
+import { chmod as chmod3, mkdir as mkdir3, open as open3, readFile as readFile3, rename as rename3, rm as rm3 } from "node:fs/promises";
+import { dirname as dirname3, resolve as resolve4 } from "node:path";
+var pathQueues3 = /* @__PURE__ */ new Map();
+function validateResponse(value) {
+  if (!value || typeof value !== "object") throw new Error("redemption response is not an object");
+  const response = value;
+  if (!Number.isInteger(response.status) || response.status < 200 || response.status > 299 || response.contentType !== "application/json; charset=utf-8" || typeof response.bodyBase64 !== "string" || !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(response.bodyBase64) || typeof response.bodySha256 !== "string" || !/^[0-9a-f]{64}$/.test(response.bodySha256)) {
+    throw new Error("redemption response schema is invalid");
+  }
+  const body = Buffer.from(response.bodyBase64, "base64");
+  if (body.toString("base64") !== response.bodyBase64 || createHash3("sha256").update(body).digest("hex") !== response.bodySha256) {
+    throw new Error("redemption response integrity check failed");
+  }
+  return Object.freeze({ ...response });
+}
+function serialize(record2) {
+  return {
+    ...record2,
+    payment: { ...record2.payment, amountStroops: record2.payment.amountStroops.toString() }
+  };
+}
+function deserialize(value) {
+  if (!value || typeof value !== "object") throw new Error("redemption store contains a non-object record");
+  const record2 = value;
+  if (typeof record2.key !== "string" || typeof record2.proofDigest !== "string" || !/^[0-9a-f]{64}$/.test(record2.proofDigest) || typeof record2.executionId !== "string" || record2.executionId.length === 0 || !Number.isSafeInteger(record2.startedAt) || record2.startedAt <= 0 || record2.state !== "executing" && record2.state !== "completed" || !record2.payment || typeof record2.payment !== "object" || typeof record2.payment.amountStroops !== "string" || !/^[1-9]\d*$/.test(record2.payment.amountStroops) || typeof record2.payment.txHash !== "string" || typeof record2.payment.mandateId !== "string" || typeof record2.payment.agent !== "string") {
+    throw new Error("redemption store record schema is invalid");
+  }
+  const payment = Object.freeze({
+    ...record2.payment,
+    amountStroops: BigInt(record2.payment.amountStroops)
+  });
+  if (record2.state === "executing") {
+    if ("response" in record2 && record2.response !== void 0) {
+      throw new Error("executing redemption record cannot contain a response");
+    }
+    return Object.freeze({
+      key: record2.key,
+      proofDigest: record2.proofDigest,
+      payment,
+      executionId: record2.executionId,
+      startedAt: record2.startedAt,
+      state: "executing"
+    });
+  }
+  return Object.freeze({
+    key: record2.key,
+    proofDigest: record2.proofDigest,
+    payment,
+    executionId: record2.executionId,
+    startedAt: record2.startedAt,
+    state: "completed",
+    response: validateResponse(record2.response)
+  });
+}
+function responsesEqual(a, b) {
+  return a.status === b.status && a.contentType === b.contentType && a.bodyBase64 === b.bodyBase64 && a.bodySha256 === b.bodySha256;
+}
+var FileBoundRedemptionStore = class {
+  filePath;
+  constructor(filePath) {
+    if (!filePath || filePath.trim() !== filePath) {
+      throw new Error("redemption file path must be a non-empty exact string");
+    }
+    this.filePath = resolve4(filePath);
+  }
+  async lookup(key, proofDigest) {
+    return this.serial(async () => {
+      const stored = (await this.load()).records[key];
+      if (!stored) return { kind: "missing" };
+      const record2 = deserialize(stored);
+      if (record2.proofDigest !== proofDigest) return { kind: "conflict" };
+      return { kind: record2.state, record: record2 };
+    });
+  }
+  async claim(record2, executionId, startedAt) {
+    return this.serial(async () => {
+      const file = await this.load();
+      const existing = file.records[record2.key];
+      if (existing) {
+        const restored = deserialize(existing);
+        if (restored.proofDigest !== record2.proofDigest) return { kind: "conflict" };
+        return { kind: restored.state, record: restored };
+      }
+      const checked = deserialize({
+        key: record2.key,
+        proofDigest: record2.proofDigest,
+        payment: { ...record2.payment, amountStroops: record2.payment.amountStroops.toString() },
+        executionId,
+        startedAt,
+        state: "executing"
+      });
+      file.records[record2.key] = serialize(checked);
+      await this.write(file);
+      return { kind: "claimed", record: checked };
+    });
+  }
+  async complete(completion) {
+    return this.serial(async () => {
+      const file = await this.load();
+      const serialized = file.records[completion.key];
+      if (!serialized) return { kind: "conflict" };
+      const existing = deserialize(serialized);
+      if (existing.proofDigest !== completion.proofDigest || existing.executionId !== completion.executionId) {
+        return { kind: "conflict" };
+      }
+      const response = validateResponse(completion.response);
+      if (existing.state === "completed") {
+        return responsesEqual(existing.response, response) ? { kind: "completed", record: existing } : { kind: "conflict" };
+      }
+      const completed = Object.freeze({
+        ...existing,
+        state: "completed",
+        response
+      });
+      file.records[completion.key] = serialize(completed);
+      await this.write(file);
+      return { kind: "completed", record: completed };
+    });
+  }
+  /**
+   * Administrative restart hook for this single-process reference store.
+   * Callers may resolve these claims to one immutable terminal result after
+   * confirming the prior process is no longer running; never execute the paid
+   * callback again.
+   */
+  async listExecuting() {
+    return this.serial(async () => Object.values((await this.load()).records).map(deserialize).filter((record2) => record2.state === "executing"));
+  }
+  async serial(operation) {
+    const previous = pathQueues3.get(this.filePath) ?? Promise.resolve();
+    const current = previous.then(operation, operation);
+    const tail = current.then(() => void 0, () => void 0);
+    pathQueues3.set(this.filePath, tail);
+    try {
+      return await current;
+    } finally {
+      if (pathQueues3.get(this.filePath) === tail) pathQueues3.delete(this.filePath);
+    }
+  }
+  async load() {
+    let raw;
+    try {
+      raw = await readFile3(this.filePath, "utf8");
+    } catch (error) {
+      if (error.code === "ENOENT") return { version: 2, records: {} };
+      throw error;
+    }
+    const parsed = JSON.parse(raw);
+    if (parsed.version !== 2 || !parsed.records || typeof parsed.records !== "object") {
+      throw new Error("redemption store schema is invalid");
+    }
+    for (const [key, value] of Object.entries(parsed.records)) {
+      const record2 = deserialize(value);
+      if (record2.key !== key) throw new Error("redemption store key does not match record key");
+    }
+    return { version: 2, records: { ...parsed.records } };
+  }
+  async write(file) {
+    const directory = dirname3(this.filePath);
+    await mkdir3(directory, { recursive: true, mode: 448 });
+    const temporary = `${this.filePath}.${process.pid}.${randomUUID3()}.tmp`;
+    let handle;
+    try {
+      handle = await open3(temporary, "wx", 384);
+      await handle.writeFile(`${JSON.stringify(file, null, 2)}
+`, "utf8");
+      await handle.sync();
+      await handle.close();
+      handle = void 0;
+      await rename3(temporary, this.filePath);
+      await chmod3(this.filePath, 384);
+      const directoryHandle = await open3(directory, "r");
+      try {
+        await directoryHandle.sync();
+      } finally {
+        await directoryHandle.close();
+      }
+    } finally {
+      await handle?.close().catch(() => void 0);
+      await rm3(temporary, { force: true }).catch(() => void 0);
+    }
+  }
+};
+
+// packages/cli/src/settlement-store.ts
+var ownedDemoClaims = /* @__PURE__ */ new WeakSet();
+var completingDemoClaims = /* @__PURE__ */ new WeakSet();
 var DIRECTORY = "pending-settlement";
 var STATE = "state.json";
 function settlementDirectory() {
@@ -58077,10 +58676,110 @@ function settlementDirectory() {
 function statePath() {
   return join3(settlementDirectory(), STATE);
 }
-function exactKeys3(value, expected) {
+async function withJournalLock(operation) {
+  const home = ackrateHome();
+  await mkdir4(home, { recursive: true, mode: 448 });
+  await chmod4(home, 448);
+  const lock = join3(home, "pending-settlement-operation");
+  try {
+    await mkdir4(lock, { mode: 448 });
+  } catch (error) {
+    if (error.code === "EEXIST") {
+      throw new Error(`a journal operation is in progress or was interrupted; retain ${lock} and ${settlementDirectory()} for manual evidence review before another payment or demo`);
+    }
+    throw error;
+  }
+  try {
+    return await operation();
+  } finally {
+    await rm4(lock, { recursive: true });
+  }
+}
+function exactKeys4(value, expected) {
   const actual = Object.keys(value).sort();
   const sorted = [...expected].sort();
   return actual.length === sorted.length && actual.every((key, index) => key === sorted[index]);
+}
+function demoRecoveryDirectory(mandateId) {
+  return mandateId === null ? join3(ackrateHome(), "research-agent-demo") : join3(ackrateHome(), "research-agent-demo", mandateId);
+}
+function validateDemoRun(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("demo-run marker is invalid");
+  const record2 = value;
+  let rpc13;
+  let origin;
+  try {
+    rpc13 = new URL(record2.rpcUrl);
+    if (record2.origin !== null) origin = new URL(record2.origin);
+  } catch {
+  }
+  if (!exactKeys4(record2, ["version", "state", "source", "runId", "startedAt", "network", "rpcUrl", "contractId", "assetId", "user", "agent", "merchant", "mandateId", "registrationTx", "allowanceTx", "origin"]) || record2.version !== 1 || record2.state !== "demo-run" || record2.source !== "demo" || typeof record2.runId !== "string" || !/^[0-9a-f-]{36}$/.test(record2.runId) || !Number.isSafeInteger(record2.startedAt) || record2.startedAt <= 0 || record2.network !== "testnet" && record2.network !== "mainnet" || !rpc13 || rpc13.protocol !== "https:" || Boolean(rpc13.username || rpc13.password) || ![record2.contractId, record2.assetId].every((address) => typeof address === "string" && /^C[A-Z2-7]{55}$/.test(address)) || ![record2.user, record2.agent, record2.merchant].every((address) => typeof address === "string" && /^G[A-Z2-7]{55}$/.test(address)) || (/* @__PURE__ */ new Set([record2.user, record2.agent, record2.merchant])).size !== 3 || ![record2.mandateId, record2.registrationTx, record2.allowanceTx].every((hash3) => hash3 === null || typeof hash3 === "string" && /^[0-9a-f]{64}$/.test(hash3)) || record2.origin !== null && (!origin || !["http:", "https:"].includes(origin.protocol) || origin.origin !== record2.origin || Boolean(origin.username || origin.password))) throw new Error("demo-run marker schema is invalid; retain it for manual evidence review");
+  return Object.freeze({ ...record2 });
+}
+async function findUnresolvedDemoEvidence() {
+  const root = demoRecoveryDirectory(null);
+  let entries;
+  try {
+    await assertDirectoryIsPrivate(root);
+    entries = await readdir(root, { withFileTypes: true });
+  } catch (error) {
+    if (error.code === "ENOENT") return [];
+    throw error;
+  }
+  const evidence = [];
+  for (const entry of entries) {
+    if (!/^[0-9a-f]{64}$/.test(entry.name)) continue;
+    const directory = join3(root, entry.name);
+    let transactionHashes = [];
+    try {
+      await assertDirectoryIsPrivate(directory);
+      for (const name of ["receipts.json", "outcomes.json", "redemptions.json"]) {
+        try {
+          const info = await lstat2(join3(directory, name));
+          if (!info.isFile() || info.isSymbolicLink() || (info.mode & 63) !== 0 || info.size > 4 * 1024 * 1024) {
+            throw new Error("reference evidence is not a bounded private regular file");
+          }
+        } catch (error) {
+          if (error.code !== "ENOENT") throw error;
+        }
+      }
+      const receipts = await new FileSettlementReceiptStore(join3(directory, "receipts.json")).listPending();
+      transactionHashes = receipts.map((receipt) => receipt.txHash);
+      if (receipts.length > 0) throw new Error("settlement or delivery receipts are still pending");
+      const raw = JSON.parse(await readFile4(join3(directory, "outcomes.json"), "utf8"));
+      if (!raw || raw.version !== 1 || !raw.records || typeof raw.records !== "object" || Array.isArray(raw.records)) {
+        throw new Error("outcome evidence is malformed");
+      }
+      const records = Object.values(raw.records);
+      if (records.length !== 4) throw new Error("the previous demo has incomplete application outcomes");
+      const outcomes = new FilePurchaseOutcomeStore(join3(directory, "outcomes.json"));
+      const completedSources = /* @__PURE__ */ new Set();
+      for (const record2 of records) {
+        const identity = createPurchaseIdentity(record2.identity);
+        if (identity.mandateId !== entry.name || completedSources.has(identity.sourceId)) throw new Error("outcome identity does not match this demo");
+        const found = await outcomes.lookup(identity);
+        if (found.kind !== "completed") throw new Error("a previous purchase execution is unresolved");
+        if (["market", "academic", "news"].includes(identity.sourceId)) {
+          if (found.outcome.kind !== "delivered") throw new Error("a previous paid source was not durably delivered");
+        } else if (identity.sourceId !== "patents" || found.outcome.kind !== "rejected" || found.outcome.reason !== "budget exceeded") {
+          throw new Error("the previous demo lacks the expected no-payment budget rejection");
+        }
+        completedSources.add(identity.sourceId);
+      }
+      if ((await new FileBoundRedemptionStore(join3(directory, "redemptions.json")).listExecuting()).length > 0) {
+        throw new Error("a fulfillment execution is unresolved");
+      }
+    } catch {
+      evidence.push({ directory, transactionHashes, reason: "unresolved or unreadable reference-agent receipt/outcome evidence" });
+    }
+  }
+  return evidence;
+}
+async function assertNoLegacyDemoEvidence() {
+  const evidence = await findUnresolvedDemoEvidence();
+  if (evidence.length > 0) {
+    throw new Error(`an earlier demo requires manual exact-receipt recovery; retained evidence: ${evidence.map((item) => item.directory).join(", ")}; do not start a replacement run`);
+  }
 }
 function validatePending(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
@@ -58089,18 +58788,18 @@ function validatePending(value) {
   const pending = value;
   const keys = ["txHash", "mandateId", "amount", "expectedSeq", "submittedAt", "validUntil"];
   if (pending.receiptId !== void 0) keys.push("receiptId");
-  if (!exactKeys3(pending, keys) || typeof pending.txHash !== "string" || !/^[0-9a-f]{64}$/.test(pending.txHash) || typeof pending.mandateId !== "string" || !/^[0-9a-f]{64}$/.test(pending.mandateId) || typeof pending.amount !== "string" || !/^\d+(?:\.\d+)?$/.test(pending.amount) || typeof pending.expectedSeq !== "string" || !/^\d+$/.test(pending.expectedSeq) || !Number.isSafeInteger(pending.submittedAt) || !Number.isSafeInteger(pending.validUntil) || pending.submittedAt <= 0 || pending.validUntil <= pending.submittedAt || pending.receiptId !== void 0 && !/^[0-9a-f]{64}$/.test(pending.receiptId)) {
+  if (!exactKeys4(pending, keys) || typeof pending.txHash !== "string" || !/^[0-9a-f]{64}$/.test(pending.txHash) || typeof pending.mandateId !== "string" || !/^[0-9a-f]{64}$/.test(pending.mandateId) || typeof pending.amount !== "string" || !/^\d+(?:\.\d+)?$/.test(pending.amount) || typeof pending.expectedSeq !== "string" || !/^\d+$/.test(pending.expectedSeq) || !Number.isSafeInteger(pending.submittedAt) || !Number.isSafeInteger(pending.validUntil) || pending.submittedAt <= 0 || pending.validUntil <= pending.submittedAt || pending.receiptId !== void 0 && !/^[0-9a-f]{64}$/.test(pending.receiptId)) {
     throw new Error("pending settlement record schema is invalid");
   }
   return Object.freeze({ ...pending });
 }
-function validateRecord(value) {
+function validateRecord2(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     throw new Error("settlement journal is not an object");
   }
   const raw = value;
   const legacy = (raw.version === 2 || raw.version === 3) && raw.network === "testnet";
-  const record = legacy ? {
+  const record2 = legacy ? {
     ...raw,
     version: 4,
     rpcUrl: raw.rpcUrl ?? TESTNET.rpcUrl,
@@ -58109,26 +58808,26 @@ function validateRecord(value) {
     agent: null,
     merchant: null
   } : raw;
-  const expectedKeys = record.state === "completed" ? ["version", "state", "source", "network", "rpcUrl", "contractId", "assetId", "user", "agent", "merchant", "pending", "completedAt"] : ["version", "state", "source", "network", "rpcUrl", "contractId", "assetId", "user", "agent", "merchant", "pending"];
-  let rpc12;
+  const expectedKeys = record2.state === "completed" ? ["version", "state", "source", "network", "rpcUrl", "contractId", "assetId", "user", "agent", "merchant", "pending", "completedAt"] : ["version", "state", "source", "network", "rpcUrl", "contractId", "assetId", "user", "agent", "merchant", "pending"];
+  let rpc13;
   try {
-    rpc12 = new URL(record.rpcUrl);
+    rpc13 = new URL(record2.rpcUrl);
   } catch {
   }
-  if (!exactKeys3(record, expectedKeys) || record.version !== 4 || record.state !== "pending" && record.state !== "completed" || record.source !== "pay" && record.source !== "demo" || record.network !== "testnet" && record.network !== "mainnet" || !rpc12 || rpc12.protocol !== "https:" || Boolean(rpc12.username || rpc12.password) || typeof record.contractId !== "string" || !/^C[A-Z2-7]{55}$/.test(record.contractId) || record.assetId !== null && !/^C[A-Z2-7]{55}$/.test(record.assetId) || record.user !== null && !/^G[A-Z2-7]{55}$/.test(record.user) || record.agent !== null && !/^G[A-Z2-7]{55}$/.test(record.agent) || record.merchant !== null && !/^G[A-Z2-7]{55}$/.test(record.merchant) || record.network === "mainnet" && [record.assetId, record.user, record.agent, record.merchant].some((value2) => value2 === null)) {
+  if (!exactKeys4(record2, expectedKeys) || record2.version !== 4 || record2.state !== "pending" && record2.state !== "completed" || record2.source !== "pay" && record2.source !== "demo" || record2.network !== "testnet" && record2.network !== "mainnet" || !rpc13 || rpc13.protocol !== "https:" || Boolean(rpc13.username || rpc13.password) || typeof record2.contractId !== "string" || !/^C[A-Z2-7]{55}$/.test(record2.contractId) || record2.assetId !== null && !/^C[A-Z2-7]{55}$/.test(record2.assetId) || record2.user !== null && !/^G[A-Z2-7]{55}$/.test(record2.user) || record2.agent !== null && !/^G[A-Z2-7]{55}$/.test(record2.agent) || record2.merchant !== null && !/^G[A-Z2-7]{55}$/.test(record2.merchant) || record2.network === "mainnet" && [record2.assetId, record2.user, record2.agent, record2.merchant].some((value2) => value2 === null)) {
     throw new Error("settlement journal schema is invalid");
   }
-  const pending = validatePending(record.pending);
-  if (record.state === "completed") {
-    if (!Number.isSafeInteger(record.completedAt) || record.completedAt < pending.submittedAt) {
+  const pending = validatePending(record2.pending);
+  if (record2.state === "completed") {
+    if (!Number.isSafeInteger(record2.completedAt) || record2.completedAt < pending.submittedAt) {
       throw new Error("completed settlement journal schema is invalid");
     }
-    return Object.freeze({ ...record, pending });
+    return Object.freeze({ ...record2, pending });
   }
-  return Object.freeze({ ...record, pending });
+  return Object.freeze({ ...record2, pending });
 }
 async function assertDirectoryIsPrivate(path) {
-  const info = await lstat(path);
+  const info = await lstat2(path);
   if (!info.isDirectory() || info.isSymbolicLink()) {
     throw new Error("settlement journal path is not a private directory");
   }
@@ -58137,28 +58836,28 @@ async function assertDirectoryIsPrivate(path) {
   }
 }
 async function assertNoPendingSettlement() {
-  try {
-    await lstat(settlementDirectory());
-  } catch (error) {
-    if (error.code === "ENOENT") return;
-    throw error;
+  const loaded = await loadPendingSettlement();
+  if (loaded.kind === "none") return;
+  if (loaded.kind === "demo-run") {
+    throw new Error(`a reference demo is unresolved; retain ${settlementDirectory()} and ${demoRecoveryDirectory(loaded.record.mandateId)} for manual exact-receipt recovery; run \`ackrate settlement reconcile\` for its recorded context, not a replacement demo`);
   }
+  if (loaded.kind === "legacy-demo") await assertNoLegacyDemoEvidence();
   throw new Error("a payment is unresolved or unacknowledged; run `ackrate settlement reconcile` before another payment");
 }
-async function writeState(record) {
+async function writeState(record2) {
   const directory = settlementDirectory();
-  const temporary = join3(directory, `${randomUUID()}.tmp`);
+  const temporary = join3(directory, `${randomUUID4()}.tmp`);
   let handle;
   try {
-    handle = await open(temporary, "wx", 384);
-    await handle.writeFile(`${JSON.stringify(record, null, 2)}
+    handle = await open4(temporary, "wx", 384);
+    await handle.writeFile(`${JSON.stringify(record2, null, 2)}
 `, "utf8");
     await handle.sync();
     await handle.close();
     handle = void 0;
-    await rename(temporary, statePath());
-    await chmod(statePath(), 384);
-    const directoryHandle = await open(directory, "r");
+    await rename4(temporary, statePath());
+    await chmod4(statePath(), 384);
+    const directoryHandle = await open4(directory, "r");
     try {
       await directoryHandle.sync();
     } finally {
@@ -58166,19 +58865,103 @@ async function writeState(record) {
     }
   } finally {
     await handle?.close().catch(() => void 0);
-    await rm(temporary, { force: true }).catch(() => void 0);
+    await rm4(temporary, { force: true }).catch(() => void 0);
+  }
+}
+async function claimDemoRun(context) {
+  return withJournalLock(() => claimDemoRunUnlocked(context));
+}
+async function claimDemoRunUnlocked(context) {
+  const record2 = validateDemoRun({
+    ...context,
+    version: 1,
+    state: "demo-run",
+    source: "demo",
+    runId: randomUUID4(),
+    startedAt: Math.floor(Date.now() / 1e3),
+    mandateId: null,
+    registrationTx: null,
+    allowanceTx: null,
+    origin: null
+  });
+  await assertNoLegacyDemoEvidence();
+  const home = ackrateHome();
+  await mkdir4(home, { recursive: true, mode: 448 });
+  await chmod4(home, 448);
+  try {
+    await mkdir4(settlementDirectory(), { mode: 448 });
+  } catch (error) {
+    if (error.code === "EEXIST") {
+      throw new Error("another payment or demo is unresolved; run `ackrate settlement reconcile` before another demo");
+    }
+    throw error;
+  }
+  await writeState(record2);
+  const parent = await open4(home, "r");
+  try {
+    await parent.sync();
+  } finally {
+    await parent.close();
+  }
+  const claim = Object.freeze({ runId: record2.runId });
+  ownedDemoClaims.add(claim);
+  return claim;
+}
+async function requireOwnedDemoRun(claim) {
+  if (!ownedDemoClaims.has(claim)) throw new Error("this process does not own the demo-run claim; manual recovery is required");
+  const loaded = await loadPendingSettlementUnlocked();
+  if (loaded.kind !== "demo-run" || loaded.record.runId !== claim.runId) {
+    throw new Error("refusing to change a different demo-run claim");
+  }
+  return loaded.record;
+}
+async function updateDemoRun(claim, patch) {
+  await withJournalLock(async () => {
+    const record2 = await requireOwnedDemoRun(claim);
+    await writeState(validateDemoRun({ ...record2, ...patch }));
+  });
+}
+async function completeDemoRun(claim) {
+  return withJournalLock(() => completeDemoRunUnlocked(claim));
+}
+async function completeDemoRunUnlocked(claim) {
+  if (completingDemoClaims.has(claim)) throw new Error("demo-run completion is already in progress");
+  completingDemoClaims.add(claim);
+  try {
+    const record2 = await requireOwnedDemoRun(claim);
+    if (!record2.mandateId || !record2.registrationTx || !record2.allowanceTx || !record2.origin) {
+      throw new Error("cannot complete a demo without its recorded mandate, transactions, and delivery origin");
+    }
+    const pending = await new FileSettlementReceiptStore(join3(demoRecoveryDirectory(record2.mandateId), "receipts.json")).listPending();
+    if (pending.length > 0) throw new Error("demo delivery is still unacknowledged; retain its exact receipts");
+    await assertNoLegacyDemoEvidence();
+    await requireOwnedDemoRun(claim);
+    await rm4(settlementDirectory(), { recursive: true });
+    ownedDemoClaims.delete(claim);
+    const parent = await open4(ackrateHome(), "r");
+    try {
+      await parent.sync();
+    } finally {
+      await parent.close();
+    }
+  } finally {
+    completingDemoClaims.delete(claim);
   }
 }
 async function claimPendingSettlement(source, contractId, pending, context = {
   network: "testnet",
   rpcUrl: TESTNET.rpcUrl
 }) {
+  return withJournalLock(() => claimPendingSettlementUnlocked(source, contractId, pending, context));
+}
+async function claimPendingSettlementUnlocked(source, contractId, pending, context) {
+  await assertNoLegacyDemoEvidence();
   const home = ackrateHome();
-  await mkdir(home, { recursive: true, mode: 448 });
-  await chmod(home, 448);
+  await mkdir4(home, { recursive: true, mode: 448 });
+  await chmod4(home, 448);
   const directory = settlementDirectory();
   try {
-    await mkdir(directory, { mode: 448 });
+    await mkdir4(directory, { mode: 448 });
   } catch (error) {
     if (error.code === "EEXIST") {
       throw new Error("another prepared payment is unresolved; run `ackrate settlement reconcile`");
@@ -58186,7 +58969,7 @@ async function claimPendingSettlement(source, contractId, pending, context = {
     throw error;
   }
   try {
-    const record = validateRecord({
+    const record2 = validateRecord2({
       version: 4,
       state: "pending",
       source,
@@ -58199,53 +58982,79 @@ async function claimPendingSettlement(source, contractId, pending, context = {
       merchant: context.merchant ?? null,
       pending
     });
-    await writeState(record);
+    await writeState(record2);
+    const parent = await open4(home, "r");
+    try {
+      await parent.sync();
+    } finally {
+      await parent.close();
+    }
   } catch (error) {
-    await rm(directory, { recursive: true, force: true });
+    await rm4(directory, { recursive: true, force: true });
     throw error;
   }
 }
 async function loadPendingSettlement() {
+  return withJournalLock(loadPendingSettlementUnlocked);
+}
+async function loadPendingSettlementUnlocked() {
   const directory = settlementDirectory();
   try {
     await assertDirectoryIsPrivate(directory);
   } catch (error) {
-    if (error.code === "ENOENT") return { kind: "none" };
+    if (error.code === "ENOENT") {
+      const evidence = await findUnresolvedDemoEvidence();
+      return evidence.length > 0 ? { kind: "legacy-demo", evidence } : { kind: "none" };
+    }
     throw error;
   }
   let raw;
   try {
-    raw = await readFile(statePath(), "utf8");
+    raw = await readFile4(statePath(), "utf8");
   } catch (error) {
     if (error.code === "ENOENT") return { kind: "empty" };
     throw error;
   }
-  const info = await lstat(statePath());
+  const info = await lstat2(statePath());
   if (!info.isFile() || info.isSymbolicLink() || (info.mode & 63) !== 0) {
     throw new Error("settlement journal file is not a private regular file");
   }
-  const record = validateRecord(JSON.parse(raw));
-  return record.state === "completed" ? { kind: "completed", record } : { kind: "pending", record };
+  const parsed = JSON.parse(raw);
+  if (parsed?.state === "demo-run") return { kind: "demo-run", record: validateDemoRun(parsed) };
+  const record2 = validateRecord2(parsed);
+  return record2.state === "completed" ? { kind: "completed", record: record2 } : { kind: "pending", record: record2 };
 }
 async function clearPendingSettlement(expectedTxHash) {
-  const loaded = await loadPendingSettlement();
+  return withJournalLock(() => clearPendingSettlementUnlocked(expectedTxHash));
+}
+async function clearPendingSettlementUnlocked(expectedTxHash) {
+  const loaded = await loadPendingSettlementUnlocked();
   if (loaded.kind === "none") return;
+  if (loaded.kind === "demo-run" || loaded.kind === "legacy-demo") {
+    throw new Error("refusing to clear reference-demo evidence with a payment-only operation; manual exact-receipt recovery is required");
+  }
   if (loaded.kind === "completed") {
     throw new Error("refusing to clear a completed payment before explicit acknowledgment");
   }
   if (loaded.kind === "pending" && expectedTxHash !== void 0 && loaded.record.pending.txHash !== expectedTxHash) {
     throw new Error("refusing to clear a different pending settlement hash");
   }
-  if (loaded.kind === "empty" && expectedTxHash !== void 0) {
-    throw new Error("refusing hash-specific clear of an empty pre-broadcast claim");
+  if (loaded.kind === "empty") {
+    throw new Error("refusing to clear an empty journal claim; its owner may still be preparing metadata; manual evidence review is required");
   }
-  await rm(settlementDirectory(), { recursive: true, force: true });
+  await rm4(settlementDirectory(), { recursive: true, force: true });
 }
 async function markSettlementCompleted(expectedTxHash) {
+  return withJournalLock(() => markSettlementCompletedUnlocked(expectedTxHash));
+}
+async function markSettlementCompletedUnlocked(expectedTxHash) {
   if (!/^[0-9a-f]{64}$/.test(expectedTxHash)) {
     throw new Error("completed settlement hash must be canonical 64-character lowercase hex");
   }
-  const loaded = await loadPendingSettlement();
+  const loaded = await loadPendingSettlementUnlocked();
+  if (loaded.kind === "demo-run" || loaded.kind === "legacy-demo") {
+    throw new Error("a reference-demo run cannot be completed by payment reconciliation");
+  }
   if (loaded.kind === "none" || loaded.kind === "empty") {
     throw new Error("cannot complete a settlement without its durable prepared record");
   }
@@ -58253,7 +59062,7 @@ async function markSettlementCompleted(expectedTxHash) {
     throw new Error("refusing to complete a different settlement hash");
   }
   if (loaded.kind === "completed") return;
-  const completed = validateRecord({
+  const completed = validateRecord2({
     ...loaded.record,
     state: "completed",
     completedAt: Math.max(Math.floor(Date.now() / 1e3), loaded.record.pending.submittedAt)
@@ -58261,19 +59070,23 @@ async function markSettlementCompleted(expectedTxHash) {
   await writeState(completed);
 }
 async function acknowledgeCompletedSettlement(expectedTxHash) {
+  return withJournalLock(() => acknowledgeCompletedSettlementUnlocked(expectedTxHash));
+}
+async function acknowledgeCompletedSettlementUnlocked(expectedTxHash) {
   if (!/^[0-9a-f]{64}$/.test(expectedTxHash)) {
     throw new Error("acknowledgment hash must be canonical 64-character lowercase hex");
   }
-  const loaded = await loadPendingSettlement();
+  const loaded = await loadPendingSettlementUnlocked();
   if (loaded.kind !== "completed") {
     throw new Error("no completed payment is awaiting acknowledgment");
   }
   if (loaded.record.pending.txHash !== expectedTxHash) {
     throw new Error("refusing to acknowledge a different completed settlement hash");
   }
-  await rm(settlementDirectory(), { recursive: true, force: true });
+  await rm4(settlementDirectory(), { recursive: true, force: true });
 }
 function classifyMissingSettlement(pending, evidence) {
+  if (!Number.isSafeInteger(evidence.latestLedgerCloseTime) || evidence.latestLedgerCloseTime <= 0 || !Number.isSafeInteger(evidence.oldestLedgerCloseTime) || evidence.oldestLedgerCloseTime <= 0 || evidence.oldestLedgerCloseTime > evidence.latestLedgerCloseTime) return "invalid-history";
   if (evidence.latestLedgerCloseTime <= pending.validUntil) return "pending";
   if (evidence.oldestLedgerCloseTime > pending.submittedAt) return "history-pruned";
   return "expired";
@@ -58446,7 +59259,7 @@ var I128_MAX2 = (1n << 127n) - 1n;
 import { Address as Address3, Networks as Networks5, StrKey as StrKey7 } from "@stellar/stellar-sdk";
 
 // packages/express-middleware/src/bound-route.ts
-import { createHash as createHash2 } from "node:crypto";
+import { createHash as createHash4 } from "node:crypto";
 import { Buffer as Buffer9 } from "buffer";
 
 // packages/express-middleware/src/bound.ts
@@ -58467,7 +59280,7 @@ function storedResponse(status, body, maxBytes) {
     status,
     contentType: CONTENT_TYPE,
     bodyBase64: bytes.toString("base64"),
-    bodySha256: createHash2("sha256").update(bytes).digest("hex")
+    bodySha256: createHash4("sha256").update(bytes).digest("hex")
   });
 }
 function terminalFailure(maxBytes) {
@@ -58498,214 +59311,10 @@ async function resolveBoundAckrateInterruptedDelivery(options) {
 }
 
 // packages/cli/src/commands/demo.ts
-import { Asset as Asset5, Keypair as Keypair4, Networks as Networks10, StrKey as StrKey12, rpc as rpc10 } from "@stellar/stellar-sdk";
+import { Asset as Asset5, Keypair as Keypair5, Networks as Networks10, StrKey as StrKey12, rpc as rpc11 } from "@stellar/stellar-sdk";
 
 // apps/consumer-agent/src/research-agent.ts
-import { randomUUID as randomUUID3 } from "node:crypto";
-
-// apps/consumer-agent/src/outcome-store.ts
-import { createHash as createHash3, randomUUID as randomUUID2 } from "node:crypto";
-import { chmod as chmod2, lstat as lstat2, mkdir as mkdir2, open as open2, readFile as readFile2, rename as rename2, rm as rm2 } from "node:fs/promises";
-import { dirname, resolve as resolve2 } from "node:path";
-var EMPTY = { version: 1, records: {} };
-var pathQueues = /* @__PURE__ */ new Map();
-var MAX_FILE_BYTES = 4 * 1024 * 1024;
-function exactKeys4(value, expected) {
-  const actual = Object.keys(value).sort();
-  const sorted = [...expected].sort();
-  return actual.length === sorted.length && actual.every((key, index) => key === sorted[index]);
-}
-function hashParts(parts) {
-  return createHash3("sha256").update(JSON.stringify(parts), "utf8").digest("hex");
-}
-function createPurchaseIdentity(input) {
-  if (!/^[0-9a-f]{64}$/.test(input.mandateId)) throw new Error("purchase identity mandate id is invalid");
-  if (!input.sourceId || input.sourceId.trim() !== input.sourceId) throw new Error("purchase source id is invalid");
-  const parsed = new URL(input.url);
-  if (parsed.protocol !== "https:" && parsed.protocol !== "http:" || parsed.toString() !== input.url) {
-    throw new Error("purchase identity URL must be an exact absolute HTTP(S) URL");
-  }
-  const identity = {
-    key: hashParts(["ackrate-consumer-request-v1", input.mandateId, "GET", input.url, input.sourceId]),
-    mandateId: input.mandateId,
-    method: "GET",
-    url: input.url,
-    sourceId: input.sourceId
-  };
-  return Object.freeze(identity);
-}
-function validateIdentity(value) {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    throw new Error("purchase identity is not an object");
-  }
-  const identity = value;
-  if (!exactKeys4(identity, ["key", "mandateId", "method", "url", "sourceId"]) || identity.method !== "GET") {
-    throw new Error("purchase identity schema is invalid");
-  }
-  const expected = createPurchaseIdentity(identity);
-  if (expected.key !== identity.key) throw new Error("purchase identity key is invalid");
-  return expected;
-}
-function outcomeDigest(outcome) {
-  const detail = outcome.kind === "delivered" ? [outcome.receiptId, outcome.txHash, outcome.name, outcome.data] : outcome.kind === "terminal" ? [outcome.receiptId, outcome.txHash, outcome.reason] : [outcome.reason];
-  return hashParts([
-    "ackrate-consumer-outcome-v1",
-    outcome.version,
-    outcome.identity.key,
-    outcome.completedAt,
-    outcome.kind,
-    ...detail
-  ]);
-}
-function createStoredPurchaseOutcome(input) {
-  const identity = validateIdentity(input.identity);
-  const completedAt = input.completedAt ?? Math.floor(Date.now() / 1e3);
-  const withoutId = Object.freeze({ version: 1, ...input, identity, completedAt });
-  return Object.freeze({ ...withoutId, outcomeId: outcomeDigest(withoutId) });
-}
-function validateOutcome(value) {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    throw new Error("purchase outcome is not an object");
-  }
-  const outcome = value;
-  const expectedKeys = outcome.kind === "delivered" ? ["version", "outcomeId", "identity", "completedAt", "kind", "receiptId", "txHash", "name", "data"] : outcome.kind === "terminal" ? ["version", "outcomeId", "identity", "completedAt", "kind", "receiptId", "txHash", "reason"] : ["version", "outcomeId", "identity", "completedAt", "kind", "reason"];
-  if (!exactKeys4(outcome, expectedKeys) || outcome.version !== 1 || outcome.kind !== "delivered" && outcome.kind !== "terminal" && outcome.kind !== "rejected" || !Number.isSafeInteger(outcome.completedAt) || outcome.completedAt <= 0) {
-    throw new Error("purchase outcome schema is invalid");
-  }
-  if (outcome.kind === "delivered") {
-    if (!/^[0-9a-f]{64}$/.test(outcome.receiptId) || !/^[0-9a-f]{64}$/.test(outcome.txHash) || typeof outcome.name !== "string" || typeof outcome.data !== "string") throw new Error("delivered purchase outcome is invalid");
-  } else if (outcome.kind === "terminal") {
-    if (!/^[0-9a-f]{64}$/.test(outcome.receiptId) || !/^[0-9a-f]{64}$/.test(outcome.txHash) || typeof outcome.reason !== "string") throw new Error("terminal purchase outcome is invalid");
-  } else if (typeof outcome.reason !== "string") {
-    throw new Error("rejected purchase outcome is invalid");
-  }
-  const identity = validateIdentity(outcome.identity);
-  const normalized = Object.freeze({ ...outcome, identity });
-  const { outcomeId: _outcomeId, ...withoutId } = normalized;
-  if (outcome.outcomeId !== outcomeDigest(withoutId)) throw new Error("purchase outcome integrity id is invalid");
-  return normalized;
-}
-function validateRecord2(key, value) {
-  if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("purchase record is invalid");
-  const record = value;
-  const identity = validateIdentity(record.identity);
-  if (identity.key !== key) throw new Error("purchase record key does not match its identity");
-  if (record.kind === "executing") {
-    if (!exactKeys4(record, ["kind", "identity", "executionId", "startedAt"]) || !/^[0-9a-f-]{36}$/.test(record.executionId) || !Number.isSafeInteger(record.startedAt) || record.startedAt <= 0) throw new Error("executing purchase record is invalid");
-    return Object.freeze({ ...record, identity });
-  }
-  if (record.kind === "completed" && exactKeys4(record, ["kind", "identity", "outcome"])) {
-    const outcome = validateOutcome(record.outcome);
-    if (outcome.identity.key !== identity.key) throw new Error("completed outcome identity mismatch");
-    return Object.freeze({ ...record, identity, outcome });
-  }
-  throw new Error("purchase record schema is invalid");
-}
-var FilePurchaseOutcomeStore = class {
-  filePath;
-  constructor(filePath) {
-    if (!filePath || filePath.trim() !== filePath) throw new Error("outcome file path must be a non-empty exact string");
-    this.filePath = resolve2(filePath);
-  }
-  async lookup(identity) {
-    const checked = validateIdentity(identity);
-    return this.serial(async () => {
-      const record = (await this.load()).records[checked.key];
-      if (!record) return { kind: "missing" };
-      return record.kind === "completed" ? { kind: "completed", outcome: record.outcome } : { kind: "executing", executionId: record.executionId };
-    });
-  }
-  async claim(identity, executionId, startedAt) {
-    const checked = validateIdentity(identity);
-    if (!/^[0-9a-f-]{36}$/.test(executionId) || !Number.isSafeInteger(startedAt) || startedAt <= 0) {
-      throw new Error("purchase execution claim is invalid");
-    }
-    return this.serial(async () => {
-      const file = await this.load();
-      const existing = file.records[checked.key];
-      if (existing?.kind === "completed") return { kind: "completed", outcome: existing.outcome };
-      if (existing?.kind === "executing") return { kind: "executing", executionId: existing.executionId };
-      file.records[checked.key] = Object.freeze({ kind: "executing", identity: checked, executionId, startedAt });
-      await this.write(file);
-      return { kind: "claimed" };
-    });
-  }
-  async complete(identity, executionId, outcome) {
-    const checked = validateIdentity(identity);
-    const accepted = validateOutcome(outcome);
-    if (accepted.identity.key !== checked.key) throw new Error("purchase completion identity mismatch");
-    return this.serial(async () => {
-      const file = await this.load();
-      const existing = file.records[checked.key];
-      if (!existing) throw new Error("purchase completion has no execution claim");
-      if (existing.kind === "completed") {
-        if (existing.outcome.outcomeId !== accepted.outcomeId) throw new Error("purchase outcome is already immutable");
-        return existing.outcome;
-      }
-      if (existing.executionId !== executionId) throw new Error("purchase completion belongs to another execution");
-      file.records[checked.key] = Object.freeze({ kind: "completed", identity: checked, outcome: accepted });
-      await this.write(file);
-      return accepted;
-    });
-  }
-  async serial(operation) {
-    const previous = pathQueues.get(this.filePath) ?? Promise.resolve();
-    const current = previous.then(operation, operation);
-    const tail = current.then(() => void 0, () => void 0);
-    pathQueues.set(this.filePath, tail);
-    try {
-      return await current;
-    } finally {
-      if (pathQueues.get(this.filePath) === tail) pathQueues.delete(this.filePath);
-    }
-  }
-  async load() {
-    let raw;
-    try {
-      const info = await lstat2(this.filePath);
-      if (!info.isFile() || info.isSymbolicLink() || (info.mode & 63) !== 0 || info.size > MAX_FILE_BYTES) {
-        throw new Error("outcome store file is not a bounded private regular file");
-      }
-      raw = await readFile2(this.filePath, "utf8");
-    } catch (error) {
-      if (error.code === "ENOENT") return { version: EMPTY.version, records: {} };
-      throw error;
-    }
-    const parsed = JSON.parse(raw);
-    if (!exactKeys4(parsed, ["version", "records"]) || parsed.version !== 1 || !parsed.records || typeof parsed.records !== "object" || Array.isArray(parsed.records)) throw new Error("outcome store schema is invalid");
-    const records = {};
-    for (const [key, value] of Object.entries(parsed.records)) records[key] = validateRecord2(key, value);
-    return { version: 1, records };
-  }
-  async write(file) {
-    const directory = dirname(this.filePath);
-    await mkdir2(directory, { recursive: true, mode: 448 });
-    await chmod2(directory, 448);
-    const temporary = `${this.filePath}.${process.pid}.${randomUUID2()}.tmp`;
-    let handle;
-    try {
-      handle = await open2(temporary, "wx", 384);
-      await handle.writeFile(`${JSON.stringify(file, null, 2)}
-`, "utf8");
-      await handle.sync();
-      await handle.close();
-      handle = void 0;
-      await rename2(temporary, this.filePath);
-      await chmod2(this.filePath, 384);
-      const directoryHandle = await open2(directory, "r");
-      try {
-        await directoryHandle.sync();
-      } finally {
-        await directoryHandle.close();
-      }
-    } finally {
-      await handle?.close().catch(() => void 0);
-      await rm2(temporary, { force: true }).catch(() => void 0);
-    }
-  }
-};
-
-// apps/consumer-agent/src/research-agent.ts
+import { randomUUID as randomUUID5 } from "node:crypto";
 function blockReason(msg) {
   if (msg.includes("#6")) return "budget exceeded";
   if (msg.includes("#5")) return "mandate revoked";
@@ -58759,7 +59368,7 @@ async function buyResearch(opts) {
   for (const id of opts.sourceIds) {
     const url = `${opts.serverUrl.replace(/\/$/, "")}/source/${id}`;
     const identity = createPurchaseIdentity({ mandateId: opts.mandate.id, url, sourceId: id });
-    const executionId = randomUUID3();
+    const executionId = randomUUID5();
     const claim = await opts.outcomeStore.claim(identity, executionId, Math.floor(Date.now() / 1e3));
     if (claim.kind === "completed") {
       const pending = await opts.receiptStore.listPending();
@@ -58926,322 +59535,6 @@ async function buyResearch(opts) {
   }
   return results;
 }
-
-// apps/consumer-agent/src/receipt-store.ts
-import { randomUUID as randomUUID4 } from "node:crypto";
-import { chmod as chmod3, mkdir as mkdir3, open as open3, readFile as readFile3, rename as rename3, rm as rm3 } from "node:fs/promises";
-import { dirname as dirname2, resolve as resolve3 } from "node:path";
-var EMPTY2 = { version: 2, pending: {} };
-var pathQueues2 = /* @__PURE__ */ new Map();
-function validateSettlementReceipt(value) {
-  if (!value || typeof value !== "object") throw new Error("receipt store contains a non-object receipt");
-  const receipt = value;
-  const keys = Object.keys(receipt).sort();
-  const expectedKeys = [
-    "amount",
-    "mandateId",
-    "method",
-    "proof",
-    "proofVersion",
-    "receiptId",
-    "submittedAt",
-    "txHash",
-    "url",
-    "validUntil"
-  ];
-  if (keys.length !== expectedKeys.length || keys.some((key, index) => key !== expectedKeys[index]) || typeof receipt.receiptId !== "string" || !/^[0-9a-f]{64}$/.test(receipt.receiptId) || receipt.proofVersion !== 1 && receipt.proofVersion !== 2 || typeof receipt.url !== "string" || typeof receipt.method !== "string" || typeof receipt.txHash !== "string" || typeof receipt.mandateId !== "string" || typeof receipt.amount !== "string" || !Number.isSafeInteger(receipt.submittedAt) || !Number.isSafeInteger(receipt.validUntil) || receipt.submittedAt <= 0 || receipt.validUntil <= receipt.submittedAt) {
-    throw new Error("receipt store contains an invalid receipt envelope");
-  }
-  const proof = decodePaymentProof(encodePaymentProof(receipt.proof));
-  if (proof.txHash !== receipt.txHash || proof.mandateId !== receipt.mandateId) {
-    throw new Error("receipt store contains mismatched settlement evidence");
-  }
-  const expectedId = createSettlementReceiptId({
-    proofVersion: receipt.proofVersion,
-    url: receipt.url,
-    method: receipt.method,
-    txHash: receipt.txHash,
-    mandateId: receipt.mandateId,
-    amount: receipt.amount,
-    submittedAt: receipt.submittedAt,
-    validUntil: receipt.validUntil,
-    proof
-  });
-  if (receipt.receiptId !== expectedId) {
-    throw new Error("receipt store contains a receipt with an invalid integrity id");
-  }
-  return Object.freeze({ ...receipt, proof: Object.freeze(proof) });
-}
-var FileSettlementReceiptStore = class {
-  filePath;
-  constructor(filePath) {
-    if (!filePath || filePath.trim() !== filePath) {
-      throw new Error("receipt file path must be a non-empty exact string");
-    }
-    this.filePath = resolve3(filePath);
-  }
-  async savePending(receipt) {
-    await this.serial(async () => {
-      const file = await this.load();
-      file.pending[receipt.receiptId] = validateSettlementReceipt(receipt);
-      await this.write(file);
-    });
-  }
-  async clearPending(receiptId) {
-    await this.serial(async () => {
-      const file = await this.load();
-      delete file.pending[receiptId];
-      await this.write(file);
-    });
-  }
-  async listPending() {
-    return this.serial(async () => Object.values((await this.load()).pending).map(validateSettlementReceipt));
-  }
-  async serial(operation) {
-    const previous = pathQueues2.get(this.filePath) ?? Promise.resolve();
-    const current = previous.then(operation, operation);
-    const tail = current.then(() => void 0, () => void 0);
-    pathQueues2.set(this.filePath, tail);
-    try {
-      return await current;
-    } finally {
-      if (pathQueues2.get(this.filePath) === tail) pathQueues2.delete(this.filePath);
-    }
-  }
-  async load() {
-    let raw;
-    try {
-      raw = await readFile3(this.filePath, "utf8");
-    } catch (error) {
-      if (error.code === "ENOENT") {
-        return { version: EMPTY2.version, pending: {} };
-      }
-      throw error;
-    }
-    const parsed = JSON.parse(raw);
-    if (Object.keys(parsed).sort().join(",") !== "pending,version" || parsed.version !== 2 || !parsed.pending || typeof parsed.pending !== "object" || Array.isArray(parsed.pending)) {
-      throw new Error("receipt store schema is invalid");
-    }
-    const pending = {};
-    for (const [id, receipt] of Object.entries(parsed.pending)) {
-      const checked = validateSettlementReceipt(receipt);
-      if (id !== checked.receiptId) throw new Error("receipt store key does not match receipt id");
-      pending[id] = checked;
-    }
-    return { version: 2, pending };
-  }
-  async write(file) {
-    const directory = dirname2(this.filePath);
-    await mkdir3(directory, { recursive: true, mode: 448 });
-    const temporary = `${this.filePath}.${process.pid}.${randomUUID4()}.tmp`;
-    let handle;
-    try {
-      handle = await open3(temporary, "wx", 384);
-      await handle.writeFile(`${JSON.stringify(file, null, 2)}
-`, "utf8");
-      await handle.sync();
-      await handle.close();
-      handle = void 0;
-      await rename3(temporary, this.filePath);
-      await chmod3(this.filePath, 384);
-      const directoryHandle = await open3(directory, "r");
-      try {
-        await directoryHandle.sync();
-      } finally {
-        await directoryHandle.close();
-      }
-    } finally {
-      await handle?.close().catch(() => void 0);
-      await rm3(temporary, { force: true }).catch(() => void 0);
-    }
-  }
-};
-
-// apps/fulfillment-agent/src/redemption-store.ts
-import { createHash as createHash4, randomUUID as randomUUID5 } from "node:crypto";
-import { chmod as chmod4, mkdir as mkdir4, open as open4, readFile as readFile4, rename as rename4, rm as rm4 } from "node:fs/promises";
-import { dirname as dirname3, resolve as resolve4 } from "node:path";
-var pathQueues3 = /* @__PURE__ */ new Map();
-function validateResponse(value) {
-  if (!value || typeof value !== "object") throw new Error("redemption response is not an object");
-  const response = value;
-  if (!Number.isInteger(response.status) || response.status < 200 || response.status > 299 || response.contentType !== "application/json; charset=utf-8" || typeof response.bodyBase64 !== "string" || !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(response.bodyBase64) || typeof response.bodySha256 !== "string" || !/^[0-9a-f]{64}$/.test(response.bodySha256)) {
-    throw new Error("redemption response schema is invalid");
-  }
-  const body = Buffer.from(response.bodyBase64, "base64");
-  if (body.toString("base64") !== response.bodyBase64 || createHash4("sha256").update(body).digest("hex") !== response.bodySha256) {
-    throw new Error("redemption response integrity check failed");
-  }
-  return Object.freeze({ ...response });
-}
-function serialize(record) {
-  return {
-    ...record,
-    payment: { ...record.payment, amountStroops: record.payment.amountStroops.toString() }
-  };
-}
-function deserialize(value) {
-  if (!value || typeof value !== "object") throw new Error("redemption store contains a non-object record");
-  const record = value;
-  if (typeof record.key !== "string" || typeof record.proofDigest !== "string" || !/^[0-9a-f]{64}$/.test(record.proofDigest) || typeof record.executionId !== "string" || record.executionId.length === 0 || !Number.isSafeInteger(record.startedAt) || record.startedAt <= 0 || record.state !== "executing" && record.state !== "completed" || !record.payment || typeof record.payment !== "object" || typeof record.payment.amountStroops !== "string" || !/^[1-9]\d*$/.test(record.payment.amountStroops) || typeof record.payment.txHash !== "string" || typeof record.payment.mandateId !== "string" || typeof record.payment.agent !== "string") {
-    throw new Error("redemption store record schema is invalid");
-  }
-  const payment = Object.freeze({
-    ...record.payment,
-    amountStroops: BigInt(record.payment.amountStroops)
-  });
-  if (record.state === "executing") {
-    if ("response" in record && record.response !== void 0) {
-      throw new Error("executing redemption record cannot contain a response");
-    }
-    return Object.freeze({
-      key: record.key,
-      proofDigest: record.proofDigest,
-      payment,
-      executionId: record.executionId,
-      startedAt: record.startedAt,
-      state: "executing"
-    });
-  }
-  return Object.freeze({
-    key: record.key,
-    proofDigest: record.proofDigest,
-    payment,
-    executionId: record.executionId,
-    startedAt: record.startedAt,
-    state: "completed",
-    response: validateResponse(record.response)
-  });
-}
-function responsesEqual(a, b) {
-  return a.status === b.status && a.contentType === b.contentType && a.bodyBase64 === b.bodyBase64 && a.bodySha256 === b.bodySha256;
-}
-var FileBoundRedemptionStore = class {
-  filePath;
-  constructor(filePath) {
-    if (!filePath || filePath.trim() !== filePath) {
-      throw new Error("redemption file path must be a non-empty exact string");
-    }
-    this.filePath = resolve4(filePath);
-  }
-  async lookup(key, proofDigest) {
-    return this.serial(async () => {
-      const stored = (await this.load()).records[key];
-      if (!stored) return { kind: "missing" };
-      const record = deserialize(stored);
-      if (record.proofDigest !== proofDigest) return { kind: "conflict" };
-      return { kind: record.state, record };
-    });
-  }
-  async claim(record, executionId, startedAt) {
-    return this.serial(async () => {
-      const file = await this.load();
-      const existing = file.records[record.key];
-      if (existing) {
-        const restored = deserialize(existing);
-        if (restored.proofDigest !== record.proofDigest) return { kind: "conflict" };
-        return { kind: restored.state, record: restored };
-      }
-      const checked = deserialize({
-        key: record.key,
-        proofDigest: record.proofDigest,
-        payment: { ...record.payment, amountStroops: record.payment.amountStroops.toString() },
-        executionId,
-        startedAt,
-        state: "executing"
-      });
-      file.records[record.key] = serialize(checked);
-      await this.write(file);
-      return { kind: "claimed", record: checked };
-    });
-  }
-  async complete(completion) {
-    return this.serial(async () => {
-      const file = await this.load();
-      const serialized = file.records[completion.key];
-      if (!serialized) return { kind: "conflict" };
-      const existing = deserialize(serialized);
-      if (existing.proofDigest !== completion.proofDigest || existing.executionId !== completion.executionId) {
-        return { kind: "conflict" };
-      }
-      const response = validateResponse(completion.response);
-      if (existing.state === "completed") {
-        return responsesEqual(existing.response, response) ? { kind: "completed", record: existing } : { kind: "conflict" };
-      }
-      const completed = Object.freeze({
-        ...existing,
-        state: "completed",
-        response
-      });
-      file.records[completion.key] = serialize(completed);
-      await this.write(file);
-      return { kind: "completed", record: completed };
-    });
-  }
-  /**
-   * Administrative restart hook for this single-process reference store.
-   * Callers may resolve these claims to one immutable terminal result after
-   * confirming the prior process is no longer running; never execute the paid
-   * callback again.
-   */
-  async listExecuting() {
-    return this.serial(async () => Object.values((await this.load()).records).map(deserialize).filter((record) => record.state === "executing"));
-  }
-  async serial(operation) {
-    const previous = pathQueues3.get(this.filePath) ?? Promise.resolve();
-    const current = previous.then(operation, operation);
-    const tail = current.then(() => void 0, () => void 0);
-    pathQueues3.set(this.filePath, tail);
-    try {
-      return await current;
-    } finally {
-      if (pathQueues3.get(this.filePath) === tail) pathQueues3.delete(this.filePath);
-    }
-  }
-  async load() {
-    let raw;
-    try {
-      raw = await readFile4(this.filePath, "utf8");
-    } catch (error) {
-      if (error.code === "ENOENT") return { version: 2, records: {} };
-      throw error;
-    }
-    const parsed = JSON.parse(raw);
-    if (parsed.version !== 2 || !parsed.records || typeof parsed.records !== "object") {
-      throw new Error("redemption store schema is invalid");
-    }
-    for (const [key, value] of Object.entries(parsed.records)) {
-      const record = deserialize(value);
-      if (record.key !== key) throw new Error("redemption store key does not match record key");
-    }
-    return { version: 2, records: { ...parsed.records } };
-  }
-  async write(file) {
-    const directory = dirname3(this.filePath);
-    await mkdir4(directory, { recursive: true, mode: 448 });
-    const temporary = `${this.filePath}.${process.pid}.${randomUUID5()}.tmp`;
-    let handle;
-    try {
-      handle = await open4(temporary, "wx", 384);
-      await handle.writeFile(`${JSON.stringify(file, null, 2)}
-`, "utf8");
-      await handle.sync();
-      await handle.close();
-      handle = void 0;
-      await rename4(temporary, this.filePath);
-      await chmod4(this.filePath, 384);
-      const directoryHandle = await open4(directory, "r");
-      try {
-        await directoryHandle.sync();
-      } finally {
-        await directoryHandle.close();
-      }
-    } finally {
-      await handle?.close().catch(() => void 0);
-      await rm4(temporary, { force: true }).catch(() => void 0);
-    }
-  }
-};
 
 // apps/fulfillment-agent/src/server.ts
 var import_express = __toESM(require_express2(), 1);
@@ -59950,14 +60243,14 @@ function createBoundAckratePaymentMiddleware2(options) {
       json(response, 402, { error: "payment authorization did not match verified chain evidence", ...challengeBody });
       return;
     }
-    const record = Object.freeze({
+    const record2 = Object.freeze({
       key: redemptionKey,
       proofDigest,
       payment: Object.freeze({ ...payment })
     });
     let claimed;
     try {
-      claimed = await options.redemptionStore.claim(record, randomUUID6(), capturedNow);
+      claimed = await options.redemptionStore.claim(record2, randomUUID6(), capturedNow);
       if (!claimed || !["claimed", "executing", "completed", "conflict"].includes(claimed.kind)) {
         throw new Error("redemption store returned an unsupported claim result");
       }
@@ -60108,11 +60401,11 @@ function createBoundAckratePaidJsonRoute(options, fulfill) {
 function freezeResponse(response) {
   return Object.freeze({ ...response });
 }
-function freezeExecuting(record, executionId, startedAt) {
+function freezeExecuting(record2, executionId, startedAt) {
   return Object.freeze({
-    key: record.key,
-    proofDigest: record.proofDigest,
-    payment: Object.freeze({ ...record.payment }),
+    key: record2.key,
+    proofDigest: record2.proofDigest,
+    payment: Object.freeze({ ...record2.payment }),
     executionId,
     startedAt,
     state: "executing"
@@ -60121,22 +60414,22 @@ function freezeExecuting(record, executionId, startedAt) {
 var InMemoryBoundRedemptionStore = class {
   records = /* @__PURE__ */ new Map();
   lookup(key, proofDigest) {
-    const record = this.records.get(key);
-    if (!record)
+    const record2 = this.records.get(key);
+    if (!record2)
       return { kind: "missing" };
-    if (record.proofDigest !== proofDigest)
+    if (record2.proofDigest !== proofDigest)
       return { kind: "conflict" };
-    return { kind: record.state, record };
+    return { kind: record2.state, record: record2 };
   }
-  claim(record, executionId, startedAt) {
-    const existing = this.records.get(record.key);
+  claim(record2, executionId, startedAt) {
+    const existing = this.records.get(record2.key);
     if (existing) {
-      if (existing.proofDigest !== record.proofDigest)
+      if (existing.proofDigest !== record2.proofDigest)
         return { kind: "conflict" };
       return { kind: existing.state, record: existing };
     }
-    const claimed = freezeExecuting(record, executionId, startedAt);
-    this.records.set(record.key, claimed);
+    const claimed = freezeExecuting(record2, executionId, startedAt);
+    this.records.set(record2.key, claimed);
     return { kind: "claimed", record: claimed };
   }
   complete(completion) {
@@ -60249,6 +60542,87 @@ async function startServer(options) {
   return { server, port, url };
 }
 
+// packages/cli/src/setup-resume.ts
+import { Buffer as Buffer13 } from "node:buffer";
+import { Address as Address7, Keypair as Keypair4, Transaction, TransactionBuilder as TransactionBuilder2, rpc as rpc10, scValToNative as scValToNative4, xdr as xdr3 } from "@stellar/stellar-sdk";
+function record(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("Setup registration evidence is malformed");
+  return value;
+}
+var positive = (value) => typeof value === "number" && Number.isSafeInteger(value) && value > 0;
+function closeTime(value) {
+  const parsed = typeof value === "string" && /^[1-9][0-9]*$/.test(value) ? Number(value) : value;
+  return positive(parsed) ? parsed : NaN;
+}
+async function recoverSetupRegistration(hash3, scope, net, signer, reads, now = Math.floor(Date.now() / 1e3)) {
+  const expected = { ...scope };
+  if (!/^[a-f0-9]{64}$/.test(hash3) || !positive(now) || net.networkPassphrase !== MAINNET.networkPassphrase || net.mandateRegistryId !== MAINNET.mandateRegistryId || expected.asset !== MAINNET.settlementAsset.contractId || signer.publicKey !== expected.user || expected.maxAmount <= 0n || expected.decimals !== MAINNET.settlementAsset.decimals) {
+    throw new Error("Setup registration resume requires the exact Mainnet scope and transaction hash");
+  }
+  const server = new rpc10.Server(net.rpcUrl);
+  server.httpClient.defaults.timeout = 1e4;
+  server.httpClient.defaults.maxContentLength = 1024 * 1024;
+  server.httpClient.defaults.maxRedirects = 0;
+  const client = registryClient(net, signer);
+  const source = reads ?? {
+    getNetwork: () => server.getNetwork(),
+    getTransaction: (txHash) => server.getTransaction(txHash),
+    getPayerAccount: () => server.getAccountEntry(expected.user),
+    getMandate: async (id2) => (await client.get_mandate({ mandate_id: id2 })).result.unwrap()
+  };
+  const network = record(await source.getNetwork());
+  if (network.passphrase !== MAINNET.networkPassphrase || "error" in network) throw new Error("Setup registration RPC is not Mainnet");
+  const found = record(await source.getTransaction(hash3));
+  const latestClosedAt = closeTime(found.latestLedgerCloseTime);
+  if (found.status !== "SUCCESS" || found.txHash !== hash3 || found.feeBump !== false || !positive(found.ledger) || found.ledger > 4294967295 || !positive(found.latestLedger) || found.latestLedger > 4294967295 || found.latestLedger < found.ledger || !positive(latestClosedAt) || latestClosedAt > now || now - latestClosedAt > 120 || !(found.envelopeXdr instanceof xdr3.TransactionEnvelope) || !(found.returnValue instanceof xdr3.ScVal)) {
+    throw new Error("Setup registration is not an exact fresh confirmed success");
+  }
+  let tx;
+  let expiry;
+  let credential;
+  let id;
+  try {
+    const parsed = TransactionBuilder2.fromXDR(found.envelopeXdr, net.networkPassphrase);
+    if (!(parsed instanceof Transaction) || parsed.source !== expected.user || parsed.hash().toString("hex") !== hash3 || !/^[1-9][0-9]*$/.test(parsed.sequence) || parsed.operations.length !== 1) throw new Error();
+    const operation = parsed.operations[0];
+    if (!operation || operation.type !== "invokeHostFunction" || operation.source && operation.source !== expected.user || operation.func.switch().name !== "hostFunctionTypeInvokeContract") throw new Error();
+    const invocation = operation.func.invokeContract();
+    if (Address7.fromScAddress(invocation.contractAddress()).toString() !== net.mandateRegistryId || invocation.functionName().toString() !== "register_mandate" || invocation.args().length !== 7) throw new Error();
+    const [user, agent, merchant, asset, maxAmount, expiryValue, credentialValue] = invocation.args().map(scValToNative4);
+    if (user !== expected.user || agent !== expected.agent || merchant !== expected.merchant || asset !== expected.asset || maxAmount !== expected.maxAmount || typeof expiryValue !== "bigint" || expiryValue <= BigInt(now) || expiryValue > BigInt(Number.MAX_SAFE_INTEGER) || !(credentialValue instanceof Uint8Array) || credentialValue.length !== 32) throw new Error();
+    const returned = scValToNative4(found.returnValue);
+    if (!(returned instanceof Uint8Array) || returned.length !== 32) throw new Error();
+    const canonical = client.spec.funcArgsToScVals("register_mandate", {
+      user,
+      agent,
+      merchant,
+      asset,
+      max_amount: maxAmount,
+      expiry: expiryValue,
+      vc_hash: Buffer13.from(credentialValue)
+    });
+    if (canonical.some((value, index) => !value.toXDR().equals(invocation.args()[index].toXDR()))) throw new Error();
+    tx = parsed;
+    expiry = Number(expiryValue);
+    credential = Buffer13.from(credentialValue);
+    id = Buffer13.from(returned);
+  } catch {
+    throw new Error("Setup registration transaction, policy, or returned mandate ID differs");
+  }
+  const [payer, chain] = await Promise.all([source.getPayerAccount(), source.getMandate(id)]);
+  if (!(payer instanceof xdr3.AccountEntry) || !payer.accountId().toXDR().equals(Keypair4.fromPublicKey(expected.user).xdrAccountId().toXDR()) || payer.seqNum().toString() !== tx.sequence) throw new Error("Setup registration payer sequence changed; resume is refused");
+  if (chain.user !== expected.user || chain.agent !== expected.agent || chain.merchant !== expected.merchant || chain.asset !== expected.asset || chain.max_amount !== expected.maxAmount || chain.expiry !== BigInt(expiry) || chain.seq !== 0 || chain.spent !== 0n || chain.status?.tag !== "Active" || !(chain.vc_hash instanceof Uint8Array) || !Buffer13.from(chain.vc_hash).equals(credential)) {
+    throw new Error("Setup registration mandate is used, revoked, or has a different credential or scope");
+  }
+  return {
+    id: id.toString("hex"),
+    idBuffer: id,
+    credentialHash: credential.toString("hex"),
+    ...expected,
+    expiry
+  };
+}
+
 // packages/cli/src/commands/demo.ts
 var SOURCE_IDS = ["market", "academic", "news", "patents"];
 var SOURCE_PRICE2 = "1.00";
@@ -60264,7 +60638,7 @@ function amountText(value, decimals2) {
   return fraction ? `${whole}.${fraction}` : whole.toString();
 }
 async function fund2(pub) {
-  const server = new rpc10.Server(TESTNET.rpcUrl);
+  const server = new rpc11.Server(TESTNET.rpcUrl);
   for (let round = 0; round < 4; round += 1) {
     await fetch(`https://friendbot.stellar.org/?addr=${pub}`).catch(() => void 0);
     for (let attempt = 0; attempt < 8; attempt += 1) {
@@ -60288,9 +60662,9 @@ async function waitForSeq(client, mandateId, target) {
   throw new Error(`mandate sequence did not reach ${target}; last read was ${last ? "available" : "unavailable"}`);
 }
 async function testnetRuntime() {
-  const user = Keypair4.random();
-  const agent = Keypair4.random();
-  const merchant = Keypair4.random();
+  const user = Keypair5.random();
+  const agent = Keypair5.random();
+  const merchant = Keypair5.random();
   log.step("funding three ephemeral testnet accounts via Friendbot");
   await Promise.all([fund2(user.publicKey()), fund2(agent.publicKey()), fund2(merchant.publicKey())]);
   return Object.freeze({
@@ -60319,7 +60693,7 @@ function secretManagerAgentSigner(envName, expectedPublicKey, net) {
   }
   let keypair;
   try {
-    keypair = Keypair4.fromSecret(secret);
+    keypair = Keypair5.fromSecret(secret);
   } catch {
     throw new Error(`${envName} does not contain a valid Stellar secret key`);
   }
@@ -60353,19 +60727,31 @@ async function mainnetRuntime(options) {
   if ((/* @__PURE__ */ new Set([userSigner.publicKey, boundAgentSigner.publicKey, merchant])).size !== 3) {
     throw new Error("mainnet user, agent, and merchant accounts must be distinct");
   }
-  const server = new rpc10.Server(net.rpcUrl);
+  const server = new rpc11.Server(net.rpcUrl);
   const identity = await server.getNetwork();
   if (identity.passphrase !== Networks10.PUBLIC) throw new Error("mainnet RPC identity mismatch");
   await requireMainnetUsdcAuthorization(net, userSigner.publicKey, merchant);
   const chainDecimals = await token_exports.decimals(net, net.settlementAsset.contractId, userSigner.publicKey);
   if (chainDecimals !== net.settlementAsset.decimals) throw new Error("manifest and chain USDC decimals differ");
+  const recoveredSetup = options.resumeSetupRegistration === void 0 ? void 0 : {
+    registrationTx: options.resumeSetupRegistration,
+    mandate: await recoverSetupRegistration(options.resumeSetupRegistration, {
+      user: userSigner.publicKey,
+      agent: boundAgentSigner.publicKey,
+      merchant,
+      asset: net.settlementAsset.contractId,
+      maxAmount: budgetUnits,
+      decimals: chainDecimals
+    }, net, userSigner)
+  };
   await requireMainnetFunding(
     server,
     new Asset5(net.settlementAsset.code, net.settlementAsset.issuer),
     userSigner.publicKey,
     boundAgentSigner.publicKey,
     merchant,
-    budgetUnits
+    budgetUnits,
+    recoveredSetup ? 500000n : void 0
   );
   if ((await registryClient(net, expectedAgentSigner).is_paused()).result) {
     throw new Error("mainnet MandateRegistry is paused");
@@ -60380,7 +60766,8 @@ async function mainnetRuntime(options) {
     symbol: "USDC",
     budget,
     price,
-    decimals: chainDecimals
+    decimals: chainDecimals,
+    ...recoveredSetup ? { recoveredSetup } : {}
   });
 }
 function stableChallengeSecret() {
@@ -60405,9 +60792,13 @@ function stableChallengeSecret() {
 async function closeServer(server) {
   await new Promise((resolve5, reject) => server.close((error) => error ? reject(error) : resolve5()));
 }
-async function executeDemo(runtime) {
+async function executeDemo(runtime, claim, recoveredSetup) {
+  if (recoveredSetup) {
+    await updateDemoRun(claim, { mandateId: recoveredSetup.mandate.id, registrationTx: recoveredSetup.registrationTx });
+    log.info("resuming the exact confirmed registration; no new mandate will be registered");
+  }
   const merchantBefore = await token_exports.balance(runtime.net, runtime.asset, runtime.merchant);
-  const mandate2 = ackrate.createIntentMandate({
+  const mandate2 = recoveredSetup?.mandate ?? ackrate.createIntentMandate({
     user: runtime.userSigner.publicKey,
     agent: runtime.agentSigner.publicKey,
     merchant: runtime.merchant,
@@ -60417,8 +60808,10 @@ async function executeDemo(runtime) {
     decimals: runtime.decimals,
     nonce: `${Date.now()}:${randomBytes2(12).toString("hex")}`
   }, runtime.net);
-  const registerTx = await ackrate.registerMandate(mandate2, { signer: runtime.userSigner }, runtime.net);
+  const registerTx = recoveredSetup?.registrationTx ?? await ackrate.registerMandate(mandate2, { signer: runtime.userSigner }, runtime.net);
+  await updateDemoRun(claim, { mandateId: mandate2.id, registrationTx: registerTx });
   const approveTx = await ackrate.approveBudget(mandate2, { signer: runtime.userSigner }, runtime.net);
+  await updateDemoRun(claim, { allowanceTx: approveTx });
   log.chain("mandate and contract allowance confirmed", {
     register: link(explorerTx(runtime.network, registerTx), short4(registerTx)),
     allowance: link(explorerTx(runtime.network, approveTx), short4(approveTx))
@@ -60427,8 +60820,8 @@ async function executeDemo(runtime) {
   const receiptStore = new FileSettlementReceiptStore(join4(stateRoot, "receipts.json"));
   const outcomeStore = new FilePurchaseOutcomeStore(join4(stateRoot, "outcomes.json"));
   const redemptionStore = new FileBoundRedemptionStore(join4(stateRoot, "redemptions.json"));
-  for (const record of await redemptionStore.listExecuting()) {
-    await resolveBoundAckrateInterruptedDelivery({ redemptionStore, record });
+  for (const record2 of await redemptionStore.listExecuting()) {
+    await resolveBoundAckrateInterruptedDelivery({ redemptionStore, record: record2 });
   }
   const fulfillment = await startServer({
     port: 0,
@@ -60443,6 +60836,7 @@ async function executeDemo(runtime) {
   });
   let results;
   try {
+    await updateDemoRun(claim, { origin: fulfillment.url });
     results = await buyResearch({
       serverUrl: fulfillment.url,
       sourceIds: [...SOURCE_IDS],
@@ -60477,6 +60871,7 @@ async function executeDemo(runtime) {
   if (Number(finalMandate.seq) !== 3 || finalMandate.spent !== expected || transferred !== expected) {
     throw new Error("contract state, merchant delta, and delivered receipts disagree");
   }
+  await completeDemoRun(claim);
   console.log(
     `
 ${c.bold("Verified result")}
@@ -60502,14 +60897,36 @@ async function runDemo(target, options = {}) {
     throw new Error("--network must be testnet or mainnet");
   }
   const network = options.network ?? "mainnet";
+  if (options.resumeSetupRegistration !== void 0 && (network !== "mainnet" || !/^[a-f0-9]{64}$/.test(options.resumeSetupRegistration))) {
+    throw new Error("--resume-setup-registration requires Mainnet and an exact lowercase transaction hash");
+  }
   console.log(`
 ${banner(network === "mainnet" ? "stellar mainnet \xB7 real USDC" : "stellar testnet \xB7 XLM")}
 `);
-  await executeDemo(network === "mainnet" ? await mainnetRuntime(options) : await testnetRuntime());
+  const runtime = network === "mainnet" ? await mainnetRuntime(options) : await testnetRuntime();
+  const claim = await claimDemoRun({
+    network: runtime.network,
+    rpcUrl: runtime.net.rpcUrl,
+    contractId: runtime.net.mandateRegistryId,
+    assetId: runtime.asset,
+    user: runtime.userSigner.publicKey,
+    agent: runtime.agentSigner.publicKey,
+    merchant: runtime.merchant
+  });
+  try {
+    await executeDemo(runtime, claim, runtime.recoveredSetup);
+  } catch (error) {
+    log.err("demo did not complete; its run claim and any delivery evidence remain locked", {
+      journal: settlementDirectory(),
+      evidence: demoRecoveryDirectory(null)
+    });
+    log.info("run `ackrate settlement reconcile` to inspect the retained context; manual exact-receipt recovery is required before another run; this command does not resume automatically");
+    throw error;
+  }
 }
 
 // packages/cli/src/commands/reconcile.ts
-import { Networks as Networks11, rpc as rpc11 } from "@stellar/stellar-sdk";
+import { Networks as Networks11, rpc as rpc12 } from "@stellar/stellar-sdk";
 var short5 = (value) => `${value.slice(0, 8)}\u2026${value.slice(-6)}`;
 var explorer = (network, hash3) => `https://stellar.expert/explorer/${network === "mainnet" ? "public" : "testnet"}/tx/${hash3}`;
 async function runSettlementReconcile() {
@@ -60519,8 +60936,37 @@ async function runSettlementReconcile() {
     return;
   }
   if (loaded.kind === "empty") {
-    await clearPendingSettlement();
-    log.ok("cleared an interrupted pre-broadcast claim; no transaction hash was ever made durable");
+    log.err("journal claim has incomplete metadata; it may still have a live owner and remains locked", { journal: settlementDirectory() });
+    log.info("manual evidence review is required; do not delete the claim or start a replacement payment/demo");
+    process.exitCode = 1;
+    return;
+  }
+  if (loaded.kind === "demo-run") {
+    const record2 = loaded.record;
+    log.err("reference demo remains locked; settlement alone does not prove accepted delivery", {
+      run: record2.runId,
+      network: record2.network,
+      contract: record2.contractId,
+      journal: settlementDirectory(),
+      evidence: demoRecoveryDirectory(record2.mandateId)
+    });
+    if (record2.mandateId) log.info("registered mandate", { mandate: record2.mandateId });
+    if (record2.origin) log.info("original bound delivery origin", { origin: record2.origin });
+    for (const hash3 of [record2.registrationTx, record2.allowanceTx]) {
+      if (hash3) console.log(c.dim(`  ${explorer(record2.network, hash3)}`));
+    }
+    log.info("confirm the original process has stopped, then manually reconcile and recover the exact retained receipts and application outcomes; do not repay, retarget proofs, delete evidence, or use payment acknowledgment to unlock this demo; automatic resume is not implemented");
+    process.exitCode = 1;
+    return;
+  }
+  if (loaded.kind === "legacy-demo") {
+    log.err("legacy reference-demo evidence requires manual exact-receipt recovery");
+    for (const item of loaded.evidence) {
+      log.info(item.reason, { evidence: item.directory });
+      for (const hash3 of item.transactionHashes) log.info("retained transaction hash", { tx: hash3 });
+    }
+    log.info("preserve the original stores and delivery origin; do not start a replacement demo or clear these records with payment acknowledgment; automatic resume is not implemented");
+    process.exitCode = 1;
     return;
   }
   if (loaded.kind === "completed") {
@@ -60536,7 +60982,7 @@ async function runSettlementReconcile() {
     source,
     contract: `${contractId.slice(0, 6)}\u2026${contractId.slice(-4)}`
   });
-  const server = new rpc11.Server(rpcUrl);
+  const server = new rpc12.Server(rpcUrl);
   let response;
   try {
     const identity = await server.getNetwork();
@@ -60552,14 +60998,14 @@ async function runSettlementReconcile() {
     process.exitCode = 1;
     return;
   }
-  if (response.status === rpc11.Api.GetTransactionStatus.SUCCESS) {
+  if (response.status === rpc12.Api.GetTransactionStatus.SUCCESS) {
     await markSettlementCompleted(pending.txHash);
     log.chain("prepared payment succeeded; durable acknowledgment is required", { tx: short5(pending.txHash) });
     console.log(c.dim(`  ${explorer(network, pending.txHash)}`));
     log.info(`after you durably accept this result, run \`ackrate settlement acknowledge ${pending.txHash}\``);
     return;
   }
-  if (response.status === rpc11.Api.GetTransactionStatus.FAILED) {
+  if (response.status === rpc12.Api.GetTransactionStatus.FAILED) {
     await clearPendingSettlement(pending.txHash);
     log.warn("prepared payment finalized as failed; journal cleared");
     console.log(c.dim(`  ${explorer(network, pending.txHash)}`));
@@ -60571,7 +61017,9 @@ async function runSettlementReconcile() {
     log.ok("transaction validity window expired with complete retained RPC history; no payment landed");
     return;
   }
-  if (decision === "history-pruned") {
+  if (decision === "invalid-history") {
+    log.err("RPC history bounds are missing or invalid; journal retained for manual evidence review");
+  } else if (decision === "history-pruned") {
     log.err("RPC history no longer covers the full transaction window; journal retained for manual evidence review");
   } else {
     log.warn("transaction is still within its validity/history window; journal retained");
@@ -60594,7 +61042,7 @@ async function runSettlementAcknowledge(txHash) {
 }
 
 // packages/cli/src/version.ts
-var CLI_VERSION = "0.2.0";
+var CLI_VERSION = "0.2.1";
 
 // packages/cli/src/commands/ops.ts
 import { readFile as readFile5, writeFile } from "node:fs/promises";
@@ -60602,12 +61050,12 @@ import { readFile as readFile5, writeFile } from "node:fs/promises";
 // packages/cli/src/ops-signing-request.ts
 import { createHash as createHash8 } from "node:crypto";
 import {
-  Address as Address7,
+  Address as Address8,
   FeeBumpTransaction,
-  Keypair as Keypair5,
+  Keypair as Keypair6,
   Networks as Networks12,
-  Transaction,
-  TransactionBuilder as TransactionBuilder2
+  Transaction as Transaction2,
+  TransactionBuilder as TransactionBuilder3
 } from "@stellar/stellar-sdk";
 var REQUEST_KEYS = [
   "version",
@@ -60649,8 +61097,8 @@ function passphraseFor(network) {
   return network === "mainnet" ? Networks12.PUBLIC : Networks12.TESTNET;
 }
 function parseTransaction(envelopeXdr, networkPassphrase) {
-  const parsed = TransactionBuilder2.fromXDR(envelopeXdr, networkPassphrase);
-  if (parsed instanceof FeeBumpTransaction || !(parsed instanceof Transaction)) {
+  const parsed = TransactionBuilder3.fromXDR(envelopeXdr, networkPassphrase);
+  if (parsed instanceof FeeBumpTransaction || !(parsed instanceof Transaction2)) {
     throw new Error("fee-bump envelopes are not accepted for authority requests");
   }
   if (parsed.operations.length !== 1) {
@@ -60669,7 +61117,7 @@ function extractEffect(transaction) {
   const invocation = operation.func.invokeContract();
   const argsXdr = invocation.args().map((arg) => arg.toXDR("base64"));
   return {
-    target: Address7.fromScAddress(invocation.contractAddress()).toString(),
+    target: Address8.fromScAddress(invocation.contractAddress()).toString(),
     function: invocation.functionName().toString(),
     argsXdr,
     argsSha256: sha256(stable(argsXdr))
@@ -60689,14 +61137,14 @@ function normalizeManifest(value) {
   ]) || manifest.version !== 1 || !["testnet", "mainnet"].includes(manifest.network) || manifest.requiredSignatures !== 2 || !Array.isArray(manifest.signers) || manifest.signers.length !== 3) {
     throw new Error("authority manifest schema is invalid");
   }
-  Keypair5.fromPublicKey(manifest.authorityAccount);
+  Keypair6.fromPublicKey(manifest.authorityAccount);
   const labels = /* @__PURE__ */ new Set();
   const publicKeys = /* @__PURE__ */ new Set();
   for (const signer of manifest.signers) {
     if (!signer || typeof signer !== "object" || Array.isArray(signer) || !hasExactKeys(signer, SIGNER_KEYS) || !["A", "B", "C"].includes(signer.label)) {
       throw new Error("authority signer schema is invalid");
     }
-    Keypair5.fromPublicKey(signer.publicKey);
+    Keypair6.fromPublicKey(signer.publicKey);
     labels.add(signer.label);
     publicKeys.add(signer.publicKey);
   }
@@ -60775,7 +61223,7 @@ function verifySigningRequest(value) {
 function identifySigner(request, transactionHash, signature) {
   const bytes = signature.signature();
   const matches = request.signers.filter((signer) => {
-    const keypair = Keypair5.fromPublicKey(signer.publicKey);
+    const keypair = Keypair6.fromPublicKey(signer.publicKey);
     return keypair.signatureHint().equals(signature.hint()) && keypair.verify(transactionHash, bytes);
   });
   if (matches.length !== 1) {
@@ -60825,8 +61273,8 @@ async function readJson(path) {
   return JSON.parse(await readFile5(path, "utf8"));
 }
 async function runOpsCreate(xdrPath, manifestPath, outPath) {
-  const xdr3 = (await readFile5(xdrPath, "utf8")).trim();
-  const request = createSigningRequest(xdr3, await readJson(manifestPath));
+  const xdr4 = (await readFile5(xdrPath, "utf8")).trim();
+  const request = createSigningRequest(xdr4, await readJson(manifestPath));
   await writeFile(outPath, `${JSON.stringify(request, null, 2)}
 `, {
     encoding: "utf8",
@@ -60876,7 +61324,7 @@ var ops = program2.command("ops").description("coordinate exact 2-of-3 authority
 ops.command("create").description("bind one unsigned transaction XDR to an immutable signing request").requiredOption("--xdr <path>", "file containing unsigned transaction-envelope XDR").requiredOption("--manifest <path>", "public 2-of-3 authority manifest").requiredOption("--out <path>", "new request JSON file; refuses to overwrite").action((options) => runOpsCreate(options.xdr, options.manifest, options.out));
 ops.command("verify").description("independently verify a request ID, XDR, source, network, and effect").requiredOption("--request <path>", "immutable request JSON file").action((options) => runOpsVerify(options.request));
 ops.command("combine").description("verify and combine exactly two independently signed envelopes").requiredOption("--request <path>", "immutable request JSON file").requiredOption("--signed <path...>", "exactly two single-signature XDR files").requiredOption("--out <path>", "new two-signature XDR file; refuses to overwrite").action((options) => runOpsCombine(options.request, options.signed, options.out));
-program2.command("demo").description("run the reference research-agent payment flow on the official Mainnet registry").argument("[target]", "which demo to run; omit to list available demos").option("--network <network>", "network selection", "mainnet").option("--manifest <path>", "optional verified manifest for the official Mainnet registry").option("--user-signer <identity>", "Stellar CLI identity for the mandate user").option("--agent-signer <identity>", "Stellar CLI identity for the payment agent").option("--agent-secret-env <name>", "environment-variable name supplied by a secret manager for bound-v2 proofs").option("--merchant <address>", "mainnet merchant G-account").option("--budget <usdc>", "explicit real-USDC mandate budget").option("--price <usdc>", "explicit real-USDC price per source").option("--confirm-real-usdc", "acknowledge that mainnet payments are irreversible and spend real USDC").action((target, options) => runDemo(target, options));
+program2.command("demo").description("run the reference research-agent payment flow on the official Mainnet registry").argument("[target]", "which demo to run; omit to list available demos").option("--network <network>", "network selection", "mainnet").option("--manifest <path>", "optional verified manifest for the official Mainnet registry").option("--user-signer <identity>", "Stellar CLI identity for the mandate user").option("--agent-signer <identity>", "Stellar CLI identity for the payment agent").option("--agent-secret-env <name>", "environment-variable name supplied by a secret manager for bound-v2 proofs").option("--merchant <address>", "mainnet merchant G-account").option("--budget <usdc>", "explicit real-USDC mandate budget").option("--price <usdc>", "explicit real-USDC price per source").option("--resume-setup-registration <hash>", "reuse one exact unused Mainnet registration; never create another mandate").option("--confirm-real-usdc", "acknowledge that mainnet payments are irreversible and spend real USDC").action((target, options) => runDemo(target, options));
 program2.parseAsync(process.argv).catch((err) => {
   console.error(err instanceof Error ? err.message : err);
   process.exit(1);
