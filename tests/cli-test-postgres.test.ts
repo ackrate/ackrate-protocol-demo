@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
-import { createHash } from "node:crypto";
+import { createCipheriv, createDecipheriv, createHash, hkdfSync, randomBytes } from "node:crypto";
 import test from "node:test";
 import { Keypair } from "@stellar/stellar-sdk";
 import type { QueryResultRow } from "pg";
 import { CLI_TEST_TTL_SECONDS, createCliTestStore } from "../lib/cli-test-store";
-import { createCliBurnerJobController, type CliBurnerJobDependencies } from "../lib/cli-test-burner-job";
+import { CLI_BURNER_JOB_ID, createCliBurnerJobController, type CliBurnerJobDependencies } from "../lib/cli-test-burner-job";
+import { CLI_TEST_BURNER_OWNER } from "../lib/cli-test-burner";
 import type { PostgresQueryable } from "../lib/wallet/postgres";
 
 // PostgreSQL SQL execution in a fresh in-memory WASM database per test. No
@@ -120,6 +121,7 @@ test("PostgreSQL JSONB keeps encrypted capability binding and rejects wrong secr
 function burnerFixture(db: PostgresQueryable, options: { uncertain?: boolean; block?: boolean } = {}) {
   const store = createCliTestStore(db, TEST_SECRET);
   const calls = { prepared: 0, validated: 0, submitted: 0, launched: 0 };
+  const envelopes: string[] = [];
   let completion: Promise<unknown> = Promise.resolve();
   const deps: CliBurnerJobDependencies = {
     ready: async () => undefined,
@@ -131,9 +133,12 @@ function burnerFixture(db: PostgresQueryable, options: { uncertain?: boolean; bl
     validate: (row, signed) => {
       calls.validated++;
       assert.equal(row.fundingXdr, "fixture-original"); assert.equal(signed, "fixture-signed");
+      assert.equal(row.fundingHash, "b".repeat(64));
+      assert.ok(row.fundingExpiresAt! > deps.now(), "fixture funding is not expired");
     },
     submit: async (signed) => {
       calls.submitted++; assert.equal(signed, "fixture-signed");
+      envelopes.push(signed);
       if (options.uncertain) throw new Error("fixture unknown funding response");
     },
     reconcile: async (row, token) => options.uncertain ? row : store.update(row.id, token, row.version, { state: "funded" }),
@@ -144,7 +149,31 @@ function burnerFixture(db: PostgresQueryable, options: { uncertain?: boolean; bl
     sleep: async () => { await completion; },
     now, maxPolls: 12,
   };
-  return { store, calls, deps, controller: createCliBurnerJobController(db, store, TEST_SECRET, deps) };
+  return { store, calls, envelopes, deps, controller: createCliBurnerJobController(db, store, TEST_SECRET, deps) };
+}
+
+// Decode only this test's in-memory fixture capability, using its fixed fixture
+// key, to simulate a legacy deployed record or an interrupted attempt claim.
+async function fixtureCapability(engine: Engine, replace?: (value: Record<string, unknown>) => void) {
+  const job = (await engine.query("SELECT sealed FROM ackrate_cli_burner_jobs WHERE job_id=$1", [CLI_BURNER_JOB_ID])).rows[0];
+  const purpose = "ackrate/cli-burner-job/capability-and-funding/v1";
+  const key = Buffer.from(hkdfSync("sha256", TEST_SECRET, "ackrate-cli-burner-job-hkdf-v1", purpose, 32));
+  const aad = Buffer.from(JSON.stringify([purpose, CLI_BURNER_JOB_ID, CLI_TEST_BURNER_OWNER]));
+  const decipher = createDecipheriv("aes-256-gcm", key, Buffer.from(job.sealed.iv, "base64url"));
+  decipher.setAAD(aad); decipher.setAuthTag(Buffer.from(job.sealed.tag, "base64url"));
+  const plaintext = Buffer.concat([decipher.update(Buffer.from(job.sealed.ciphertext, "base64url")), decipher.final()]);
+  const capability = JSON.parse(plaintext.toString("utf8")) as Record<string, unknown>;
+  plaintext.fill(0);
+  if (replace) {
+    replace(capability);
+    const iv = randomBytes(12); const cipher = createCipheriv("aes-256-gcm", key, iv); cipher.setAAD(aad);
+    const bytes = Buffer.from(JSON.stringify(capability));
+    const ciphertext = Buffer.concat([cipher.update(bytes), cipher.final()]); bytes.fill(0);
+    const sealed = { v: 1, iv: iv.toString("base64url"), tag: cipher.getAuthTag().toString("base64url"), ciphertext: ciphertext.toString("base64url") };
+    await engine.query("UPDATE ackrate_cli_burner_jobs SET sealed=$2::jsonb WHERE job_id=$1", [CLI_BURNER_JOB_ID, JSON.stringify(sealed)]);
+  }
+  key.fill(0);
+  return capability;
 }
 
 test("PostgreSQL durable burner claims one funding and one run across concurrent controllers/restarts", async () => {
@@ -171,18 +200,144 @@ test("PostgreSQL durable burner claims one funding and one run across concurrent
   });
 });
 
-test("PostgreSQL uncertain funding survives restart and only reconciles the retained transaction", async () => {
-  await withPostgres(async (db) => {
+test("PostgreSQL uncertain funding caps exact-envelope submissions at three and later confirms without replacement", async () => {
+  await withPostgres(async (db, engine) => {
     const options = { uncertain: true };
     const fixture = burnerFixture(db, options);
     await fixture.controller.run();
     assert.equal((await fixture.controller.status()).state, "funding");
+    assert.equal(fixture.calls.submitted, 3);
+    assert.equal((await fixtureCapability(engine)).submitAttempts, 3);
+    await fixture.controller.run();
+    assert.equal(fixture.calls.submitted, 3, "restart does not reset the durable attempt count");
     options.uncertain = false;
     const restart = createCliBurnerJobController(db, fixture.store, TEST_SECRET, fixture.deps);
     await restart.run();
     assert.equal((await restart.status()).state, "succeeded");
     assert.equal(fixture.calls.prepared, 1);
-    assert.equal(fixture.calls.submitted, 1, "no replacement or repeated funding submission");
+    assert.equal(fixture.calls.submitted, 3, "later confirmation does not submit again");
+    assert.equal(fixture.calls.launched, 1);
+    assert.deepEqual(fixture.envelopes, Array(3).fill("fixture-signed"));
+    assert.equal((await engine.query("SELECT count(*)::int AS count FROM ackrate_cli_test_runs")).rows[0].count, 1);
+  });
+});
+
+test("PostgreSQL legacy capability counts its original submission and concurrent replicas share the retry cap", async () => {
+  await withPostgres(async (db, engine) => {
+    const options = { uncertain: true };
+    const fixture = burnerFixture(db, options); fixture.deps.maxPolls = 1;
+    await fixture.controller.run();
+    assert.equal(fixture.calls.submitted, 1);
+    const original = await fixtureCapability(engine, (capability) => { delete capability.submitAttempts; });
+    const originalRun = (await fixture.controller.status()).run!;
+    fixture.deps.maxPolls = 12;
+    await Promise.all(Array.from({ length: 12 }, () => createCliBurnerJobController(db, fixture.store, TEST_SECRET, fixture.deps).run()));
+    await Promise.all(Array.from({ length: 12 }, () => createCliBurnerJobController(db, fixture.store, TEST_SECRET, fixture.deps).run()));
+    const retained = await fixtureCapability(engine);
+    assert.equal(retained.submitAttempts, 3);
+    for (const key of ["sessionId", "token", "signedFundingXdr"]) assert.equal(retained[key], original[key]);
+    assert.equal(fixture.calls.prepared, 1);
+    assert.equal(fixture.calls.submitted, 3, "legacy original plus at most two exact-envelope retries");
+    assert.equal(fixture.calls.launched, 0);
+    assert.deepEqual(fixture.envelopes, Array(3).fill("fixture-signed"));
+    const pending = (await fixture.controller.status()).run!;
+    for (const key of ["id", "owner", "payer", "agent", "merchant", "fundingHash"] as const) assert.equal(pending[key], originalRun[key]);
+    options.uncertain = false;
+    await Promise.all(Array.from({ length: 4 }, () => createCliBurnerJobController(db, fixture.store, TEST_SECRET, fixture.deps).run()));
+    await fixture.controller.run();
+    assert.equal((await fixture.controller.status()).state, "succeeded");
+    assert.equal(fixture.calls.launched, 1);
+    assert.equal(fixture.calls.submitted, 3);
+    assert.equal((await engine.query("SELECT count(*)::int AS count FROM ackrate_cli_test_runs")).rows[0].count, 1);
+  });
+});
+
+test("PostgreSQL retry claim committed before interruption consumes its attempt without duplicate POST", async () => {
+  await withPostgres(async (db, engine) => {
+    const fixture = burnerFixture(db, { uncertain: true }); fixture.deps.maxPolls = 1;
+    await fixture.controller.run(); fixture.deps.maxPolls = 12;
+    let interrupted = false;
+    const interruptedDb: PostgresQueryable = {
+      async query<Row extends QueryResultRow = QueryResultRow>(sql: string, values: readonly unknown[] = []) {
+        const rows = await db.query<Row>(sql, values);
+        if (!interrupted && sql.includes("UPDATE ackrate_cli_burner_jobs") && values[3] === "funding" && values[9] === "funding" && rows.length) {
+          interrupted = true; throw new Error("fixture process interruption after committed retry claim");
+        }
+        return rows;
+      },
+    };
+    await createCliBurnerJobController(interruptedDb, fixture.store, TEST_SECRET, fixture.deps).run();
+    assert.equal(interrupted, true);
+    assert.equal((await fixtureCapability(engine)).submitAttempts, 2);
+    assert.equal(fixture.calls.submitted, 1);
+    await fixture.controller.run(); await fixture.controller.run();
+    assert.equal((await fixtureCapability(engine)).submitAttempts, 3);
+    assert.equal(fixture.calls.submitted, 2, "interrupted claim is not retried as the same attempt");
+    assert.deepEqual(fixture.envelopes, Array(2).fill("fixture-signed"));
+    assert.equal(fixture.calls.prepared, 1); assert.equal(fixture.calls.launched, 0);
+  });
+});
+
+test("PostgreSQL expired or invalid retained capabilities cannot authorize another funding submission", async () => {
+  for (const mode of ["expired", "counter", "ciphertext"]) {
+    await withPostgres(async (db, engine) => {
+      const fixture = burnerFixture(db, { uncertain: true }); fixture.deps.maxPolls = 1;
+      await fixture.controller.run(); fixture.deps.maxPolls = 12;
+      if (mode === "expired") fixture.deps.now = () => now() + 601;
+      if (mode === "counter") await fixtureCapability(engine, (capability) => { capability.submitAttempts = 0; });
+      if (mode === "ciphertext") await engine.query("UPDATE ackrate_cli_burner_jobs SET sealed='{}'::jsonb");
+      await fixture.controller.run();
+      assert.equal(fixture.calls.submitted, 1, mode);
+      assert.equal(fixture.calls.prepared, 1, mode);
+      assert.equal(fixture.calls.launched, 0, mode);
+      assert.equal((await engine.query("SELECT count(*)::int AS count FROM ackrate_cli_test_runs")).rows[0].count, 1);
+    });
+  }
+});
+
+test("PostgreSQL retry diagnostics retain only public codes, never the signed envelope or capability", async () => {
+  await withPostgres(async (db, engine) => {
+    const fixture = burnerFixture(db, { uncertain: true }); fixture.deps.maxPolls = 1;
+    fixture.deps.submit = async () => ({ httpStatus: 400, transactionCode: "tx_too_early", operationCodes: ["op_success", "fixture private diagnostic text"] });
+    await fixture.controller.run();
+    const capability = await fixtureCapability(engine);
+    const status = await fixture.controller.status();
+    assert.match(status.run!.logs, /Funding submission 1\/3.*HTTP 400; tx_too_early; op_success/);
+    for (const forbidden of ["fixture private diagnostic text", "fixture-signed", String(capability.token)]) assert.equal(JSON.stringify(status).includes(forbidden), false);
+    const before = (await engine.query("SELECT version FROM ackrate_cli_burner_jobs")).rows[0].version;
+    await fixture.controller.status(false);
+    assert.equal((await engine.query("SELECT version FROM ackrate_cli_burner_jobs")).rows[0].version, before, "status remains read-only");
+  });
+});
+
+test("PostgreSQL delayed submission diagnostics cannot strand an already claimed CLI launch", async () => {
+  await withPostgres(async (db) => {
+    const fixture = burnerFixture(db); fixture.deps.maxPolls = 1;
+    let releaseSubmission!: () => void;
+    let submissionStarted!: () => void;
+    const started = new Promise<void>((resolve) => { submissionStarted = resolve; });
+    const delayedSubmission = new Promise<void>((resolve) => { releaseSubmission = resolve; });
+    fixture.deps.submit = async () => { submissionStarted(); await delayedSubmission; };
+    const originalWorker = fixture.controller.run();
+    await started;
+    let interleaved = false;
+    const competingDb: PostgresQueryable = {
+      async query<Row extends QueryResultRow = QueryResultRow>(sql: string, values: readonly unknown[] = []) {
+        const rows = await db.query<Row>(sql, values);
+        if (!interleaved && sql.includes("UPDATE ackrate_cli_burner_jobs") && values[3] === "running" && rows.length) {
+          // The competing worker has the durable launch claim and a previously
+          // read funded session. Let the original POST's diagnostic save finish
+          // before the competing worker can update that session or launch.
+          interleaved = true; releaseSubmission(); await originalWorker;
+        }
+        return rows;
+      },
+    };
+    fixture.deps.maxPolls = 12;
+    const competingWorker = createCliBurnerJobController(competingDb, fixture.store, TEST_SECRET, fixture.deps);
+    await competingWorker.run();
+    assert.equal(interleaved, true);
+    assert.equal((await competingWorker.status()).state, "succeeded");
     assert.equal(fixture.calls.launched, 1);
   });
 });

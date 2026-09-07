@@ -1,14 +1,16 @@
 import { createCipheriv, createDecipheriv, createHash, hkdfSync, randomBytes } from "node:crypto";
 import { readFile, stat } from "node:fs/promises";
 import { join } from "node:path";
-import { Keypair } from "@stellar/stellar-sdk";
+import { Keypair, Transaction, TransactionBuilder, xdr } from "@stellar/stellar-sdk";
 import type { QueryResultRow } from "pg";
 import { CLI_TEST_BURNER_OWNER, loadCliTestBurner } from "./cli-test-burner";
 import { ownerFundingSnapshot, reconcileFunding } from "./cli-test-network";
 import { CLI_TEST_SOURCE, CLI_TEST_VERSION, launchCliTest } from "./cli-test-runner";
 import { createCliTestStore, type CliTestRow, type CliTestStore } from "./cli-test-store";
-import { buildCliFunding, CLI_MAINNET_HORIZON, verifyCliFundingSigned } from "./cli-test-transactions";
+import { buildCliFunding, CLI_MAINNET_HORIZON, CLI_MAINNET_PASSPHRASE, verifyCliFundingSigned } from "./cli-test-transactions";
+import { proveCliFundingExpiredUnused, type CliFundingExpiryProof } from "./cli-test-funding-expiry";
 import { createPostgresClient, type PostgresQueryable } from "./wallet/postgres";
+import { boundedResponseJson } from "./wallet/http";
 
 export const CLI_BURNER_JOB_ID = "cli-mainnet-burner-20260907-v1";
 type JobState = "initializing" | "prepared" | "funding" | "funded" | "running" | "succeeded" | "failed" | "blocked";
@@ -17,13 +19,20 @@ interface Job extends QueryResultRow {
   session_id: string | null; sealed: unknown; funding_hash: string | null;
   created_at: number; updated_at: number; error: string | null;
 }
-interface Capability { sessionId: string; token: string; signedFundingXdr?: string }
+interface Capability {
+  sessionId: string; token: string; signedFundingXdr?: string; submitAttempts?: number;
+  renewal?: { version: 1; original: CliBurnerFunding & { submitAttempts: number }; proof: CliFundingExpiryProof };
+}
 export interface CliBurnerFunding { preparedXdr: string; signedXdr: string; hash: string; expiresAt: number }
+export interface CliBurnerSubmission { httpStatus?: number; transactionCode?: string; operationCodes?: string[] }
 export interface CliBurnerJobDependencies {
   ready(): Promise<void>;
-  prepare(row: CliTestRow, token: string): Promise<CliBurnerFunding>;
+  prepare(row: CliTestRow, token: string, originalSequence?: string): Promise<CliBurnerFunding>;
+  proveUnused?(row: CliTestRow): Promise<CliFundingExpiryProof>;
+  verifyExpiredOriginal?(row: CliTestRow, signedXdr: string, proof: CliFundingExpiryProof, now: number): void;
+  verifyRenewal?(row: CliTestRow, originalSignedXdr: string, funding: CliBurnerFunding, proof: CliFundingExpiryProof, now: number): void;
   validate(row: CliTestRow, signedXdr: string): void;
-  submit(signedXdr: string): Promise<void>;
+  submit(signedXdr: string): Promise<CliBurnerSubmission | void>;
   reconcile(row: CliTestRow, token: string): Promise<CliTestRow>;
   launch(row: CliTestRow, token: string): void;
   sleep(milliseconds: number): Promise<void>;
@@ -39,6 +48,53 @@ const PURPOSE = "ackrate/cli-burner-job/capability-and-funding/v1";
 const STATES: JobState[] = ["initializing", "prepared", "funding", "funded", "running", "succeeded", "failed", "blocked"];
 const RELEASE = { version: CLI_TEST_VERSION, sourceCommit: CLI_TEST_SOURCE };
 const JOB_COLUMNS = "job_id, owner, version, state, session_id, sealed, funding_hash, created_at, updated_at, error";
+const RESULT_CODE = /^(?:tx|op)_[a-z0-9_]{1,64}$/;
+
+function verifiedRenewalOriginal(row: CliTestRow, signedXdr: string, proof: CliFundingExpiryProof, now: number): Transaction {
+  if (!row.fundingXdr || !row.fundingHash || !row.fundingExpiresAt) throw new Error("missing original funding");
+  const parsed = TransactionBuilder.fromXDR(row.fundingXdr, CLI_MAINNET_PASSPHRASE);
+  if (!(parsed instanceof Transaction)) throw new Error("invalid original funding");
+  const original = verifyCliFundingSigned(row.fundingXdr, signedXdr, row.owner, Number(parsed.timeBounds?.minTime));
+  if (original.hash().toString("hex") !== row.fundingHash || Number(original.timeBounds?.maxTime) !== row.fundingExpiresAt
+    || original.toEnvelope().v1().tx().cond().switch().name !== "precondTime"
+    || proof.kind !== "expired-unused" || proof.originalHash !== row.fundingHash
+    || ["owner", "payer", "agent", "merchant"].some((field) => proof[field as "owner"] !== row[field as "owner"])
+    || proof.originalSequence !== original.sequence || !/^(?:0|[1-9]\d*)$/.test(proof.currentOwnerSequence)
+    || BigInt(proof.currentOwnerSequence) !== BigInt(original.sequence) - 1n || proof.maxTime !== row.fundingExpiresAt
+    || ![proof.maxTime, proof.horizonLedger, proof.horizonClosedAt, proof.rpcLedger, proof.observedAt, now].every((value) => Number.isSafeInteger(value) && value > 0)
+    || proof.horizonClosedAt <= proof.maxTime || proof.horizonClosedAt > proof.observedAt
+    || proof.rpcLedger < proof.horizonLedger || proof.observedAt > now || now - proof.observedAt > 120
+    || proof.observedAt - proof.horizonClosedAt > 120) throw new Error("original funding expiry proof does not match");
+  const [payer, agent, merchant] = original.operations;
+  if (payer.type !== "createAccount" || payer.destination !== row.payer
+    || agent.type !== "createAccount" || agent.destination !== row.agent
+    || merchant.type !== "createAccount" || merchant.destination !== row.merchant) throw new Error("original actor binding differs");
+  return original;
+}
+
+/** Pure verification: renewal may change time bounds only, never the payment body. */
+export function verifyCliBurnerRenewal(row: CliTestRow, originalSignedXdr: string, funding: CliBurnerFunding, proof: CliFundingExpiryProof, now: number): void {
+  const original = verifiedRenewalOriginal(row, originalSignedXdr, proof, now);
+  const renewed = verifyCliFundingSigned(funding.preparedXdr, funding.signedXdr, row.owner, now);
+  if (renewed.hash().toString("hex") !== funding.hash || funding.hash === row.fundingHash
+    || Number(renewed.timeBounds?.maxTime) !== funding.expiresAt
+    || renewed.toEnvelope().v1().tx().cond().switch().name !== "precondTime") throw new Error("renewal identity or expiry differs");
+  const oldBody = original.toEnvelope().v1().tx(); const newBody = renewed.toEnvelope().v1().tx();
+  oldBody.cond(xdr.Preconditions.precondNone()); newBody.cond(xdr.Preconditions.precondNone());
+  if (oldBody.toXDR("base64") !== newBody.toXDR("base64")) throw new Error("renewal may change time bounds only");
+}
+
+/** Keep only bounded public status codes, never Horizon's echoed envelope. */
+export async function readCliBurnerSubmission(response: Response): Promise<CliBurnerSubmission> {
+  const result: CliBurnerSubmission = { httpStatus: response.status };
+  try {
+    const raw = await boundedResponseJson(response, 16 * 1024) as { extras?: { result_codes?: { transaction?: unknown; operations?: unknown } } };
+    const codes = raw?.extras?.result_codes;
+    if (typeof codes?.transaction === "string" && RESULT_CODE.test(codes.transaction)) result.transactionCode = codes.transaction;
+    if (Array.isArray(codes?.operations)) result.operationCodes = codes.operations.slice(0, 6).filter((code): code is string => typeof code === "string" && RESULT_CODE.test(code));
+  } catch { /* Malformed, oversized, or non-JSON response: retain HTTP status only. */ }
+  return result;
+}
 
 function validateJob(row: QueryResultRow): Job {
   if (row.job_id !== CLI_BURNER_JOB_ID || row.owner !== CLI_TEST_BURNER_OWNER
@@ -83,8 +139,18 @@ export function createCliBurnerJobController(db: PostgresQueryable, store: CliTe
       try { capability = JSON.parse(plaintext.toString("utf8")); } finally { plaintext.fill(0); }
       if (capability.sessionId !== job.session_id || !/^[a-f0-9-]{36}$/.test(capability.sessionId)
         || !/^[A-Za-z0-9_-]{43}$/.test(capability.token)
-        || Object.keys(capability).some((field) => !["sessionId", "token", "signedFundingXdr"].includes(field))
+        || Object.keys(capability).some((field) => !["sessionId", "token", "signedFundingXdr", "submitAttempts", "renewal"].includes(field))
+        || (capability.submitAttempts !== undefined && (!Number.isSafeInteger(capability.submitAttempts) || capability.submitAttempts < 1 || capability.submitAttempts > 3))
         || (capability.signedFundingXdr !== undefined && (typeof capability.signedFundingXdr !== "string" || capability.signedFundingXdr.length > 131_072))) throw new Error();
+      if (capability.renewal) {
+        const renewal = capability.renewal; const original = renewal.original;
+        if (renewal.version !== 1 || !original || !renewal.proof || renewal.proof.kind !== "expired-unused"
+          || Object.keys(renewal).sort().join(",") !== "original,proof,version"
+          || typeof original.preparedXdr !== "string" || original.preparedXdr.length > 100_000
+          || typeof original.signedXdr !== "string" || original.signedXdr.length > 131_072
+          || !/^[a-f0-9]{64}$/.test(original.hash) || !Number.isSafeInteger(original.expiresAt)
+          || !Number.isSafeInteger(original.submitAttempts) || original.submitAttempts < 1 || original.submitAttempts > 3) throw new Error();
+      } else if (capability.renewal !== undefined) throw new Error();
       return capability;
     } catch { throw new Error("retained burner job capability cannot be recovered"); }
   }
@@ -120,6 +186,23 @@ export function createCliBurnerJobController(db: PostgresQueryable, store: CliTe
     if (!row || row.owner !== CLI_TEST_BURNER_OWNER || row.id !== job.session_id
       || (job.funding_hash !== null && row.fundingHash !== job.funding_hash)) throw new Error("retained burner session is unavailable");
     return { capability, row };
+  }
+
+  async function submitExact(row: CliTestRow, capability: Capability, attempt: number): Promise<void> {
+    let report: CliBurnerSubmission | void = undefined;
+    try { report = await deps.submit(capability.signedFundingXdr!); }
+    catch { /* The exact envelope may have landed. No raw error is retained. */ }
+    const details = [`Funding submission ${attempt}/3 for retained hash ${row.fundingHash}`];
+    if (report && Number.isSafeInteger(report.httpStatus) && report.httpStatus! >= 100 && report.httpStatus! <= 599) details.push(`HTTP ${report.httpStatus}`);
+    else details.push("network outcome unconfirmed");
+    if (report && typeof report.transactionCode === "string" && RESULT_CODE.test(report.transactionCode)) details.push(report.transactionCode);
+    if (report && Array.isArray(report.operationCodes)) details.push(...report.operationCodes.slice(0, 6).filter((code) => typeof code === "string" && RESULT_CODE.test(code)));
+    // This diagnostic update cannot authorize a submission; the durable global
+    // attempt claim already did that. CAS conflicts simply retain older logs.
+    try {
+      const latest = await store.read(row.id, capability.token);
+      if (latest?.state === "funding" && latest.fundingHash === row.fundingHash) await store.update(row.id, capability.token, latest.version, { logs: `${latest.logs}\n${details.join("; ")}.\n` });
+    } catch { /* Keep the journal and its attempt counter even if logging fails. */ }
   }
 
   async function run(): Promise<void> {
@@ -168,13 +251,12 @@ export function createCliBurnerJobController(db: PostgresQueryable, store: CliTe
         if (job.state === "prepared") {
           if (row.state !== "prepared" || !capability.signedFundingXdr) throw new Error("funding preparation state differs");
           deps.validate(row, capability.signedFundingXdr);
-          const fundingClaim = await transition(job, "funding");
+          const attemptCapability = { ...capability, submitAttempts: 1 };
+          const fundingClaim = await transition(job, "funding", { sealed: seal(attemptCapability) });
           if (!fundingClaim) continue;
           job = fundingClaim;
-          await store.update(row.id, capability.token, row.version, { state: "funding" });
-          // This exact CAS winner submits at most once. Restarts only reconcile
-          // the retained hash, even if a crash happened immediately before POST.
-          try { await deps.submit(capability.signedFundingXdr); } catch { /* Keep funding; no submission retry. */ }
+          const fundingRow = await store.update(row.id, capability.token, row.version, { state: "funding" });
+          await submitExact(fundingRow, attemptCapability, 1);
           continue;
         }
         if (job.state === "funding") {
@@ -182,12 +264,69 @@ export function createCliBurnerJobController(db: PostgresQueryable, store: CliTe
           if (latest.state === "funded") { await transition(job, "funded"); continue; }
           if (latest.state === "failed") { await transition(job, "failed", { error: "The exact funding transaction failed; this job will not repeat." }); return; }
           if (latest.state !== "funding") return;
+          if (latest.fundingExpiresAt && deps.now() > latest.fundingExpiresAt && !capability.renewal
+            && capability.signedFundingXdr && deps.proveUnused) {
+            const proof = await deps.proveUnused(latest);
+            (deps.verifyExpiredOriginal ?? verifiedRenewalOriginal)(latest, capability.signedFundingXdr, proof, deps.now());
+            const renewalCapability: Capability = { ...capability, renewal: { version: 1,
+              original: { preparedXdr: latest.fundingXdr!, signedXdr: capability.signedFundingXdr,
+                hash: latest.fundingHash!, expiresAt: latest.fundingExpiresAt, submitAttempts: capability.submitAttempts ?? 1 }, proof } };
+            // The permanent renewal marker and original evidence precede any
+            // replacement signing. An interrupted initializing job cannot resume.
+            const renewalClaim = await transition(job, "initializing", { sealed: seal(renewalCapability) });
+            if (!renewalClaim) continue;
+            job = renewalClaim;
+            const funding = await deps.prepare(latest, capability.token, proof.originalSequence);
+            (deps.verifyRenewal ?? verifyCliBurnerRenewal)(latest, capability.signedFundingXdr, funding, proof, deps.now());
+            let prepared: CliTestRow | null = null;
+            for (let retry = 0; retry < 3 && !prepared; retry++) {
+              const fresh = await store.read(latest.id, capability.token);
+              if (!fresh || fresh.state !== "funding" || fresh.fundingHash !== latest.fundingHash
+                || ["id", "owner", "payer", "agent", "merchant"].some((field) => fresh[field as "owner"] !== latest[field as "owner"])) return;
+              try {
+                prepared = await store.update(fresh.id, capability.token, fresh.version, {
+                  state: "prepared", fundingXdr: funding.preparedXdr, fundingHash: funding.hash, fundingExpiresAt: funding.expiresAt,
+                  logs: `${fresh.logs}\nOriginal funding ${latest.fundingHash} proven expired and unused at ledger ${proof.rpcLedger}. One renewal of the same accounts and budget prepared: ${funding.hash}.\n`,
+                });
+              } catch { /* A late diagnostic write may advance only the old funding version. */ }
+            }
+            if (!prepared) return;
+            const renewed = await transition(job, "prepared", { fundingHash: funding.hash, sealed: seal({
+              sessionId: capability.sessionId, token: capability.token, signedFundingXdr: funding.signedXdr, renewal: renewalCapability.renewal,
+            }) });
+            if (!renewed) return;
+            job = renewed;
+            continue;
+          }
+          // Deployed records from before attempt journaling already crossed the
+          // original submission boundary, so absent means one attempt, not zero.
+          const attempts = capability.submitAttempts ?? 1;
+          if (attempts < 3 && capability.signedFundingXdr) {
+            await deps.sleep(2_000);
+            deps.validate(latest, capability.signedFundingXdr);
+            const attemptCapability = { ...capability, submitAttempts: attempts + 1 };
+            const retryClaim = await transition(job, "funding", { sealed: seal(attemptCapability) });
+            if (!retryClaim) continue;
+            job = retryClaim;
+            // Only the exact pre-existing envelope is retried. Its transaction
+            // hash, sequence, signatures, actors, amount, and expiry never change.
+            await submitExact(latest, attemptCapability, attempts + 1);
+            continue;
+          }
         } else if (job.state === "funded") {
           if (row.state !== "funded") return;
           const runClaim = await transition(job, "running");
           if (!runClaim) continue;
           job = runClaim;
-          const running = await store.update(row.id, capability.token, row.version, { state: "running", startedAt: deps.now(), logs: `${row.logs}\nAuthorized one-off Mainnet run claimed.\n` });
+          let running: CliTestRow | null = null;
+          for (let retry = 0; retry < 3 && !running; retry++) {
+            const fresh = await store.read(row.id, capability.token);
+            if (!fresh || fresh.state !== "funded" || fresh.fundingHash !== row.fundingHash
+              || ["id", "owner", "payer", "agent", "merchant"].some((field) => fresh[field as "owner"] !== row[field as "owner"])) return;
+            try { running = await store.update(row.id, capability.token, fresh.version, { state: "running", startedAt: deps.now(), logs: `${fresh.logs}\nAuthorized one-off Mainnet run claimed.\n` }); }
+            catch { /* Retry only this owned claim while the exact session remains funded. */ }
+          }
+          if (!running) return;
           deps.launch(running, capability.token);
           continue;
         } else if (job.state === "running") {
@@ -251,9 +390,10 @@ function defaultController() {
   const db = createPostgresClient(databaseUrl); const store = createCliTestStore(db, secret);
   const value = createCliBurnerJobController(db, store, secret, {
     ready: async () => { await verifyBuild(); loadCliTestBurner(); },
-    prepare: async (row, token) => {
+    prepare: async (row, token, originalSequence) => {
       const owner = loadCliTestBurner();
       const account = await ownerFundingSnapshot(CLI_TEST_BURNER_OWNER);
+      if (originalSequence !== undefined && BigInt(account.sequenceNumber()) !== BigInt(originalSequence) - 1n) throw new Error("renewal source sequence changed before signing");
       const responses = await Promise.all([row.payer, row.agent, row.merchant].map((address) => fetch(`${CLI_MAINNET_HORIZON}/accounts/${address}`, { redirect: "error", cache: "no-store", signal: AbortSignal.timeout(10_000) })));
       if (responses.some((response) => response.status !== 404)) throw new Error("fresh test accounts could not be verified");
       const keys = await store.secrets(row.id, token);
@@ -263,6 +403,11 @@ function defaultController() {
       verifyCliFundingSigned(preparedXdr, signedXdr, CLI_TEST_BURNER_OWNER);
       return { preparedXdr, signedXdr, hash: transaction.hash().toString("hex"), expiresAt: Number(transaction.timeBounds!.maxTime) };
     },
+    proveUnused: (row) => {
+      if (!row.fundingXdr || !row.fundingHash || !row.fundingExpiresAt) throw new Error("missing original funding expiry context");
+      return proveCliFundingExpiredUnused({ owner: row.owner, payer: row.payer, agent: row.agent, merchant: row.merchant,
+        fundingXdr: row.fundingXdr, fundingHash: row.fundingHash, fundingExpiresAt: row.fundingExpiresAt });
+    },
     validate: (row, signedXdr) => {
       if (!row.fundingXdr || !row.fundingHash || row.owner !== CLI_TEST_BURNER_OWNER) throw new Error("missing exact funding context");
       const tx = verifyCliFundingSigned(row.fundingXdr, signedXdr, CLI_TEST_BURNER_OWNER);
@@ -270,7 +415,7 @@ function defaultController() {
     },
     submit: async (signedXdr) => {
       const response = await fetch(`${CLI_MAINNET_HORIZON}/transactions`, { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ tx: signedXdr }), redirect: "error", cache: "no-store", signal: AbortSignal.timeout(20_000) });
-      await response.body?.cancel();
+      return readCliBurnerSubmission(response);
     },
     reconcile: (row, token) => reconcileFunding(store, row, token),
     launch: (row, token) => launchCliTest(store, row, token),

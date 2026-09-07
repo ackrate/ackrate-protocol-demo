@@ -7,6 +7,7 @@ export const CLI_MAINNET_REGISTRY = "CCLZEBJXG4YVJEPBCR5F27N733BCK5HQJWZZGB3K54J
 export const CLI_USDC_ISSUER = "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN";
 export const CLI_USDC_SAC = "CCW67TSZV3SSS2HXMBQ5JFGCKJNXKZM7UQUWUZPUTHXSTZLEO7SJMI75";
 export const CLI_FUNDING_SECONDS = 600;
+export const CLI_FUNDING_CLOCK_ALLOWANCE_SECONDS = 30;
 export const CLI_MAX_XDR_LENGTH = 131_072;
 
 function requireAccount(address: string): void {
@@ -31,6 +32,10 @@ export function buildCliFunding(
   for (const address of [owner, payer, agent, merchant]) requireAccount(address);
   if (new Set([owner, payer, agent, merchant]).size !== 4) throw new Error("CLI funding accounts must be distinct");
   const now = currentSecond(nowSeconds);
+  // Stellar compares time bounds with ledger close time, not this server's
+  // wall clock. Allow a small lag without extending the 600-second lifetime.
+  const startsAt = now - CLI_FUNDING_CLOCK_ALLOWANCE_SECONDS;
+  if (startsAt <= 0) throw new Error("CLI funding clock is invalid");
   const usdc = new Asset("USDC", CLI_USDC_ISSUER);
   // Clone the source so preparing an envelope does not advance caller state.
   const transaction = new TransactionBuilder(new Account(owner, ownerAccount.sequenceNumber()), {
@@ -42,7 +47,7 @@ export function buildCliFunding(
     .addOperation(Operation.changeTrust({ source: payer, asset: usdc, limit: "0.03" }))
     .addOperation(Operation.changeTrust({ source: merchant, asset: usdc, limit: "0.03" }))
     .addOperation(Operation.payment({ destination: payer, asset: usdc, amount: "0.03" }))
-    .setTimebounds(now, now + CLI_FUNDING_SECONDS)
+    .setTimebounds(startsAt, startsAt + CLI_FUNDING_SECONDS)
     .build();
   transaction.sign(actors.payer, actors.merchant);
   return transaction;

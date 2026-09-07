@@ -23,7 +23,7 @@ test("funding builds exactly six capped Mainnet operations with only the two loc
   assert.equal(prepared.source, owner.publicKey());
   assert.equal(prepared.sequence, "100");
   assert.equal(prepared.fee, "600");
-  assert.deepEqual(prepared.timeBounds, { minTime: String(now), maxTime: String(now + 600) });
+  assert.deepEqual(prepared.timeBounds, { minTime: String(now - 30), maxTime: String(now + 570) });
   assert.deepEqual(prepared.operations, [
     { type: "createAccount", destination: actors.payer.publicKey(), startingBalance: "2.1000000" },
     { type: "createAccount", destination: actors.agent.publicKey(), startingBalance: "2.1000000" },
@@ -60,6 +60,15 @@ test("funding rejects changed amounts, destinations, source, fee, sequence, and 
   assert.throws(() => verifyCliFundingSigned(prepared.toXDR(), prepared.toXDR(), actors.agent.publicKey(), now), /does not match/);
 });
 
+test("funding tolerates a small ledger-clock lag without extending its fixed lifetime", () => {
+  const { owner, prepared, signed } = fixture();
+  for (const ledgerTime of [now - 30, now - 1, now, now + 569]) {
+    assert.equal(verifyCliFundingSigned(prepared.toXDR(), signed.toXDR(), owner.publicKey(), ledgerTime).hash().toString("hex"), signed.hash().toString("hex"));
+  }
+  assert.equal(Number(prepared.timeBounds!.maxTime) - Number(prepared.timeBounds!.minTime), 600);
+  assert.throws(() => verifyCliFundingSigned(prepared.toXDR(), signed.toXDR(), owner.publicKey(), now + 570), /expired|bounds/);
+});
+
 test("funding requires exactly one valid Mainnet signature from each required account", () => {
   const { owner, actors, prepared, signed } = fixture();
   assert.throws(() => verifyCliFundingSigned(prepared.toXDR(), prepared.toXDR(), owner.publicKey(), now), /signatures/);
@@ -83,7 +92,7 @@ test("funding fails closed on malformed or oversized input, expired bounds, fee-
     assert.throws(() => verifyCliFundingSigned(prepared.toXDR(), value, owner.publicKey(), now));
     assert.throws(() => verifyCliFundingSigned(value, signed.toXDR(), owner.publicKey(), now));
   }
-  for (const time of [now - 1, now + 600, now + 601, NaN]) {
+  for (const time of [now - 31, now + 570, now + 600, now + 601, NaN]) {
     assert.throws(() => verifyCliFundingSigned(prepared.toXDR(), signed.toXDR(), owner.publicKey(), time), /bounds|expired|clock/);
   }
   const feeBump = TransactionBuilder.buildFeeBumpTransaction(owner, "100", signed, CLI_MAINNET_PASSPHRASE);

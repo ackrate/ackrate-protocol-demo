@@ -65,7 +65,28 @@ the selected burner; it must never belong to a primary or shared account.
 cannot start it. PostgreSQL retains this job across deployments and replicas.
 The signed funding transaction and session capability are encrypted before
 submission. Only the winner of a durable state/version claim can submit the exact
-funding transaction or launch the CLI. No reset or repeat-run endpoint exists.
+funding transaction or launch the CLI. A maximum of three durable attempts may
+submit the identical signed envelope; its hash, sequence and financial effect
+cannot change. Only bounded HTTP status and transaction/operation result codes
+are retained from submission responses. No reset or repeat-run endpoint exists.
+
+One renewal of funding time bounds is permitted only after a fresh closed ledger
+strictly after the original expiry and one Mainnet RPC snapshot prove that the
+owner is still at the original predecessor sequence and all three actors remain
+absent. The original signed envelope, hash and proof are retained encrypted before
+the renewal is claimed. The replacement must preserve the same session, actors,
+source sequence, operations, amounts and fee; only time bounds may differ. Any
+changed or ambiguous state stops renewal. A crash during its preparation requires
+manual reconciliation, not another signing attempt. Already confirmed or failed
+on-chain funding is never renewed. This remains one funding effect, not another
+funded test. The renewed envelope also has a three-attempt identical-hash cap.
+
+New funding time bounds allow 30 seconds of ledger-clock lag while retaining the
+same fixed 600-second lifetime (570 seconds remain at construction). This avoids
+requiring a ledger to have already closed at the server's current wall-clock time.
+The original discarded submission response does not prove that clock skew caused
+that failure. See Stellar's [time-bound semantics](https://developers.stellar.org/docs/learn/fundamentals/transactions/operations-and-transactions)
+and [submission error handling](https://developers.stellar.org/docs/data/apis/horizon/api-reference/errors/error-handling).
 
 Funding is exactly 6 XLM to three new test accounts, 0.03 Circle USDC to the payer,
 and a 0.00006 XLM funding-transaction fee. Subsequent test transaction fees come
@@ -75,6 +96,8 @@ to a browser. Generated test-account keys remain encrypted in PostgreSQL.
 
 The read-only `/api/cli/test/burner` response and `/cli` show progress and saved
 evidence. A failed or ambiguous submitted run is retained for reconciliation,
-never funded again automatically. A completed deployment is not payment evidence;
+never restarted or given another funding allocation automatically. An expired
+funding envelope can only take the proof-guarded, same-actor path described above.
+A completed deployment is not payment evidence;
 only successful CLI checks and independently verified Mainnet receipts can close
 the acceptance test. The source-build versus public-npm distinction above remains.
