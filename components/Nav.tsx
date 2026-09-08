@@ -1,8 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { ArrowUpRight } from "lucide-react";
 import AckrateSolarMark from "./AckrateSolarMark";
 
@@ -19,6 +20,8 @@ const links = [
 
 export default function Nav() {
   const path = usePathname();
+  const reduceMotion = useReducedMotion();
+  const [hovered, setHovered] = useState<string | null>(null);
   if (path.startsWith("/reports/")) return null;
   return (
     <motion.nav
@@ -37,31 +40,60 @@ export default function Nav() {
         </Link>
 
         {/* Links */}
-        <div className="no-scrollbar flex min-w-0 items-center gap-1 overflow-x-auto whitespace-nowrap rounded-lg border border-white/10 bg-white/[0.025] p-1">
+        <motion.div
+          className="no-scrollbar relative flex min-w-0 items-center gap-1 overflow-x-auto whitespace-nowrap rounded-xl border border-white/10 bg-white/[0.025] p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]"
+          onMouseLeave={() => setHovered(null)}
+          whileHover={reduceMotion ? undefined : { borderColor: "rgba(255,255,255,0.16)" }}
+          transition={{ duration: 0.2 }}
+        >
           {links.map((l) => {
             const active = path === l.href;
             return (
-              <Link
+              <motion.div
+                className="relative"
                 key={l.href}
-                href={l.href}
-                className={`relative rounded-full px-3.5 py-1.5 text-[13px] font-medium transition-colors ${
-                  active
-                    ? "text-white"
-                    : "text-white/50 hover:text-white/90"
-                }`}
+                initial={false}
+                animate={{ y: hovered === l.href && !active && !reduceMotion ? -1 : 0 }}
+                whileTap={reduceMotion ? undefined : { scale: 0.965 }}
+                transition={{ type: "spring", stiffness: 520, damping: 34, mass: 0.55 }}
               >
-                {l.label}
-                {active && (
-                  <motion.span
-                    layoutId="nav-active"
-                    className="absolute inset-0 -z-10 rounded-md bg-white/[0.09] ring-1 ring-white/10"
-                    transition={{ type: "spring", stiffness: 400, damping: 32 }}
-                  />
-                )}
-              </Link>
+                <Link
+                  href={l.href}
+                  aria-current={active ? "page" : undefined}
+                  onMouseEnter={() => setHovered(l.href)}
+                  onFocus={() => setHovered(l.href)}
+                  onBlur={() => setHovered(null)}
+                  className={`relative isolate block overflow-hidden rounded-lg px-3.5 py-1.5 text-[13px] font-medium transition-colors duration-200 ${
+                    active ? "text-white" : "text-white/50 hover:text-white/90"
+                  }`}
+                >
+                  {hovered === l.href && !active && (
+                    <motion.span
+                      layoutId="nav-hover"
+                      className="absolute inset-0 -z-10 rounded-lg bg-white/[0.045] ring-1 ring-inset ring-white/[0.055]"
+                      transition={{ type: "spring", stiffness: 500, damping: 38, mass: 0.45 }}
+                    />
+                  )}
+                  {active && (
+                    <>
+                      <motion.span
+                        layoutId="nav-active"
+                        className="absolute inset-0 -z-10 rounded-lg bg-white/[0.1] ring-1 ring-inset ring-white/[0.1]"
+                        transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 430, damping: 34, mass: 0.7 }}
+                      />
+                      <motion.span
+                        layoutId="nav-active-light"
+                        className="absolute inset-x-3 bottom-0 h-px bg-gradient-to-r from-transparent via-white/80 to-transparent shadow-[0_0_8px_rgba(255,255,255,0.55)]"
+                        transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 430, damping: 34, mass: 0.7 }}
+                      />
+                    </>
+                  )}
+                  <span className="relative z-10">{l.label}</span>
+                </Link>
+              </motion.div>
             );
           })}
-        </div>
+        </motion.div>
 
         {/* CTA */}
         <a
