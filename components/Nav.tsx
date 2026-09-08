@@ -29,6 +29,7 @@ export default function Nav() {
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.4, ease: "easeOut" }}
       className="sticky top-0 z-50 border-b border-[#1f1f1f] bg-black/85 backdrop-blur-xl"
+      style={{ paddingTop: "max(8px, env(safe-area-inset-top))" }}
     >
       <div className="flex h-16 w-full items-center justify-between gap-6 px-4 sm:px-6 lg:px-8">
         {/* Brand */}
