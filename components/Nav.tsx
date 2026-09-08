@@ -24,10 +24,7 @@ export default function Nav() {
   const [hovered, setHovered] = useState<string | null>(null);
   if (path.startsWith("/reports/")) return null;
   return (
-    <motion.nav
-      initial={{ y: -16, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      transition={{ duration: 0.4, ease: "easeOut" }}
+    <nav
       className="sticky top-0 z-50 border-b border-[#1f1f1f] bg-black/85 backdrop-blur-xl"
       style={{ paddingTop: "max(8px, env(safe-area-inset-top))" }}
     >
@@ -105,6 +102,6 @@ export default function Nav() {
           <ArrowUpRight className="h-3.5 w-3.5" aria-hidden />
         </a>
       </div>
-    </motion.nav>
+    </nav>
   );
 }
