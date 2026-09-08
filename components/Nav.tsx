@@ -24,14 +24,15 @@ export default function Nav() {
   const [hovered, setHovered] = useState<string | null>(null);
   if (path.startsWith("/reports/")) return null;
   return (
-    <motion.nav
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.4, ease: "easeOut" }}
-      className="sticky top-0 z-50 border-b border-[#1f1f1f] bg-black/85 backdrop-blur-xl"
-      style={{ paddingTop: "max(8px, env(safe-area-inset-top))" }}
-    >
-      <div className="flex h-16 w-full items-center justify-between gap-6 px-4 sm:px-6 lg:px-8">
+    <>
+      <motion.nav
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.4, ease: "easeOut" }}
+        className="fixed inset-x-0 top-0 z-50 border-b border-[#1f1f1f] bg-black/85 backdrop-blur-xl"
+        style={{ paddingTop: "max(8px, env(safe-area-inset-top, 0px))" }}
+      >
+        <div className="flex h-16 w-full items-center justify-between gap-6 px-4 sm:px-6 lg:px-8">
         {/* Brand */}
         <Link href="/" className="group flex shrink-0 items-center gap-2" aria-label="ACKRATE home">
           <AckrateSolarMark size={42} />
@@ -104,7 +105,12 @@ export default function Nav() {
           npm
           <ArrowUpRight className="h-3.5 w-3.5" aria-hidden />
         </a>
-      </div>
-    </motion.nav>
+        </div>
+      </motion.nav>
+      <div
+        aria-hidden="true"
+        style={{ height: "calc(65px + max(8px, env(safe-area-inset-top, 0px)))" }}
+      />
+    </>
   );
 }
