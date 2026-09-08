@@ -41,10 +41,8 @@ export default function Nav() {
 
         {/* Links */}
         <motion.div
-          className="no-scrollbar relative flex min-w-0 items-center gap-1 overflow-x-auto whitespace-nowrap rounded-xl border border-white/10 bg-white/[0.025] p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]"
+          className="no-scrollbar relative flex min-w-0 items-center gap-1 overflow-x-auto whitespace-nowrap rounded-xl bg-white/[0.025] p-1"
           onMouseLeave={() => setHovered(null)}
-          whileHover={reduceMotion ? undefined : { borderColor: "rgba(255,255,255,0.16)" }}
-          transition={{ duration: 0.2 }}
         >
           {links.map((l) => {
             const active = path === l.href;
