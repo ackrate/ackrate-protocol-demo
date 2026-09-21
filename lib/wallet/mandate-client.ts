@@ -419,7 +419,12 @@ async function registerAndApproveWithFreighter(
   // registration reconciler closes both setup stages from the same receipt.
   for (let attempt = 0; attempt < 30; attempt++) {
     const result = await server.getTransaction(pending.txHash);
-    if (result.status === "SUCCESS") return { mandateId: id, transactionHash: pending.txHash, allowanceTransactionHash: pending.txHash };
+    if (result.status === "SUCCESS") {
+      if (!result.returnValue || registeredMandateIdHex(scValToNative(result.returnValue)) !== id) {
+        throw new Error("The confirmed setup returned a different mandate identifier. Its receipt remains saved for investigation.");
+      }
+      return { mandateId: id, transactionHash: pending.txHash, allowanceTransactionHash: pending.txHash };
+    }
     if (result.status === "FAILED") throw new Error("Combined setup failed on Stellar. Both setup changes were rolled back.");
     await sleep(2000);
   }

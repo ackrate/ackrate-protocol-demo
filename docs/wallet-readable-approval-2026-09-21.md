@@ -41,7 +41,7 @@ does not claim Mainnet batching has already shipped.
 
 ## Verification
 
-- Complete app gate: 173 CLI tests, 91 application/starter tests, 269 wallet
+- Complete app gate: 173 CLI tests, 91 application/starter tests, 270 wallet
   tests, types, branding/workflow/starter checks, zero known npm vulnerabilities,
   production build and HTTP smoke passed locally.
 - New handler tests exercise real challenge/verify handlers: offline text,

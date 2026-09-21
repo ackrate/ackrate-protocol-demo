@@ -18,7 +18,7 @@ const intent = { id: "c".repeat(64), idBuffer: Buffer.alloc(32, 0xcc), user: use
 const source = ts.transpileModule(readFileSync(new URL("../lib/wallet/mandate-client.ts", import.meta.url), "utf8"), {
   compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS },
 }).outputText;
-function harness(options: { wrongCode?: boolean; wrongTarget?: boolean; wrongSigner?: boolean; changedBody?: boolean; loseResponse?: boolean } = {}) {
+function harness(options: { wrongCode?: boolean; wrongTarget?: boolean; wrongSigner?: boolean; changedBody?: boolean; loseResponse?: boolean; wrongResult?: boolean } = {}) {
   const order: string[] = []; let signed: stellar.Transaction | undefined;
   class Server {
     async getContractWasmByContractId(id: string) { assert.equal(id, config.setup.contractId); return options.wrongCode ? Buffer.from("other") : wasm; }
@@ -28,7 +28,7 @@ function harness(options: { wrongCode?: boolean; wrongTarget?: boolean; wrongSig
       return { result: { retval: stellar.nativeToScVal(isConfig ? [new stellar.Address(options.wrongTarget ? contract(9) : config.mandateRegistryId), new stellar.Address(intent.asset)] : Buffer.alloc(32, 0xdd)) } };
     }
     async sendTransaction(tx: stellar.Transaction) { order.push("send"); signed = tx; if (options.loseResponse) throw new Error("lost response"); return { status: "PENDING", hash: tx.hash().toString("hex") }; }
-    async getTransaction(hash: string) { assert.equal(hash, signed!.hash().toString("hex")); return { status: "SUCCESS" }; }
+    async getTransaction(hash: string) { assert.equal(hash, signed!.hash().toString("hex")); return { status: "SUCCESS", returnValue: stellar.nativeToScVal(Buffer.alloc(32, options.wrongResult ? 0xee : 0xdd)) }; }
   }
   const modules: Record<string, unknown> = {
     buffer: { Buffer }, "@stellar/stellar-sdk": { ...stellar, rpc: { Server, Api: { isSimulationSuccess: () => true }, assembleTransaction: (tx: stellar.Transaction) => ({ build: () => tx }) } },
@@ -88,4 +88,11 @@ test("combined receipt survives lost submission response and rejects altered set
   });
   assert.equal(await recovery.readRegistrationConfirmation(config,scope,pending),"confirmed");
   await assert.rejects(recovery.readRegistrationConfirmation({...config,setup:null},scope,pending));
+});
+
+test("a changed final mandate id cannot mark either setup stage complete", async () => {
+  const h = harness({wrongResult:true});
+  await assert.rejects(h.run(), /different mandate identifier/);
+  assert.ok(h.pending());
+  assert.deepEqual(h.order,["sign","retain","send"]);
 });
