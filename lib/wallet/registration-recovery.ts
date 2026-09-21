@@ -4,6 +4,7 @@ import { Address, Keypair, Transaction, TransactionBuilder, scValToNative, xdr }
 export interface RegistrationScope {
   id: string; credentialHash: string; user: string; agent: string; merchant: string;
   asset: string; maxAmount: string; expiry: number;
+  setupContractId?: string; allowanceExpiration?: number;
 }
 export interface PendingRegistration {
   txHash: string; signedTransactionXdr: string; submittedAt: number; validUntil: number;
@@ -38,6 +39,7 @@ export function signedRegistrationEvidence(
   registryId: string,
   scope: RegistrationScope,
   submittedAt = Math.floor(Date.now() / 1000),
+  expectedSetupContractId?: string,
 ): PendingRegistration {
   if (!/^[0-9a-f]{64}$/.test(scope.id) || !/^[0-9a-f]{64}$/.test(scope.credentialHash)
     || !/^[1-9]\d*$/.test(scope.maxAmount) || !Number.isSafeInteger(scope.expiry) || scope.expiry <= 0) {
@@ -52,12 +54,25 @@ export function signedRegistrationEvidence(
     || operation.func.switch().name !== "hostFunctionTypeInvokeContract") throw new Error("The transaction is not a mandate registration.");
   const invocation = operation.func.invokeContract();
   const args = invocation.args().map((value) => scValToNative(value));
+  if (scope.setupContractId) {
+    if (scope.setupContractId !== expectedSetupContractId
+      || Address.fromScAddress(invocation.contractAddress()).toString() !== expectedSetupContractId
+      || invocation.functionName().toString() !== "register_and_approve" || args.length !== 7
+      || args[0] !== scope.user || args[1] !== scope.agent || args[2] !== scope.merchant
+      || args[3] !== BigInt(scope.maxAmount) || args[4] !== BigInt(scope.expiry)
+      || !(args[5] instanceof Uint8Array) || Buffer.from(args[5]).toString("hex") !== scope.credentialHash
+      || !Number.isSafeInteger(scope.allowanceExpiration) || !scope.allowanceExpiration || scope.allowanceExpiration <= 0
+      || args[6] !== scope.allowanceExpiration) {
+      throw new Error("The combined setup changed the saved spending rules or approved contract.");
+    }
+  } else {
   if (Address.fromScAddress(invocation.contractAddress()).toString() !== registryId
     || invocation.functionName().toString() !== "register_mandate" || args.length !== 7
     || args[0] !== scope.user || args[1] !== scope.agent || args[2] !== scope.merchant || args[3] !== scope.asset
     || args[4] !== BigInt(scope.maxAmount) || args[5] !== BigInt(scope.expiry)
     || !(args[6] instanceof Uint8Array) || Buffer.from(args[6]).toString("hex") !== scope.credentialHash) {
     throw new Error("The registration transaction changed the saved spending rules.");
+  }
   }
   const verifier = Keypair.fromPublicKey(scope.user);
   if (!transaction.signatures.some((signature) => {
@@ -73,12 +88,12 @@ export function signedRegistrationEvidence(
 
 /** Never signs or submits. Unknown history, outages and stale coverage retain the original attempt. */
 export async function readRegistrationConfirmation(
-  config: { rpcUrl: string; networkPassphrase: string; mandateRegistryId: string },
+  config: { rpcUrl: string; networkPassphrase: string; mandateRegistryId: string; setup?: { contractId: string } | null },
   scope: RegistrationScope,
   pending: PendingRegistration,
   signal?: AbortSignal,
 ): Promise<RegistrationConfirmation> {
-  const validate = (xdr: string) => signedRegistrationEvidence(xdr, config.networkPassphrase, config.mandateRegistryId, scope, pending.submittedAt);
+  const validate = (xdr: string) => signedRegistrationEvidence(xdr, config.networkPassphrase, config.mandateRegistryId, scope, pending.submittedAt, config.setup?.contractId);
   const retained = validate(pending.signedTransactionXdr);
   if (retained.txHash !== pending.txHash || retained.validUntil !== pending.validUntil) throw new Error("The retained registration hash or expiry changed.");
   const controller = new AbortController();

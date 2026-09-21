@@ -5,6 +5,9 @@ import {
   Account,
   Address,
   Contract,
+  Memo,
+  hash,
+  scValToNative,
   TransactionBuilder,
   nativeToScVal,
   rpc,
@@ -51,6 +54,7 @@ export interface CreateMandateForm {
 export interface RegistrationResult {
   mandateId: string;
   transactionHash: string;
+  allowanceTransactionHash?: string;
 }
 
 export class RegistrationNotSubmittedError extends Error {
@@ -120,12 +124,13 @@ function transactionHash(sent: { sendTransactionResponse?: { hash?: string } }):
 export async function registerRetainedWithFreighter(
   config: SafeAppConfig,
   mandate: IntentMandate,
-  onPrepared: (mandateId: string) => void,
+  onPrepared: (mandateId: string, allowanceExpiration?: number) => void,
   onSigned: (pending: PendingRegistration) => void,
 ): Promise<RegistrationResult> {
   if (typeof onSigned !== "function") {
     throw new RegistrationNotSubmittedError({ cause: new Error("Registration requires durable signed-transaction retention before submission.") });
   }
+  if (config.setup) return registerAndApproveWithFreighter(config, mandate, onPrepared, onSigned);
   return registerWithFreighter(config, mandate, onPrepared, onSigned);
 }
 
@@ -345,4 +350,83 @@ export async function revokeWithFreighter(config: SafeAppConfig, mandate: Intent
   }
   sent.result.unwrap();
   return transactionHash(sent);
+}
+
+/** One Soroban invocation, two atomic child calls, one wallet transaction signature. */
+async function registerAndApproveWithFreighter(
+  config: SafeAppConfig,
+  mandate: IntentMandate,
+  onPrepared: (id: string, allowanceExpiration?: number) => void,
+  onSigned: (pending: PendingRegistration) => void,
+): Promise<RegistrationResult> {
+  const setup = config.setup;
+  if (!setup || !/^[0-9a-f]{64}$/.test(setup.wasmSha256)) throw new RegistrationNotSubmittedError();
+  const server = walletRpcServer(config);
+  // Fail before signing if the supposedly immutable helper's code or targets differ.
+  const wasm = await server.getContractWasmByContractId(setup.contractId);
+  if (hash(wasm).toString("hex") !== setup.wasmSha256) throw new Error("Wallet setup contract does not match its reviewed release.");
+  const source = await server.getAccount(mandate.user);
+  const makeTransaction = (operation: ReturnType<Contract["call"]>) => new TransactionBuilder(
+    new Account(mandate.user, source.sequenceNumber()),
+    { fee: INCLUSION_FEE, networkPassphrase: config.networkPassphrase },
+  ).addOperation(operation).addMemo(Memo.text("ACKRATE: capped USDC setup"))
+    .setTimeout(APPROVAL_TIMEBOUND_SECONDS).build();
+  const helper = new Contract(setup.contractId);
+  const inspection = await server.simulateTransaction(makeTransaction(helper.call("get_config")));
+  if (!rpc.Api.isSimulationSuccess(inspection) || !inspection.result) throw new Error("Wallet setup configuration could not be verified.");
+  const targets = scValToNative(inspection.result.retval);
+  if (!Array.isArray(targets) || targets.length !== 2 || targets[0] !== config.mandateRegistryId || targets[1] !== mandate.asset) {
+    throw new Error("Wallet setup targets a different registry or token.");
+  }
+  // A small margin permits ledgers to advance between preparation and signing.
+  const allowanceExpiration = (await latestLedgerSequence(config)) + 17_000;
+  const built = makeTransaction(helper.call("register_and_approve",
+    new Address(mandate.user).toScVal(), new Address(mandate.agent).toScVal(), new Address(mandate.merchant).toScVal(),
+    nativeToScVal(mandate.maxAmount, { type: "i128" }), nativeToScVal(BigInt(mandate.expiry), { type: "u64" }),
+    nativeToScVal(mandate.idBuffer, { type: "bytes" }), nativeToScVal(allowanceExpiration, { type: "u32" }),
+  ));
+  const simulated = await server.simulateTransaction(built);
+  if (!rpc.Api.isSimulationSuccess(simulated) || !simulated.result) throw new Error("Combined wallet setup could not be simulated.");
+  const id = registeredMandateIdHex(scValToNative(simulated.result.retval));
+  const prepared = rpc.assembleTransaction(built, simulated).build();
+  onPrepared(id, allowanceExpiration);
+  let signedTransaction: ReturnType<typeof TransactionBuilder.fromXDR>;
+  let pending: PendingRegistration;
+  try {
+    const signed = await freighterSigner(mandate.user, config.networkPassphrase).signTransaction(prepared.toXDR(), {
+      address: mandate.user, networkPassphrase: config.networkPassphrase,
+    });
+    if (signed.error || !signed.signedTxXdr || signed.signerAddress !== mandate.user) throw new Error("Combined setup signing was rejected.");
+    signedTransaction = TransactionBuilder.fromXDR(signed.signedTxXdr, config.networkPassphrase);
+    if (!signedTransaction.hash().equals(prepared.hash())) throw new Error("Freighter changed the prepared setup.");
+    pending = signedRegistrationEvidence(signed.signedTxXdr, config.networkPassphrase, config.mandateRegistryId, {
+      id, credentialHash: mandate.idBuffer.toString("hex"), user: mandate.user, agent: mandate.agent,
+      merchant: mandate.merchant, asset: mandate.asset, maxAmount: mandate.maxAmount.toString(), expiry: mandate.expiry,
+      setupContractId: setup.contractId, allowanceExpiration,
+    }, Math.floor(Date.now() / 1000), setup.contractId);
+    const retained: unknown = onSigned(pending);
+    if (retained && typeof retained === "object" && "then" in retained) {
+      void Promise.resolve(retained).catch(() => undefined);
+      throw new Error("Setup retention must finish synchronously before submission.");
+    }
+  } catch (cause) { throw new RegistrationNotSubmittedError({ cause }); }
+  // The UI reconciles the saved exact receipt, including after a response outage.
+  const submitted = await server.sendTransaction(signedTransaction);
+  if (submitted.hash !== pending.txHash || !["PENDING", "DUPLICATE"].includes(submitted.status)) {
+    throw new Error("The combined setup is awaiting receipt reconciliation. No replacement was submitted.");
+  }
+  // Return only after the original invocation is final. On timeout the retained
+  // registration reconciler closes both setup stages from the same receipt.
+  for (let attempt = 0; attempt < 30; attempt++) {
+    const result = await server.getTransaction(pending.txHash);
+    if (result.status === "SUCCESS") {
+      if (!result.returnValue || registeredMandateIdHex(scValToNative(result.returnValue)) !== id) {
+        throw new Error("The confirmed setup returned a different mandate identifier. Its receipt remains saved for investigation.");
+      }
+      return { mandateId: id, transactionHash: pending.txHash, allowanceTransactionHash: pending.txHash };
+    }
+    if (result.status === "FAILED") throw new Error("Combined setup failed on Stellar. Both setup changes were rolled back.");
+    await sleep(2000);
+  }
+  throw new Error("The combined setup is still pending. Resume checking its saved receipt.");
 }

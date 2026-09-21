@@ -17,6 +17,7 @@ export interface SafeAppConfig {
   rpcUrl: string;
   networkPassphrase: string;
   mandateRegistryId: string;
+  setup?: { contractId: string; wasmSha256: string } | null;
   contractAuthorityAddress: string | null;
   asset: {
     code: string;

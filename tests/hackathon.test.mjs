@@ -13,8 +13,9 @@ const PERMANENT_SIMPLE_CONTRACT =
 const RETIRED_PACKAGE_SCOPE = new RegExp(`@${String.fromCharCode(114, 101, 97, 112, 112)}-sdk/`);
 const TEMPORARY_HOSTNAME = `${String.fromCharCode(114, 101, 97, 112, 112)}.live`;
 
+// 2026-09-21: reviewed monochrome page CSS; non-className source is unchanged.
 const protectedHashes = {
-  "app/express/page.tsx": "ddb79d82ecc559431a3fa2086c3d0c80506fe2e96c4835b7a0a55244b7145094",
+  "app/express/page.tsx": "6cfaab58846a00498ea4077aea0db0859f609ed0faa6c60d280563f846e78177",
   "app/express/layout.tsx": "7fb5a1ee24023ddd61ee8092c0c2e3047d51d5a0c4273fb1f4ba6f7374f8b40d",
   "app/api/express/route.ts": "645a2a92788b61f42537ee0d9f4980c7324a0f76fadd68239939da17b0854141",
   "app/api/express/[sessionId]/source/[resource]/route.ts": "022c94e6c368357692c1981f08f52aea41c28ef39eadde56ca501280a6e552a5",

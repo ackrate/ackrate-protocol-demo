@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { Asset, Keypair, Networks, StrKey } from "@stellar/stellar-sdk";
 import { TESTNET, type NetworkConfig } from "@ackrate/stellar";
 import { mainnetNetworkFromDeploymentManifest } from "./release-manifest";
+import setupRelease from "./setup-release.json";
 import mainnetReleaseManifest from "./mainnet-release.json";
 import type { CatalogItem, NetworkName, SafeAppConfig } from "./types";
 import { configuredLlmProviders } from "../llm-policy";
@@ -248,6 +249,7 @@ export function loadAppConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     sourceCommit,
     releaseFingerprint,
     durableState: Boolean(databaseUrl),
+    setup: setupRelease[networkName],
     wallet: {
       name: "Freighter",
       signingMode: "G-account transaction signing",

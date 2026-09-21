@@ -58,7 +58,8 @@ for (const surface of surfaces) {
     assert.match(connect, /connectFreighter/);
     assert.doesNotMatch(connect, /auth\/challenge|signFreighterTransaction|registerWithFreighter|approveWithFreighter/);
     assert.match(authenticate, /auth\/challenge/);
-    assert.match(authenticate, /signFreighterTransaction/);
+    assert.match(authenticate, surface === "wallet" ? /signFreighterMessage/ : /signFreighterTransaction/);
+    if (surface === "wallet") assert.doesNotMatch(authenticate, /signFreighterTransaction|transactionXdr/);
     assert.match(ui, /Connecting does not create, sign, or send a Mainnet transaction/);
     assert.doesNotMatch(app, /"\/api\/(?:auth|config|mandate)/);
     includes(app, ['"/api/wallet/auth/challenge"', '"/api/wallet/mandate/status"']);
@@ -174,7 +175,7 @@ for (const surface of surfaces) {
   test(`${surface}: rendering matches the page presentation`, () => {
     if (surface === "wallet") {
       assert.doesNotMatch(app, /ProtocolWorld|MarketplaceOrb|rotateY|<canvas/);
-      includes(app, ["wallet-flow wallet-flat", "<ShieldCheck size={19}"]);
+      includes(app, ["wallet-flow wallet-flat", "Set the spending limit", "Your funds stay in your wallet."]);
       const layout = read("app/wallet/layout.tsx");
       assert.ok(layout.indexOf('import "./wallet-flat.css"') > layout.indexOf('import "./wallet-flow.css"'));
       const flat = read("app/wallet/wallet-flat.css");
