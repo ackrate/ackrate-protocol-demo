@@ -7,8 +7,10 @@ import {
   isAllowed,
   requestAccess,
   signTransaction,
+  signMessage,
 } from "@stellar/freighter-api";
-import { StrKey } from "@stellar/stellar-sdk";
+import { Buffer } from "buffer";
+import { Keypair, StrKey } from "@stellar/stellar-sdk";
 import type { SignTransaction } from "@stellar/stellar-sdk/contract";
 
 export interface WalletSigner {
@@ -110,4 +112,18 @@ export async function freighterSessionState(expectedAddress: string): Promise<"m
   } catch {
     return "unknown";
   }
+}
+
+/** Offline SEP-53 proof of key possession; deliberately no transaction-signing fallback. */
+export async function signFreighterMessage(text: string, address: string, networkPassphrase: string): Promise<string> {
+  const signed = await signMessage(text, { address, networkPassphrase });
+  if (signed.error) throw new Error(message(signed.error, "Freighter message signing was rejected. Update Freighter if message signing is unavailable."));
+  if (signed.signerAddress !== address) throw new Error("Freighter returned a different signer account");
+  if (!signed.signedMessage) throw new Error("Freighter did not return an offline signature");
+  const bytes = typeof signed.signedMessage === "string"
+    ? Buffer.from(signed.signedMessage, "base64") : Buffer.from(signed.signedMessage);
+  if (bytes.length !== 64 || !Keypair.fromPublicKey(address).verifyMessage(text, bytes)) {
+    throw new Error("Freighter did not sign the exact sign-in message");
+  }
+  return bytes.toString("base64");
 }

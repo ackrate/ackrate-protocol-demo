@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { Account, Keypair, Networks, Operation, TransactionBuilder } from "@stellar/stellar-sdk";
-import { createChallengeToken, createSessionToken, openToken, verifySignedChallengeTransaction } from "../lib/wallet/security";
+import { Keypair } from "@stellar/stellar-sdk";
+import { createChallengeToken, createSessionToken, openToken, authenticationMessage, verifySignedChallengeMessage } from "../lib/wallet/security";
 
 const secret = "test-session-secret-with-at-least-32-bytes";
 
@@ -20,35 +20,41 @@ test("token tampering and expiry fail closed", () => {
   assert.equal(openToken(token, secret, "session", 4_601), null);
 });
 
-test("challenge binds the account, network, and exact transaction hash", () => {
-  const txHash = "a".repeat(64);
-  const { token } = createChallengeToken("GTEST", "mainnet", txHash, secret, 2_000);
-  const opened = openToken(token, secret, "challenge", 2_001);
-  assert.equal(opened?.address, "GTEST");
-  assert.equal(opened?.network, "mainnet");
-  assert.equal(opened?.txHash, txHash);
+const origin = "https://reapp.live";
+
+test("offline sign-in is readable and bound to wallet, website, network, nonce and expiry", () => {
+  const key = Keypair.random();
+  const { token, payload } = createChallengeToken(key.publicKey(), "mainnet", origin, secret, 2000);
+  const challenge = openToken(token, secret, "challenge", 2001)!;
+  const text = authenticationMessage(challenge);
+  assert.match(text, /Sign in to ACKRATE/);
+  assert.match(text, /does not approve spending/);
+  assert.ok(text.includes(key.publicKey()) && text.includes(origin) && text.includes("Mainnet"));
+  assert.ok(text.includes(payload.jti));
+  const signature = key.signMessage(text).toString("base64");
+  assert.doesNotThrow(() => verifySignedChallengeMessage(signature, challenge, origin));
+  for (const changed of [
+    { ...challenge, address: Keypair.random().publicKey() },
+    { ...challenge, network: "testnet" as const },
+    { ...challenge, origin: "https://other.test" },
+    { ...challenge, jti: "0".repeat(32) },
+    { ...challenge, exp: challenge.exp + 1 },
+  ]) assert.throws(() => verifySignedChallengeMessage(signature, changed, origin));
+  assert.throws(() => verifySignedChallengeMessage(signature, challenge, "https://other.test"));
+  assert.equal(openToken(token, secret, "challenge", 2300), null);
 });
 
-test("authentication accepts only the exact transaction signed by the expected account", () => {
-  const expected = Keypair.random();
-  const rogue = Keypair.random();
-  const unsigned = new TransactionBuilder(new Account(expected.publicKey(), "100"), {
-    fee: "100",
-    networkPassphrase: Networks.TESTNET,
-  }).addOperation(Operation.manageData({ name: "ackrate.auth.v1", value: Buffer.alloc(16, 7) }))
-    .setTimebounds(1_000, 1_300)
-    .build();
-  const hash = unsigned.hash().toString("hex");
-  unsigned.sign(expected);
-  assert.doesNotThrow(() => verifySignedChallengeTransaction(unsigned.toXDR(), Networks.TESTNET, expected.publicKey(), hash));
-
-  const rogueSigned = new TransactionBuilder(new Account(expected.publicKey(), "100"), {
-    fee: "100",
-    networkPassphrase: Networks.TESTNET,
-  }).addOperation(Operation.manageData({ name: "ackrate.auth.v1", value: Buffer.alloc(16, 7) }))
-    .setTimebounds(1_000, 1_300)
-    .build();
-  rogueSigned.sign(rogue);
-  assert.throws(() => verifySignedChallengeTransaction(rogueSigned.toXDR(), Networks.TESTNET, expected.publicKey(), hash), /could not be verified/);
-  assert.throws(() => verifySignedChallengeTransaction(unsigned.toXDR(), Networks.PUBLIC, expected.publicKey(), hash), /does not match/);
+test("raw signatures, changed messages, rogue keys and malformed encodings fail closed", () => {
+  const key = Keypair.random();
+  const { payload } = createChallengeToken(key.publicKey(), "mainnet", origin, secret);
+  const text = authenticationMessage(payload);
+  const signatures = [
+    Keypair.random().signMessage(text).toString("base64"),
+    key.signMessage(text + "!").toString("base64"),
+    key.sign(Buffer.alloc(32)).toString("base64"),
+    key.signMessage(text).toString("base64") + "\n",
+    "not-a-signature", Buffer.alloc(63).toString("base64"),
+  ];
+  for (const signature of signatures) assert.throws(() => verifySignedChallengeMessage(signature, payload, origin));
+  assert.throws(() => authenticationMessage({ ...payload, authentication: undefined }));
 });

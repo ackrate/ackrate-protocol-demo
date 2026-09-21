@@ -43,7 +43,7 @@ import {
   walletRpcServer,
 } from "@/lib/wallet/mandate-client";
 import type { MandateView, SafeAppConfig, SessionView } from "@/lib/wallet/types";
-import { addTokenToFreighter, connectFreighter, freighterSessionState, signFreighterTransaction } from "@/lib/wallet/freighter";
+import { addTokenToFreighter, connectFreighter, freighterSessionState, signFreighterMessage } from "@/lib/wallet/freighter";
 import { sourceIdForMarketplaceService, WEB_SEARCH_INPUTS, type MarketplaceService } from "@/lib/wallet/marketplace-catalog";
 import { AssistantThread, parseRecovery, purchaseResultForMandate, PurchaseReport, type PurchaseResult } from "./AssistantThread";
 import { initialServiceInputValues, serializedServiceInputs, ServiceConfigurator, type ServiceInputValues } from "./ServiceConfigurator";
@@ -68,6 +68,8 @@ interface StoredMandate {
   maxAmount: string;
   expiry: number;
   decimals: number;
+  setupContractId?: string;
+  allowanceExpiration?: number;
   registrationTx?: string;
   registrationState?: RegistrationState;
   pendingRegistration?: PendingRegistration;
@@ -613,12 +615,13 @@ export function WalletChatApp() {
               });
               assertRegistrationMandate(current, { ...body.mandate });
               if (!stillCurrent()) return;
-              const next = { ...current, registrationTx: current.pendingRegistration.txHash, pendingRegistration: undefined,
+              const next = { ...current, registrationTx: current.pendingRegistration.txHash,
+                allowanceTx: current.setupContractId ? current.pendingRegistration.txHash : current.allowanceTx, pendingRegistration: undefined,
                 registrationAttempts: [...(current.registrationAttempts ?? []), current.pendingRegistration] };
               saveStored(next);
               setMandate(body.mandate);
               setPhase(body.mandate.status === "Active" && body.mandate.expiry > Math.floor(Date.now() / 1000) ? "active" : "idle");
-              if (stillCurrent()) setNotice("1 of 2 complete: the original registration is confirmed. Next, approve the USDC allowance; registration will not be repeated.");
+              if (stillCurrent()) setNotice(current.setupContractId ? "The original combined setup is confirmed. Spending rules and USDC allowance are ready; no new signature is needed." : "1 of 2 complete: the original registration is confirmed. Next, approve the USDC allowance; registration will not be repeated.");
               return;
             }
             if (status === "failed" || status === "expired") {
@@ -812,19 +815,19 @@ export function WalletChatApp() {
     }
     setPhase("authenticating");
     try {
-      const challenge = await api<{ transactionXdr: string }>("/api/wallet/auth/challenge", {
+      const challenge = await api<{ message: string }>("/api/wallet/auth/challenge", {
         method: "POST",
         body: JSON.stringify({ address: walletAddress }),
       });
-      setNotice("Confirm the sign-in request in Freighter to prove this wallet is yours. No payment or spending permission is granted.");
-      const signedTransactionXdr = await signFreighterTransaction(
-        challenge.transactionXdr,
+      setNotice("Read and sign the sign-in message in Freighter. This is offline: no transaction, spending permission, or network fee.");
+      const signature = await signFreighterMessage(
+        challenge.message,
         walletAddress,
         config.networkPassphrase,
       );
       const verified = await api<{ session: SessionView }>("/api/wallet/auth/verify", {
         method: "POST",
-        body: JSON.stringify({ signedTransactionXdr }),
+        body: JSON.stringify({ signature }),
       });
       setSession(verified.session);
       setNotice("Signed in. You can now choose a marketplace service.");
@@ -873,6 +876,7 @@ export function WalletChatApp() {
       const intent = buildMandate(config, session.address, { budget, expiry });
       next = {
         schemaVersion: 2,
+        setupContractId: config.setup?.contractId,
         id: intent.id,
         credentialHash: intent.id,
         registryId: config.mandateRegistryId,
@@ -889,9 +893,9 @@ export function WalletChatApp() {
       };
       saveStored(next);
       setPhase("registering");
-      setNotice("1 of 2: Confirm mandate registration in Freighter. This saves your spending rules on-chain; it does not approve the USDC allowance yet.");
-      const registration = await registerWithFreighter(config, intent, (mandateId) => {
-        next = { ...next!, id: mandateId };
+      setNotice(config.setup ? "Confirm one setup transaction: register your spending rules and approve the same capped USDC allowance. No service payment is made." : "1 of 2: Confirm mandate registration in Freighter. This saves your spending rules on-chain; it does not approve the USDC allowance yet.");
+      const registration = await registerWithFreighter(config, intent, (mandateId, allowanceExpiration) => {
+        next = { ...next!, id: mandateId, allowanceExpiration };
         saveStored(next);
       }, (pendingRegistration) => {
         if (disconnectInFlight.current || activeMandateId.current !== next!.id) {
@@ -901,12 +905,13 @@ export function WalletChatApp() {
         saveStored(next);
       });
       next = { ...next, id: registration.mandateId, registrationTx: registration.transactionHash,
+        allowanceTx: registration.allowanceTransactionHash,
         registrationAttempts: [...(next.registrationAttempts ?? []), ...(next.pendingRegistration ? [next.pendingRegistration] : [])],
         pendingRegistration: undefined };
       saveStored(next);
       await refreshMandate(next);
       setPhase("idle");
-      setNotice("1 of 2 complete: mandate registered. Next, approve the USDC allowance in a separate transaction.");
+      setNotice(registration.allowanceTransactionHash ? "Setup complete: spending rules and capped USDC allowance confirmed in one transaction." : "1 of 2 complete: mandate registered. Next, approve the USDC allowance in a separate transaction.");
     } catch (cause) {
       if (cause instanceof RegistrationNotSubmittedError && next) {
         // Signing rejection or pre-send storage/validation failure cannot have
@@ -1774,7 +1779,7 @@ export function WalletChatApp() {
               ) : (
                 <motion.button className="flow-primary" type="button" onClick={activate} disabled={!canApproveLimit || mandateBusy} whileTap={reduceMotion ? undefined : { scale: 0.985 }}>
                   {mandateBusy ? <LoaderCircle className="spin" size={16} /> : <LockKeyhole size={16} />}
-                  {phase === "registering" ? "1 of 2 · Registering mandate…" : phase === "approving" ? "2 of 2 · Confirming USDC allowance…" : "1 of 2 · Register mandate"}
+                  {config?.setup ? phase === "registering" ? "Confirming combined setup…" : "Approve spending rules & USDC limit" : phase === "registering" ? "1 of 2 · Registering mandate…" : phase === "approving" ? "2 of 2 · Confirming USDC allowance…" : "1 of 2 · Register mandate"}
                 </motion.button>
               )}
               <small className="flow-footnote"><Fingerprint size={12} /><span>{registrationPending
@@ -1787,7 +1792,7 @@ export function WalletChatApp() {
                   : "Your USDC allowance is signed. We are checking Stellar automatically and will continue when confirmed. No second signature or additional fee is requested."
                 : storedFresh && stored?.registrationTx && !stored.allowanceTx
                   ? `Your mandate is registered. Transaction 2 approves a capped allowance of ${formatUnits(stored.maxAmount, stored.decimals)} USDC for the contract. It has its own XLM network fee; it does not pay for a service.`
-                  : "Two different transactions: first register your spending rules, then approve the contract's USDC allowance. Each has an XLM network fee; neither pays for a service."}</span></small>
+                  : config?.setup ? "One transaction registers your spending rules and approves the same capped USDC allowance for the registry. It has one XLM network fee and does not pay for a service." : "Two different transactions: first register your spending rules, then approve the contract's USDC allowance. Each has an XLM network fee; neither pays for a service."}</span></small>
               <div className="flow-secondary-row"><button type="button" onClick={changeMarketplaceService}><Search size={12} />Change service</button><button type="button" onClick={() => setDisconnectOpen(true)}><Power size={12} />Disconnect</button></div>
 
               {(stored?.registrationTx || stored?.pendingRegistration || stored?.allowanceTx) && (

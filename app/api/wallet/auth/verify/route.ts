@@ -10,16 +10,16 @@ import {
   openToken,
   requireSameOrigin,
   sessionCookieName,
-  verifySignedChallengeTransaction,
+  verifySignedChallengeMessage,
 } from "@/lib/wallet/security";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
-const Body = z.object({ signedTransactionXdr: z.string().min(32).max(100_000) }).strict();
+const Body = z.object({ signature: z.string().length(88) }).strict();
 
 export async function POST(request: Request) {
   try {
-    await requireSameOrigin();
+    const origin = await requireSameOrigin();
     const config = loadAppConfig();
     if (!config.sessionSecret) throw new Error("wallet authentication is not configured");
     const jar = await cookies();
@@ -28,16 +28,11 @@ export async function POST(request: Request) {
       config.sessionSecret,
       "challenge",
     );
-    if (!challenge || !challenge.txHash || challenge.network !== config.public.network) {
+    if (!challenge || challenge.authentication !== "sep53" || challenge.network !== config.public.network) {
       throw new Error("authentication challenge is missing, invalid, or expired");
     }
-    const { signedTransactionXdr } = Body.parse(await boundedJson(request));
-    verifySignedChallengeTransaction(
-      signedTransactionXdr,
-      config.network.networkPassphrase,
-      challenge.address,
-      challenge.txHash,
-    );
+    const { signature } = Body.parse(await boundedJson(request, 4096));
+    verifySignedChallengeMessage(signature, challenge, origin);
     if (!(await consumeChallenge(challenge.jti, challenge.exp))) {
       throw new Error("authentication challenge was already consumed");
     }

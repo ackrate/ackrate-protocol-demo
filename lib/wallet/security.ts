@@ -1,5 +1,5 @@
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
-import { Keypair, Transaction, TransactionBuilder } from "@stellar/stellar-sdk";
+import { Keypair, StrKey } from "@stellar/stellar-sdk";
 import { cookies, headers } from "next/headers";
 import type { NetworkName, SessionView } from "./types";
 
@@ -15,7 +15,8 @@ interface TokenEnvelope {
   iat: number;
   exp: number;
   jti: string;
-  txHash?: string;
+  origin?: string;
+  authentication?: "sep53";
 }
 
 const encode = (value: string | Buffer) => Buffer.from(value).toString("base64url");
@@ -78,7 +79,7 @@ export function openToken(
 export function createChallengeToken(
   address: string,
   network: NetworkName,
-  txHash: string,
+  origin: string,
   secret: string,
   now = Math.floor(Date.now() / 1_000),
 ): { token: string; payload: TokenEnvelope } {
@@ -90,7 +91,8 @@ export function createChallengeToken(
     iat: now,
     exp: now + CHALLENGE_TTL_SECONDS,
     jti: randomBytes(16).toString("hex"),
-    txHash,
+    origin,
+    authentication: "sep53",
   };
   return { token: sealToken(payload, secret), payload };
 }
@@ -113,20 +115,37 @@ export function createSessionToken(
   return { token: sealToken(payload, secret), payload };
 }
 
-export function verifySignedChallengeTransaction(
-  signedTransactionXdr: string,
-  networkPassphrase: string,
-  expectedAddress: string,
-  expectedHash: string,
-): void {
-  const parsed = TransactionBuilder.fromXDR(signedTransactionXdr, networkPassphrase);
-  if (!(parsed instanceof Transaction)) throw new Error("wallet must sign the exact authentication transaction");
-  if (parsed.source !== expectedAddress || parsed.hash().toString("hex") !== expectedHash) {
-    throw new Error("signed authentication transaction does not match the issued challenge");
+/** Reconstructed from the signed cookie; the browser never chooses the text to verify. */
+export function authenticationMessage(challenge: TokenEnvelope): string {
+  if (challenge.kind !== "challenge" || challenge.authentication !== "sep53"
+    || !StrKey.isValidEd25519PublicKey(challenge.address) || !challenge.origin
+    || !/^https?:\/\/[^\s/]+$/.test(challenge.origin)) {
+    throw new Error("An offline sign-in challenge is required. Request a new sign-in message.");
   }
-  const verifier = Keypair.fromPublicKey(expectedAddress);
-  const valid = parsed.signatures.some((decorated) => verifier.verify(parsed.hash(), decorated.signature()));
-  if (!valid) throw new Error("wallet signature could not be verified for the connected account");
+  return [
+    "Sign in to ACKRATE",
+    "",
+    "This signature signs you in for one hour.",
+    "It does not approve spending, move funds, or send a transaction.",
+    "No network fee is charged.",
+    "",
+    `Website: ${challenge.origin}`,
+    `Wallet: ${challenge.address}`,
+    `Network: Stellar ${challenge.network === "mainnet" ? "Mainnet" : "Testnet"}`,
+    `Issued: ${new Date(challenge.iat * 1000).toISOString()}`,
+    `Sign before: ${new Date(challenge.exp * 1000).toISOString()}`,
+    `One-time code: ${challenge.jti}`,
+  ].join("\n");
+}
+
+export function verifySignedChallengeMessage(signature: string, challenge: TokenEnvelope, origin: string): void {
+  if (challenge.origin !== origin) throw new Error("Sign-in message belongs to a different website.");
+  // Reject noncanonical encodings, arbitrary blobs and transaction envelopes.
+  const bytes = Buffer.from(signature, "base64");
+  if (bytes.length !== 64 || bytes.toString("base64") !== signature
+    || !Keypair.fromPublicKey(challenge.address).verifyMessage(authenticationMessage(challenge), bytes)) {
+    throw new Error("The offline signature could not be verified for the connected wallet.");
+  }
 }
 
 function secureCookies(): boolean {
@@ -149,7 +168,7 @@ export const cookieOptions = (maxAge: number) => ({
   maxAge,
 });
 
-export async function requireSameOrigin(): Promise<void> {
+export async function requireSameOrigin(): Promise<string> {
   const incoming = await headers();
   const origin = incoming.get("origin");
   const host = incoming.get("x-forwarded-host") ?? incoming.get("host");
@@ -158,6 +177,7 @@ export async function requireSameOrigin(): Promise<void> {
   if (!origin || !expected || origin !== expected) {
     throw new Error("cross-origin request rejected");
   }
+  return origin;
 }
 
 export async function readSession(secret: string, network?: NetworkName): Promise<SessionView> {

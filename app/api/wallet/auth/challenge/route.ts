@@ -1,9 +1,9 @@
-import { Account, Operation, StrKey, TransactionBuilder } from "@stellar/stellar-sdk";
+import { StrKey } from "@stellar/stellar-sdk";
 import { z } from "zod";
 import { loadAppConfig } from "@/lib/wallet/app-config";
-import { loadAccountSequence } from "@/lib/wallet/horizon-account";
 import { boundedJson, jsonError, NO_STORE_HEADERS } from "@/lib/wallet/http";
 import {
+  authenticationMessage,
   CHALLENGE_TTL_SECONDS,
   challengeCookieName,
   cookieOptions,
@@ -16,34 +16,23 @@ const Body = z.object({ address: z.string().refine(StrKey.isValidEd25519PublicKe
 
 export async function POST(request: Request) {
   try {
-    await requireSameOrigin();
+    const origin = await requireSameOrigin();
     const config = loadAppConfig();
     if (!config.sessionSecret) throw new Error("wallet authentication is not configured");
     const { address } = Body.parse(await boundedJson(request, 4_096));
-    const sequence = await loadAccountSequence(address, config.public.network);
     const now = Math.floor(Date.now() / 1_000);
-    const transaction = new TransactionBuilder(new Account(address, sequence), {
-      fee: "100",
-      networkPassphrase: config.network.networkPassphrase,
-    })
-      .addOperation(Operation.manageData({
-        name: "ackrate.auth.v1",
-        value: Buffer.from(crypto.randomUUID().replaceAll("-", ""), "hex"),
-      }))
-      .setTimebounds(now - 30, now + CHALLENGE_TTL_SECONDS)
-      .build();
     const challenge = createChallengeToken(
       address,
       config.public.network,
-      transaction.hash().toString("hex"),
+      origin,
       config.sessionSecret,
       now,
     );
     const response = NextResponse.json({
       ok: true,
-      transactionXdr: transaction.toXDR(),
+      message: authenticationMessage(challenge.payload),
       expiresAt: challenge.payload.exp,
-      statement: "Sign this non-broadcast transaction in Freighter to authenticate this browser session.",
+      statement: "Sign this readable message in Freighter. No transaction, spending permission, or fee.",
     }, { headers: NO_STORE_HEADERS });
     response.cookies.set(challengeCookieName(), challenge.token, cookieOptions(CHALLENGE_TTL_SECONDS));
     return response;

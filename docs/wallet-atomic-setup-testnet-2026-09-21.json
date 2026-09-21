@@ -1,0 +1,48 @@
+{
+  "network": "testnet",
+  "asset": "XLM",
+  "registry": "CBILKKPIG2KX6PIEV3OZKLIL6G2POKJSNGLZ4ZSRXVMEHX7ZNJVAQOBH",
+  "helper": "CBV4CPTSM6N7RPOYEWZXGUYQBMI5UW465JJJDKPPKPUYH2WPBQFZLAQB",
+  "helperWasmSha256": "855b996caeb4ab39a55920c689972cf6de7c81e9b32eddef840d91bf4d8568ea",
+  "owner": "GCFWUUGNATRM55QGGOS667L4RVZMHUQNE555O72XWXIEQDQHRYR4YT53",
+  "agent": "GCPKJAGDZXN5XSEOCRQNGZ5TQLFJO56WUG72P4YISB45DUFIVSPTWBW3",
+  "merchant": "GBSQGHCOQKSNCPYD6YJNYETMD6YEDSHCIIVA2IKFWLEHRBOXYTDB33JQ",
+  "mandateId": "d8c12db7563ad7b5f8dab212a71656dd9503d9ed84770f3672ed15a8f351f729",
+  "spent": "300000",
+  "seq": 3,
+  "fourthPayment": "rejected-before-signing-or-broadcast",
+  "receipts": [
+    {
+      "label": "upload-registry",
+      "hash": "c7474da0dac36ca6484968315fc52abc9f12d4993ab055c935ad8fd8d7b3ae8d"
+    },
+    {
+      "label": "deploy-isolated-registry",
+      "hash": "7a5b29ab834ec44017a64d98c689c9050747ff2a162649a783be1e308e2e20ac"
+    },
+    {
+      "label": "upload-setup",
+      "hash": "903119044fab9581f8e2c3d6aff957e6eb343deb72922e236eb65a7753a76762"
+    },
+    {
+      "label": "deploy-immutable-setup",
+      "hash": "ff15bc0aef30c867e3b3183c43020ef639e8ef9ab6fc62a0f8fbc4b1209de1ce"
+    },
+    {
+      "label": "register-and-approve-one-transaction",
+      "hash": "1d7259b73688332f9c2238065b2ea491df0a0ea2867ee5f006dd9fffde1c85b6"
+    },
+    {
+      "label": "bounded-payment-1",
+      "hash": "9c17e2359298a0d60a61ff676b634c4be6815901c494d725aa08b0df7f612cd2"
+    },
+    {
+      "label": "bounded-payment-2",
+      "hash": "d17650a3d96b131cbadf61fe9d288dbd3067fa0862eccacb0522542406cf6960"
+    },
+    {
+      "label": "bounded-payment-3",
+      "hash": "09679f64fff3177fd41ac67b371332cb17b13dfca5ffbfaad44b2da7a4e3cfbf"
+    }
+  ]
+}
