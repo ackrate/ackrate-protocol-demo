@@ -26,7 +26,7 @@ function includes(source: string, values: string[]) {
 
 test("wallet and experimental remain separate pages with separate styles and indexing exclusions", () => {
   const nav = read("components/Nav.tsx");
-  assert.match(nav, /\{ href: "\/wallet"/);
+  assert.match(nav, /href="\/wallet"/);
   assert.doesNotMatch(nav, /\{ href: "\/experimental"/);
   const robots = read("app/robots.ts");
   assert.match(robots, /disallow: \[[^\]]*"\/api\/"/);

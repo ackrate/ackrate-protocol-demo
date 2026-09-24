@@ -31,7 +31,7 @@ async function waitForSite() {
   while (Date.now() < deadline) {
     if (child.exitCode !== null) throw new Error(`Site exited early:\n${output.join("")}`);
     try {
-      const response = await fetch(`${origin}/solutions`, { redirect: "manual" });
+      const response = await fetch(`${origin}/docs/quickstarts`, { redirect: "manual" });
       if (response.ok) return response;
     } catch {
       // The server is still starting.
@@ -45,10 +45,16 @@ try {
   const solutions = await waitForSite();
   assert.equal(solutions.status, 200);
   const solutionsPage = await solutions.text();
-  for (const required of ["Use this starter", "Copy setup command", "npm run demo", "Read the README", "Optional hosted walkthrough"]) {
+  for (const required of ["Choose a starter", "Copy setup command", "npm run demo", "Read the README", "optional hosted Express walkthrough"]) {
     assert.match(solutionsPage, new RegExp(required), required);
   }
 
+  const legacy = await fetch(`${origin}/solutions`, { redirect: "manual" });
+  assert.equal(legacy.status, 307);
+  assert.equal(legacy.headers.get("location"), "/docs/quickstarts");
+  for (const path of ["/", "/docs", "/docs/sdk", "/docs/cli", "/docs/hosted", "/wallet"]) {
+    assert.equal((await fetch(`${origin}${path}`)).status, 200, path);
+  }
   const removedRoute = await fetch(`${origin}/${["hack", "athon"].join("")}`, { redirect: "manual" });
   assert.equal(removedRoute.status, 404);
 
@@ -90,7 +96,7 @@ try {
   assert.equal(invalidResource.status, 404);
   assert.match(invalidResource.headers.get("cache-control") || "", /no-store/);
 
-  const serverAction = await fetch(`${origin}/solutions`, { headers: { "Next-Action": "not-used" } });
+  const serverAction = await fetch(`${origin}/docs/quickstarts`, { headers: { "Next-Action": "not-used" } });
   assert.equal(serverAction.status, 204);
 
   process.stdout.write("Solutions production smoke passed.\n");

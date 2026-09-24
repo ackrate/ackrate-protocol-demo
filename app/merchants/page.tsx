@@ -257,7 +257,7 @@ export default function MerchantsPage() {
           payment header, merchant, and RPC are treated as untrusted inputs.
         </p>
         <div className="mt-7 flex flex-wrap gap-3">
-          <a href={`https://stellar.expert/explorer/public/contract/${REGISTRY}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-xl bg-neutral-400 px-4 py-2.5 text-sm font-bold text-[#052117] transition hover:bg-neutral-300">
+          <a href={`https://stellar.expert/explorer/public/contract/${REGISTRY}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-xl bg-neutral-400 px-4 py-2.5 text-sm font-bold text-[#1a1a1a] transition hover:bg-neutral-300">
             View historical Mainnet contract <ArrowUpRight className="h-4 w-4" />
           </a>
           <a href={`${REPO}/tree/main/contracts/mainnet`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.035] px-4 py-2.5 text-sm font-semibold text-white/75 transition hover:border-neutral-300/30 hover:text-white">
@@ -405,7 +405,7 @@ export default function MerchantsPage() {
               const active = selected.id === item.id;
               return (
                 <button key={item.id} type="button" onClick={() => setSelectedId(item.id)} className={`flex items-center gap-3 rounded-xl border p-3 text-left transition ${active ? "border-neutral-300/30 bg-neutral-400/[0.09]" : "border-white/[0.07] bg-black/10 hover:border-white/15"}`}>
-                  <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg ${active ? "bg-neutral-400 text-[#052117]" : "bg-white/[0.04] text-white/40"}`}><Icon className="h-4 w-4" /></span>
+                  <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg ${active ? "bg-neutral-400 text-[#1a1a1a]" : "bg-white/[0.04] text-white/40"}`}><Icon className="h-4 w-4" /></span>
                   <span className="min-w-0 flex-1"><strong className={`block text-sm ${active ? "text-neutral-100" : "text-white/70"}`}>{item.label}</strong><small className="mt-0.5 block truncate text-[11px] text-white/35">{item.outcome}</small></span>
                   <ArrowRight className={`h-4 w-4 ${active ? "text-neutral-300" : "text-white/20"}`} />
                 </button>
@@ -636,7 +636,7 @@ export default function MerchantsPage() {
       <motion.section {...fade(0.28)} className="mt-12 overflow-hidden rounded-3xl border border-neutral-300/15 bg-[radial-gradient(circle_at_20%_0%,rgba(255,255,255,.14),transparent_38%),rgba(255,255,255,.02)] p-7 sm:p-10">
         <div className="grid gap-8 lg:grid-cols-[1fr_auto] lg:items-center">
           <div><div className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.17em] text-neutral-300/75"><ShieldCheck className="h-4 w-4" /> Independent verification</div><h2 className="mt-3 text-3xl font-black tracking-tight text-white sm:text-4xl">Run the gate. Follow every claim to source.</h2><p className="mt-4 max-w-2xl text-sm leading-relaxed text-white/50">The repository is organized so an external reviewer can reproduce the test and dependency gates, inspect every contract function, verify the trust boundaries, and compare the governed source and artifacts with Mainnet.</p></div>
-          <a href={`${REPO}/blob/main/docs/security-scan-report.md`} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center gap-2 rounded-xl bg-neutral-400 px-5 py-3 text-sm font-bold text-[#052117] transition hover:bg-neutral-300">Open gate-check report <ArrowUpRight className="h-4 w-4" /></a>
+          <a href={`${REPO}/blob/main/docs/security-scan-report.md`} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center gap-2 rounded-xl bg-neutral-400 px-5 py-3 text-sm font-bold text-[#1a1a1a] transition hover:bg-neutral-300">Open gate-check report <ArrowUpRight className="h-4 w-4" /></a>
         </div>
       </motion.section>
     </main>

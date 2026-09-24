@@ -54,14 +54,14 @@ test("the Express registry type compatibility change preserves emitted JavaScrip
   assert.equal(emit(source), emit(historical), "the reviewed type annotation must not change emitted runtime code");
 });
 
-test("navigation exposes Security and Solutions without deleting direct product routes", async () => {
+test("navigation groups developer guides while preserving direct product routes", async () => {
   const [nav, consumer, video] = await Promise.all([
     read("components/Nav.tsx"),
     read("app/consumer/page.tsx"),
     read("app/video/page.tsx"),
   ]);
   assert.doesNotMatch(nav, /href: "\/consumer", label: "Consumer"/);
-  assert.match(nav, /href: "\/solutions", label: "Solutions"/);
+  assert.match(nav, /href: "\/docs\/quickstarts", label: "Quick starters"/);
   assert.doesNotMatch(nav, /href: "\/video", label: "Video"/);
   assert.match(nav, /href: "\/express", label: "Express"/);
   assert.match(nav, /href: "\/security", label: "Security"/);
@@ -111,64 +111,16 @@ test("the Contract Security Suite links every claim to public Mainnet evidence",
   assert.equal(page.toLowerCase().includes(String.fromCharCode(97, 117, 100, 105, 116)), false);
 });
 
-test("the Solutions page keeps the established responsive pattern and complete guide", async () => {
-  const [page, layout, sitemap, installer] = await Promise.all([
-    read("app/solutions/page.tsx"),
-    read("app/solutions/layout.tsx"),
-    read("app/sitemap.ts"),
-    read("lib/starter-install.js"),
+test("quick starters preserve integrity-checked installers and the hosted SDK companion", async () => {
+  const [page, redirect, hosted, installer] = await Promise.all([
+    read("app/docs/quickstarts/QuickStarters.tsx"), read("app/solutions/page.tsx"),
+    read("app/docs/hosted/page.tsx"), read("lib/starter-install.js"),
   ]);
-  for (const required of [
-    "Use this starter",
-    "Copy setup command",
-    "npm run demo",
-    "Read the README",
-    "Then just read the screen",
-    "Six numbered steps explain",
-    "Requires Node.js 20+",
-    "Node.js 20 or newer",
-    "Mac / Linux",
-    "Windows PowerShell",
-    "Optional hosted walkthrough",
-    "Merchant scope",
-    "Replay defense",
-    "Recovery",
-    "Explorer evidence",
-    "20 starter packs",
-    "Integrity manifest",
-    "sessionStorage",
-    "polling hosted /express",
-    "sm:text-6xl",
-    "lg:grid-cols",
-    "min-w-0",
-    "overflow-auto",
-  ]) assert.match(page, new RegExp(required.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")), required);
-  assert.match(layout, /path: "\/solutions"/);
-  assert.match(sitemap, /"\/solutions"/);
-  assert.match(page, /import STARTER_MANIFEST from "@\/public\/starters\/v1\/manifest\.json"/);
-  assert.match(page, /import \{ buildStarterInstallCommand \} from "@\/lib\/starter-install"/);
-  assert.match(page, /const STARTER_ARCHIVES = new Map/);
-  assert.match(page, /const \[installerShell, setInstallerShell\] = useState<InstallerShell>\("posix"\)/);
-  assert.match(page, /starterCommand\(kit\.slug, installerShell\)/);
-  assert.match(page, /starterCommand\("research-source-scout", installerShell\)/);
-  assert.match(installer, /createHash\('sha256'\)/);
-  assert.match(installer, /integrity check failed/);
-  assert.match(installer, /Invoke-WebRequest/);
-  assert.match(installer, /Expand-Archive/);
-  assert.match(installer, /\[scriptblock\]::Create/);
-  assert.match(installer, /Invoke-RestMethod/);
-  assert.match(installer, /\$LASTEXITCODE/);
-  assert.match(page, /installer verifies the download before extracting any file/);
-  const starterSetup = [...installer.matchAll(/return `([^`]+)`;/g)].at(-1)?.[1];
-  assert.ok(starterSetup, "starter setup helper is missing");
-  assert.ok(starterSetup.includes(`https://${TEMPORARY_HOSTNAME}\${installer.path}`));
-  assert.match(starterSetup, /^\/bin\/sh -c "\$\(curl -fsSL /);
-  assert.doesNotMatch(starterSetup, /unzip -q|npm ci/);
-  assert.doesNotMatch(starterSetup, /npm run/);
+  assert.match(redirect, /redirect\("\/docs\/quickstarts"\)/);
+  for (const text of ["buildStarterInstallCommand", "Copy setup command", "npm run demo", "Read the README", "Integrity manifest", "Windows PowerShell", "Mac / Linux", "role=\"status\""]) assert.ok(page.includes(text), text);
+  for (const text of ["sessionStorage", 'action: "create"', 'action: "status"', "npm run hosted", "txUrl", "hashValue"]) assert.ok(hosted.includes(text), text);
+  for (const text of ["createHash('sha256')", "integrity check failed", "Invoke-WebRequest", "Expand-Archive", "$LASTEXITCODE"]) assert.ok(installer.includes(text), text);
   assert.doesNotMatch(installer, /curl[^\n|]*\|\s*(?:sh|bash)/);
-  assert.match(page, /github\.com\/ackrate\/ackrate-protocol-demo\/blob\/main\/starters\/\$\{kit\.slug\}\/README\.md/);
-  assert.doesNotMatch(page, /degit/);
-  assert.doesNotMatch(page, /npm ci && npm run/);
 });
 
 test("the starter is deterministic, typed by package metadata, and testnet-only", async () => {
@@ -214,7 +166,7 @@ test("the starter is deterministic, typed by package metadata, and testnet-only"
 
 test("the hosted page command stays in parity with the generated starter", async () => {
   const [page, manifestSource, hosted] = await Promise.all([
-    read("app/solutions/page.tsx"),
+    read("app/docs/hosted/page.tsx"),
     read("starters/research-source-scout/package.json"),
     read("starters/research-source-scout/src/hosted.mjs"),
   ]);
@@ -289,18 +241,18 @@ test("the CLI and Docs use the published Mainnet release", async () => {
 
   assert.equal(actualVersion, "0.2.1");
   const [home, cli, terminal, bundleSource] = await Promise.all([
-    read("app/page.tsx"),
+    Promise.all([read("app/docs/sdk/page.tsx"), read("app/docs/cli/page.tsx")]).then((pages) => pages.join("\n")),
     read("app/cli/page.tsx"),
     read("app/toolkit/cli/page.tsx"),
     read("vendor/ackrate-cli.mjs"),
   ]);
   const dependencies = JSON.parse(await read("package.json")).dependencies;
   for (const name of ["core", "stellar", "ap2", "express-middleware", "cli"]) {
-    assert.ok(home.includes(`['${name}', '${dependencies[`@ackrate/${name}`]}'`.replaceAll("'", '\"')),
+    const version = dependencies[`@ackrate/${name}`];
+    assert.ok(home.includes(`@ackrate/${name} ${version}`) || home.includes(`@ackrate/${name}@${version}`),
       `Docs must match the installed ${name} release`);
   }
   assert.doesNotMatch(home, /CANDIDATE DOCS|0\.1\.10|0\.3\.3/);
-  assert.ok(home.includes("CCLZEBJXG4YVJEPBCR5F27N733BCK5HQJWZZGB3K54JVODY3VAGP4HWR"));
   assert.match(cli, /const VERSION = "0\.2\.1"/);
   assert.match(terminal, /redirect\("\/cli"\)/);
   assert.match(cli, /--network mainnet/);

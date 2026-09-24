@@ -38,15 +38,16 @@ New reports include a cited, three-paragraph plain-English closing summary.
 Deployment uses the GitHub Actions Vercel workflow; see `docs/deployment.md`
 for branch routing, project ownership, secrets and the persistent CLI runner limit.
 
-- `/` — **Docs** (landing page). Source: `app/page.tsx`.
+- `/` — REAPP landing page, focused on Stellar and linking the consumer app.
+- `/docs` — SDK, CLI, and quick-starter guides under one Docs menu.
 - `/consumer` — person-facing preview for giving an AI agent a task while retaining
   explicit control over its budget, approved services, deadline, and exceptions. Source:
   `app/consumer/page.tsx`.
 - `/research` — research agent demo (LLM). Source: `app/research/page.tsx`.
 - `/video` — video paywall demo. Source: `app/video/page.tsx`.
-- `/solutions` — beginner onboarding: scaffold a clean project, connect it to
-  hosted Express fulfillment, and watch local `agent.fetch()` evidence arrive.
-  Source: `app/solutions/page.tsx`.
+- `/docs/quickstarts` — choose one SDK starter and copy its setup command.
+- `/docs/hosted` — optional persistent Testnet Express companion.
+- `/solutions` — redirect to `/docs/quickstarts`.
 - `/toolkit` — product-facing developer toolkit hub. Source:
   `app/toolkit/page.tsx`.
 - `/toolkit/cli` — live **xterm.js terminal** that runs the real `ackrate` CLI on
@@ -56,11 +57,10 @@ for branch routing, project ownership, secrets and the persistent CLI runner lim
   transaction. Runs against the composite build of MandateRegistry (a separate
   testnet deployment; id pinned in `lib/composites-client.ts`). Source: `app/composites/page.tsx`.
 
-Primary navigation in `components/Nav.tsx` is Docs · Wallet · CLI · Security.
-Express, AP2, Research, and Solutions are available under Guides. The `/consumer` and `/video` routes remain
-available by direct link. The toolkit and composite surfaces are UNLISTED (not
-in the nav): `/toolkit` and `/composites` are reachable by direct link only;
-the `/toolkit` hub links to `/composites`.
+Primary navigation is REAPP home, Consumer app, and Docs. The Docs dropdown
+contains SDK, CLI, quick starters, Express, AP2, and Security. Legacy research,
+video, consumer preview, toolkit, and composite routes remain direct-link references.
+See `docs/presentation.md` for the current naming and visual conventions.
 
 ## Key files
 

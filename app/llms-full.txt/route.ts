@@ -41,9 +41,9 @@ These published versions target the WR Mainnet registry. Review network, signing
 
 ## Public routes
 
-### Documentation — https://reapp.live/
+### Documentation — https://reapp.live/docs
 
-The documentation page links the Mainnet wallet, CLI, security evidence, published packages, and pinned configuration guide. Integration and Testnet examples are separate guides.
+The landing page presents REAPP, powered by ACKRATE SDK. The SDK and CLI were renamed from REAPP to ACKRATE; MandateRegistry retains its name. Developer guides live under /docs, with SDK, CLI, and quick starters in the Docs menu.
 
 ### CLI — https://reapp.live/cli
 
@@ -69,9 +69,9 @@ The Contract Security Suite is the public release-gate evidence surface for Ackr
 
 The wallet canary connects a Freighter G-account on Stellar Mainnet. A person chooses a small Circle USDC spending limit, signs mandate registration and contract allowance transactions, and then lets the consumer agent request a protected report. MandateRegistry re-checks the caller, merchant, asset, amount, expiry, status, and sequence before every payment. The page links registration, allowance, payment, and shutdown transactions to Stellar Explorer. Disconnecting first turns off any active spending limit, then clears the browser session.
 
-### Solutions and starter kits — https://reapp.live/solutions
+### Quick starters — https://reapp.live/docs/quickstarts
 
-The Hackathon starter creates a disposable hosted fulfillment workspace and generates two commands for a clean VS Code folder. The local consumer owns its ephemeral signers, registers a scoped testnet mandate, inspects the exact 402 challenge, submits the request-bound contract payment, and retries delivery with the stored receipt. It streams the resulting challenge, settlement, proof, delivery, budget, and rejection evidence back to the browser page. The generated project includes editable consumer and fulfillment source files plus guided examples for merchant scope, expiry, replay defense, recovery, and explorer evidence.
+Twenty local SDK starter projects run end-to-end on Stellar Testnet and log concise status lines. The optional /docs/hosted companion creates a disposable fulfillment session on the persistent canonical runtime; it is unavailable on Vercel previews. The local consumer owns its ephemeral signers, registers a scoped testnet mandate, inspects the exact 402 challenge, submits the request-bound contract payment, and retries delivery with the stored receipt. It streams the resulting challenge, settlement, proof, delivery, budget, and rejection evidence back to the browser page. The generated project includes editable consumer and fulfillment source files plus guided examples for merchant scope, expiry, replay defense, recovery, and explorer evidence.
 
 ### AP2 — https://reapp.live/ap2
 

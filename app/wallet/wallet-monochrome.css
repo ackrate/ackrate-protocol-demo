@@ -240,3 +240,9 @@
     --muted: #a3a3a3;
   }
 }
+
+/* Flat surfaces and explicit labels carry state without decorative lighting. */
+.wallet-preview::before, .wallet-preview .aurora { display: none; }
+.wallet-preview .glass { background: #111; box-shadow: none; backdrop-filter: none; }
+.wallet-preview.wallet-flow.wallet-flat .flow-progress > div { color: #a3a3a3; }
+.wallet-preview.wallet-flow.wallet-flat .flow-progress > div.current { color: #fff; }

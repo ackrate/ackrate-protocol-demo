@@ -1,17 +1,21 @@
 import type { MetadataRoute } from "next";
 
 const BASE_URL = "https://reapp.live";
-const LAST_MODIFIED = new Date("2026-07-18T00:00:00Z");
+const LAST_MODIFIED = new Date("2026-09-24T00:00:00Z");
 
 const routes = [
   "",
+  "/docs",
+  "/docs/sdk",
+  "/docs/cli",
+  "/docs/quickstarts",
+  "/docs/hosted",
   "/ap2",
   "/cli",
   "/composites",
   "/consumer",
   "/express",
   "/merchants",
-  "/solutions",
   "/research",
   "/security",
   "/toolkit",

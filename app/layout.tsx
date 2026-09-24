@@ -6,16 +6,16 @@ import SiteAnalytics from "@/components/SiteAnalytics";
 
 const SITE = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://reapp.live").replace(/\/$/, "");
 
-const title = "ACKRATE — Mainnet Agent Payments in Circle USDC";
+const title = "REAPP — Agent payments on Stellar";
 const description =
   "Build agent payments with wallet-approved mandates, contract-enforced limits, and Circle USDC settlement on Stellar Mainnet.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE),
-  title: { default: title, template: "%s | ACKRATE" },
+  title: { default: title, template: "%s | REAPP" },
   description,
-  applicationName: "ACKRATE",
-  authors: [{ name: "Ackrate Protocol", url: "https://github.com/ackrate" }],
+  applicationName: "REAPP",
+  authors: [{ name: "ACKRATE Protocol", url: "https://github.com/ackrate" }],
   creator: "ACKRATE Protocol",
   publisher: "ACKRATE Protocol",
   category: "Developer software",
@@ -32,7 +32,7 @@ export const metadata: Metadata = {
   icons: { icon: "/icon.svg", apple: "/apple-icon" },
   manifest: "/manifest.webmanifest",
   // og:image + twitter:image are generated from app/opengraph-image.tsx automatically.
-  openGraph: { title, description, siteName: "ACKRATE", type: "website", url: "/" },
+  openGraph: { title, description, siteName: "REAPP", type: "website", url: "/" },
   twitter: { card: "summary_large_image", title, description },
   robots: {
     index: true,
@@ -60,7 +60,7 @@ const structuredData = {
     {
       "@type": "WebSite",
       "@id": `${SITE}/#website`,
-      name: "ACKRATE",
+      name: "REAPP",
       alternateName: ["ACKRATE Protocol", "reapp.live"],
       url: SITE,
       description,
@@ -70,14 +70,13 @@ const structuredData = {
     {
       "@type": "SoftwareApplication",
       "@id": `${SITE}/#software`,
-      name: "ACKRATE",
+      name: "REAPP",
       applicationCategory: "DeveloperApplication",
       operatingSystem: "Any system with Node.js",
       url: SITE,
       description,
-      softwareVersion: "0.3.1",
       codeRepository: "https://github.com/ackrate/ackrate-protocol",
-      downloadUrl: "https://www.npmjs.com/package/@ackrate/core/v/0.3.1",
+      downloadUrl: "https://www.npmjs.com/package/@ackrate/core/v/0.4.1",
       isAccessibleForFree: true,
       offers: { "@type": "Offer", price: 0, priceCurrency: "USD" },
       provider: { "@id": `${SITE}/#organization` },
@@ -90,13 +89,10 @@ const structuredData = {
   ],
 };
 
-// Mobile: lock to device width, disable pinch/zoom so the layout can't be
-// scrolled horizontally on phones.
+// Keep pinch zoom available for low-vision readers.
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
   themeColor: "#000000",
 };
 
