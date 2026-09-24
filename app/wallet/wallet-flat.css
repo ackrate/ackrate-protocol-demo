@@ -266,5 +266,7 @@ body:has(.wallet-flat)::before { content: none; }
 .wallet-preview.wallet-flow.wallet-flat :is(button, a, input, select, textarea, summary):focus-visible { outline-color: var(--accent); }
 
 @media (max-width: 580px) {
-  .wallet-preview.wallet-flow.wallet-flat .flow-header { display: flex; justify-content: space-between; min-height: 48px; padding: 10px 20px; gap: 12px; }
+  .wallet-preview.wallet-flow.wallet-flat .flow-header { display: flex; flex-wrap: wrap; justify-content: space-between; min-height: 48px; padding: 10px 20px; gap: 12px; }
+  .wallet-preview.wallet-flow.wallet-flat .flow-header > span[aria-hidden] { display: none; }
+  .wallet-preview.wallet-flow.wallet-flat .flow-header-actions { margin-left: auto; }
 }
