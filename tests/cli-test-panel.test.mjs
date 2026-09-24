@@ -158,3 +158,18 @@ test("viewing, polling and downloading retained team evidence are read-only and 
   const count = h.calls.length; h.unmount(); assert.equal(h.calls[0].signal.aborted, true);
   await h.tick(); assert.equal(h.calls.length, count);
 });
+
+// A real hosted response can retain job success after the session becomes unreadable.
+test("completion without readable run evidence cannot display payment success", async () => {
+  for (const response of [
+    { configured: true, state: "succeeded", error: "The retained session requires manual recovery; no replacement will be created." },
+    { ...completed(), run: { ...completed().run, logs: "" } },
+    { ...completed(), error: "Retained session unavailable" },
+  ]) {
+    const h = harness(response); await h.settle();
+    assert.doesNotMatch(h.text(), /Payment test passed|Previous team-funded test · passed/);
+    assert.match(h.text(), /evidence unavailable/);
+    assert.equal(h.find("button", "Download test evidence").props.disabled, true);
+    h.assertInteractive(); h.assertReadOnly();
+  }
+});

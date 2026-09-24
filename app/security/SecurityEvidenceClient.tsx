@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { ArrowUpRight, Check, ChevronDown, Code2, FileCheck2, Network, ShieldCheck } from "lucide-react";
 
 const REPO = "https://github.com/ackrate/ackrate-protocol-contracts";
@@ -112,14 +112,7 @@ export const SECURITY_EVIDENCE_CARDS: EvidenceCard[] = [
   --rpc-url https://mainnet.sorobanrpc.com
 curl --fail --silent --show-error \\
   https://horizon.stellar.org/accounts/${AUTHORITY} | \\
-  jq --exit-status --arg authority ${AUTHORITY} '
-    .account_id == $authority and
-    .thresholds.low_threshold == 2 and
-    .thresholds.med_threshold == 2 and
-    .thresholds.high_threshold == 2 and
-    (.signers | length) == 3 and
-    all(.signers[]; .type == "ed25519_public_key" and .weight == 1)
-  '`,
+  bash scripts/check-mainnet-v2-authority.sh`,
     steps: [
       "Live WASM SHA-256 matched reviewed V2",
       "Schema 2, unpaused, no successor pending",
@@ -140,26 +133,6 @@ curl --fail --silent --show-error \\
 
 export default function SecurityEvidenceClient() {
   const [openId, setOpenId] = useState(SECURITY_EVIDENCE_CARDS[0]!.id);
-  const [runningId, setRunningId] = useState<string | null>(null);
-  const [visibleSteps, setVisibleSteps] = useState(0);
-
-  useEffect(() => {
-    if (!runningId) return;
-    const total = SECURITY_EVIDENCE_CARDS.find((card) => card.id === runningId)?.steps.length ?? 0;
-    if (visibleSteps >= total) {
-      setRunningId(null);
-      return;
-    }
-    const timer = window.setTimeout(() => setVisibleSteps((count) => count + 1), 360);
-    return () => window.clearTimeout(timer);
-  }, [runningId, visibleSteps]);
-
-  function replay(card: EvidenceCard) {
-    setOpenId(card.id);
-    setVisibleSteps(0);
-    setRunningId(card.id);
-  }
-
   return (
     <main className="mx-auto w-full max-w-6xl px-4 pb-16 pt-12 sm:px-6 lg:pt-20">
       {/* Production deployment marker for the Mainnet V2 evidence surface. */}
@@ -167,7 +140,7 @@ export default function SecurityEvidenceClient() {
         <p className="text-xs font-bold uppercase tracking-[0.16em] text-neutral-300">MandateRegistry V2 · Stellar Mainnet</p>
         <h1 className="mt-4 text-4xl font-black tracking-[-0.04em] text-white sm:text-6xl">Four checks. Direct evidence.</h1>
         <p className="mt-5 text-base leading-7 text-white/55 sm:text-lg">
-          Open a card to replay its recorded result, inspect the exact command, and follow the proof to the contract or source code.
+          Inspect the recorded results, reproduction commands, and source evidence. These results are from the September 7, 2026 gate.
         </p>
       </header>
 
@@ -175,8 +148,6 @@ export default function SecurityEvidenceClient() {
         {SECURITY_EVIDENCE_CARDS.map((card) => {
           const Icon = card.icon;
           const open = openId === card.id;
-          const running = runningId === card.id;
-          const shown = running ? visibleSteps : card.steps.length;
           return (
             <article className={`overflow-hidden rounded-2xl border ${open ? "border-neutral-300/30 bg-neutral-300/[0.045]" : "border-white/10 bg-white/[0.02]"}`} key={card.id}>
               <button
@@ -198,13 +169,11 @@ export default function SecurityEvidenceClient() {
                 <div className="border-t border-white/10 px-5 pb-6 pt-5 sm:px-6">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/40">Recorded gate output</p>
-                    <button type="button" onClick={() => replay(card)} disabled={running} className="rounded-lg border border-white/15 px-3 py-2 text-xs font-bold text-white/70 hover:border-white/30 hover:text-white disabled:cursor-wait disabled:opacity-50">
-                      {running ? "Replaying…" : "Replay check"}
-                    </button>
+
                   </div>
                   <pre className="mt-3 overflow-x-auto rounded-lg bg-black/35 p-3 text-xs leading-5 text-neutral-100/70"><code>{card.command}</code></pre>
                   <ol className="mt-4 space-y-2" aria-live="polite">
-                    {card.steps.slice(0, shown).map((step) => (
+                    {card.steps.map((step) => (
                       <li className="flex gap-2 text-sm leading-5 text-white/65" key={step}><Check className="mt-0.5 h-4 w-4 shrink-0 text-neutral-300" />{step}</li>
                     ))}
                   </ol>
@@ -230,7 +199,7 @@ export default function SecurityEvidenceClient() {
           Reviewed WASM <span className="break-all font-mono text-white/65">{WASM_HASH}</span>
         </p>
         <p className="mt-4 max-w-3xl">
-          The replay is a readable view of recorded gate output, not a browser-side substitute for the Rust suite. Reproduce it from the public repository or inspect the public workflow history. No check on this page signs or submits a transaction.
+          These are recorded gate results; this page does not execute the Rust suite. Reproduce it from the public repository or inspect the public workflow history. No check on this page signs or submits a transaction.
         </p>
         <p className="mt-3 max-w-3xl">
           Source-to-chain proof is separate from an explorer verification badge. The linked source-verification record documents the explorer intake issue and the independently matching build and on-chain hashes.

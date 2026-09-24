@@ -220,7 +220,7 @@ export default function Ap2Page() {
               <h2 className="mt-2 text-xl font-bold text-white">AP2 validation console</h2>
             </div>
             <div className="rounded-full border border-neutral-300/20 bg-neutral-400/10 px-3 py-1 font-mono text-[11px] text-neutral-200">
-              0.3.0
+              0.4.0
             </div>
           </div>
 
@@ -278,7 +278,7 @@ export default function Ap2Page() {
                 <ShieldCheck className="h-4 w-4" aria-hidden />
                 validator output
               </div>
-              <div className="mt-1 text-xs text-neutral-50/45">Real package code, server-side, no mocked decisions.</div>
+              <div className="mt-1 text-xs text-neutral-50/45">Server-side package validation.</div>
             </div>
             <div className={"rounded-full border px-3 py-1 font-mono text-[11px] " + (
               running
@@ -430,7 +430,7 @@ export default function Ap2Page() {
           <p className="mt-3 text-xs leading-relaxed text-neutral-100/50">Valid mandates, tampering, scope, amount, expiry, replay, and concurrency.</p>
         </div>
         <a
-          href="https://www.npmjs.com/package/@ackrate/ap2/v/0.3.0"
+          href="https://www.npmjs.com/package/@ackrate/ap2/v/0.4.0"
           target="_blank"
           rel="noreferrer"
           className="glass sheen relative rounded-xl p-4 transition hover:border-neutral-300/25"
@@ -439,7 +439,7 @@ export default function Ap2Page() {
             <div className="font-mono text-sm text-neutral-100">@ackrate/ap2</div>
             <ExternalLink className="h-4 w-4 text-neutral-300/60" aria-hidden />
           </div>
-          <div className="mt-1 text-xs uppercase tracking-[0.14em] text-neutral-300/55">public npm package · 0.3.0</div>
+          <div className="mt-1 text-xs uppercase tracking-[0.14em] text-neutral-300/55">public npm package · 0.4.0</div>
           <p className="mt-3 text-xs leading-relaxed text-neutral-100/50">Installable, typed, documented, and verified from a clean project.</p>
         </a>
         <a

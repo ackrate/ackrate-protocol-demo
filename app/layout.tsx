@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import Nav from "@/components/Nav";
-import IntroGate from "@/components/IntroGate";
 import SiteFooter from "@/components/SiteFooter";
 import SiteAnalytics from "@/components/SiteAnalytics";
 
@@ -108,7 +107,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Nav />
         {children}
         <SiteFooter />
-        <IntroGate />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData).replace(/</g, "\\u003c") }}

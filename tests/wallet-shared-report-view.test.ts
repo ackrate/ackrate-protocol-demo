@@ -51,7 +51,7 @@ test("the public view contains the readable report, three-paragraph Summary, and
   assert.ok(section);
   assert.match(section, /<h2>Summary<\/h2>/);
   assert.equal((section.match(/<p>/g) ?? []).length, 3);
-  const orderedSections = ["brief-takeaway", "brief-plain-english", "brief-methodology", "report-source-rail"];
+  const orderedSections = ["brief-plain-english", "brief-methodology", "report-source-rail"];
   for (const className of orderedSections) assert.ok(markup.includes(className));
   for (let index = 1; index < orderedSections.length; index++) {
     assert.ok(markup.indexOf(orderedSections[index - 1]) < markup.indexOf(orderedSections[index]));

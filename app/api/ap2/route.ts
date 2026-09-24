@@ -12,7 +12,7 @@ import { ackrate } from "@ackrate/core";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const PACKAGE_VERSION = "0.3.0";
+const PACKAGE_VERSION = "0.4.0";
 const TEST_COUNT = 59;
 const SCENARIOS = ["all", "valid", "signature", "merchant", "amount", "expiry", "replay"] as const;
 type Scenario = (typeof SCENARIOS)[number];

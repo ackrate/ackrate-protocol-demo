@@ -22,11 +22,7 @@ test("security live-state reproduction includes every required public parameter"
   assert.ok(command.includes(`--initial-asset ${usdc}`));
   assert.ok(command.includes("--rpc-url https://mainnet.sorobanrpc.com"));
   assert.ok(command.includes(`https://horizon.stellar.org/accounts/${authority}`));
-  assert.ok(command.includes("(.signers | length) == 3"));
-  assert.ok(command.includes('all(.signers[]; .type == "ed25519_public_key" and .weight == 1)'));
-  for (const threshold of ["low", "med", "high"]) {
-    assert.ok(command.includes(`.thresholds.${threshold}_threshold == 2`));
-  }
+  assert.ok(command.includes("bash scripts/check-mainnet-v2-authority.sh"), "use the canonical exact-key authority validator");
   assert.doesNotMatch(command, /tx send|prepare-deploy|prepare-upload|secret-key|sign-with-key/);
 });
 
@@ -43,9 +39,9 @@ test("security evidence distinguishes a scoped advisory exception and source pro
   assert.ok(attacks.links.some(({ href }) => href.endsWith("/docs/mainnet-v2-data-flow.md")));
 });
 
-test("security page preserves command line breaks and labels replay as recorded evidence", () => {
+test("security page preserves command line breaks and labels results as recorded evidence", () => {
   const source = readFileSync(new URL("../app/security/SecurityEvidenceClient.tsx", import.meta.url), "utf8");
   assert.match(source, /<pre[^>]+><code>\{card\.command\}<\/code><\/pre>/);
-  assert.match(source, /readable view of recorded gate output, not a browser-side substitute/);
+  assert.match(source, /recorded gate results; this page does not execute the Rust suite/);
   assert.match(source, /Source-to-chain proof is separate from an explorer verification badge/);
 });

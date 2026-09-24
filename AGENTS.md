@@ -53,8 +53,8 @@ New reports include a cited, three-paragraph plain-English closing summary.
   transaction. Runs against the composite build of MandateRegistry (a separate
   testnet deployment; id pinned in `lib/composites-client.ts`). Source: `app/composites/page.tsx`.
 
-Nav order is defined in `components/Nav.tsx` (`links` array): Docs · CLI ·
-Express · Wallet · Security · AP2 · Research · Solutions. The `/consumer` and `/video` routes remain
+Primary navigation in `components/Nav.tsx` is Docs · Wallet · CLI · Security.
+Express, AP2, Research, and Solutions are available under Guides. The `/consumer` and `/video` routes remain
 available by direct link. The toolkit and composite surfaces are UNLISTED (not
 in the nav): `/toolkit` and `/composites` are reachable by direct link only;
 the `/toolkit` hub links to `/composites`.

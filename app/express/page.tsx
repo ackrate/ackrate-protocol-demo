@@ -148,11 +148,12 @@ export default function ExpressPage() {
           <div>
             <div className="inline-flex items-center gap-2 rounded-full border border-neutral-400/25 bg-neutral-400/[0.07] px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-300">
               <span className="h-1.5 w-1.5 rounded-full bg-neutral-400 shadow-[0_0_12px_rgba(255,255,255,0.9)]" />
-              Live on Stellar Mainnet · Circle USDC
+              Historical Mainnet demonstration · August 2026
             </div>
             <h1 className="mt-6 max-w-3xl text-4xl font-black tracking-[-0.045em] text-neutral-50 sm:text-6xl lg:text-7xl">
               Agent payments with limits that hold.
             </h1>
+            <p className="mt-4 text-sm leading-6 text-neutral-200">This page retains the August demonstration against the legacy PAGS registry. Its receipts and prices are historical. <Link href="/wallet" className="underline">The current wallet</Link> uses the WR registry and shows a fresh service quote.</p>
             <p className="mt-6 max-w-2xl text-base leading-8 text-neutral-100/65 sm:text-lg">
               Give an agent permission to buy what it needs—not access to your wallet. ACKRATE binds every payment to a wallet-approved budget, merchant, and expiry, then enforces those terms on Stellar Mainnet before Circle USDC moves.
             </p>
@@ -163,7 +164,7 @@ export default function ExpressPage() {
                 className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-neutral-400 to-neutral-300 px-6 py-3 text-sm font-black text-[#000000] shadow-[0_12px_38px_-10px_rgba(255,255,255,0.8)] transition hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-200"
               >
                 <CircleDollarSign className="h-4 w-4" aria-hidden />
-                Run the $0.01 USDC payment
+                Open current wallet · review price
                 <ArrowRight className="h-4 w-4" aria-hidden />
               </Link>
               <a
@@ -172,7 +173,7 @@ export default function ExpressPage() {
                 rel="noreferrer"
                 className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-neutral-400/25 bg-black/20 px-5 py-3 text-sm font-semibold text-neutral-100/80 transition hover:border-neutral-400/45 hover:text-neutral-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-300/60"
               >
-                View Mainnet contract
+                View historical contract
                 <ExternalLink className="h-3.5 w-3.5" aria-hidden />
               </a>
             </div>
@@ -219,7 +220,7 @@ export default function ExpressPage() {
             </div>
             <div className="mt-5 border-t border-white/10 pt-5">
               <div className="flex items-center justify-between gap-3">
-                <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-300/65">Live settlement proof</span>
+                <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-300/65">Recorded August settlement proof</span>
                 <span className="text-[10px] font-semibold text-neutral-100/40">3 × $0.01 USDC</span>
               </div>
               <div className="mt-3 space-y-2">

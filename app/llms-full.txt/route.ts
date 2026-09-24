@@ -8,7 +8,7 @@ export function GET() {
 Canonical site: https://reapp.live/
 Source: https://github.com/ackrate/ackrate-protocol
 Research companion: https://ackrate.network/
-Environment: public research, video, composite, CLI, and starter demonstrations use Stellar testnet; the /wallet canary uses Stellar Mainnet, Circle USDC, and Freighter authorization.
+Environment: public research, video, composite, and starter demonstrations use Stellar testnet; the CLI uses Stellar Mainnet; the /wallet canary uses Stellar Mainnet, Circle USDC, and Freighter authorization.
 
 ## What ACKRATE is
 
@@ -29,21 +29,21 @@ The architecture is intentionally split. The model can research, compare, plan, 
 
 The fourth payment in a three-payment budget is not a UI simulation. The contract rejects it because the remaining authority is insufficient. Revocation and replay cases follow the same deterministic deny path.
 
-## Current candidate package set
+## Published package set
 
-- @ackrate/core 0.3.3: mandate construction, registration, payment helpers, and agent.fetch().
-- @ackrate/stellar 0.2.5: typed contract client, verified Mainnet manifest support, Stellar network configuration, signers, token helpers, and explorer integration.
-- @ackrate/ap2 0.3.2: AP2 IntentMandate and TransactionMandate translation with pinned canonicalization and validation behavior.
-- @ackrate/express-middleware 0.2.4: HTTP payment challenge, settlement verification, protected-route integration, and one-time redemption controls for Express 4 and 5.
-- @ackrate/cli 0.1.10: terminal setup, mandate, payment, inspection, and fail-closed testnet and Mainnet demonstration commands.
+- @ackrate/core 0.4.1: mandate construction, registration, payment helpers, and agent.fetch().
+- @ackrate/stellar 0.3.0: typed contract client, verified Mainnet manifest support, Stellar network configuration, signers, token helpers, and explorer integration.
+- @ackrate/ap2 0.4.0: AP2 IntentMandate and TransactionMandate translation with pinned canonicalization and validation behavior.
+- @ackrate/express-middleware 0.3.0: HTTP payment challenge, settlement verification, protected-route integration, and one-time redemption controls for Express 4 and 5.
+- @ackrate/cli 0.2.1: terminal setup, mandate, payment, inspection, and fail-closed testnet and Mainnet demonstration commands.
 
-These are the current source-repository candidate versions. Confirm publication at the npm registry before copying an installation command because publication can trail the repository candidate.
+These published versions target the WR Mainnet registry. Review network, signing configuration, and payment consent before execution.
 
 ## Public routes
 
 ### Documentation — https://reapp.live/
 
-The documentation page shows a clean-clone testnet run, published package installation, the agent.fetch() consumer flow, Express verification middleware, current testnet contract reference, and the verification boundary. It is the canonical implementation entry point.
+The documentation page links the Mainnet wallet, CLI, security evidence, published packages, and pinned configuration guide. Integration and Testnet examples are separate guides.
 
 ### CLI — https://reapp.live/cli
 
