@@ -13,7 +13,6 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const PACKAGE_VERSION = "0.4.0";
-const TEST_COUNT = 59;
 const SCENARIOS = ["all", "valid", "signature", "merchant", "amount", "expiry", "replay"] as const;
 type Scenario = (typeof SCENARIOS)[number];
 type IndividualScenario = Exclude<Scenario, "all">;
@@ -234,7 +233,6 @@ export async function POST(request: Request): Promise<Response> {
     ok: results.every((result) => result.passed),
     scenario,
     package: `@ackrate/ap2@${PACKAGE_VERSION}`,
-    testCount: TEST_COUNT,
     mandateHash: credential.mandateHash,
     signatureAlgorithm: credential.signature.algorithm,
     user: user.publicKey(),

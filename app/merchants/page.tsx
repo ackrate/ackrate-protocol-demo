@@ -252,13 +252,13 @@ export default function MerchantsPage() {
           </span>
         </h1>
         <p className="mt-6 max-w-3xl text-base leading-relaxed text-neutral-50/65 sm:text-lg">
-          This is the public evidence surface for Ackrate&apos;s Mainnet enforcement layer. MandateRegistry checks the caller,
+          This is a historical reference for the earlier PAGS registry and timelock. For current WR registry evidence and native 2-of-3 administration without a timelock, use the Security page. MandateRegistry checks the caller,
           merchant, asset, budget, expiry, status, and sequence before Circle USDC moves. The SDK, model, interface,
           payment header, merchant, and RPC are treated as untrusted inputs.
         </p>
         <div className="mt-7 flex flex-wrap gap-3">
           <a href={`https://stellar.expert/explorer/public/contract/${REGISTRY}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-xl bg-neutral-400 px-4 py-2.5 text-sm font-bold text-[#052117] transition hover:bg-neutral-300">
-            View live Mainnet contract <ArrowUpRight className="h-4 w-4" />
+            View historical Mainnet contract <ArrowUpRight className="h-4 w-4" />
           </a>
           <a href={`${REPO}/tree/main/contracts/mainnet`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.035] px-4 py-2.5 text-sm font-semibold text-white/75 transition hover:border-neutral-300/30 hover:text-white">
             Open contract source <Code2 className="h-4 w-4" />
@@ -293,7 +293,7 @@ export default function MerchantsPage() {
               <SecurityProofField />
               <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle,transparent_28%,rgba(3,8,6,.78)_78%)]" aria-hidden />
               <div className="pointer-events-none absolute inset-x-4 bottom-4 flex items-center justify-between text-[10px] font-semibold tracking-[0.14em] text-neutral-200/55" aria-hidden>
-                <span>LIVE REQUIREMENT GRAPH</span><span>6 / 6 LINKED</span>
+                <span>RECORDED REQUIREMENT GRAPH</span><span>6 / 6 LINKED</span>
               </div>
             </div>
           </div>
@@ -341,7 +341,7 @@ export default function MerchantsPage() {
           <div>
             <div className="inline-flex items-center gap-2 rounded-full border border-neutral-300/20 bg-neutral-400/[0.07] px-3 py-1.5 text-[10px] font-semibold tracking-[0.16em] text-neutral-200">
               <motion.span className="h-1.5 w-1.5 rounded-full bg-neutral-300" animate={{ opacity: [0.35, 1, 0.35] }} transition={{ duration: 1.2, repeat: Infinity }} />
-              ACKRATE GATE CHECK · LIVE EVIDENCE MODEL
+              ACKRATE GATE CHECK · RECORDED EVIDENCE
             </div>
             <h2 className="mt-5 text-3xl font-black tracking-tight text-white sm:text-4xl">A release pipeline built to stop on doubt.</h2>
             <p className="mt-4 text-sm leading-relaxed text-white/45">
@@ -617,7 +617,7 @@ export default function MerchantsPage() {
         </motion.div>
 
         <motion.div {...fade(0.24)} className="rounded-2xl border border-neutral-300/15 bg-neutral-400/[0.045] p-5 sm:p-6">
-          <p className="text-xs font-semibold uppercase tracking-[0.17em] text-neutral-300/70">Live authority</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.17em] text-neutral-300/70">Historical authority</p>
           <h2 className="mt-2 text-xl font-bold text-white">Two contracts. One governed path.</h2>
           <div className="mt-5 grid gap-3">
             {[

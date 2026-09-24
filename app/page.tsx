@@ -29,7 +29,7 @@ export default function Docs() {
       <h2 className="text-xl font-semibold">Contract and boundaries</h2>
       <a className="mt-4 block break-all font-mono text-xs underline" href={`https://stellar.expert/explorer/public/contract/${CONTRACT}`}>{CONTRACT}</a>
       <p className="mt-4 text-sm leading-6 text-white/70">The allowance belongs to the contract. Administration uses native 2-of-3 authorization; this deployment has no timelock. Wallet-to-relay and relay-to-seller payments are separate settlements.</p>
-      <details className="mt-6"><summary className="cursor-pointer py-2 text-sm">Integration and Testnet guides</summary><div className="mt-3 flex flex-wrap gap-5 text-sm underline"><Link href="/express">Express</Link><Link href="/ap2">AP2</Link><Link href="/solutions">Starter projects</Link></div></details>
+      <details className="mt-6"><summary className="cursor-pointer py-2 text-sm">Integration guides</summary><div className="mt-3 flex flex-wrap gap-5 text-sm underline"><Link href="/express">Express</Link><Link href="/ap2">AP2</Link><Link href="/solutions">Starter projects</Link></div></details>
     </section>
   </main>;
 }

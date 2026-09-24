@@ -125,6 +125,7 @@ curl --fail --silent --show-error \\
       { label: "Contract", href: EXPLORER },
       { label: "Live check", href: LIVE_CHECK },
       { label: "Verification code", href: DEPLOY_CHECK },
+      { label: "Exact signer check", href: `${REPO}/blob/main/scripts/check-mainnet-v2-authority.sh` },
       { label: "Source proof and explorer status", href: SOURCE_PROOF },
     ],
     icon: Network,
@@ -140,7 +141,7 @@ export default function SecurityEvidenceClient() {
         <p className="text-xs font-bold uppercase tracking-[0.16em] text-neutral-300">MandateRegistry V2 · Stellar Mainnet</p>
         <h1 className="mt-4 text-4xl font-black tracking-[-0.04em] text-white sm:text-6xl">Four checks. Direct evidence.</h1>
         <p className="mt-5 text-base leading-7 text-white/55 sm:text-lg">
-          Inspect the recorded results, reproduction commands, and source evidence. These results are from the September 7, 2026 gate.
+          Inspect the recorded results, reproduction commands, and source evidence. Dates and revisions are recorded in the linked verification records.
         </p>
       </header>
 
@@ -172,7 +173,7 @@ export default function SecurityEvidenceClient() {
 
                   </div>
                   <pre className="mt-3 overflow-x-auto rounded-lg bg-black/35 p-3 text-xs leading-5 text-neutral-100/70"><code>{card.command}</code></pre>
-                  <ol className="mt-4 space-y-2" aria-live="polite">
+                  <ol className="mt-4 space-y-2">
                     {card.steps.map((step) => (
                       <li className="flex gap-2 text-sm leading-5 text-white/65" key={step}><Check className="mt-0.5 h-4 w-4 shrink-0 text-neutral-300" />{step}</li>
                     ))}

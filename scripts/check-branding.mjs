@@ -2,7 +2,7 @@ import { readdir, readFile } from "node:fs/promises";
 import { join, relative } from "node:path";
 
 const root = process.cwd();
-const ignoredDirectories = new Set([".git", ".next", "node_modules"]);
+const ignoredDirectories = new Set([".git", ".next", ".vercel", "node_modules"]);
 const retiredName = String.fromCharCode(114, 101, 97, 112, 112);
 const temporaryHostname = `${retiredName}.live`;
 const standardizedIdentifiers = ["SoftwareApplication"];

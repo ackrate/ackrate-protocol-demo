@@ -15,7 +15,7 @@ const TEMPORARY_HOSTNAME = `${String.fromCharCode(114, 101, 97, 112, 112)}.live`
 
 // 2026-09-24: label legacy Express evidence and remove the stale price promise. Runtime and receipts are unchanged.
 const protectedHashes = {
-  "app/express/page.tsx": "f2c3551d2fe1627c74f9ac025354d3d04b793b642bb1192df2c25ca098de987c",
+  "app/express/page.tsx": "90493552b85b784eb47d533c5c874c45e90fe18033897c4af48504cd639e3746",
   "app/express/layout.tsx": "7fb5a1ee24023ddd61ee8092c0c2e3047d51d5a0c4273fb1f4ba6f7374f8b40d",
   "app/api/express/route.ts": "645a2a92788b61f42537ee0d9f4980c7324a0f76fadd68239939da17b0854141",
   "app/api/express/[sessionId]/source/[resource]/route.ts": "022c94e6c368357692c1981f08f52aea41c28ef39eadde56ca501280a6e552a5",

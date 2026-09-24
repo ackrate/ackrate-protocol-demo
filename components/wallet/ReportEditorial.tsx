@@ -41,7 +41,7 @@ export function ReportEditorial({ brief, titleId, standalone = false, paymentLab
         </section>)}
       </div>
       {!brief.summary?.length && <aside className="brief-takeaway"><span>Summary</span><p><CitedText text={brief.takeaway} sources={brief.sources} /></p></aside>}
-      {brief.summary && <section className="brief-plain-english" aria-label="Summary">
+      {!!brief.summary?.length && <section className="brief-plain-english" aria-label="Summary">
         <Heading>Summary</Heading>
         {brief.summary.map((paragraph, index) => <p key={index}><CitedText text={paragraph} sources={brief.sources} /></p>)}
       </section>}

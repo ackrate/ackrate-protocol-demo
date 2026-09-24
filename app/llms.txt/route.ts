@@ -11,8 +11,8 @@ ACKRATE separates adaptive agent planning from deterministic financial authority
 
 - [ACKRATE SDK documentation](https://reapp.live/): Install the published packages and understand the end-to-end consumer and merchant flow.
 - [Consumer product preview](https://reapp.live/consumer): Give an AI agent a task while retaining explicit control over its budget, approved services, deadline, and exceptions.
-- [Express payment flow](https://reapp.live/express): Pay-per-use API fulfillment with settlement and one-time redemption verification.
-- [Merchant assurance](https://reapp.live/merchants): Inspect Mainnet contract tests, deployment evidence, trust boundaries, and merchant verification controls.
+- [Express payment flow](https://reapp.live/express): Historical August Mainnet fulfillment using the earlier PAGS registry; current wallet prices require a fresh quote.
+- [Merchant assurance](https://reapp.live/merchants): Legacy registry and timelock reference; use /security for current WR registry evidence and its no-timelock boundary.
 - [Contract Security Suite](https://reapp.live/security): Reproduce the 53-check Mainnet V2 contract gate, inspect trust boundaries and dependency results, and follow every claim to source and chain evidence.
 - [Solutions and starter kits](https://reapp.live/solutions): Start from an empty folder, run a local consumer against hosted fulfillment, and inspect matching testnet evidence.
 - [AP2 mandate bridge](https://reapp.live/ap2): Canonical intent and transaction mandate checks, signatures, scope, expiry, and replay protection.
@@ -43,7 +43,7 @@ These published versions target the WR Mainnet registry. Review network, signing
 - [ACKRATE NETWORK](https://ackrate.network/): Independent research and architecture field guide for agentic payments.
 - [Agentic payments field guide](https://ackrate.network/agentic-payments): Definitions, lifecycle, protocols, controls, and implementation model.
 
-The public research, video, composite, and starter demonstrations use Stellar testnet; the CLI uses Stellar Mainnet with ephemeral actors. The /wallet canary uses Stellar Mainnet, the manifest-pinned MandateRegistry, Circle USDC, and Freighter authorization. Never paste a recovery phrase or private key into the site. Verify package publication, contract identifiers, and network configuration against the visible page and source repository.
+The public research, video, composite, and starter demonstrations use Stellar testnet; the /cli page uses Stellar Mainnet. The /wallet canary uses Stellar Mainnet, the manifest-pinned MandateRegistry, Circle USDC, and Freighter authorization. Never paste a recovery phrase or private key into the site. Verify package publication, contract identifiers, and network configuration against the visible page and source repository.
 `;
 
   return new Response(text, {

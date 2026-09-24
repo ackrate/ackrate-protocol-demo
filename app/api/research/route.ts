@@ -15,7 +15,7 @@ export async function POST(req: Request) {
   if (!process.env.ANTHROPIC_API_KEY && !process.env.OPENAI_API_KEY) {
     log.err("research aborted: no LLM provider key set");
     return new Response(
-      line({ type: "error", message: "No LLM provider key set on the server. Add a provider key in Railway variables to run the agent." }),
+      line({ type: "error", message: "No LLM provider key set on the server. Add a provider key in the server environment to run the agent." }),
       { headers: { "content-type": "application/x-ndjson; charset=utf-8" } },
     );
   }

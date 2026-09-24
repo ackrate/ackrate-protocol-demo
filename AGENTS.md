@@ -4,7 +4,7 @@ Project guidance for agents working in `ackrate-protocol-demo`.
 
 ## What this is
 
-A Next.js 15 (App Router) demo of [`@ackrate/core`](https://www.npmjs.com/package/@ackrate/core).
+A Next.js 16 (App Router) demo of [`@ackrate/core`](https://www.npmjs.com/package/@ackrate/core).
 An AI agent makes pay-per-use payments that are enforced on-chain by the ACKRATE
 MandateRegistry Soroban contract. Public demos run on Stellar testnet; the
 navigation-listed `/wallet` canary uses the manifest-pinned mainnet contract and
@@ -34,6 +34,9 @@ Marketplace report composition uses its own OpenAI-only model setting,
 New reports include a cited, three-paragraph plain-English closing summary.
 
 ## Routes
+
+Deployment uses the GitHub Actions Vercel workflow; see `docs/deployment.md`
+for branch routing, project ownership, secrets and the persistent CLI runner limit.
 
 - `/` — **Docs** (landing page). Source: `app/page.tsx`.
 - `/consumer` — person-facing preview for giving an AI agent a task while retaining

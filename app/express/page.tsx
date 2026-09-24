@@ -74,7 +74,7 @@ const steps = [
     number: "03",
     icon: ShieldCheck,
     title: "The contract enforces the payment",
-    description: "MandateRegistry checks scope and remaining authority before settling $0.01 in Circle USDC.",
+    description: "The August demonstration checked scope and remaining authority before each $0.01 Circle USDC settlement.",
   },
   {
     number: "04",
@@ -203,7 +203,7 @@ export default function ExpressPage() {
                       <Check className="h-4 w-4" aria-hidden />
                     </span>
                     <span className="min-w-0">
-                      <span className="block text-xs font-bold text-neutral-100">Payment confirmed</span>
+                      <span className="block text-xs font-bold text-neutral-100">Latest wallet receipt · separate from August evidence</span>
                       <span className="mt-0.5 block truncate font-mono text-[10px] text-neutral-100/45">{short(mainnetPayment.txHash)}</span>
                     </span>
                   </span>
@@ -213,7 +213,7 @@ export default function ExpressPage() {
                 <div className="flex items-start gap-3">
                   <Fingerprint className="mt-0.5 h-5 w-5 shrink-0 text-neutral-300/70" aria-hidden />
                   <p className="text-xs leading-5 text-neutral-100/50">
-                    Complete a payment to place its Stellar Explorer receipt here automatically.
+                    No wallet receipt is saved in this browser. The August reference receipts are listed below.
                   </p>
                 </div>
               )}
@@ -346,7 +346,7 @@ export default function ExpressPage() {
         aria-label="Mainnet developer toolkit"
       >
         <ToolkitCard icon={CircleDollarSign} title="SDK" copy="Typed packages prepare mandates, agent requests, and verified fulfillment." />
-        <ToolkitCard icon={Terminal} title="CLI" copy="The research-agent command runs the same Mainnet payment path from a terminal." />
+        <ToolkitCard icon={Terminal} title="CLI" copy="The current CLI uses the WR Mainnet registry; these August receipts use the earlier PAGS registry." />
         <ToolkitCard icon={Bot} title="Reference agents" copy="Consumer and fulfillment examples show both sides of the 402 exchange." />
       </motion.section>
 
@@ -357,16 +357,16 @@ export default function ExpressPage() {
         className="mt-8 flex flex-col items-start justify-between gap-6 rounded-[2rem] border border-neutral-400/20 bg-gradient-to-br from-neutral-400/[0.09] to-transparent p-6 sm:flex-row sm:items-center sm:p-8"
       >
         <div>
-          <h2 className="text-2xl font-black tracking-tight text-neutral-50">See the policy hold under real payment pressure.</h2>
+          <h2 className="text-2xl font-black tracking-tight text-neutral-50">Review the current wallet flow.</h2>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-neutral-100/55">
-            Authorize three one-cent purchases. The fourth request exceeds the mandate and is rejected by the contract before settlement.
+            Review the current service quote, recipient, spending limit, and expiry before authorizing a purchase.
           </p>
         </div>
         <Link
           href="/wallet"
           className="inline-flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-xl bg-neutral-400 px-5 py-3 text-sm font-black text-[#000000] transition hover:bg-neutral-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-200"
         >
-          Open Mainnet demo
+          Review current wallet quote
           <ArrowRight className="h-4 w-4" aria-hidden />
         </Link>
       </motion.section>

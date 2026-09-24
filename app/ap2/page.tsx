@@ -31,7 +31,6 @@ type ValidatorResponse = {
   ok: boolean;
   scenario: Scenario;
   package: string;
-  testCount: number;
   mandateHash: string;
   signatureAlgorithm: string;
   user: string;
@@ -380,14 +379,14 @@ export default function Ap2Page() {
       <motion.section {...fade(0.14)} className="glass mt-6 rounded-2xl p-4 sm:p-5">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <div className="text-xs font-semibold uppercase tracking-[0.17em] text-neutral-300/70">Published package gate</div>
-            <h2 className="mt-2 text-xl font-bold text-white">Complete AP2 test matrix</h2>
+            <div className="text-xs font-semibold uppercase tracking-[0.17em] text-neutral-300/70">Package test reference</div>
+            <h2 className="mt-2 text-xl font-bold text-white">Documented AP2 cases</h2>
             <p className="mt-2 max-w-3xl text-sm leading-relaxed text-neutral-100/55">
-              The console above runs six representative checks live. The published package gate runs every named case below.
+              The console above runs six representative checks. The catalog below is a source reference; it is not a fresh package test result.
             </p>
           </div>
           <div className="rounded-full border border-neutral-300/25 bg-neutral-400/10 px-3.5 py-1.5 font-mono text-xs text-neutral-200">
-            {PUBLISHED_TEST_COUNT} / {PUBLISHED_TEST_COUNT} PASSING
+            {PUBLISHED_TEST_COUNT} documented cases
           </div>
         </div>
 
@@ -425,9 +424,9 @@ export default function Ap2Page() {
 
       <motion.section {...fade(0.18)} className="mt-6 grid gap-3 sm:grid-cols-3">
         <div className="glass rounded-xl p-4">
-          <div className="text-3xl font-black text-neutral-200">59 / 59</div>
-          <div className="mt-1 text-xs uppercase tracking-[0.14em] text-neutral-300/55">package tests passing</div>
-          <p className="mt-3 text-xs leading-relaxed text-neutral-100/50">Valid mandates, tampering, scope, amount, expiry, replay, and concurrency.</p>
+          <div className="text-3xl font-black text-neutral-200">6 checks</div>
+          <div className="mt-1 text-xs uppercase tracking-[0.14em] text-neutral-300/55">interactive validator</div>
+          <p className="mt-3 text-xs leading-relaxed text-neutral-100/50">Valid mandates, tampering, scope, amount, expiry, and replay.</p>
         </div>
         <a
           href="https://www.npmjs.com/package/@ackrate/ap2/v/0.4.0"

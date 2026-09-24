@@ -34,6 +34,9 @@ let readiness: { services: Services; until: number; check: Promise<void> } | und
 let nonceInitialization: { db: PostgresQueryable; check: Promise<void> } | undefined;
 
 function services(): Services {
+  if (process.env.VERCEL === "1" || process.env.ACKRATE_CLI_RUNTIME_START !== "1") {
+    throw new PublicError("Funded CLI tests are unavailable on this deployment. Use the published CLI with your configured accounts. No funding or payment was started.", 503);
+  }
   const secret = process.env.ACKRATE_SESSION_SECRET;
   const databaseUrl = process.env.DATABASE_URL;
   if (!secret || Buffer.byteLength(secret) < 32 || !databaseUrl

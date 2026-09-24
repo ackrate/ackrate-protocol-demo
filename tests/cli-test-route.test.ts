@@ -21,7 +21,7 @@ const code = ts.transpileModule(readFileSync(routeFile, "utf8"), {
 }).outputText;
 type Routes = { GET(request: Request): Promise<Response>; POST(request: Request): Promise<Response> };
 
-async function fixture(context: TestContext) {
+async function fixture(context: TestContext, overrides: Record<string, string> = {}) {
   const db = new PGlite();
   context.after(() => db.close());
   const owner = Keypair.random();
@@ -66,8 +66,8 @@ async function fixture(context: TestContext) {
     assert.fail(`unexpected synthetic endpoint: ${url}`);
   };
   context.mock.method(globalThis, "fetch", fetchMock);
-  const environment = new Proxy({ NODE_ENV: "production", ACKRATE_APP_ORIGIN: ORIGIN,
-    ACKRATE_SESSION_SECRET: "synthetic-route-test-secret-0123456789abcdef", DATABASE_URL: "postgres://synthetic:test@invalid/test" }, {
+  const environment = new Proxy({ NODE_ENV: "production", ACKRATE_CLI_RUNTIME_START: "1", ACKRATE_APP_ORIGIN: ORIGIN,
+    ACKRATE_SESSION_SECRET: "synthetic-route-test-secret-0123456789abcdef", DATABASE_URL: "postgres://synthetic:test@invalid/test", ...overrides }, {
     get(target, key: string) {
       assert.notEqual(key, "ACKRATE_CLI_BURNER_MNEMONIC", "interactive sessions must not depend on the team funding key");
       return target[key as keyof typeof target];
@@ -109,6 +109,33 @@ async function fixture(context: TestContext) {
   }
   return { db, route, request, owner, prepare, launches, submitted, setAmbiguous: (value: boolean) => { ambiguous = value; } };
 }
+
+test("Vercel rejects funded CLI preparation before creating a session or submitting payment", async (context) => {
+  const f = await fixture(context, { VERCEL: "1" });
+  for (const response of [await f.route.GET(f.request()),
+    await f.route.POST(f.request({ action: "challenge", owner: f.owner.publicKey() }))]) {
+    assert.equal(response.status, 503);
+    assert.equal(response.headers.get("set-cookie"), null);
+    const body = await response.json();
+    assert.equal(body.ready, false);
+    assert.match(body.error, /unavailable on this deployment/);
+  }
+  assert.equal(f.submitted.length, 0);
+  assert.equal(f.launches.length, 0);
+});
+test("missing persistent-runner opt-in rejects funding even without a Vercel platform marker", async (context) => {
+  const f = await fixture(context, { ACKRATE_CLI_RUNTIME_START: "" });
+  for (const response of [await f.route.GET(f.request()),
+    await f.route.POST(f.request({ action: "challenge", owner: f.owner.publicKey() }))]) {
+    assert.equal(response.status, 503);
+    assert.equal(response.headers.get("set-cookie"), null);
+    const body = await response.json();
+    assert.equal(body.ready, false);
+    assert.match(body.error, /unavailable on this deployment/);
+  }
+  assert.equal(f.submitted.length, 0);
+  assert.equal(f.launches.length, 0);
+});
 
 test("interactive route completes ownership, exact funding and one explicit launch independently of team key", async (context) => {
   const f = await fixture(context);

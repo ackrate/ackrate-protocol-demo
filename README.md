@@ -1,6 +1,8 @@
-# ⚡ ackrate-protocol-demo
+# ackrate-protocol-demo
 
-**The live ACKRATE developer experience: 20 production-shaped starter packs for contract-enforced agent payments on Stellar testnet. The SDK prepares the request; the MandateRegistry contract decides whether money moves.**
+ACKRATE's Mainnet wallet, CLI reference agents, and contract evidence. The starter catalog below is a separate Testnet integration guide.
+
+Start with [Docs](https://reapp.live/), [Wallet](https://reapp.live/wallet), [CLI](https://reapp.live/cli), or [Security](https://reapp.live/security). See [deployment configuration and current limits](docs/deployment.md) for Vercel automation. A successful web deployment does not establish paid-flow acceptance.
 
 ---
 

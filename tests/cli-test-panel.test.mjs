@@ -18,7 +18,7 @@ const PAYMENT_HASH = "b".repeat(64);
 const completed = () => ({ configured: true, state: "succeeded", version: "0.2.1", sourceCommit: "8c74bef",
   run: { id: "synthetic-retained-run", state: "succeeded", fundingHash: FUNDING_HASH,
     owner: "synthetic-owner", payer: "synthetic-payer", agent: "synthetic-agent", merchant: "synthetic-merchant",
-    logs: `Earlier failed setup remains recorded\nACKRATE CLI 0.2.1\nmarket delivered after verified payment tx=\x1b]8;;https://stellar.expert/explorer/public/tx/${PAYMENT_HASH}\x07${PAYMENT_HASH}\x1b]8;;\x07\nVerified result\n3 protected research sources` } });
+    logs: `Earlier failed setup remains recorded\nACKRATE CLI 0.2.1\nmarket delivered after verified payment tx=\x1b]8;;https://stellar.expert/explorer/public/tx/${PAYMENT_HASH}\x07${PAYMENT_HASH}\x1b]8;;\x07\nacademic delivered after verified payment tx=\x1b]8;;https://stellar.expert/explorer/public/tx/${"c".repeat(64)}\x07${"c".repeat(64)}\x1b]8;;\x07\nnews delivered after verified payment tx=\x1b]8;;https://stellar.expert/explorer/public/tx/${"d".repeat(64)}\x07${"d".repeat(64)}\x1b]8;;\x07\nVerified result\n3 protected research sources` } });
 
 function nodes(value, result = []) {
   if (Array.isArray(value)) value.forEach((child) => nodes(child, result));
@@ -169,7 +169,22 @@ test("completion without readable run evidence cannot display payment success", 
     const h = harness(response); await h.settle();
     assert.doesNotMatch(h.text(), /Payment test passed|Previous team-funded test · passed/);
     assert.match(h.text(), /evidence unavailable/);
-    assert.equal(h.find("button", "Download test evidence").props.disabled, true);
+    assert.equal(h.find("button", "Download test evidence").props.disabled, !response.run?.logs?.trim());
     h.assertInteractive(); h.assertReadOnly();
+  }
+});
+
+
+test("completed status cannot claim payment success with setup-only, partial or duplicate receipts", async () => {
+  const original = completed().run.logs;
+  for (const logs of ["setup completed", original.replace(/academic delivered[^\n]*\n/, ""), original.replaceAll("c".repeat(64), PAYMENT_HASH)]) {
+    const status = completed(); status.run.logs = logs;
+    const h = harness(status); await h.settle();
+    assert.match(h.text(), /evidence unavailable/);
+    assert.doesNotMatch(h.text(), /Payment test passed/);
+    const download = h.find("button", "Download test evidence");
+    assert.equal(download.props.disabled, false);
+    download.props.onClick();
+    assert.deepEqual(JSON.parse(await h.downloads[0].text()), status);
   }
 });

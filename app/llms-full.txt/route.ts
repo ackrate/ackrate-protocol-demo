@@ -55,15 +55,15 @@ The Consumer page previews a person-facing task flow for giving an AI agent a jo
 
 ### Express — https://reapp.live/express
 
-The Express flow demonstrates pay-per-use API fulfillment. A 402 response describes a scoped requirement; the consumer checks it against the mandate, settles, and retries with proof. The middleware verifies the ACKRATE event and token transfer before the route handler can return the protected value. Production deployments need a shared durable redemption store across workers.
+The Express page records the historical August Mainnet demonstration using the earlier PAGS registry. Its prices and receipts are historical; the current wallet provides a fresh quote. A 402 response describes a scoped requirement; the consumer checks it against the mandate, settles, and retries with proof. The middleware verifies the ACKRATE event and token transfer before the route handler can return the protected value. Production deployments need a shared durable redemption store across workers.
 
 ### Merchant assurance — https://reapp.live/merchants
 
-The Merchants page maps unauthorized caller, expiry, overspend, replay, unauthorized upgrade, and reentrancy cases to the exact governed Mainnet Rust tests. It links the live MandateRegistry and TimelockController, completed deployment record, release manifest, continuous contract gate, artifact provenance, and one-command local reproduction path. The page presents repository evidence; the contract remains the payment authority.
+The Merchants page is a legacy reference and is not current governance evidence. Use /security for the WR Mainnet registry, native 2-of-3 administration, and its no-timelock boundary.
 
 ### Contract Security Suite — https://reapp.live/security
 
-The Contract Security Suite is the public release-gate evidence surface for Ackrate's Mainnet contracts. It maps named negative paths to exact Rust tests, documents the registry enforcement boundary and atomic USDC data flow, links dependency results and the live governed contracts, and provides a reproducible local gate command. The Mainnet suites contain 23 MandateRegistry tests and 11 TimelockController tests, for 34 total contract tests. The latest required workflow and versioned report are authoritative for dependency status.
+The Contract Security Suite is the public release-gate evidence surface for Ackrate's Mainnet contracts. It maps named negative paths to exact Rust tests, documents the registry enforcement boundary and atomic USDC data flow, links dependency results and the deployed WR registry, and provides a reproducible local gate command. The recorded V2 gate contains 52 native checks and one optimized-WASM check, for 53 total. Administration uses native Stellar 2-of-3 authorization; this deployment has no timelock. The latest required workflow and versioned report are authoritative for dependency status.
 
 ### Mainnet wallet canary — https://reapp.live/wallet
 

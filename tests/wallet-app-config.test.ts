@@ -95,6 +95,13 @@ test("production diagnostics prefer Railway's deployed commit over a stale manua
   assert.equal(config.public.sourceCommit, deployed);
 });
 
+test("Vercel diagnostics prefer the deployed commit over migrated Railway and manual pins", () => {
+  const deployed = "c".repeat(40);
+  const config = loadAppConfig({ ...validEnv(), VERCEL_GIT_COMMIT_SHA: deployed,
+    RAILWAY_GIT_COMMIT_SHA: "a".repeat(40), ACKRATE_APP_SOURCE_COMMIT: "b".repeat(40) });
+  assert.equal(config.public.sourceCommit, deployed);
+});
+
 test("merchant URL and catalog cannot redirect payments off the allowlisted origin", () => {
   const badUrl = loadAppConfig({ ...validEnv(), ACKRATE_CHAT_MERCHANT_URL: "https://user:pass@merchant.example/path" });
   assert.equal(badUrl.public.ready, false);

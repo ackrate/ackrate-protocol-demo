@@ -1,0 +1,77 @@
+name: Vercel Deployment
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [main, prod]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vercel-${{ github.repository }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    if: >-
+      github.actor != 'dependabot[bot]' &&
+      (github.event_name == 'push' ||
+       github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: ubuntu-latest
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      ACKRATE_APP_SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+      ACKRATE_CLI_RUNTIME_START: "0"
+      VERCEL_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Check deployment credentials
+        id: credentials
+        shell: bash
+        run: |
+          if [[ -z "$VERCEL_TOKEN" || -z "$VERCEL_ORG_ID" || -z "$VERCEL_PROJECT_ID" ]]; then
+            if [[ "$GITHUB_EVENT_NAME" == "push" ]]; then
+              echo "::error::Production requires VERCEL_TOKEN, VERCEL_ORG_ID and VERCEL_PROJECT_ID."
+              exit 1
+            fi
+            echo "::notice::Preview skipped: deployment credentials are unavailable."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        if: steps.credentials.outputs.ready == 'true'
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Install and validate
+        if: steps.credentials.outputs.ready == 'true'
+        run: |
+          npm ci
+          npm run check:branding
+          npm run check:workflow-pins
+          npm run check:starters
+          npm run typecheck
+          npm run test:cli
+          npm run test:hackathon
+          npm run test:wallet
+          npm audit --audit-level=high
+          npm install --global vercel@59.11.7
+      - name: Build and deploy preview
+        if: steps.credentials.outputs.ready == 'true' && github.event_name == 'pull_request'
+        run: |
+          vercel pull --yes --environment=preview --token="$VERCEL_TOKEN"
+          vercel build --token="$VERCEL_TOKEN"
+          vercel deploy --prebuilt --token="$VERCEL_TOKEN" --env ACKRATE_APP_SOURCE_COMMIT="$ACKRATE_APP_SOURCE_COMMIT" --env ACKRATE_CLI_RUNTIME_START=0
+      - name: Build and deploy production
+        if: steps.credentials.outputs.ready == 'true' && github.event_name == 'push'
+        run: |
+          vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+          vercel build --prod --token="$VERCEL_TOKEN"
+          vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN" --env ACKRATE_APP_SOURCE_COMMIT="$ACKRATE_APP_SOURCE_COMMIT" --env ACKRATE_CLI_RUNTIME_START=0
