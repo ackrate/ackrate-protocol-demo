@@ -9,3 +9,7 @@ The homepage explains the Stellar consumer path and links to `/wallet` and `/doc
 Each sentence or control should help a user authorize, execute, verify, recover, or integrate. Keep required consent, diagnostics, and recovery controls. Put advanced details in the relevant guide instead of repeating them on the homepage. Quick starters call the SDK and log one-line results; they do not provide a second narrated CLI.
 
 Canonical presentation sources are `app/globals.css`, `components/Nav.tsx`, `app/docs/`, and the wallet styles. Older landing-branch green/lime brandbooks are superseded for this REAPP surface; they are not evidence of a deployed update.
+
+The theme switch follows the system preference until a user chooses light or dark, then remembers that choice locally. Shared tokens apply to navigation, docs, demos, and the wallet. Red marks primary actions and a few section accents. Express and AP2 are labeled demos. Security evidence belongs in GitHub reports, with a short testing statement on the homepage.
+
+The AP2 live console runs the valid path and five rejection cases; its static 59-case catalog is kept in `docs/ap2-test-reference.md`. Demo captions use readable neutral text, and transaction controls have 40px targets.

@@ -179,7 +179,7 @@ for (const surface of surfaces) {
       const layout = read("app/wallet/layout.tsx");
       assert.ok(layout.indexOf('import "./wallet-flat.css"') > layout.indexOf('import "./wallet-flow.css"'));
       const flat = read("app/wallet/wallet-flat.css");
-      includes(flat, ['font-family: "Wallet Geist"', "background: #000", "position: static", "repeat(3, minmax(0, 1fr))", ":focus-visible"]);
+      includes(flat, ['font-family: "Wallet Geist"', "background: light-dark(#ffffff, #000)", "position: static", "repeat(3, minmax(0, 1fr))", ":focus-visible"]);
       assert.doesNotMatch(flat, /radial-gradient|linear-gradient|translateZ|rotateY/);
       return;
     }

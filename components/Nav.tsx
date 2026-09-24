@@ -2,15 +2,15 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import ThemeToggle from "./ThemeToggle";
 
 const guides = [
   { href: "/docs", label: "Overview" },
   { href: "/docs/sdk", label: "SDK" },
   { href: "/docs/cli", label: "CLI" },
   { href: "/docs/quickstarts", label: "Quick starters" },
-  { href: "/express", label: "Express" },
-  { href: "/ap2", label: "AP2" },
-  { href: "/security", label: "Security" },
+  { href: "/express", label: "Express demo" },
+  { href: "/ap2", label: "AP2 demo" },
 ];
 
 export default function Nav() {
@@ -33,6 +33,7 @@ export default function Nav() {
               {guides.map((link) => <Link key={link.href} href={link.href} aria-current={path === link.href ? "page" : undefined}>{link.label}</Link>)}
             </div>
           </details>
+          <ThemeToggle />
         </div>
       </div>
     </nav><div className="nav-spacer" aria-hidden="true" />

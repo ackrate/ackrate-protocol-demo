@@ -4,7 +4,7 @@ REAPP demonstrates bounded agent payments on Stellar. Its SDK and CLI are publis
 
 - [Consumer app](https://reapp.live/wallet): Freighter, Stellar Mainnet, Circle USDC. Purchases use real funds and XLM fees.
 - [Developer docs](https://reapp.live/docs): [SDK](https://reapp.live/docs/sdk), [CLI](https://reapp.live/docs/cli), and [quick starters](https://reapp.live/docs/quickstarts).
-- [Security evidence](https://reapp.live/security): contract checks, receipts, and native 2-of-3 administration with no timelock.
+- [Security evidence](docs/security-evidence.md): contract checks, receipts, and native 2-of-3 administration with no timelock.
 
 ## Choose from 20 starter packs
 

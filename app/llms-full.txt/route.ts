@@ -59,11 +59,11 @@ The Express page records the historical August Mainnet demonstration using the e
 
 ### Merchant assurance — https://reapp.live/merchants
 
-The Merchants page is a legacy reference and is not current governance evidence. Use /security for the WR Mainnet registry, native 2-of-3 administration, and its no-timelock boundary.
+The Merchants page is a legacy reference and is not current governance evidence. Use the GitHub contract verification report for the WR Mainnet registry, native 2-of-3 administration, and its no-timelock boundary.
 
-### Contract Security Suite — https://reapp.live/security
+### Contract verification report — https://github.com/ackrate/ackrate-protocol-contracts/blob/main/docs/mainnet-v2-security-verification.md
 
-The Contract Security Suite is the public release-gate evidence surface for Ackrate's Mainnet contracts. It maps named negative paths to exact Rust tests, documents the registry enforcement boundary and atomic USDC data flow, links dependency results and the deployed WR registry, and provides a reproducible local gate command. The recorded V2 gate contains 52 native checks and one optimized-WASM check, for 53 total. Administration uses native Stellar 2-of-3 authorization; this deployment has no timelock. The latest required workflow and versioned report are authoritative for dependency status.
+The GitHub report records release-gate evidence for ACKRATE Mainnet contracts. It maps named negative paths to exact Rust tests, documents the registry enforcement boundary and atomic USDC data flow, links dependency results and the deployed WR registry, and provides a reproducible local gate command. The recorded V2 gate contains 52 native checks and one optimized-WASM check, for 53 total. Administration uses native Stellar 2-of-3 authorization; this deployment has no timelock. The latest required workflow and versioned report are authoritative for dependency status.
 
 ### Mainnet wallet canary — https://reapp.live/wallet
 

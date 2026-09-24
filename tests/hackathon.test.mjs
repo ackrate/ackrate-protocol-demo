@@ -13,9 +13,9 @@ const PERMANENT_SIMPLE_CONTRACT =
 const RETIRED_PACKAGE_SCOPE = new RegExp(`@${String.fromCharCode(114, 101, 97, 112, 112)}-sdk/`);
 const TEMPORARY_HOSTNAME = `${String.fromCharCode(114, 101, 97, 112, 112)}.live`;
 
-// 2026-09-24: label legacy Express evidence and remove the stale price promise. Runtime and receipts are unchanged.
+// 2026-09-24: theme-aware Express presentation and demo labels. Runtime and recorded receipts are unchanged.
 const protectedHashes = {
-  "app/express/page.tsx": "90493552b85b784eb47d533c5c874c45e90fe18033897c4af48504cd639e3746",
+  "app/express/page.tsx": "2333ee1dcabd4430b5dc877a1a9f6638109cf3d82b196ee5c468f8744f008399",
   "app/express/layout.tsx": "7fb5a1ee24023ddd61ee8092c0c2e3047d51d5a0c4273fb1f4ba6f7374f8b40d",
   "app/api/express/route.ts": "645a2a92788b61f42537ee0d9f4980c7324a0f76fadd68239939da17b0854141",
   "app/api/express/[sessionId]/source/[resource]/route.ts": "022c94e6c368357692c1981f08f52aea41c28ef39eadde56ca501280a6e552a5",
@@ -63,8 +63,8 @@ test("navigation groups developer guides while preserving direct product routes"
   assert.doesNotMatch(nav, /href: "\/consumer", label: "Consumer"/);
   assert.match(nav, /href: "\/docs\/quickstarts", label: "Quick starters"/);
   assert.doesNotMatch(nav, /href: "\/video", label: "Video"/);
-  assert.match(nav, /href: "\/express", label: "Express"/);
-  assert.match(nav, /href: "\/security", label: "Security"/);
+  assert.match(nav, /href: "\/express", label: "Express demo"/);
+  assert.doesNotMatch(nav, /href: "\/security"/);
   assert.match(consumer, /Preview only · no funds move/);
   assert.match(consumer, /No wallet was created and no transaction was signed/);
   assert.match(consumer, /Give AI a job/);
@@ -74,41 +74,15 @@ test("navigation groups developer guides while preserving direct product routes"
   assert.ok(video.length > 100);
 });
 
-test("the Contract Security Suite links every claim to public Mainnet evidence", async () => {
-  const [page, route, layout, sitemap, llms] = await Promise.all([
-    read("app/security/SecurityEvidenceClient.tsx"),
-    read("app/security/page.tsx"),
-    read("app/security/layout.tsx"),
-    read("app/sitemap.ts"),
-    read("app/llms.txt/route.ts"),
+test("security evidence stays in the repository and old website links redirect", async () => {
+  const [report, route, sitemap] = await Promise.all([
+    read("docs/security-evidence.md"), read("app/security/page.tsx"), read("app/sitemap.ts"),
   ]);
-  for (const required of [
-    "Unauthorized callers rejected",
-    "Expired mandates and overspend rejected",
-    "Replay and sequence substitution rejected",
-    "Unauthorized and unpaused upgrades rejected",
-    "53 / 53 PASS",
-    "52 native Soroban host tests",
-    "1 exact optimized-WASM execution check passed",
-    "10,001 signed amount boundaries passed",
-    "512 complete mandate-state scenarios passed",
-    "18 functions and 9 runtime events matched",
-    "V2 has no timelock",
-    "Recorded gate output",
-    "Boundary:",
-    "security-scan.sh",
-    "gatecheck-contracts.sh",
-    "mainnet-v2-security-verification.md",
-    "CCLZEBJXG4YVJEPBCR5F27N733BCK5HQJWZZGB3K54JVODY3VAGP4HWR",
-    "982809197d35d44c7b0fce6bd117fb2fec09b728c64c146c1f803b01faacff62",
-  ]) assert.match(page, new RegExp(required.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")), required);
-  assert.match(route, /SecurityEvidenceClient/);
-  assert.match(layout, /path: "\/security"/);
-  assert.match(sitemap, /"\/security"/);
-  assert.match(llms, /Contract Security Suite/);
-  assert.doesNotMatch(page, /CDBTG5ZKASFA7LOYUPBOTGKAVX5MJIM4U24BYGX7VX23IHYDAHLQPAGS/);
-  assert.doesNotMatch(page, /CD3KRQRNCW52CZHKG2GPQAEOU6UCL426YFNHYUZ7IWUUKAOTKUQX6UUX/);
-  assert.equal(page.toLowerCase().includes(String.fromCharCode(97, 117, 100, 105, 116)), false);
+  assert.match(report, /53 \/ 53 PASS/);
+  assert.match(report, /gatecheck-contracts.sh/);
+  assert.match(route, /permanentRedirect/);
+  assert.match(route, /github.com\/ackrate\/ackrate-protocol-contracts/);
+  assert.doesNotMatch(sitemap, /"\/security"/);
 });
 
 test("quick starters preserve integrity-checked installers and the hosted SDK companion", async () => {

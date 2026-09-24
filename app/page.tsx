@@ -15,7 +15,7 @@ export default function Home() {
         <div><span className="eyebrow">02 / Pay</span><h2>Let the agent work.</h2><p>The contract checks each payment against your mandate.</p></div>
         <div><span className="eyebrow">03 / Verify</span><h2>Inspect the result.</h2><p>Review the delivered output and its Stellar transaction receipts.</p></div>
       </section>
-      <section className="landing-foundation"><h2>Built on Stellar.<br />Open to inspection.</h2><div><p>REAPP uses ACKRATE SDK, ACKRATE CLI, and MandateRegistry. The SDK and CLI are published under @ackrate following the REAPP SDK rename.</p><p>The allowance belongs to the contract. This deployment uses native 2-of-3 administration with no timelock.</p><Link href="/security">Read the security evidence →</Link></div></section>
+      <section className="landing-foundation"><h2>Built on Stellar.<br />Open to inspection.</h2><div><p>REAPP uses ACKRATE SDK, ACKRATE CLI, and MandateRegistry. The SDK and CLI are published under @ackrate following the REAPP SDK rename.</p><p>Release checks cover contract authorization, payment recovery, strict TypeScript, and dependency advisories.</p><a href="https://github.com/ackrate/ackrate-protocol-contracts/blob/main/docs/mainnet-v2-security-verification.md">Testing and verification on GitHub →</a></div></section>
     </div>
   </main>;
 }
