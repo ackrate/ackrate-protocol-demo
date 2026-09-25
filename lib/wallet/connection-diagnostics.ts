@@ -1,11 +1,13 @@
 // This buffer accepts only fixed event names and numeric status codes. Never pass
 // wallet payloads, messages, addresses, signatures, XDR, or request/response bodies.
-export type ConnectionStep = "detect" | "access" | "network" | "message" | "config" | "session" | "challenge" | "verify";
+export type ConnectionStep = "detect" | "access" | "network" | "message" | "config" | "session" | "challenge" | "verify" | "transaction" | "disconnect";
 export type ConnectionOutcome = "started" | "ok" | "unavailable" | "timeout" | "rejected" | "invalid" | "mismatch" | "failed";
 export interface ConnectionEvent { at: string; step: ConnectionStep; outcome: ConnectionOutcome; code?: number }
-const steps: readonly string[] = ["detect", "access", "network", "message", "config", "session", "challenge", "verify"];
+const steps: readonly string[] = ["detect", "access", "network", "message", "config", "session", "challenge", "verify", "transaction", "disconnect"];
 const outcomes: readonly string[] = ["started", "ok", "unavailable", "timeout", "rejected", "invalid", "mismatch", "failed"];
 const events: ConnectionEvent[] = [];
+let requestedTransport: "walletconnect" | "freighter-extension" | undefined;
+export function setConnectionTransport(transport: "walletconnect" | "freighter-extension"): void { requestedTransport = transport; }
 const listeners = new Set<() => void>();
 export function recordConnectionEvent(step: ConnectionStep, outcome: ConnectionOutcome, code?: unknown): void {
   if (!steps.includes(step) || !outcomes.includes(outcome)) return;
@@ -22,7 +24,7 @@ export function isMobileBrowser(): boolean {
   return typeof navigator !== "undefined" && (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
     || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1));
 }
-export function buildConnectionReport(context: { sourceCommit?: string | null; network?: string; ready?: boolean }) {
+export function buildConnectionReport(context: { sourceCommit?: string | null; network?: string; ready?: boolean; mobileSelected?: boolean }) {
   const ua = typeof navigator === "undefined" ? "" : navigator.userAgent;
   const os = /Android/i.test(ua) ? "Android" : /iPhone|iPad|iPod/i.test(ua) || (isMobileBrowser() && /Mac/i.test(ua)) ? "iOS/iPadOS"
     : /Windows/i.test(ua) ? "Windows" : /Mac/i.test(ua) ? "macOS" : /Linux/i.test(ua) ? "Linux" : "unknown";
@@ -35,7 +37,8 @@ export function buildConnectionReport(context: { sourceCommit?: string | null; n
     surface: "/wallet", os, browser, mobile: isMobileBrowser(),
     secureContext: typeof window !== "undefined" && window.isSecureContext,
     online: typeof navigator !== "undefined" ? navigator.onLine : null,
-    transport: "freighter-extension", mobileTransportConfigured: false,
+    transport: requestedTransport ?? (isMobileBrowser() || context.mobileSelected ? "walletconnect" : "freighter-extension"),
+    mobileTransportConfigured: /^[a-f0-9]{32}$/i.test(process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID ?? ""),
     sourceCommit: context.sourceCommit && /^[a-f0-9]{40}$/i.test(context.sourceCommit) ? context.sourceCommit : null,
     network: context.network === "mainnet" || context.network === "testnet" ? context.network : "unknown",
     serverReady: typeof context.ready === "boolean" ? context.ready : null,
@@ -59,14 +62,14 @@ export async function connectionRequest<T>(step: ConnectionStep, request: () => 
       Promise.resolve().then(request),
       new Promise<never>((_, reject) => {
         timer = setTimeout(() => reject(new WalletConnectionError(step, "timeout",
-          "Freighter did not respond in time. Open and unlock the extension, dismiss any old request, then try again.")), timeoutMs);
+          "Freighter did not respond in time. Open and unlock Freighter, dismiss any old request, then try again.")), timeoutMs);
       }),
     ]);
   } catch (cause) {
     const outcome = cause instanceof WalletConnectionError ? cause.outcome : "failed";
     recordConnectionEvent(step, outcome);
     if (cause instanceof WalletConnectionError) throw cause;
-    throw new WalletConnectionError(step, outcome, "The Freighter request failed. Open the extension and try again, or share the connection report below.");
+    throw new WalletConnectionError(step, outcome, "The Freighter request failed. Open Freighter and try again, or share the connection report below.");
   } finally {
     clearTimeout(timer);
   }

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type SetStateAction } from "react";
 import Link from "next/link";
 import ConnectionDiagnostics from "./ConnectionDiagnostics";
-import { recordConnectionEvent, type ConnectionStep } from "@/lib/wallet/connection-diagnostics";
+import { isMobileBrowser, recordConnectionEvent, type ConnectionStep } from "@/lib/wallet/connection-diagnostics";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   Activity,
@@ -45,7 +45,7 @@ import {
   walletRpcServer,
 } from "@/lib/wallet/mandate-client";
 import type { MandateView, SafeAppConfig, SessionView } from "@/lib/wallet/types";
-import { addTokenToFreighter, connectFreighter, freighterSessionState, signFreighterMessage } from "@/lib/wallet/freighter";
+import { addTokenToFreighter, connectFreighter, disconnectMobileWallet, usesMobileWallet, freighterSessionState, signFreighterMessage } from "@/lib/wallet/freighter";
 import { sourceIdForMarketplaceService, WEB_SEARCH_INPUTS, type MarketplaceService } from "@/lib/wallet/marketplace-catalog";
 import { AssistantThread, parseRecovery, purchaseResultForMandate, PurchaseReport, type PurchaseResult } from "./AssistantThread";
 import { initialServiceInputValues, serializedServiceInputs, ServiceConfigurator, type ServiceInputValues } from "./ServiceConfigurator";
@@ -177,7 +177,7 @@ function WalletToast({ notification, busy, onDismiss, legacy = false }: { notifi
   return <div className={`${legacy ? "toast" : "flow-toast"}${failed ? " error" : ""}`} role={failed ? "alert" : "status"} aria-atomic="true" style={{ width: "min(440px, calc(100vw - 32px))", alignItems: "start" }}>
     <span aria-hidden="true">{failed ? <TriangleAlert size={16} /> : busy ? <LoaderCircle className="spin" size={16} /> : <Info size={16} />}</span>
     <p style={{ fontSize: 13, lineHeight: 1.55, overflowWrap: "anywhere" }}>{notification.message}</p>
-    <button type="button" onClick={onDismiss} aria-label="Dismiss notification" style={{ minWidth: 28, minHeight: 28, color: "#d4d4d4" }}><X size={16} /></button>
+    <button type="button" onClick={onDismiss} aria-label="Dismiss notification" style={{ minWidth: 28, minHeight: 28, color: "var(--text)" }}><X size={16} /></button>
   </div>;
 }
 
@@ -329,6 +329,8 @@ export function WalletChatApp() {
   const [disconnectOpen, setDisconnectOpen] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
   const [revocationProgress, setRevocationProgress] = useState<"wallet" | "confirming" | null>(null);
+  const [mobileBrowser, setMobileBrowser] = useState(false);
+  useEffect(() => setMobileBrowser(isMobileBrowser()), []);
   const [usdcReady, setUsdcReady] = useState(false);
   const [walletBalances, setWalletBalances] = useState<WalletBalances | null>(null);
   const [balancesLoading, setBalancesLoading] = useState(false);
@@ -421,11 +423,11 @@ export function WalletChatApp() {
     let active = true;
     let checking = false;
     const checkConnection = async () => {
-      if (checking) return;
+      if (checking || disconnectInFlight.current) return;
       checking = true;
       try {
-        const state = await freighterSessionState(session.address!);
-        if (!active || state !== "disconnected") return;
+        const state = await freighterSessionState(session.address!, config?.networkPassphrase);
+        if (!active || (state !== "disconnected" && state !== "different")) return;
         await api("/api/wallet/auth/session", { method: "DELETE", body: "{}" });
         if (active) window.location.reload();
       } catch {
@@ -436,11 +438,13 @@ export function WalletChatApp() {
     };
     void checkConnection();
     window.addEventListener("focus", checkConnection);
+    window.addEventListener("reapp:wallet-change", checkConnection);
     return () => {
       active = false;
       window.removeEventListener("focus", checkConnection);
+      window.removeEventListener("reapp:wallet-change", checkConnection);
     };
-  }, [session.address, session.authenticated]);
+  }, [session.address, session.authenticated, config?.networkPassphrase]);
 
   useEffect(() => {
     if (!config || !session.authenticated || !session.address) return;
@@ -802,13 +806,13 @@ export function WalletChatApp() {
     }
   };
 
-  const connect = async () => {
+  const connect = async (transport?: "mobile" | "extension") => {
     if (!config || phase === "authenticating") return;
     setError(null);
     setNotice("Open Freighter and connect your wallet.");
     setPhase("authenticating");
     try {
-      const address = await connectFreighter(config.networkPassphrase, setNotice);
+      const address = await connectFreighter(config.networkPassphrase, setNotice, transport);
       setWalletAddress(address);
       setNotice("Wallet connected. No transaction was created, signed, or sent.");
       setPhase("idle");
@@ -949,18 +953,22 @@ export function WalletChatApp() {
     if (!config || config.network !== "mainnet") return;
     setError(null);
     setPhase("adding-asset");
+    if (usesMobileWallet()) {
+      setNotice("Open Freighter Mobile, add Circle USDC, then return here and tap Refresh to check the trustline.");
+      setPhase("idle");
+      return;
+    }
     setNotice("Approve adding USDC in Freighter.");
     try {
       await addTokenToFreighter(config.asset.contractId, config.networkPassphrase);
-      setUsdcReady(true);
-      setNotice("USDC is ready in Freighter.");
+      setNotice("Asset request completed. Checking the on-chain USDC trustline…");
       await refreshWalletBalances();
     } catch (cause) {
       const message = cause instanceof Error ? cause.message : String(cause);
       if (/already.*trustline|trustline.*already/i.test(message)) {
-        setUsdcReady(true);
         setError(null);
-        setNotice("USDC is already ready in your wallet.");
+        setNotice("Checking the existing USDC trustline…");
+        await refreshWalletBalances();
       } else {
         setError(safeWalletError(cause, "USDC setup did not finish. Open Freighter and check its pending request."));
         setNotice(null);
@@ -1139,6 +1147,7 @@ export function WalletChatApp() {
     setDisconnecting(true);
     setNotice("Spending is off. Disconnecting your wallet…");
     try {
+      await disconnectMobileWallet();
       await api("/api/wallet/auth/session", { method: "DELETE", body: "{}" });
     } catch (cause) {
       setError("Spending is off, but sign-out did not finish. Retry Disconnect wallet; no new transaction or fee is needed.");
@@ -1253,7 +1262,7 @@ export function WalletChatApp() {
             {walletAddress ? (
               <button className="wallet-pill" onClick={session.authenticated ? () => setDisconnectOpen(true) : disconnect} title="Disconnect wallet"><Power size={13} /> Disconnect wallet</button>
             ) : (
-              <button className="wallet-pill" onClick={connect} disabled={!config || phase === "authenticating"}><WalletCards size={14} /> Connect wallet</button>
+              <button className="wallet-pill" onClick={() => void connect()} disabled={!config || phase === "authenticating"}><WalletCards size={14} /> Connect wallet</button>
             )}
           </div>
         </header>
@@ -1337,7 +1346,7 @@ export function WalletChatApp() {
               ) : (
                 <>
                   <p className="panel-copy">Connect your Freighter wallet to display its public address. Connecting does not create, sign, or send a Mainnet transaction.</p>
-                  <button className="primary-button" onClick={connect} disabled={!config || phase === "authenticating"}><WalletCards size={16} /> {phase === "authenticating" ? "Waiting for Freighter…" : "Connect wallet"}</button>
+                  <button className="primary-button" onClick={() => void connect()} disabled={!config || phase === "authenticating"}><WalletCards size={16} /> {phase === "authenticating" ? "Waiting for Freighter…" : "Connect wallet"}</button>
                 </>
               )}
             </div>
@@ -1564,21 +1573,23 @@ export function WalletChatApp() {
                 <span><Check size={14} />Circle USDC</span>
                 <span><Check size={14} />No charge to connect</span>
               </div>
+              {walletAddress && config && !config.ready && <p className="flow-alert">Wallet connected. Sign-in and payments are not enabled on this deployment yet.</p>}
               {walletAddress === config?.contractAuthorityAddress && (
                 <div className="flow-alert"><TriangleAlert size={16} />Use a personal wallet, not the contract governance account.</div>
               )}
               <motion.button
                 className="flow-primary"
                 type="button"
-                onClick={walletAddress ? authenticate : connect}
+                onClick={() => void (walletAddress ? authenticate() : connect())}
                 aria-describedby="wallet-sign-in-note"
-                disabled={!config || phase === "authenticating"}
+                disabled={!config || phase === "authenticating" || Boolean(walletAddress && !config.ready)}
                 whileHover={reduceMotion || !config || phase === "authenticating" ? undefined : { y: -2, scale: 1.005 }}
                 whileTap={reduceMotion || !config || phase === "authenticating" ? undefined : { scale: 0.985 }}
               >
                 {phase === "authenticating" ? <LoaderCircle className="spin" size={17} /> : <WalletCards size={17} />}
                 {phase === "authenticating" ? "Waiting for Freighter…" : walletAddress ? "Sign in with Freighter" : "Connect Freighter"}
               </motion.button>
+              {!walletAddress && !mobileBrowser && <button className="wallet-mobile-connect" type="button" disabled={!config || phase === "authenticating"} onClick={() => void connect("mobile")}>Use Freighter Mobile / QR code</button>}
               <small className="flow-footnote wallet-sign-in-note"><LockKeyhole size={12} aria-hidden="true" /><em id="wallet-sign-in-note">{walletAddress ? "Sign the offline message in Freighter to prove this wallet is yours. No transaction, spending permission or network fee." : "Connecting shares your public wallet address. Next, you will sign in to prove ownership. Neither step makes a payment or authorizes spending."}</em></small>
               <ConnectionDiagnostics sourceCommit={config?.sourceCommit} network={config?.network} ready={config?.ready} />
             </motion.div>

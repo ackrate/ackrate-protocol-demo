@@ -11,9 +11,13 @@ import {
   signMessage,
 } from "@stellar/freighter-api";
 import { Buffer } from "buffer";
-import { Keypair, StrKey } from "@stellar/stellar-sdk";
+import { Keypair, Networks, StrKey } from "@stellar/stellar-sdk";
 import type { SignTransaction } from "@stellar/stellar-sdk/contract";
-import { connectionRequest, isMobileBrowser, recordConnectionEvent, WalletConnectionError } from "./connection-diagnostics";
+import { connectionRequest, setConnectionTransport, isMobileBrowser, recordConnectionEvent, WalletConnectionError } from "./connection-diagnostics";
+
+import { connectMobileWallet, disconnectMobileWallet, mobileSessionState, mobileSignMessage, mobileSignTransaction, selectMobileWallet, usesMobileWallet } from "./walletconnect";
+
+export { disconnectMobileWallet, usesMobileWallet };
 
 export interface WalletSigner {
   publicKey: string;
@@ -25,19 +29,21 @@ function message(error: { message?: string } | undefined, fallback: string): str
 }
 
 let connectionPending = false;
-export async function connectFreighter(networkPassphrase: string, onStatus?: (status: string) => void): Promise<string> {
+export async function connectFreighter(networkPassphrase: string, onStatus?: (status: string) => void, transport?: "mobile" | "extension"): Promise<string> {
   if (connectionPending) throw new WalletConnectionError("access", "failed", "A connection request is already pending. Check Freighter before trying again.");
   connectionPending = true;
   try {
-    if (isMobileBrowser()) {
-      recordConnectionEvent("detect", "unavailable");
-      throw new WalletConnectionError("detect", "unavailable", "Freighter Mobile needs WalletConnect. This release supports the desktop extension only; mobile connection is not configured yet.");
+    if (transport === "mobile" || (transport !== "extension" && (isMobileBrowser() || usesMobileWallet()))) {
+      setConnectionTransport("walletconnect");
+      return await connectMobileWallet(networkPassphrase, onStatus);
     }
+    setConnectionTransport("freighter-extension");
+    selectMobileWallet(false);
     onStatus?.("Checking for the Freighter extension…");
     const detected = await connectionRequest("detect", isConnected, 5_000);
     if (detected.error || !detected.isConnected) {
       recordConnectionEvent("detect", "unavailable", detected.error?.code);
-      throw new WalletConnectionError("detect", "unavailable", "Freighter was not detected. Install or enable its desktop extension, unlock it, then refresh this page.");
+      throw new WalletConnectionError("detect", "unavailable", "Freighter was not detected. Install or unlock its desktop extension and refresh, or choose Freighter Mobile below.");
     }
     recordConnectionEvent("detect", "ok");
     onStatus?.("Approve the connection in Freighter. If no prompt appears, open the extension.");
@@ -85,22 +91,11 @@ export function freighterSigner(address: string, networkPassphrase: string): Wal
           error: { message: "Freighter network does not match the configured network", code: -1 },
         };
       }
-      const signed = await signTransaction(xdr, { address, networkPassphrase });
-      if (signed.error) {
-        return {
-          signedTxXdr: "",
-          signerAddress: signed.signerAddress || address,
-          error: { message: message(signed.error, "Freighter signing was rejected"), code: -1 },
-        };
+      try {
+        return { signedTxXdr: await signFreighterTransaction(xdr, address, networkPassphrase), signerAddress: address };
+      } catch {
+        return { signedTxXdr: "", signerAddress: address, error: { message: "Freighter signing did not finish. Reconnect your wallet and try again.", code: -1 } };
       }
-      if (!signed.signedTxXdr) {
-        return {
-          signedTxXdr: "",
-          signerAddress: signed.signerAddress || address,
-          error: { message: "Freighter did not return a signed transaction", code: -1 },
-        };
-      }
-      return { signedTxXdr: signed.signedTxXdr, signerAddress: signed.signerAddress || address };
     },
   };
 }
@@ -110,6 +105,7 @@ export async function signFreighterTransaction(
   address: string,
   networkPassphrase: string,
 ): Promise<string> {
+  if (usesMobileWallet()) return mobileSignTransaction(xdr, address, networkPassphrase);
   const signed = await signTransaction(xdr, { address, networkPassphrase });
   if (signed.error) throw new Error(message(signed.error, "Freighter signing was rejected"));
   if (signed.signerAddress && signed.signerAddress !== address) {
@@ -120,6 +116,8 @@ export async function signFreighterTransaction(
 }
 
 export async function addTokenToFreighter(contractId: string, networkPassphrase: string): Promise<void> {
+  if (usesMobileWallet()) throw new WalletConnectionError("access", "unavailable",
+    "In Freighter Mobile, add Circle USDC on the network shown here, then return and refresh your balance. WalletConnect cannot add assets for you.");
   const result = await addToken({ contractId, networkPassphrase });
   if (result.error) throw new Error(message(result.error, "Freighter could not add USDC"));
   if (result.contractId !== contractId) throw new Error("Freighter returned a different token contract");
@@ -131,7 +129,8 @@ export async function addTokenToFreighter(contractId: string, networkPassphrase:
  * prompts. Returns "unknown" when Freighter is unavailable so a missing
  * extension never signs anyone out.
  */
-export async function freighterSessionState(expectedAddress: string): Promise<"matches" | "disconnected" | "different" | "unknown"> {
+export async function freighterSessionState(expectedAddress: string, networkPassphrase: string = Networks.PUBLIC): Promise<"matches" | "disconnected" | "different" | "unknown"> {
+  if (usesMobileWallet()) return mobileSessionState(expectedAddress, networkPassphrase);
   try {
     const allowed = await isAllowed();
     if (allowed.error) return "unknown";
@@ -146,7 +145,9 @@ export async function freighterSessionState(expectedAddress: string): Promise<"m
 
 /** Offline SEP-53 proof of key possession; deliberately no transaction-signing fallback. */
 export async function signFreighterMessage(text: string, address: string, networkPassphrase: string): Promise<string> {
-  const signed = await connectionRequest("message", () => signMessage(text, { address, networkPassphrase }), 90_000);
+  const signed = usesMobileWallet()
+    ? { signedMessage: await mobileSignMessage(text, address, networkPassphrase), signerAddress: address, error: undefined }
+    : await connectionRequest("message", () => signMessage(text, { address, networkPassphrase }), 90_000);
   if (signed.error) {
     recordConnectionEvent("message", "rejected", signed.error.code);
     throw new WalletConnectionError("message", "rejected", "Freighter did not sign the message. Check the extension; update Freighter if message signing is unavailable.");

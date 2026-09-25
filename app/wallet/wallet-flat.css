@@ -299,3 +299,18 @@ body:has(.wallet-flat)::before { content: none; }
 .wallet-preview.wallet-flow.wallet-flat .flow-primary.flow-danger:hover:not(:disabled) {
   color: var(--brand-paper); background: var(--allowit-muted);
 }
+.wallet-flat .wallet-mobile-connect {
+  width: 100%;
+  min-height: 44px;
+  margin-top: 10px;
+  padding: 10px 16px;
+  border: 1px solid light-dark(#c4c4c4, #484848);
+  border-radius: 6px;
+  background: transparent;
+  color: light-dark(#171717, #ededed);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+.wallet-flat .wallet-mobile-connect:hover:not(:disabled) { background: light-dark(#f1f1f1, #202020); }
+.wallet-flat .wallet-mobile-connect:disabled { opacity: 0.5; cursor: wait; }
