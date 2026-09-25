@@ -1,5 +1,6 @@
 "use client";
 
+import { AGENT402_PRICES } from "@/lib/wallet/agent402-prices";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
@@ -70,7 +71,7 @@ const DEFAULT_MARKETPLACE_SERVICE: MarketplaceService = {
   categoryLabel: "Web & documents",
   method: "GET",
   path: "/api/search",
-  price: "0.02",
+  price: AGENT402_PRICES.search.price,
   docs: "https://agent402.tools/tools/search",
   inputs: WEB_SEARCH_INPUTS,
   schemaSource: "verified-docs",
@@ -194,7 +195,7 @@ export function WalletChatApp() {
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [stored, setStored] = useState<StoredMandate | null>(null);
   const [mandate, setMandate] = useState<MandateView | null>(null);
-  const [budget, setBudget] = useState("0.10");
+  const [budget, setBudget] = useState<string>(AGENT402_PRICES.search.price);
   const [duration, setDuration] = useState("60");
   const [phase, setPhase] = useState<Phase>("idle");
   const [notice, setNotice] = useState<string | null>(null);
@@ -907,8 +908,6 @@ export function WalletChatApp() {
       </section>
 
       <footer className="hall-foot">
-        <span>MandateRegistry V2 · 2-of-3 governed</span>
-        <a href={config?.mandateRegistryId ? `${explorer}/contract/${config.mandateRegistryId}` : "#"} target="_blank" rel="noreferrer">View contract <ArrowUpRight size={11} /></a>
         <span className="hall-hint" aria-hidden>Drag to look around</span>
       </footer>
 

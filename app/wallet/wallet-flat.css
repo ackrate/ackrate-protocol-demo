@@ -224,7 +224,6 @@ body:has(.wallet-flat)::before { content: none; }
 .wallet-preview.wallet-flow.wallet-flat :is(.marketplace-suggestions button, .flow-secondary-row button, .config-actions > button:first-child) { color: light-dark(#5e5e5e, #a1a1a1); border-radius: 6px; }
 .wallet-preview.wallet-flow.wallet-flat :is(.flow-summary p, .flow-budget-preview, .flow-budget-preview > small, .run-live-status > p) { color: light-dark(#5e5e5e, #a1a1a1); }
 .wallet-preview.wallet-flow.wallet-flat .flow-history { width: 100%; border: 1px solid light-dark(#d9d9d9, #262626); border-radius: 8px; color: light-dark(#5e5e5e, #a1a1a1); background: light-dark(#f5f5f5, #0a0a0a); }
-.wallet-preview.wallet-flow.wallet-flat .flow-under-card { position: static; width: 100%; color: light-dark(#5e5e5e, #a1a1a1); font-size: 11px; }
 .wallet-preview.wallet-flow.wallet-flat :is(.flow-modal, .disconnect-dialog, .toast) { border: 1px solid light-dark(#bfbfbf, #404040); border-radius: 12px; background: light-dark(#f5f5f5, #0a0a0a); }
 .wallet-preview.wallet-flow.wallet-flat .flow-modal-backdrop { background: light-dark(rgba(255, 255, 255, .8), rgba(0, 0, 0, .8)); }
 .wallet-preview.wallet-flow.wallet-flat .toast.error { border-color: light-dark(#b42318, #a14545); }

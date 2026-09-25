@@ -19,3 +19,5 @@ The static arch replaces the animated solar mark. Its geometry is reused unchang
 ## Functional palette
 
 See [brand-colors.md](brand-colors.md) and `app/brand-colors.css`. Keep consumer action fills at #F34632 with #111110 labels, readable red text at #BA2D22 on light surfaces, and Ackrate green roles at #157A4B / #123D2C with #B9F36A used only on sufficiently dark surfaces or with a dark foreground. Completed state labels retain checkmarks; unknown network/readiness states remain neutral.
+
+The wallet starts with a 0.01 USDC spending cap for one Web search purchase; Stellar network fees are separate. Keep governance/version badges and repeated schema labels out of the purchase flow. Contract diagnostics and payment receipt links remain available where they help verification or recovery. Marketplace entries distinguish “Available” from “Preview only” without promotional readiness badges.

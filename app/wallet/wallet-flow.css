@@ -1279,24 +1279,10 @@
 .flow-proof-link code { color: light-dark(#5c5c5c, #a3a3a3); font-size: 8px; }
 .flow-proof-link:hover { color: light-dark(#171717, #fff); }
 
-.flow-under-card {
-  padding: 9px 5px 0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  color: light-dark(#adadad, #525252);
-  font-size: 8px;
-}
-
 @keyframes flow-pulse {
   0%, 100% { box-shadow: 0 0 0 0 light-dark(rgba(0, 0, 0, 0), rgba(255, 255, 255, 0)); }
   50% { box-shadow: 0 0 0 4px light-dark(rgba(0, 0, 0, 0.07), rgba(255, 255, 255, 0.07)); }
 }
-
-.flow-under-card span,
-.flow-under-card a { display: inline-flex; align-items: center; gap: 6px; }
-.flow-under-card a:hover { color: light-dark(#5c5c5c, #a3a3a3); }
 
 .flow-modal-backdrop {
   position: fixed;
@@ -1559,8 +1545,7 @@
   .flow-stage-heading { align-items: center; }
   .payment-path { grid-template-columns: 1fr; }
   .payment-path > svg { display: none; }
-  .flow-secondary-row,
-  .flow-under-card { align-items: flex-start; flex-direction: column; }
+  .flow-secondary-row { align-items: flex-start; flex-direction: column; }
   .service-option { grid-template-columns: auto 1fr; }
   .service-price { grid-column: 2; }
   .marketplace-source { grid-template-columns: auto 1fr auto; }
@@ -2024,20 +2009,6 @@
 .wallet-preview.wallet-flow .flow-settlement-grid > a,
 .wallet-preview.wallet-flow .flow-settlement-grid > div { border: 0; border-radius: 0; background: linear-gradient(135deg, light-dark(rgba(0, 0, 0, 0.1), rgba(255, 255, 255, 0.1)), light-dark(rgba(0, 0, 0, 0.025), rgba(255, 255, 255, 0.025))); }
 
-.wallet-preview.wallet-flow .flow-under-card {
-  position: relative;
-  z-index: 11;
-  right: auto;
-  bottom: auto;
-  width: min(575px, 48vw);
-  max-width: 100%;
-  margin: 0;
-  gap: 18px;
-  flex-wrap: wrap;
-  color: light-dark(rgba(0, 0, 0, 0.28), rgba(255, 255, 255, 0.28));
-  pointer-events: auto;
-}
-
 .wallet-preview.wallet-flow .tool-output-layout,
 .wallet-preview.wallet-flow .report-section { position: relative; z-index: 9; pointer-events: auto; }
 
@@ -2390,7 +2361,6 @@
   }
   .wallet-preview.wallet-flow .flow-shell-active .flow-card { margin-top: 0; }
   .wallet-preview.wallet-flow .flow-history { width: 100%; }
-  .wallet-preview.wallet-flow .flow-under-card { position: relative; right: auto; bottom: auto; width: 100%; margin-top: 0; }
   .world-renderer { display: none; }
 }
 

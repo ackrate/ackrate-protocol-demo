@@ -317,7 +317,7 @@ export function WalletChatApp() {
   const [stored, setStored] = useState<StoredMandate | null>(null);
   const [mandateHistory, setMandateHistory] = useState<StoredMandate[]>([]);
   const [mandate, setMandate] = useState<MandateView | null>(null);
-  const [budget, setBudget] = useState("0.10");
+  const [budget, setBudget] = useState<string>(AGENT402_PRICES.search.price);
   const [duration, setDuration] = useState("60");
   const [phase, setPhase] = useState<Phase>("idle");
   const [notification, setNotification] = useState<WalletNotification | null>(null);
@@ -1490,7 +1490,6 @@ export function WalletChatApp() {
   }
 
   const connected = session.authenticated && Boolean(session.address);
-  const stepOneExplorer = config ? `https://stellar.expert/explorer/${config.explorerNetwork}` : "#";
   const workflowStep = !connected ? 1 : !marketplaceSelected ? 2 : !serviceConfigured ? 3 : !showRun ? 4 : !completedPurchase ? 5 : 6;
   const budgetAtomic = walletAmountAtomic(budget, config?.asset.decimals ?? 7);
   const minimumBudget = walletAmountAtomic(servicePrice, config?.asset.decimals ?? 7);
@@ -1661,7 +1660,7 @@ export function WalletChatApp() {
                       <span>
                         <strong>{service.name}</strong>
                         <small>{service.description}</small>
-                        <em>{service.method} · {service.categoryLabel} · {isRunnableMarketplaceService(service) ? "LIVE PAYMENT READY" : "SCHEMA PREVIEW"}</em>
+                        <em>{service.method} · {service.categoryLabel} · {isRunnableMarketplaceService(service) ? "Available" : "Preview only"}</em>
                         <span className="service-inputs">{service.inputs.length ? service.inputs.map((field) => <b key={field.name}>{field.name}{field.required ? " *" : ""}</b>) : <b>Schema unavailable</b>}</span>
                       </span>
                       <span className="service-price">{service.price} <small>USDC</small></span>
@@ -1707,7 +1706,6 @@ export function WalletChatApp() {
                   <h2>{isGuidedResearchService(marketplaceService) ? "What do you want to know?" : `Configure ${marketplaceService.name}`}</h2>
                   <p className="flow-description">Enter the inputs published for this Agent402 service. We check its payment details before you continue.</p>
                 </div>
-                <span className="flow-wallet-chip"><Globe2 size={13} />{marketplaceService.schemaSource === "agent402-find" ? "API SCHEMA" : "DOCUMENTED INPUTS"}</span>
               </div>
               <ServiceConfigurator
                 service={marketplaceService}
@@ -1739,7 +1737,7 @@ export function WalletChatApp() {
 
               <div className="selected-service-summary">
                 <span className="marketplace-source-icon"><Globe2 size={17} /></span>
-                <span><small>REAL x402 SERVICE</small><strong>Agent402 · {marketplaceService.name}</strong><em>{marketplaceService.method} · {marketplaceService.path}</em></span>
+                <span><strong>Agent402 · {marketplaceService.name}</strong><em>{marketplaceService.method} · {marketplaceService.path}</em></span>
                 <span className="service-price">{marketplaceQuote?.price ?? marketplaceService.price} <small>USDC / CALL</small></span>
               </div>
 
@@ -1847,7 +1845,7 @@ export function WalletChatApp() {
               transition={{ duration: reduceMotion ? 0 : 0.28, ease: "easeOut" }}
             >
               <div className="flow-stage-heading">
-                <div><p className="flow-kicker">{historicalCurrent ? "PREVIOUS RUN · RECEIPT ONLY" : "STEP 5 OF 6"}</p><h2>{historicalCurrent ? "Review your earlier payment" : `Run ${marketplaceService.name}`}</h2><p className="flow-description">{historicalCurrent ? "This saved limit is no longer usable. Check its existing receipt, or create a fresh spending limit above for a separate request." : "The agent will pass the contract checks, pay Agent402 in real USDC, and return the service output."}</p></div>
+                <div><p className="flow-kicker">{historicalCurrent ? "PREVIOUS RUN · RECEIPT ONLY" : "STEP 5 OF 6"}</p><h2>{historicalCurrent ? "Review your earlier payment" : `Run ${marketplaceService.name}`}</h2><p className="flow-description">{historicalCurrent ? "This saved limit is no longer usable. Check its existing receipt, or create a fresh spending limit above for a separate request." : "The agent will pass the contract checks, pay Agent402 in USDC, and return the service output."}</p></div>
                 <span className="flow-budget"><span><small>{historicalCurrent ? "UNUSED · NOT SPENDABLE" : "REMAINING"}</small><strong>{remaining} USDC</strong></span></span>
               </div>
               {!historicalCurrent && !quoteCurrent && <div className="flow-alert"><TriangleAlert size={16} />The service quote expired. Edit the inputs to refresh its price and seller before running.</div>}
@@ -1887,7 +1885,7 @@ export function WalletChatApp() {
               <div className="flow-stage-icon success"><Check size={25} /></div>
               <p className="flow-kicker">STEP 6 OF 6</p>
               <h2>{isGuidedResearchService(marketplaceService) ? "Research delivered" : `${marketplaceService.name} delivered`}</h2>
-              <p className="flow-description">The contract payment and the real Agent402 x402 payment are independently verifiable on Stellar Mainnet.</p>
+              <p className="flow-description">View both payment receipts on Stellar Mainnet.</p>
               <div className="flow-settlement-grid">
                 <a href={`${explorer}/tx/${completedPurchase.payment.txHash}`} target="_blank" rel="noreferrer"><small>01 · ACKRATE CONTRACT</small><strong>{completedPurchase.payment.amount} {completedPurchase.payment.asset}</strong><code>{short(completedPurchase.payment.txHash, 6)}</code><span>Verify <ArrowUpRight size={12} /></span></a>
                 {externalSettlement ? <a href={`${explorer}/tx/${externalSettlement.transaction}`} target="_blank" rel="noreferrer"><small>02 · AGENT402 x402</small><strong>{externalSettlement.amount} USDC</strong><code>{short(externalSettlement.transaction, 6)}</code><span>Verify <ArrowUpRight size={12} /></span></a> : <div><small>02 · AGENT402 x402</small><strong>Proof unavailable</strong><span>Do not treat this run as complete.</span></div>}
@@ -1904,11 +1902,6 @@ export function WalletChatApp() {
           <p>These are historical records. Checking them never starts a new purchase.</p>
           {mandateHistory.map((record) => <HistoricalWalletReceipt key={record.id} record={record} config={config} />)}
         </section>}
-
-        <div className="flow-under-card">
-          <span><ShieldCheck size={14} />2-of-3 governed MandateRegistry V2</span>
-          <a href={config?.mandateRegistryId ? `${stepOneExplorer}/contract/${config.mandateRegistryId}` : "#"} target="_blank" rel="noreferrer">View contract <ArrowUpRight size={13} /></a>
-        </div>
       </section>}
 
       {resultVisible && completedPurchase && config && (

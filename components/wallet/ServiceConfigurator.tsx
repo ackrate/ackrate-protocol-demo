@@ -189,7 +189,7 @@ export function ServiceConfigurator({
   return <div className="service-configurator">
     <div className="config-source-bar">
       <span><Braces size={14} /></span>
-      <div><small>{service.schemaSource === "agent402-find" ? "AGENT402 API SCHEMA" : "AGENT402 DOCUMENTED INPUTS"}</small><strong>{service.name}</strong></div>
+      <div><strong>{service.name}</strong></div>
       <code>{service.method} {service.path}</code>
       <b>{service.price} USDC</b>
     </div>

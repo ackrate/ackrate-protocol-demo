@@ -48,7 +48,7 @@ function harness(initial: Record<string, any> | null, status: "confirmed" | "pen
     config, session: { authenticated: true, address: USER, network: "mainnet", expiresAt: now + 3600 },
     walletAddress: USER, stored: initial, marketplaceSelected: true, serviceConfigured: true,
     walletBalances: { address: USER, xlm: "5", usdc: "1", xlmRaw: "5", usdcRaw: "1", hasUsdcTrustline: true },
-    marketplaceQuote: { price: "0.02", payTo: AGENT, relay: AGENT, expiresAt: now + 1800 },
+    marketplaceQuote: { price: prices.AGENT402_PRICES.search.price, payTo: AGENT, relay: AGENT, expiresAt: now + 1800 },
   };
   const storage = new Map<string, string>();
   const key = `ackrate:mandate:v2:${config.network}:${config.mandateRegistryId}:${USER}`;
