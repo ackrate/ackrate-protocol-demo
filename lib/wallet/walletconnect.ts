@@ -60,12 +60,15 @@ export async function connectMobileWallet(network: string, onStatus?: (status: s
   if (pairingAbandoned) throw new WalletConnectionError("access", "rejected", "The previous mobile connection was cancelled. Refresh this page before connecting again.");
   await connectionRequest("detect", initialize, 20_000);
   const chain = stellarChain(network);
-  if (provider!.session && !disconnected) {
-    try {
-      const address = mobileSessionAddress(provider!.session, chain);
-      selectMobileWallet(true);
-      return address;
-    } catch { await provider!.disconnect(); }
+  if (provider!.session) {
+    if (!disconnected) {
+      try {
+        const address = mobileSessionAddress(provider!.session, chain);
+        selectMobileWallet(true);
+        return address;
+      } catch { /* Close an incompatible session before requesting a new one. */ }
+    }
+    await connectionRequest("disconnect", () => provider!.disconnect(), 15_000);
   }
   onStatus?.("Choose Freighter, then approve the connection in the mobile app. Return here when finished.");
   let unsubscribe: (() => void) | undefined;

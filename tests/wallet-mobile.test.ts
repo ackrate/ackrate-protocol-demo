@@ -133,4 +133,6 @@ test("account change events invalidate a session even when the provider retains 
   h.events.accountsChanged!();
   assert.equal(await h.api.mobileSessionState(user.publicKey(), network), "disconnected");
   await assert.rejects(h.api.mobileSignTransaction(transaction().toXDR(), user.publicKey(), network), /changed/);
+  assert.equal(await h.api.connectMobileWallet(network), user.publicKey());
+  assert.deepEqual(h.calls.map((call) => call.method), ["connect", "disconnect", "connect"]);
 });
