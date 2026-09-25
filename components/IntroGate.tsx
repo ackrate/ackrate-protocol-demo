@@ -11,7 +11,7 @@ const Intro = dynamic(() => import("./Intro"), { ssr: false });
 const SEEN_KEY = "ackrate_intro_seen_v1";
 
 export default function IntroGate() {
-  const path = usePathname();
+  const path = usePathname() ?? "";
   // Default true so the overlay covers the page from first paint (no flash on
   // the first visit). On repeat visits this session, the effect hides it fast.
   const [show, setShow] = useState(true);
@@ -25,7 +25,7 @@ export default function IntroGate() {
     }
   }, []);
 
-  if (path.startsWith("/wallet") || path.startsWith("/reports/")) return null;
+  if (!path || path.startsWith("/wallet") || path.startsWith("/reports/")) return null;
 
   return (
     <AnimatePresence>

@@ -217,9 +217,9 @@ export default function HostedWalkthrough() {
 
   return <><p className="eyebrow">Docs / Hosted walkthrough</p><h1>Research Source Scout.</h1>
     <p className="lead">Optional browser companion for the Testnet SDK starter. Your local consumer retains its signing keys and recovery evidence.</p>
-    <p>This alpha walkthrough requires the persistent runtime at reapp.live. Its latest session check failed because of funding configuration. Vercel staging cannot host these sessions; use the local Testnet starter and see the integration status.</p>
+    <p>This alpha companion is moving to Vercel. Hosted sessions remain unavailable until durable storage and recovery are configured. Use the local Testnet starter in the meantime.</p>
     <p>Install Research Source Scout from <a href="/docs/quickstarts">Quick starters</a>, then start a session here.</p>
-    <button className="secondary-action" onClick={createWorkspace} disabled={creating || Boolean(persisted)}>{creating ? "Starting…" : persisted ? "Session ready" : "Start session"}</button>
+    <a className="secondary-action" href="/docs/quickstarts">Run the local Testnet starter</a>
     {error && <p role="alert">{error}</p>}
     {persisted && <><h2>Run the consumer</h2><CodeBlock>{runCommand}</CodeBlock><button className="secondary-action" onClick={() => copyValue(runCommand, "run")}>Copy run command</button><p role="status">{copied === "run" ? "Copied" : ""}</p><p>Price: {persisted.workspace.priceXlm} XLM · Budget: {persisted.workspace.budgetXlm} XLM · <a href={contractUrl(persisted.workspace.contractId)}>Testnet contract</a></p></>}
     <h2>Progress</h2><p role="status">{complete ? "Complete: three deliveries and the fourth purchase rejected." : `${delivered.length}/3 delivered · ${blocked ? "Spending limit verified" : "Spending-limit check pending"}`}</p>

@@ -17,7 +17,7 @@ const guides = [
 ];
 
 export default function Nav() {
-  const path = usePathname();
+  const path = usePathname() ?? "";
   if (path.startsWith("/reports/")) return null;
   return <>
     <nav aria-label="Main navigation" className="site-nav">

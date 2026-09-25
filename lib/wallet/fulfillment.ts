@@ -1,9 +1,7 @@
-import { once } from "node:events";
-import type { Server } from "node:http";
 import express, { type NextFunction, type Request, type Response } from "express";
 import { createBoundAckratePaidJsonRoute } from "@ackrate/express-middleware";
 import { toStroops } from "@ackrate/core";
-import { requireReadyConfig, type AppConfig } from "./app-config";
+import type { AppConfig } from "./app-config";
 import { PostgresBoundRedemptionStore } from "./redemption-store";
 import { installMainnetAccountFallback } from "./rpc-account-fallback";
 import { installMainnetRpcRetry } from "./rpc-retry";
@@ -14,19 +12,8 @@ import { verifyMarketplaceQuote } from "./marketplace-quote";
 import { assertBoundPaymentRequestSize, MAX_BOUND_PAYMENT_HEADER_BYTES, MAX_DELIVERY_BYTES } from "./delivery-result";
 import { createMainnetV2PaymentVerifier } from "./mainnet-payment-verifier";
 
-type Runtime = { server: Server; origin: string; fingerprint: string };
-const globalRuntime = globalThis as typeof globalThis & { __ackrateMainnetFulfillment?: Promise<Runtime> };
-
-function fingerprint(config: AppConfig): string {
-  return [
-    config.public.releaseFingerprint,
-    config.public.merchant.address,
-    config.public.asset.contractId,
-    config.appOrigin,
-  ].join(":");
-}
-
-async function startRuntime(config: AppConfig): Promise<Runtime> {
+/** Request-scoped Express app: no TCP listener or process-lifetime state. */
+export function createPaidSourceApp(config: AppConfig) {
   installMainnetRpcRetry(config.public.network);
   installMainnetAccountFallback(config.public.network);
   if (
@@ -139,37 +126,5 @@ async function startRuntime(config: AppConfig): Promise<Runtime> {
     response.status(503).json({ error: "fulfillment unavailable" });
   });
 
-  const server = app.listen(0, "127.0.0.1");
-  await once(server, "listening");
-  const address = server.address();
-  if (!address || typeof address === "string") throw new Error("fulfillment server did not bind a local port");
-  return { server, origin: `http://127.0.0.1:${address.port}`, fingerprint: fingerprint(config) };
-}
-
-async function runtime(): Promise<Runtime> {
-  const config = requireReadyConfig();
-  const expected = fingerprint(config);
-  const current = globalRuntime.__ackrateMainnetFulfillment && await globalRuntime.__ackrateMainnetFulfillment;
-  if (current?.fingerprint === expected && current.server.listening) return current;
-  if (current?.server.listening) await new Promise<void>((resolve) => current.server.close(() => resolve()));
-  globalRuntime.__ackrateMainnetFulfillment = startRuntime(config);
-  return globalRuntime.__ackrateMainnetFulfillment;
-}
-
-export async function proxyPaidSource(request: globalThis.Request): Promise<globalThis.Response> {
-  const target = await runtime();
-  const incoming = new URL(request.url);
-  const url = new URL(`${incoming.pathname}${incoming.search}`, target.origin);
-  const headers = new Headers(request.headers);
-  headers.delete("host");
-  headers.delete("content-length");
-  const response = await fetch(url, { method: "GET", headers, redirect: "manual" });
-  const outgoingHeaders = new Headers(response.headers);
-  outgoingHeaders.set("cache-control", "private, no-store, no-transform");
-  outgoingHeaders.set("x-content-type-options", "nosniff");
-  return new globalThis.Response(response.body, {
-    status: response.status,
-    statusText: response.statusText,
-    headers: outgoingHeaders,
-  });
+  return app;
 }

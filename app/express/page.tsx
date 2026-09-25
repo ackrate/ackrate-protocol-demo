@@ -154,7 +154,7 @@ export default function ExpressPage() {
             </h1>
             <p className="mt-4 text-sm leading-6 text-neutral-200">This page retains the August demonstration against the legacy PAGS registry. Its receipts and prices are historical. <Link href="/wallet" className="underline">The current wallet</Link> uses the WR registry and shows a fresh service quote.</p>
 
-            <p className="mt-4 text-sm leading-6 text-[var(--muted)]">Alpha: the hosted gateway is deployed, but new sessions are currently blocked by funding configuration. <Link href="/docs/integrations" className="underline">Supported x402 services and integration status →</Link></p>
+            <p className="mt-4 text-sm leading-6 text-[var(--muted)]">Alpha: the hosted companion is moving to Vercel. Use the local Testnet SDK starter until hosted sessions are available. <Link href="/docs/integrations" className="underline">Supported x402 services and integration status →</Link></p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
               <Link
                 href="/wallet"

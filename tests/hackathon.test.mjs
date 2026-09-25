@@ -16,7 +16,7 @@ const TEMPORARY_HOSTNAME = `${String.fromCharCode(114, 101, 97, 112, 112)}.live`
 // 2026-09-25: owner-requested alpha status and integration documentation link.
 // Runtime, recorded receipts, and gateway routes are unchanged.
 const protectedHashes = {
-  "app/express/page.tsx": "fbafabe79538fab068a854da06ad50c6463793286bf812960a2a3891fd76edd6",
+  "app/express/page.tsx": "0e6ab1ae24add7754b5aa538051c424c1da56efd550c9068273b98a1398ac0e9",
   "app/express/layout.tsx": "7fb5a1ee24023ddd61ee8092c0c2e3047d51d5a0c4273fb1f4ba6f7374f8b40d",
   "app/api/express/route.ts": "645a2a92788b61f42537ee0d9f4980c7324a0f76fadd68239939da17b0854141",
   "app/api/express/[sessionId]/source/[resource]/route.ts": "022c94e6c368357692c1981f08f52aea41c28ef39eadde56ca501280a6e552a5",

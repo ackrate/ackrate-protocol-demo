@@ -13,7 +13,7 @@ import {
 } from "../lib/starter-install.js";
 
 const manifest = JSON.parse(await readFile(new URL("../public/starters/v1/manifest.json", import.meta.url), "utf8"));
-const TEMPORARY_HOSTNAME = `${String.fromCharCode(114, 101, 97, 112, 112)}.live`;
+const TEMPORARY_HOSTNAME = "staging.ackrate.com";
 
 test("all twenty copied setup commands verify pinned installers that verify pinned archives", () => {
   assert.equal(manifest.kits.length, 20);
