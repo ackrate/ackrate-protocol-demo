@@ -62,7 +62,10 @@ function harness({ configured = true, initial = undefined as ReturnType<typeof s
   const modules: Record<string, unknown> = {
     "./connection-diagnostics": diagnostics, "./walletconnect-session": sessions,
     "@walletconnect/universal-provider": { UniversalProvider: { init: async () => provider } },
-    "@reown/appkit/core": { createAppKit: () => ({ open: async () => {}, close: async () => {}, subscribeState: (listener: typeof stateListener) => { stateListener = listener; return () => { stateListener = undefined; }; } }) },
+    "@reown/appkit/core": { createAppKit: (options: { customWallets: { name: string; mobile_link: string }[] }) => {
+      assert.equal(options.customWallets[0]?.name, "Freighter");
+      assert.equal(options.customWallets[0]?.mobile_link, "freighterwallet://wc-redirect");
+      return ({ open: async () => {}, close: async () => {}, subscribeState: (listener: typeof stateListener) => { stateListener = listener; return () => { stateListener = undefined; }; } }); } },
     "@reown/appkit/networks": { mainnet: {} },
   };
   const module = { exports: {} as typeof import("../lib/wallet/walletconnect") };

@@ -40,6 +40,16 @@ async function initialize(): Promise<void> {
     // control: only the Stellar namespace below is requested from the wallet.
     modal = createAppKit({ projectId, networks: [mainnet], universalProvider: provider, manualWCControl: true,
       allWallets: "HIDE",
+      // AppKit filters Explorer results by its placeholder EVM network. Keep the
+      // Stellar wallet explicit so phones get its native handoff, not only a QR.
+      // Verified against Freighter's public WalletConnect directory listing.
+      customWallets: [{
+        id: "freighter-mobile", name: "Freighter", homepage: "https://www.freighter.app/",
+        image_url: "https://api.web3modal.org/getWalletImage/114aa875-487a-4d86-5c87-6f22f4559100",
+        mobile_link: "freighterwallet://wc-redirect",
+        app_store: "https://apps.apple.com/us/app/freighter/id6743947720",
+        play_store: "https://play.google.com/store/apps/details?id=org.stellar.freighterwallet",
+      }],
       includeWalletIds: ["997a355c8f682468706a76cff1b004a7115f505fb962dac54b6e9b442dd1c380"],
       featuredWalletIds: ["997a355c8f682468706a76cff1b004a7115f505fb962dac54b6e9b442dd1c380"],
       features: { analytics: false, email: false, socials: false, swaps: false, onramp: false },
