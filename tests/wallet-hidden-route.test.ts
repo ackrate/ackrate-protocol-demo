@@ -53,7 +53,7 @@ for (const surface of surfaces) {
   const ui = journey(surface);
 
   test(`${surface}: connecting does not sign or register a mandate`, () => {
-    const connect = section(app, "const connect = async () =>", "const authenticate = async () =>");
+    const connect = section(app, "const connect = async (", "const authenticate = async () =>");
     const authenticate = section(app, "const authenticate = async () =>", "const activate = async () =>");
     assert.match(connect, /connectFreighter/);
     assert.doesNotMatch(connect, /auth\/challenge|signFreighterTransaction|registerWithFreighter|approveWithFreighter/);
@@ -148,7 +148,8 @@ for (const surface of surfaces) {
 
   test(`${surface}: trustline readiness and saved mandate identity preserve the current release`, () => {
     assert.match(app, /already\.\*trustline\|trustline\.\*already/i);
-    assert.match(app, /USDC is already ready in your wallet\./);
+    if (surface === "wallet") assert.match(section(app, "const addUsdc", "const retryAllowance"), /await refreshWalletBalances\(\)/);
+    else assert.match(app, /USDC is already ready in your wallet\./);
     assert.match(ui, /usdcReady \? "USDC is ready" : "Add USDC to wallet"/);
     includes(app, ["schemaVersion: 2", "registryId: config.mandateRegistryId", "releaseFingerprint: config.releaseFingerprint", "id: registration.mandateId", "credentialHash: intent.id"]);
   });

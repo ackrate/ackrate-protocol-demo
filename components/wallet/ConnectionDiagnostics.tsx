@@ -3,11 +3,13 @@
 import { useEffect, useState } from "react";
 import { buildConnectionReport, subscribeConnectionEvents } from "@/lib/wallet/connection-diagnostics";
 
+import { usesMobileWallet } from "@/lib/wallet/walletconnect";
+
 export default function ConnectionDiagnostics({ sourceCommit, network, ready }: { sourceCommit?: string | null; network?: string; ready?: boolean }) {
   const [report, setReport] = useState("");
   const [status, setStatus] = useState("");
   useEffect(() => {
-    const refresh = () => setReport(JSON.stringify(buildConnectionReport({ sourceCommit, network, ready }), null, 2));
+    const refresh = () => setReport(JSON.stringify(buildConnectionReport({ sourceCommit, network, ready, mobileSelected: usesMobileWallet() }), null, 2));
     refresh();
     return subscribeConnectionEvents(refresh);
   }, [sourceCommit, network, ready]);
@@ -34,8 +36,8 @@ export default function ConnectionDiagnostics({ sourceCommit, network, ready }: 
   };
   return <details className="connection-diagnostics">
     <summary>Troubleshoot wallet connection</summary>
-    <p>This release connects to the desktop Freighter extension. Freighter Mobile requires WalletConnect, which is not configured here yet.</p>
-    <p>On desktop, unlock Freighter and select Stellar Mainnet. Close any old connection request before retrying.</p>
+    <p>Desktop connects through the Freighter extension. Mobile connects through WalletConnect: choose Freighter, approve in the app, then return here.</p>
+    <p>Unlock Freighter and select {network === "testnet" ? "Stellar Testnet" : "Stellar Mainnet"}. Close any old connection request before retrying.</p>
     <p>The report contains connection steps, error codes, browser family, site and release. It excludes wallet addresses, signatures, keys, messages and transactions. Review it below; nothing is uploaded automatically.</p>
     <pre aria-label="Connection report">{report || "Preparing report…"}</pre>
     <div className="connection-diagnostics-actions">

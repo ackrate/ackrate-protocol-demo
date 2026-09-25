@@ -22,7 +22,10 @@ function harness(overrides: Record<string, unknown> = {}, mobile = false) {
     ...overrides,
   };
   const modules: Record<string, unknown> = { "@stellar/freighter-api": api, buffer: { Buffer },
-    "@stellar/stellar-sdk": stellar, "./connection-diagnostics": { ...diagnostics, isMobileBrowser: () => mobile } };
+    "@stellar/stellar-sdk": stellar, "./walletconnect": {
+      usesMobileWallet: () => false, selectMobileWallet: () => {},
+      connectMobileWallet: async () => { calls.push("mobile"); return user.publicKey(); },
+    }, "./connection-diagnostics": { ...diagnostics, isMobileBrowser: () => mobile } };
   const module = { exports: {} as { connectFreighter: (network: string, onStatus?: (s: string) => void) => Promise<string>;
     signFreighterMessage: (text: string, address: string, network: string) => Promise<string> } };
   vm.runInNewContext(source, { module, exports: module.exports, Error,
@@ -37,10 +40,10 @@ test("connect checks extension, requests access, then validates network and repo
   assert.equal(status.length, 3);
 });
 
-test("mobile and missing extensions never invoke an approval request", async () => {
+test("mobile routes to WalletConnect; missing extension does not invoke extension approval", async () => {
   const mobile = harness({}, true);
-  await assert.rejects(mobile.connectFreighter(network), /Mobile needs WalletConnect/);
-  assert.deepEqual(mobile.calls, []);
+  assert.equal(await mobile.connectFreighter(network), user.publicKey());
+  assert.deepEqual(mobile.calls, ["mobile"]);
   const missing = harness({ isConnected: async () => ({ isConnected: false }) });
   await assert.rejects(missing.connectFreighter(network), /not detected/);
   assert.deepEqual(missing.calls, []);
