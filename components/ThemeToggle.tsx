@@ -1,37 +1,36 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Moon, Sun } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
-function updateBrowserColor(dark: boolean) {
-  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", dark ? "#101010" : "#ffffff");
+type ThemePreference = "auto" | "light" | "dark";
+const storageKey = "reapp-theme";
+const normalize = (value: string | null): ThemePreference => value === "light" || value === "dark" ? value : "auto";
+
+function applyTheme(preference: ThemePreference) {
+  const theme = preference === "auto"
+    ? window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"
+    : preference;
+  document.documentElement.dataset.theme = theme;
+  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", theme === "dark" ? "#101010" : "#ffffff");
 }
 
 export default function ThemeToggle() {
-  const [dark, setDark] = useState(false);
+  const [preference, setPreference] = useState<ThemePreference>("auto");
+
+  const current = useRef<ThemePreference>("auto");
 
   useEffect(() => {
+    try { current.current = normalize(localStorage.getItem(storageKey)); } catch { /* Storage is optional. */ }
+    setPreference(current.current);
+    applyTheme(current.current);
     const media = window.matchMedia("(prefers-color-scheme: dark)");
-    const sync = () => {
-      const next = document.documentElement.dataset.theme === "dark";
-      updateBrowserColor(next);
-      setDark(next);
-    };
-    const followSystem = () => {
-      let saved: string | null = null;
-      try { saved = localStorage.getItem("reapp-theme"); } catch { /* Storage is optional. */ }
-      if (saved !== "dark" && saved !== "light") {
-        document.documentElement.dataset.theme = media.matches ? "dark" : "light";
-      }
-      sync();
-    };
+    const followSystem = () => { if (current.current === "auto") applyTheme(current.current); };
     const followStorage = (event: StorageEvent) => {
-      if (event.key !== "reapp-theme") return;
-      document.documentElement.dataset.theme = event.newValue === "dark" || event.newValue === "light"
-        ? event.newValue : media.matches ? "dark" : "light";
-      sync();
+      if (event.key !== storageKey && event.key !== null) return;
+      current.current = normalize(event.newValue);
+      setPreference(current.current);
+      applyTheme(current.current);
     };
-    sync();
     media.addEventListener("change", followSystem);
     window.addEventListener("storage", followStorage);
     return () => {
@@ -40,12 +39,15 @@ export default function ThemeToggle() {
     };
   }, []);
 
-  const label = dark ? "Switch to light mode" : "Switch to dark mode";
-  return <button className="theme-toggle" type="button" aria-label={label} title={label} onClick={() => {
-    const theme = dark ? "light" : "dark";
-    document.documentElement.dataset.theme = theme;
-    try { localStorage.setItem("reapp-theme", theme); } catch { /* Keep the theme usable without storage. */ }
-    updateBrowserColor(!dark);
-    setDark(!dark);
-  }}><Sun className="theme-sun" size={18} aria-hidden="true" /><Moon className="theme-moon" size={18} aria-hidden="true" /></button>;
+  return <select className="theme-toggle" aria-label="Color theme" value={preference} onChange={(event) => {
+    const next = normalize(event.target.value);
+    current.current = next;
+    setPreference(next);
+    try { localStorage.setItem(storageKey, next); } catch { /* Keep the theme usable without storage. */ }
+    applyTheme(next);
+  }}>
+    <option value="auto">Auto</option>
+    <option value="light">Light</option>
+    <option value="dark">Dark</option>
+  </select>;
 }
