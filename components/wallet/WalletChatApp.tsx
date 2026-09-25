@@ -1589,7 +1589,7 @@ export function WalletChatApp() {
                 {phase === "authenticating" ? <LoaderCircle className="spin" size={17} /> : <WalletCards size={17} />}
                 {phase === "authenticating" ? "Waiting for Freighter…" : walletAddress ? "Sign in with Freighter" : "Connect Freighter"}
               </motion.button>
-              {!walletAddress && !mobileBrowser && <button className="flow-primary flow-outline" type="button" disabled={!config || phase === "authenticating"} onClick={() => void connect("mobile")}>Use Freighter Mobile / QR code</button>}
+              {!walletAddress && !mobileBrowser && <button className="wallet-mobile-connect" type="button" disabled={!config || phase === "authenticating"} onClick={() => void connect("mobile")}>Use Freighter Mobile / QR code</button>}
               <small className="flow-footnote wallet-sign-in-note"><LockKeyhole size={12} aria-hidden="true" /><em id="wallet-sign-in-note">{walletAddress ? "Sign the offline message in Freighter to prove this wallet is yours. No transaction, spending permission or network fee." : "Connecting shares your public wallet address. Next, you will sign in to prove ownership. Neither step makes a payment or authorizes spending."}</em></small>
               <ConnectionDiagnostics sourceCommit={config?.sourceCommit} network={config?.network} ready={config?.ready} />
             </motion.div>
