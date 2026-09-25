@@ -295,3 +295,9 @@ a, button, summary, select { -webkit-tap-highlight-color: transparent; }
 .landing-foundation h2 { color: var(--foundation-text); }
 .demo-primary { background: var(--allowit-bright); color: var(--brand-ink); }
 .demo-primary:hover { background: var(--allowit-muted); color: var(--brand-paper); }
+
+@media (max-width: 360px) {
+  .site-nav-inner { padding-inline: 12px; gap: 8px; }
+  .site-nav-links { gap: 8px; }
+  .theme-toggle { width: 68px; padding-inline: 4px; }
+}
