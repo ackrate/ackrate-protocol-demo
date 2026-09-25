@@ -12,6 +12,10 @@ The staging project is `agentools-projects/ackrate--ackrate-protocol-demo--a7c4d
 
 GitHub Actions uses `VERCEL_TOKEN`, `VERCEL_ORG_ID`, and `VERCEL_PROJECT_ID`, configured through GitHub CLI without printing values. The staging routing was confirmed on September 24, 2026. Same-repository PRs create previews; `main` and `prod` pushes update this staging project. `reapp.live` remains a separate Railway deployment and is not promoted by this workflow.
 
+Use a dedicated Vercel access token scoped to this project for `VERCEL_TOKEN`; do not copy the CLI's OAuth access token from `auth.json`. That token expires, and CI cannot refresh it. Create the deployment token in [Vercel account settings](https://vercel.com/account/tokens), choose this project under `agentools-projects`, set an expiry (90 days is suitable), and save it directly in [the repository's Actions secrets](https://github.com/ackrate/ackrate-protocol-demo/settings/secrets/actions). Record the expiry in the operator handoff and rotate before it lapses. Never put token values in docs or issue comments.
+
+On September 25, the automated preview's validation passed but deployment failed with an invalid-token error. The previous secret came from the expiring CLI login. The current CLI login successfully deployed staging, but Vercel rejected creation of a dedicated token from that app (`Cannot create tokens for this app`). An operator must replace `VERCEL_TOKEN` as above and rerun the failed Vercel job. Until the rerun succeeds, deployment automation is blocked; a manual staging deployment does not resolve this finding.
+
 An older native preview integration exists under `ais-projects-dc9b3903/ackrate-protocol-demo`; that team is inaccessible to the current CLI account. The checked-in `vercel.json` disables native Git deployments. The Actions workflow and project above are the supported deployment path.
 
 ## Runtime configuration
