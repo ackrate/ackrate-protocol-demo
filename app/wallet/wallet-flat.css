@@ -259,10 +259,10 @@ body:has(.wallet-flat)::before { content: none; }
 
 /* The selected theme also applies to the transaction workflow. */
 .wallet-preview.wallet-flow.wallet-flat .flow-primary {
-  background: var(--accent); color: var(--on-strong); border-color: var(--accent);
+  background: var(--allowit-bright); color: var(--brand-ink); border-color: var(--allowit-bright);
 }
-.wallet-preview.wallet-flow.wallet-flat .flow-primary:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); }
-.wallet-preview.wallet-flow.wallet-flat :is(button, a, input, select, textarea, summary):focus-visible { outline-color: var(--accent); }
+.wallet-preview.wallet-flow.wallet-flat .flow-primary:hover:not(:disabled) { background: var(--allowit-muted); color: var(--brand-paper); border-color: var(--allowit-muted); }
+.wallet-preview.wallet-flow.wallet-flat :is(button, a, input, select, textarea, summary):focus-visible { outline-color: var(--action-text); }
 
 @media (max-width: 580px) {
   .wallet-preview.wallet-flow.wallet-flat .flow-header { display: flex; flex-wrap: wrap; justify-content: space-between; min-height: 48px; padding: 10px 20px; gap: 12px; }
@@ -276,3 +276,26 @@ body:has(.wallet-flat)::before { content: none; }
 .connection-diagnostics-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .connection-diagnostics-actions button { min-height: 44px; border: 1px solid var(--line); padding: 8px 12px; color: var(--text); background: var(--panel); cursor: pointer; }
 .connection-diagnostics a { display: inline-block; margin-top: 12px; text-decoration: underline; text-underline-offset: 3px; }
+
+/* Completed checks and the enforcement layer are green, never a substitute for labels. */
+.wallet-preview.wallet-flow.wallet-flat .flow-progress > div.current {
+  color: var(--action-text); background: var(--action-soft);
+}
+.wallet-preview.wallet-flow.wallet-flat .flow-progress > div.current > span {
+  color: var(--brand-ink); background: var(--allowit-bright); border-color: var(--allowit-bright);
+}
+.wallet-preview.wallet-flow.wallet-flat .flow-progress > div.done > span {
+  color: var(--ackrate-forest); background: var(--ackrate-bright); border-color: var(--ackrate-forest);
+}
+.wallet-preview.wallet-flow.wallet-flat .config-readiness.ready {
+  color: var(--foundation-text); border-color: var(--foundation-text); background: var(--foundation-soft);
+}
+.wallet-preview.wallet-flow.wallet-flat .flow-settlement-grid > a {
+  color: var(--foundation-text); border-color: var(--foundation-text);
+}
+.wallet-preview.wallet-flow.wallet-flat .flow-primary.flow-danger {
+  color: var(--action-text); border-color: var(--action-text); background: transparent;
+}
+.wallet-preview.wallet-flow.wallet-flat .flow-primary.flow-danger:hover:not(:disabled) {
+  color: var(--brand-paper); background: var(--allowit-muted);
+}

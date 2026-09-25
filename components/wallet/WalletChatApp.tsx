@@ -1491,7 +1491,7 @@ export function WalletChatApp() {
   const navState = (step: number) => workflowStep > step ? "done" : workflowStep === step ? "current" : "";
 
   return (
-    <main className={`wallet-preview wallet-flow wallet-flat${resultVisible ? " wallet-result-mode" : ""}`}>
+    <main data-brand="action" className={`wallet-preview wallet-flow wallet-flat${resultVisible ? " wallet-result-mode" : ""}`}>
       <header className="flow-header">
         <span aria-hidden="true" />
         <div className="flow-network"><span />{config?.networkLabel ?? "Loading Mainnet"}</div>

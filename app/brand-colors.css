@@ -1,0 +1,45 @@
+/* Functional brand palette v1 — owner direction, 2026-09-25.
+   Exact source hues: Allow It edition 01.1 + Ackrate brand book.
+   Canonical policy: ackrate-private/wiki/ackrate/visual-language.md */
+:root {
+  --brand-paper: #fafaf7;
+  --brand-ink: #111110;
+  --allowit-bright: #f34632;
+  --allowit-muted: #ba2d22;
+  --ackrate-bright: #b9f36a;
+  --ackrate-muted: #157a4b;
+  --ackrate-forest: #123d2c;
+  --ackrate-mist: #e7f1e6;
+  --foundation-text: var(--ackrate-muted);
+  --foundation-fill: var(--ackrate-forest);
+  --foundation-on: var(--brand-paper);
+  --foundation-soft: var(--ackrate-mist);
+  --action-text: var(--allowit-muted);
+  --action-soft: color-mix(in srgb, var(--allowit-bright) 9%, var(--brand-paper));
+}
+:root[data-theme="dark"] {
+  --foundation-text: var(--ackrate-bright);
+  --foundation-fill: var(--ackrate-bright);
+  --foundation-on: var(--ackrate-forest);
+  --foundation-soft: #162a21;
+  --action-text: var(--allowit-bright);
+  --action-soft: color-mix(in srgb, var(--allowit-bright) 12%, var(--brand-ink));
+}
+:root, [data-brand="foundation"] {
+  --accent: var(--ackrate-muted);
+  --accent-text: var(--foundation-text);
+  --accent-fill: var(--foundation-fill);
+  --accent-on: var(--foundation-on);
+  --accent-hover: var(--ackrate-muted);
+  --accent-hover-on: var(--brand-paper);
+  --editorial: var(--foundation-text);
+}
+[data-brand="action"] {
+  --accent: var(--allowit-bright);
+  --accent-text: var(--action-text);
+  --accent-fill: var(--allowit-bright);
+  --accent-on: var(--brand-ink);
+  --accent-hover: var(--allowit-muted);
+  --accent-hover-on: var(--brand-paper);
+  --editorial: var(--allowit-bright);
+}

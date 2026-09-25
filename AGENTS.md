@@ -89,3 +89,7 @@ See `docs/presentation.md` for the current naming and visual conventions.
   "*-POWERED", "slick", "Premium", emphatic "Real …"). Keep concrete, accurate
   technical statements (the on-chain budget cap, contract-enforced limits, revocable mandate).
 - Use relative paths in symlinks and imports — never absolute.
+
+## Functional brand colors
+
+Follow [docs/brand-colors.md](docs/brand-colors.md) and the mirrored `app/brand-colors.css` tokens: green for Ackrate infrastructure/enforcement/evidence, red for consumer actions and human intervention. Use bright and readable shades deliberately; preserve state labels, contrast, transaction behavior and product names. The canonical cross-repository policy and task register live in ackrate-private (wiki/ackrate/visual-language.md and wiki/tasks/index.md).

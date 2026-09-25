@@ -77,7 +77,7 @@ export default function ConsumerPage() {
   };
 
   return (
-    <main className="relative overflow-hidden pb-8">
+    <main data-brand="action" className="relative overflow-hidden pb-8">
       <div className="glow" aria-hidden />
 
       <section className="mx-auto grid w-full max-w-6xl gap-10 px-4 pb-16 pt-12 sm:px-6 lg:grid-cols-[1fr_0.92fr] lg:items-center lg:px-8 lg:pb-24 lg:pt-20">
