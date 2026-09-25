@@ -8,7 +8,7 @@ Desktop uses `@stellar/freighter-api`. Freighter Mobile uses WalletConnect, incl
 2. Set `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` in the corresponding Vercel project environments, then rebuild and deploy. This is a public 32-character project identifier, never a wallet key or CI token.
 3. Validate the native Freighter handoff on iOS and Android. Confirm pairing approval and rejection, offline sign-in, reload, disconnect, changed account/network, and exact transaction signing before accepting mobile support.
 
-The adapter is implemented, but staging has no configured project ID as of September 25, 2026. Reown requires a signed-in project owner. The UI reports this explicitly instead of waiting for an extension popup that cannot appear on mobile. Track activation in the private wiki task register (ACK-005).
+On September 25, 2026, the REAPP staging project was created in Reown under the REAPP team (Starter plan). Its public project ID is configured in the Vercel staging production environment. Only `https://staging.ackrate.com` and `https://ackrate-ackrate-protocol-demo-a7c4d19.vercel.app` are allowlisted. Rebuild after changing this environment variable. Native iOS/Android pairing and signing acceptance remain tracked separately in the private wiki (ACK-005); backend readiness is ACK-006.
 
 ## Signing and recovery
 

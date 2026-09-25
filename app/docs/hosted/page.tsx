@@ -1,4 +1,5 @@
 "use client";
+import CodeBlock from "@/components/CodeBlock";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { txUrl, contractUrl } from "@/lib/explorer";
 const STORAGE_KEY = "ackrate-hackathon-workspace-v1";
@@ -216,11 +217,11 @@ export default function HostedWalkthrough() {
 
   return <><p className="eyebrow">Docs / Hosted walkthrough</p><h1>Research Source Scout.</h1>
     <p className="lead">Optional browser companion for the Testnet SDK starter. Your local consumer retains its signing keys and recovery evidence.</p>
-    <p>This optional walkthrough requires the persistent runtime at reapp.live. Vercel previews do not support its in-memory sessions and canonical-host restriction; use the local starter instead.</p>
+    <p>This alpha walkthrough requires the persistent runtime at reapp.live. Its latest session check failed because of funding configuration. Vercel staging cannot host these sessions; use the local Testnet starter and see the integration status.</p>
     <p>Install Research Source Scout from <a href="/docs/quickstarts">Quick starters</a>, then start a session here.</p>
     <button className="secondary-action" onClick={createWorkspace} disabled={creating || Boolean(persisted)}>{creating ? "Starting…" : persisted ? "Session ready" : "Start session"}</button>
     {error && <p role="alert">{error}</p>}
-    {persisted && <><h2>Run the consumer</h2><pre><code>{runCommand}</code></pre><button className="secondary-action" onClick={() => copyValue(runCommand, "run")}>Copy run command</button><p role="status">{copied === "run" ? "Copied" : ""}</p><p>Price: {persisted.workspace.priceXlm} XLM · Budget: {persisted.workspace.budgetXlm} XLM · <a href={contractUrl(persisted.workspace.contractId)}>Testnet contract</a></p></>}
+    {persisted && <><h2>Run the consumer</h2><CodeBlock>{runCommand}</CodeBlock><button className="secondary-action" onClick={() => copyValue(runCommand, "run")}>Copy run command</button><p role="status">{copied === "run" ? "Copied" : ""}</p><p>Price: {persisted.workspace.priceXlm} XLM · Budget: {persisted.workspace.budgetXlm} XLM · <a href={contractUrl(persisted.workspace.contractId)}>Testnet contract</a></p></>}
     <h2>Progress</h2><p role="status">{complete ? "Complete: three deliveries and the fourth purchase rejected." : `${delivered.length}/3 delivered · ${blocked ? "Spending limit verified" : "Spending-limit check pending"}`}</p>
     <ol>{transactions.map((tx) => <li key={tx.hash}><a href={txUrl(tx.hash)}>{tx.resource} — Stellar receipt</a></li>)}</ol>
     <details><summary>Session events</summary><pre>{visibleEvents.map((event) => `${event.type}${hashValue(event.hash) ? ` · ${hashValue(event.hash)}` : ""}`).join("\n") || "Waiting for local consumer requests."}</pre></details>

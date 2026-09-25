@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { ChevronDown } from "lucide-react";
 import { usePathname } from "next/navigation";
 import ThemeToggle from "./ThemeToggle";
 import AckrateArchMark from "./AckrateArchMark";
@@ -10,6 +11,7 @@ const guides = [
   { href: "/docs/sdk", label: "SDK" },
   { href: "/docs/cli", label: "CLI" },
   { href: "/docs/quickstarts", label: "Quick starters" },
+  { href: "/docs/integrations", label: "Integrations · alpha" },
   { href: "/express", label: "Express demo" },
   { href: "/ap2", label: "AP2 demo" },
 ];
@@ -29,7 +31,7 @@ export default function Nav() {
               event.currentTarget.querySelector("summary")?.focus();
             }
           }}>
-            <summary>Docs <span aria-hidden="true">⌄</span></summary>
+            <summary>Docs <ChevronDown className="docs-chevron" size={14} aria-hidden="true" /></summary>
             <div className="docs-menu">
               {guides.map((link) => <Link key={link.href} href={link.href} aria-current={path === link.href ? "page" : undefined}>{link.label}</Link>)}
             </div>
