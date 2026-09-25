@@ -18,7 +18,7 @@ export async function POST(request: Request) {
   try {
     const origin = await requireSameOrigin();
     const config = loadAppConfig();
-    if (!config.sessionSecret) throw new Error("wallet authentication is not configured");
+    if (!config.public.authenticationReady || !config.sessionSecret) throw new Error("wallet authentication is not configured");
     const { address } = Body.parse(await boundedJson(request, 4_096));
     const now = Math.floor(Date.now() / 1_000);
     const challenge = createChallengeToken(

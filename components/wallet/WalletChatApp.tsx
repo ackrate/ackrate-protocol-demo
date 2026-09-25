@@ -824,7 +824,7 @@ export function WalletChatApp() {
   };
 
   const authenticate = async () => {
-    if (!config || !walletAddress) return;
+    if (!config?.authenticationReady || !walletAddress) return;
     setError(null);
     if (walletAddress === config.contractAuthorityAddress) {
       setError("This is the contract's 2-of-3 governance account. Use a separate personal Mainnet wallet here.");
@@ -848,7 +848,7 @@ export function WalletChatApp() {
         body: JSON.stringify({ signature }),
       });
       setSession(verified.session);
-      setNotice("Signed in. You can now choose a marketplace service.");
+      setNotice(config.ready ? "Signed in. You can now choose a marketplace service." : "Signed in. Payment service setup is still incomplete.");
       setPhase("idle");
     } catch (cause) {
       setError(safeWalletError(cause, "Wallet verification did not finish. Open Freighter to complete the sign-in request; it does not make a payment."));
@@ -1573,7 +1573,8 @@ export function WalletChatApp() {
                 <span><Check size={14} />Circle USDC</span>
                 <span><Check size={14} />No charge to connect</span>
               </div>
-              {walletAddress && config && !config.ready && <p className="flow-alert">Wallet connected. Sign-in and payments are not enabled on this deployment yet.</p>}
+              {walletAddress && config && !config.authenticationReady && <p className="flow-alert">Wallet connected. Sign-in service setup is still incomplete.</p>}
+              {walletAddress && config?.authenticationReady && !config.ready && <p className="flow-alert">You can sign in. Payments are not enabled yet.</p>}
               {walletAddress === config?.contractAuthorityAddress && (
                 <div className="flow-alert"><TriangleAlert size={16} />Use a personal wallet, not the contract governance account.</div>
               )}
@@ -1582,7 +1583,7 @@ export function WalletChatApp() {
                 type="button"
                 onClick={() => void (walletAddress ? authenticate() : connect())}
                 aria-describedby="wallet-sign-in-note"
-                disabled={!config || phase === "authenticating" || Boolean(walletAddress && !config.ready)}
+                disabled={!config || phase === "authenticating" || Boolean(walletAddress && !config.authenticationReady)}
                 whileHover={reduceMotion || !config || phase === "authenticating" ? undefined : { y: -2, scale: 1.005 }}
                 whileTap={reduceMotion || !config || phase === "authenticating" ? undefined : { scale: 0.985 }}
               >

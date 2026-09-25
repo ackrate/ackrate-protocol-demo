@@ -16,7 +16,7 @@ GitHub Actions uses `VERCEL_TOKEN`, `VERCEL_ORG_ID`, and `VERCEL_PROJECT_ID`, co
 
 Use a dedicated Vercel access token scoped to this project for `VERCEL_TOKEN`; do not copy the CLI's OAuth access token from `auth.json`. That token expires, and CI cannot refresh it. Create the deployment token in [Vercel account settings](https://vercel.com/account/tokens), choose this project under `agentools-projects`, set an expiry (90 days is suitable), and save it directly in [the repository's Actions secrets](https://github.com/ackrate/ackrate-protocol-demo/settings/secrets/actions). Record the expiry in the operator handoff and rotate before it lapses. Never put token values in docs or issue comments.
 
-On September 25, the owner approved a dedicated project-scoped token, saved directly as the repository’s `VERCEL_TOKEN`. It expires December 24, 2026; rotate it before expiry using the same scope. The retry passed token validation but failed project-settings lookup: Vercel CLI 59.11.7 cannot retrieve team metadata with this project-only token. Correct routing IDs were reconfirmed; the issue also remains in the inspected 60.0.1 pull path. See [upstream issue 17506](https://github.com/vercel/vercel/issues/17506). A team-scoped replacement is prepared but requires separate approval because it can access other projects. Automation remains blocked until a successful Actions deployment; manual deployment alone is not sufficient.
+On September 25, the owner approved a team-scoped CI token for `agentools-projects`, saved directly as the repository’s `VERCEL_TOKEN`, expiring December 24, 2026. It can access other projects in that team; keep it confined to the authorized repository secret. The earlier project-only token hit [Vercel CLI issue 17506](https://github.com/vercel/vercel/issues/17506). Rotate before expiry and require a successful Actions run before closing deployment acceptance.
 
 An older native preview integration exists under `ais-projects-dc9b3903/ackrate-protocol-demo`; that team is inaccessible to the current CLI account. The checked-in `vercel.json` disables native Git deployments. The Actions workflow and project above are the supported deployment path.
 
@@ -37,3 +37,11 @@ Before staging promotion, verify a preview from the exact commit. Check `/api/cl
 ## Starter publication
 
 The setup commands and installer payloads use `https://staging.ackrate.com`, the current Vercel deliverable host. Publish generated archives, installers, manifest and the starter page together. Regenerate installers when the canonical Vercel hostname changes; verify their SHA-256 against the same deployment before cutover.
+
+## Sign-in and payment readiness
+
+`authenticationReady` is separate from payment `ready`. Offline SEP-53 sign-in requires a strong session secret; hosted deployments also require the exact app origin and PostgreSQL one-time challenge storage. A missing model key, unfunded payment signer or disabled Mainnet payments must not disable sign-in. Verification fails closed on storage failure or replay. Sign-in never authorizes spending.
+
+Staging uses the OpenAI-compatible Vercel AI Gateway through `OPENAI_BASE_URL=https://ai-gateway.vercel.sh/v1`, with a dedicated key in `OPENAI_API_KEY` and `openai/gpt-5-mini` in the chat, subtask and report model settings. The key has a $1 total quota without refresh and a 90-day expiry; a synthetic live request passed. No credit purchase or auto-recharge was configured. Rotate the key or explicitly approve a larger quota when needed; do not silently remove its limit.
+
+The isolated staging agent was absent from Mainnet Horizon when checked. Model/database connectivity does not establish payment readiness. Fund and verify the intended account, USDC trustline, reviewed contract and bounded settlement journey before enabling Mainnet payments.

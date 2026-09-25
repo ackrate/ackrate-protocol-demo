@@ -218,12 +218,20 @@ export function loadAppConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   if (networkName === "mainnet" && (!sourceCommit || !/^[0-9a-f]{40}$/.test(sourceCommit))) {
     blockers.push("exact 40-character application source commit is required on mainnet");
   }
+  // Offline ownership proof does not require a funded signer, model or payment activation.
+  // Hosted sessions must retain one-time challenges across function instances.
+  const hostedAuthentication = networkName === "mainnet" || env.NODE_ENV === "production" || Boolean(env.VERCEL);
+  const authenticationReady = Boolean(
+    sessionSecret && Buffer.byteLength(sessionSecret, "utf8") >= 32
+    && (!hostedAuthentication || (appOrigin && databaseUrl)),
+  );
   const ready = blockers.length === 0;
   const publicConfig: SafeAppConfig = {
     network: networkName,
     networkLabel: networkName === "mainnet" ? "Stellar Mainnet" : "Stellar Testnet",
     releaseState: ready ? (networkName === "mainnet" ? "mainnet-ready" : "testnet-ready") : "configuration-required",
     ready,
+    authenticationReady,
     blockers,
     rpcUrl: appOrigin ? `${appOrigin}/api/wallet/rpc` : network.rpcUrl,
     networkPassphrase: network.networkPassphrase,
