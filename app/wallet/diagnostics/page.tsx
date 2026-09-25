@@ -1,6 +1,7 @@
 import Link from "next/link";
+import ConnectionDiagnostics from "@/components/wallet/ConnectionDiagnostics";
 import { loadAppConfig } from "@/lib/wallet/app-config";
-import AckrateSolarMark from "@/components/AckrateSolarMark";
+import AckrateArchMark from "@/components/AckrateArchMark";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +12,7 @@ export default function DiagnosticsPage() {
   } catch (error) {
     return (
       <main className="wallet-preview shell diagnostic-page">
-        <Link href="/" className="brand" aria-label="ACKRATE home"><AckrateSolarMark size={40} /> ACKRATE</Link>
+        <Link href="/" className="brand" aria-label="ACKRATE home"><AckrateArchMark size={40} /> ACKRATE</Link>
         <section className="glass diagnostic-card">
           <p className="eyebrow danger">CONFIGURATION REJECTED</p>
           <h1>Release diagnostics</h1>
@@ -33,7 +34,7 @@ export default function DiagnosticsPage() {
   ];
   return (
     <main className="wallet-preview shell diagnostic-page">
-      <Link href="/" className="brand" aria-label="ACKRATE home"><AckrateSolarMark size={40} /> ACKRATE</Link>
+      <Link href="/" className="brand" aria-label="ACKRATE home"><AckrateArchMark size={40} /> ACKRATE</Link>
       <section className="glass diagnostic-card">
         <div className="diagnostic-head">
           <div>
@@ -54,6 +55,7 @@ export default function DiagnosticsPage() {
           </div>
         )}
       </section>
+      <ConnectionDiagnostics sourceCommit={config.sourceCommit} network={config.network} ready={config.ready} />
     </main>
   );
 }

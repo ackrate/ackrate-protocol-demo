@@ -8,6 +8,7 @@ import { loadAppConfig } from "../lib/wallet/app-config";
 import * as readiness from "../lib/wallet/client-readiness";
 import * as registration from "../lib/wallet/registration-recovery";
 import * as notifications from "../lib/wallet/notifications";
+import * as connectionDiagnostics from "../lib/wallet/connection-diagnostics";
 import * as catalog from "../lib/wallet/marketplace-catalog";
 
 // Execute the shipped component and its callbacks/effects with synthetic hooks,
@@ -102,6 +103,8 @@ function harness(initial: Record<string, any> | null, status: "confirmed" | "pen
     "next/link": { default: "a" }, "framer-motion": { AnimatePresence: "fragment", motion: new Proxy({}, { get: (_target, name) => name }), useReducedMotion: () => true },
     "lucide-react": new Proxy({}, { get: (_target, name) => name }),
     "@/lib/wallet/mandate-client": clients,
+    "./ConnectionDiagnostics": { default: "connection-diagnostics" },
+    "@/lib/wallet/connection-diagnostics": connectionDiagnostics,
     "@/lib/wallet/freighter": { freighterSessionState: async () => "matches" },
     "@/lib/wallet/marketplace-catalog": catalog,
     "./AssistantThread": { AssistantThread: "assistant-thread", PurchaseReport: "purchase-report", parseRecovery: () => null },

@@ -208,8 +208,8 @@ a, button, summary, select { -webkit-tap-highlight-color: transparent; }
 .glass { background: var(--panel); border: 1px solid var(--line); }
 .site-nav { position: fixed; inset: 0 0 auto; z-index: 50; background: var(--bg); color: var(--text); border-bottom: 1px solid var(--line); padding-top: env(safe-area-inset-top, 0px); }
 .site-nav-inner { max-width: 1160px; margin: auto; padding: 0 32px; min-height: 76px; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
-.wordmark { font-size: 22px; font-weight: 750; letter-spacing: -.07em; text-decoration: none; }
-.wordmark span { color: var(--accent); }
+.wordmark { display: inline-flex; align-items: center; gap: 6px; font-size: 22px; font-weight: 750; letter-spacing: -.07em; text-decoration: none; }
+.ackrate-arch-mark { flex-shrink: 0; color: var(--accent); }
 .site-nav-links { display: flex; gap: 28px; align-items: center; font-size: 14px; }
 .site-nav-links > a, .site-nav summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; gap: 8px; }
 .site-nav details { position: relative; }

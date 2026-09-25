@@ -1,3 +1,5 @@
+import { WalletConnectionError } from "./connection-diagnostics";
+
 export interface WalletNotification {
   kind: "notice" | "error";
   message: string;
@@ -11,6 +13,8 @@ export function nextWalletNotification(current: WalletNotification | null, kind:
 
 /** Match known causes, never echo provider payloads, credentials, or arbitrary server messages into the UI. */
 export function safeWalletError(cause: unknown, fallback: string): string {
+  // Only this local error class carries controlled, user-facing connection copy.
+  if (cause instanceof WalletConnectionError) return cause.message;
   const message = cause instanceof Error ? cause.message : typeof cause === "string" ? cause : "";
   if (/Agent402 discovery/i.test(message)) return "The marketplace could not verify this service's details. Your inputs have not changed; try the price check again shortly.";
   if (/model access|agent service.*(?:unavailable|configured)|chat execution.*configured|api.?key|authentication_error|insufficient_quota/i.test(message)) {

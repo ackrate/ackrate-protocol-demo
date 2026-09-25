@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import ThemeToggle from "./ThemeToggle";
+import AckrateArchMark from "./AckrateArchMark";
 
 const guides = [
   { href: "/docs", label: "Overview" },
@@ -19,7 +20,7 @@ export default function Nav() {
   return <>
     <nav aria-label="Main navigation" className="site-nav">
       <div className="site-nav-inner">
-        <Link href="/" className="wordmark" aria-label="REAPP home">REAPP<span aria-hidden="true">.</span></Link>
+        <Link href="/" className="wordmark" aria-label="REAPP home"><AckrateArchMark />REAPP</Link>
         <div className="site-nav-links">
           <Link href="/wallet" aria-current={path === "/wallet" ? "page" : undefined}>Consumer app</Link>
           <details key={path} onKeyDown={(event) => {

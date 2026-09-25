@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type SetStateAction } from "react";
 import Link from "next/link";
+import ConnectionDiagnostics from "./ConnectionDiagnostics";
+import { recordConnectionEvent, type ConnectionStep } from "@/lib/wallet/connection-diagnostics";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   Activity,
@@ -203,14 +205,26 @@ function isHistoricalMandate(value: unknown, config: SafeAppConfig, address: str
 }
 
 async function api<T>(url: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(url, {
-    ...init,
-    credentials: "same-origin",
-    headers: { "Content-Type": "application/json", ...init?.headers },
-  });
-  const body = await response.json() as { ok: boolean; error?: string } & T;
-  if (!response.ok || !body.ok) throw new Error(body.error ?? `Request failed with HTTP ${response.status}`);
-  return body;
+  const connectionStep: ConnectionStep | undefined = ({
+    "/api/wallet/config": "config", "/api/wallet/auth/session": "session",
+    "/api/wallet/auth/challenge": "challenge", "/api/wallet/auth/verify": "verify",
+  } as Record<string, ConnectionStep>)[url];
+  if (connectionStep) recordConnectionEvent(connectionStep, "started");
+  try {
+    const response = await fetch(url, {
+      ...init,
+      ...(connectionStep && !init?.signal ? { signal: AbortSignal.timeout(15_000) } : {}),
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json", ...init?.headers },
+    });
+    const body = await response.json() as { ok: boolean; error?: string } & T;
+    if (connectionStep) recordConnectionEvent(connectionStep, response.ok && body.ok ? "ok" : "failed", response.status);
+    if (!response.ok || !body.ok) throw new Error(body.error ?? `Request failed with HTTP ${response.status}`);
+    return body;
+  } catch (cause) {
+    if (connectionStep) recordConnectionEvent(connectionStep, cause instanceof Error && cause.name === "TimeoutError" ? "timeout" : "failed");
+    throw cause;
+  }
 }
 
 const short = (value: string | null | undefined, size = 7) => value ? `${value.slice(0, size)}…${value.slice(-size)}` : "Not configured";
@@ -789,12 +803,12 @@ export function WalletChatApp() {
   };
 
   const connect = async () => {
-    if (!config) return;
+    if (!config || phase === "authenticating") return;
     setError(null);
     setNotice("Open Freighter and connect your wallet.");
     setPhase("authenticating");
     try {
-      const address = await connectFreighter(config.networkPassphrase);
+      const address = await connectFreighter(config.networkPassphrase, setNotice);
       setWalletAddress(address);
       setNotice("Wallet connected. No transaction was created, signed, or sent.");
       setPhase("idle");
@@ -1565,7 +1579,8 @@ export function WalletChatApp() {
                 {phase === "authenticating" ? <LoaderCircle className="spin" size={17} /> : <WalletCards size={17} />}
                 {phase === "authenticating" ? "Waiting for Freighter…" : walletAddress ? "Sign in with Freighter" : "Connect Freighter"}
               </motion.button>
-              <small className="flow-footnote wallet-sign-in-note"><LockKeyhole size={12} aria-hidden="true" /><em id="wallet-sign-in-note">{walletAddress ? "Confirm in Freighter to prove this wallet is yours and sign in. This does not authorize spending. Freighter may show a fee, but we do not submit this request to Stellar, so no fee is charged." : "Connecting shares your public wallet address. Next, you will sign in to prove ownership. Neither step makes a payment or authorizes spending."}</em></small>
+              <small className="flow-footnote wallet-sign-in-note"><LockKeyhole size={12} aria-hidden="true" /><em id="wallet-sign-in-note">{walletAddress ? "Sign the offline message in Freighter to prove this wallet is yours. No transaction, spending permission or network fee." : "Connecting shares your public wallet address. Next, you will sign in to prove ownership. Neither step makes a payment or authorizes spending."}</em></small>
+              <ConnectionDiagnostics sourceCommit={config?.sourceCommit} network={config?.network} ready={config?.ready} />
             </motion.div>
           ) : !marketplaceSelected ? (
             <motion.div

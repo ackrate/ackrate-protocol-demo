@@ -20,7 +20,7 @@ import {
   WalletCards,
   X,
 } from "lucide-react";
-import AckrateSolarMark from "@/components/AckrateSolarMark";
+import AckrateArchMark from "@/components/AckrateArchMark";
 
 const fade = (delay = 0) => ({
   initial: { opacity: 0, y: 18 },
@@ -135,7 +135,7 @@ export default function ConsumerPage() {
           <div className="overflow-hidden rounded-[2rem] border border-neutral-300/15 bg-[#090909]/95 shadow-[0_32px_90px_rgba(0,0,0,0.45)]">
             <div className="flex items-center justify-between border-b border-white/[0.08] px-5 py-4">
               <div className="flex items-center gap-3">
-                <AckrateSolarMark size={44} />
+                <AckrateArchMark size={44} />
                 <div>
                   <p className="text-sm font-semibold text-white">ACKRATE Tasks</p>
                   <p className="text-[11px] text-white/40">Your agent · your spending rules</p>
