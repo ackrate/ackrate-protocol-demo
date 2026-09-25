@@ -1,6 +1,6 @@
 # Deployment
 
-**Current direction:** Vercel hosts REAPP and its APIs. Railway is being retired; do not provision or repair a Railway service for this release. Durable staging state uses a PostgreSQL integration managed through Vercel. Neon free-plan provisioning is pending terms acceptance; it is not configured yet.
+**Current direction:** Vercel hosts REAPP and its APIs. Railway is being retired; do not provision or repair a Railway service for this release. Durable staging state uses a PostgreSQL integration managed through Vercel. The `reapp-staging` Neon database is connected to this staging project’s production environment on the Free plan. Live health verifies PostgreSQL connectivity. The existing Vercel workspace is Pro; no hosting plan was changed.
 
 The application is a Next.js 16 project at the repository root, using npm and Node 22 in CI. The package engine pins Node 22. Vercel uses `npm ci`, `npm run build`, and the default Next.js output. Do not set an `out` directory: wallet APIs require server execution.
 
@@ -16,7 +16,7 @@ GitHub Actions uses `VERCEL_TOKEN`, `VERCEL_ORG_ID`, and `VERCEL_PROJECT_ID`, co
 
 Use a dedicated Vercel access token scoped to this project for `VERCEL_TOKEN`; do not copy the CLI's OAuth access token from `auth.json`. That token expires, and CI cannot refresh it. Create the deployment token in [Vercel account settings](https://vercel.com/account/tokens), choose this project under `agentools-projects`, set an expiry (90 days is suitable), and save it directly in [the repository's Actions secrets](https://github.com/ackrate/ackrate-protocol-demo/settings/secrets/actions). Record the expiry in the operator handoff and rotate before it lapses. Never put token values in docs or issue comments.
 
-On September 25, the automated preview's validation passed but deployment failed with an invalid-token error. The previous secret came from the expiring CLI login. The current CLI login successfully deployed staging, but Vercel rejected creation of a dedicated token from that app (`Cannot create tokens for this app`). An operator must replace `VERCEL_TOKEN` as above and rerun the failed Vercel job. Until the rerun succeeds, deployment automation is blocked; a manual staging deployment does not resolve this finding.
+On September 25, the owner approved a dedicated project-scoped token, saved directly as the repository’s `VERCEL_TOKEN`. It expires December 24, 2026; rotate it before expiry using the same scope. The retry passed token validation but failed project-settings lookup: Vercel CLI 59.11.7 cannot retrieve team metadata with this project-only token. Correct routing IDs were reconfirmed; the issue also remains in the inspected 60.0.1 pull path. See [upstream issue 17506](https://github.com/vercel/vercel/issues/17506). A team-scoped replacement is prepared but requires separate approval because it can access other projects. Automation remains blocked until a successful Actions deployment; manual deployment alone is not sufficient.
 
 An older native preview integration exists under `ais-projects-dc9b3903/ackrate-protocol-demo`; that team is inaccessible to the current CLI account. The checked-in `vercel.json` disables native Git deployments. The Actions workflow and project above are the supported deployment path.
 
