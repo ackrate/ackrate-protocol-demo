@@ -22,7 +22,7 @@ export default function Nav() {
       <div className="site-nav-inner">
         <Link href="/" className="wordmark" aria-label="REAPP home"><AckrateArchMark />REAPP</Link>
         <div className="site-nav-links">
-          <Link href="/wallet" data-brand="action" aria-current={path === "/wallet" ? "page" : undefined}>Consumer app</Link>
+          <Link href="/wallet" aria-current={path === "/wallet" ? "page" : undefined}>Consumer app</Link>
           <details key={path} onKeyDown={(event) => {
             if (event.key === "Escape") {
               event.currentTarget.open = false;

@@ -93,3 +93,5 @@ See `docs/presentation.md` for the current naming and visual conventions.
 ## Functional brand colors
 
 Follow [docs/brand-colors.md](docs/brand-colors.md) and the mirrored `app/brand-colors.css` tokens: green for Ackrate infrastructure/enforcement/evidence, red for consumer actions and human intervention. Use bright and readable shades deliberately; preserve state labels, contrast, transaction behavior and product names. The canonical cross-repository policy and task register live in ackrate-private (wiki/ackrate/visual-language.md and wiki/tasks/index.md).
+
+Infrastructure and ordinary navigation stay predominantly green/neutral. Red marks a specific intent-setting control, requested user feedback, or denial; do not color a whole chapter red because it describes consumer actions. Specialist ownership is recorded in the private wiki: Fable for UX, Opus 5.5 for frontend design, Codex for backlog/integration/backend. Record blocked reviews truthfully.
