@@ -61,6 +61,7 @@ jobs:
           npm run test:cli
           npm run test:hackathon
           npm run test:wallet
+          npm run check:marketplace
           npm audit --audit-level=high
           npm install --global vercel@59.11.7
       - name: Build and deploy preview

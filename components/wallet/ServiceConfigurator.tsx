@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, useReducedMotion } from "framer-motion";
-import { ArrowLeft, ArrowRight, Braces, Check, ListFilter, SlidersHorizontal, TriangleAlert } from "lucide-react";
+import { ArrowLeft, ArrowRight, Braces, ListFilter, SlidersHorizontal, TriangleAlert } from "lucide-react";
 import type { MarketplaceInputField, MarketplaceService } from "@/lib/wallet/marketplace-catalog";
 
 export type ServiceInputValues = Record<string, string>;
@@ -207,12 +207,12 @@ export function ServiceConfigurator({
       {SEARCH_EXAMPLES.map((example) => <button type="button" disabled={busy} key={example} onClick={() => onChange({ ...values, q: example })}>{example}</button>)}
     </div>}
 
-    <div className={`config-readiness ${executable ? "ready" : "inspect-only"}`}>
-      <span>{executable ? <Check size={14} /> : <ListFilter size={14} />}</span>
+    <div className="config-readiness inspect-only">
+      <span>{executable ? <SlidersHorizontal size={14} /> : <ListFilter size={14} />}</span>
       <div>
-        <strong>{executable ? "Ready for the protected payment flow" : "Schema preview"}</strong>
+        <strong>{executable ? "Check the price before continuing" : "Schema preview"}</strong>
         <p>{executable
-          ? `These exact values will be bound to the ${service.price} USDC purchase request.`
+          ? `Listed price: ${service.price} USDC. We will verify the seller and price next; no payment is made.`
           : "This listing is live, but it is not yet in the reviewed payment allowlist."}</p>
       </div>
     </div>
@@ -228,7 +228,7 @@ export function ServiceConfigurator({
         disabled={busy || !executable || Boolean(problem)}
         whileHover={reduceMotion || !executable || Boolean(problem) ? undefined : { y: -1 }}
         whileTap={reduceMotion || !executable || Boolean(problem) ? undefined : { scale: 0.985 }}
-      ><SlidersHorizontal size={15} /> {busy ? "Checking price and seller…" : "Use these inputs"} <ArrowRight size={15} /></motion.button>
+      ><SlidersHorizontal size={15} /> {busy ? "Checking price and seller…" : "Check price and continue"} <ArrowRight size={15} /></motion.button>
     </div>
   </div>;
 }

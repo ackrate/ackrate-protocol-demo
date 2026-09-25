@@ -10,6 +10,7 @@ import * as registration from "../lib/wallet/registration-recovery";
 import * as notifications from "../lib/wallet/notifications";
 import * as connectionDiagnostics from "../lib/wallet/connection-diagnostics";
 import * as catalog from "../lib/wallet/marketplace-catalog";
+import * as prices from "../lib/wallet/agent402-prices";
 
 // Execute the shipped component and its callbacks/effects with synthetic hooks,
 // browser storage and read-only API responses. This is not a live wallet test.
@@ -107,6 +108,7 @@ function harness(initial: Record<string, any> | null, status: "confirmed" | "pen
     "@/lib/wallet/connection-diagnostics": connectionDiagnostics,
     "@/lib/wallet/freighter": { freighterSessionState: async () => "matches" },
     "@/lib/wallet/marketplace-catalog": catalog,
+    "@/lib/wallet/agent402-prices": prices,
     "./AssistantThread": { AssistantThread: "assistant-thread", PurchaseReport: "purchase-report", parseRecovery: () => null },
     "./ServiceConfigurator": { ServiceConfigurator: "service-configurator", initialServiceInputValues: () => ({ q: "What is Stellar?" }), serializedServiceInputs: () => ({ q: "What is Stellar?" }) },
     "@/lib/wallet/client-readiness": { ...readiness, allowanceTransactionIsFresh: () => true },

@@ -44,4 +44,6 @@ The setup commands and installer payloads use `https://staging.ackrate.com`, the
 
 Staging uses the OpenAI-compatible Vercel AI Gateway through `OPENAI_BASE_URL=https://ai-gateway.vercel.sh/v1`, with a dedicated key in `OPENAI_API_KEY` and `openai/gpt-5-mini` in the chat, subtask and report model settings. The key has a $1 total quota without refresh and a 90-day expiry; a synthetic live request passed. No credit purchase or auto-recharge was configured. Rotate the key or explicitly approve a larger quota when needed; do not silently remove its limit.
 
-The isolated staging agent was absent from Mainnet Horizon when checked. Model/database connectivity does not establish payment readiness. Fund and verify the intended account, USDC trustline, reviewed contract and bounded settlement journey before enabling Mainnet payments.
+The staging agent is funded and its Circle USDC trustline is active. Mainnet payments were enabled after live contract and authority verification. Native funded purchase/revoke acceptance remains separate from configuration readiness.
+
+The deployment workflow runs `npm run check:marketplace` before publishing. This requests unpaid discovery and HTTP 402 challenges for every supported service; it never signs or pays. It catches seller, price, network, asset and fee-sponsorship drift. Reviewed prices live in `lib/wallet/agent402-prices.ts` and must agree with the live challenges before deployment. Quotes bind the exact price and recipient; users must review their service again after a price update.

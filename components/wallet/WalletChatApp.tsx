@@ -1,5 +1,7 @@
 "use client";
 
+import { AGENT402_PRICES } from "@/lib/wallet/agent402-prices";
+
 import { useCallback, useEffect, useMemo, useRef, useState, type SetStateAction } from "react";
 import Link from "next/link";
 import ConnectionDiagnostics from "./ConnectionDiagnostics";
@@ -46,7 +48,7 @@ import {
 } from "@/lib/wallet/mandate-client";
 import type { MandateView, SafeAppConfig, SessionView } from "@/lib/wallet/types";
 import { addTokenToFreighter, connectFreighter, disconnectMobileWallet, usesMobileWallet, freighterSessionState, signFreighterMessage } from "@/lib/wallet/freighter";
-import { sourceIdForMarketplaceService, WEB_SEARCH_INPUTS, type MarketplaceService } from "@/lib/wallet/marketplace-catalog";
+import { refreshSavedMarketplaceService, sourceIdForMarketplaceService, WEB_SEARCH_INPUTS, type MarketplaceService } from "@/lib/wallet/marketplace-catalog";
 import { AssistantThread, parseRecovery, purchaseResultForMandate, PurchaseReport, type PurchaseResult } from "./AssistantThread";
 import { initialServiceInputValues, serializedServiceInputs, ServiceConfigurator, type ServiceInputValues } from "./ServiceConfigurator";
 import type { MarketplaceQuoteView } from "@/lib/wallet/marketplace-quote";
@@ -84,6 +86,7 @@ interface StoredMandate {
 
 interface WalletBalances {
   address: string;
+  funded: boolean;
   xlm: string;
   usdc: string;
   xlmRaw: string;
@@ -103,7 +106,7 @@ const DEFAULT_MARKETPLACE_SERVICE: MarketplaceService = {
   categoryLabel: "Web & documents",
   method: "GET",
   path: "/api/search",
-  price: "0.02",
+  price: AGENT402_PRICES.search.price,
   docs: "https://agent402.tools/tools/search",
   inputs: WEB_SEARCH_INPUTS,
   schemaSource: "verified-docs",
@@ -128,7 +131,7 @@ function storedMarketplaceService(value: unknown): MarketplaceService | null {
     || typeof service.docs !== "string"
   ) return null;
   const inputs = Array.isArray(service.inputs) ? service.inputs : [];
-  const restored = { ...service, inputs } as unknown as MarketplaceService;
+  const restored = refreshSavedMarketplaceService({ ...service, inputs } as unknown as MarketplaceService);
   return isGuidedResearchService(restored)
     ? { ...restored, inputs: inputs.length ? inputs : WEB_SEARCH_INPUTS, schemaSource: inputs.length ? restored.schemaSource : "verified-docs" }
     : restored;
@@ -138,7 +141,7 @@ function isGuidedResearchService(service: MarketplaceService): boolean {
   return service.id === "search"
     && service.method === "GET"
     && service.path === "/api/search"
-    && service.price === "0.02";
+    && service.price === AGENT402_PRICES.search.price;
 }
 
 function isRunnableMarketplaceService(service: MarketplaceService): boolean {
@@ -1771,7 +1774,10 @@ export function WalletChatApp() {
                 <p><strong>Your funds stay in your wallet.</strong>Ackrate gives the MandateRegistry contract a capped USDC allowance. The agent never receives the full limit upfront; each payment must pass the on-chain checks.</p>
               </div>
 
-              {!walletBalances?.hasUsdcTrustline && !balancesLoading && (
+              {walletBalances?.funded === false && (
+                <p className="flow-alert">Fund this Mainnet wallet with XLM before adding USDC or approving a spending limit.</p>
+              )}
+              {walletBalances?.funded && !walletBalances.hasUsdcTrustline && !balancesLoading && (
                 <button className="flow-primary flow-outline" type="button" onClick={addUsdc} disabled={phase === "adding-asset"}><CircleDollarSign size={16} />{phase === "adding-asset" ? "Waiting for Freighter…" : "Add Circle USDC to wallet"}</button>
               )}
               {walletBalances?.hasUsdcTrustline && !hasEnoughUsdc && budgetValid && (

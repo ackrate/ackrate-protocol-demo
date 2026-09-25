@@ -1,5 +1,7 @@
 "use client";
 
+import { AGENT402_PRICES } from "@/lib/wallet/agent402-prices";
+
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AssistantRuntimeProvider, MessagePrimitive, ThreadPrimitive, useAuiState, type TextMessagePartProps, type ToolCallMessagePartProps, type ThreadMessage } from "@assistant-ui/react";
 import { AssistantChatTransport, useChatRuntime } from "@assistant-ui/react-ai-sdk";
@@ -39,7 +41,7 @@ const DEFAULT_SEARCH_SERVICE: MarketplaceService = {
   categoryLabel: "Web",
   method: "GET",
   path: "/api/search",
-  price: "0.02",
+  price: AGENT402_PRICES.search.price,
   docs: "https://agent402.tools/tools/search",
   inputs: WEB_SEARCH_INPUTS,
   schemaSource: "verified-docs",
@@ -68,7 +70,7 @@ interface ConfiguredRun {
 export function AssistantThread({
   mandateId,
   asset,
-  price = "0.02",
+  price = AGENT402_PRICES.search.price,
   service = DEFAULT_SEARCH_SERVICE,
   parameters,
   quoteToken,

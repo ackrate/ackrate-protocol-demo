@@ -37,7 +37,9 @@ export async function GET(request: NextRequest) {
       headers: { Accept: "application/json" },
     });
     if (response.status === 404) {
-      return NextResponse.json({ ok: false, error: "This Stellar Mainnet account is not funded" }, { status: 404, headers: NO_STORE_HEADERS });
+      return NextResponse.json({ ok: true, balances: {
+        address, funded: false, xlm: "0.00", usdc: "0.00", xlmRaw: "0", usdcRaw: "0", hasUsdcTrustline: false,
+      } }, { headers: NO_STORE_HEADERS });
     }
     if (!response.ok) throw new Error(`Stellar balance service returned HTTP ${response.status}`);
 
@@ -55,6 +57,7 @@ export async function GET(request: NextRequest) {
       ok: true,
       balances: {
         address,
+        funded: true,
         xlm: displayAmount(native?.balance ?? "0"),
         usdc: displayAmount(usdc?.balance ?? "0"),
         xlmRaw: native?.balance ?? "0",
