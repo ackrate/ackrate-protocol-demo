@@ -177,7 +177,7 @@ function WalletToast({ notification, busy, onDismiss, legacy = false }: { notifi
   return <div className={`${legacy ? "toast" : "flow-toast"}${failed ? " error" : ""}`} role={failed ? "alert" : "status"} aria-atomic="true" style={{ width: "min(440px, calc(100vw - 32px))", alignItems: "start" }}>
     <span aria-hidden="true">{failed ? <TriangleAlert size={16} /> : busy ? <LoaderCircle className="spin" size={16} /> : <Info size={16} />}</span>
     <p style={{ fontSize: 13, lineHeight: 1.55, overflowWrap: "anywhere" }}>{notification.message}</p>
-    <button type="button" onClick={onDismiss} aria-label="Dismiss notification" style={{ minWidth: 28, minHeight: 28, color: "#d4d4d4" }}><X size={16} /></button>
+    <button type="button" onClick={onDismiss} aria-label="Dismiss notification" style={{ minWidth: 28, minHeight: 28, color: "var(--text)" }}><X size={16} /></button>
   </div>;
 }
 
