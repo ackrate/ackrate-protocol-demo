@@ -1150,8 +1150,9 @@ export function WalletChatApp() {
     setDisconnecting(true);
     setNotice("Spending is off. Disconnecting your wallet…");
     try {
-      await disconnectMobileWallet();
       await api("/api/wallet/auth/session", { method: "DELETE", body: "{}" });
+      // Relay availability must not prevent server-session logout.
+      await disconnectMobileWallet().catch(() => {});
     } catch (cause) {
       setError("Spending is off, but sign-out did not finish. Retry Disconnect wallet; no new transaction or fee is needed.");
       disconnectInFlight.current = false;

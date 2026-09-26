@@ -109,7 +109,7 @@ export async function connectMobileWallet(network: string, onStatus?: (status: s
     return address;
   } catch (cause) {
     pairingAbandoned = pairingPending;
-    await provider!.cleanupPendingPairings({ deletePairings: true });
+    await provider!.cleanupPendingPairings({ deletePairings: true }).catch(() => {});
     // Late pairing approvals cannot become the app's selected transport.
     selectMobileWallet(false);
     if (provider!.session) await provider!.disconnect().catch(() => {});
@@ -156,8 +156,11 @@ export async function mobileSignTransaction(xdr: string, address: string, networ
 
 export async function disconnectMobileWallet(): Promise<void> {
   if (!usesMobileWallet()) return;
-  await initialize();
-  if (provider!.session) await connectionRequest("disconnect", () => provider!.disconnect(), 15_000);
-  disconnected = true;
-  selectMobileWallet(false);
+  try {
+    await connectionRequest("disconnect", initialize, 15_000);
+    if (provider!.session) await connectionRequest("disconnect", () => provider!.disconnect(), 15_000);
+  } finally {
+    disconnected = true;
+    selectMobileWallet(false);
+  }
 }

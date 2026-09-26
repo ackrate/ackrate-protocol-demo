@@ -139,3 +139,34 @@ test("account change events invalidate a session even when the provider retains 
   assert.equal(await h.api.connectMobileWallet(network), user.publicKey());
   assert.deepEqual(h.calls.map((call) => call.method), ["connect", "disconnect", "connect"]);
 });
+
+
+test("failed relay disconnect clears the selected transport and invalidates retained sessions", async () => {
+  const h = harness();
+  await h.api.connectMobileWallet(network);
+  h.provider.disconnect = async () => { throw new Error("relay unavailable"); };
+  await assert.rejects(h.api.disconnectMobileWallet(), /request failed/);
+  assert.equal(h.api.usesMobileWallet(), false);
+  assert.equal(await h.api.mobileSessionState(user.publicKey(), network), "disconnected");
+});
+
+test("disconnect clears persisted transport even if initialization is unavailable", async () => {
+  const h = harness({ configured: false });
+  h.api.selectMobileWallet(true);
+  await assert.rejects(h.api.disconnectMobileWallet(), /not enabled/);
+  assert.equal(h.api.usesMobileWallet(), false);
+});
+
+test("pairing cleanup failure preserves cancellation and closes late approvals", async () => {
+  let approve!: (value: ReturnType<typeof session>) => void;
+  const h = harness({ connect: () => new Promise((resolve) => { approve = resolve; }) });
+  h.provider.cleanupPendingPairings = async () => { throw new Error("cleanup unavailable"); };
+  const pending = h.api.connectMobileWallet(network);
+  while (!h.calls.length) await new Promise((resolve) => setImmediate(resolve));
+  h.close();
+  await assert.rejects(pending, /cancelled/);
+  approve(session());
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(h.api.usesMobileWallet(), false);
+  assert.equal(h.provider.session, undefined);
+});
