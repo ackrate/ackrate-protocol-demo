@@ -39,26 +39,18 @@ export default function ThemeToggle({ home = false }: { home?: boolean }) {
     applyTheme(next);
   };
 
+  const next: ThemePreference = preference === "system" ? "light" : preference === "light" ? "dark" : "system";
+  const names = { system: "Auto", light: "Light", dark: "Dark" };
+  const label = `Theme: ${names[preference]}. Switch to ${names[next]}`;
+  const Icon = preference === "system" ? Monitor : preference === "light" ? Sun : Moon;
   return (
-    <label className={`relative inline-flex shrink-0 items-center rounded-full border ${
-      home
-        ? "border-[#151914]/15 bg-white/45 text-[#151914] dark:border-white/15 dark:bg-white/[0.06] dark:text-[#f4f2ec]"
-        : "border-white/10 bg-white/[0.03] text-white/70"
-    }`}>
-      <span className="sr-only">Color theme</span>
-      <span className="pointer-events-none absolute left-2.5" aria-hidden>
-        {preference === "light" ? <Sun className="h-3.5 w-3.5" /> : preference === "dark" ? <Moon className="h-3.5 w-3.5" /> : <Monitor className="h-3.5 w-3.5" />}
-      </span>
-      <select
-        aria-label="Color theme"
-        value={preference}
-        onChange={(event) => choose(event.target.value as ThemePreference)}
-        className="h-8 cursor-pointer appearance-none bg-transparent py-0 pl-8 pr-3 text-[11px] font-bold outline-none"
-      >
-        <option value="system">Auto</option>
-        <option value="light">Light</option>
-        <option value="dark">Dark</option>
-      </select>
-    </label>
+    <button type="button" aria-label={label} title={label} onClick={() => choose(next)}
+      className={`inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border ${
+        home
+          ? "border-[#151914]/15 bg-white/45 text-[#151914] dark:border-white/15 dark:bg-white/[0.06] dark:text-[#f4f2ec]"
+          : "border-white/10 bg-white/[0.03] text-white/70"
+      }`}>
+      <Icon className="h-4 w-4" aria-hidden="true" />
+    </button>
   );
 }
