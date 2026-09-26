@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { Monitor, Moon, Sun } from "lucide-react";
 
 type ThemePreference = "auto" | "light" | "dark";
 const storageKey = "reapp-theme";
@@ -39,15 +40,14 @@ export default function ThemeToggle() {
     };
   }, []);
 
-  return <select className="theme-toggle" aria-label="Color theme" value={preference} onChange={(event) => {
-    const next = normalize(event.target.value);
+  const next: ThemePreference = preference === "auto" ? "light" : preference === "light" ? "dark" : "auto";
+  const names = { auto: "Auto", light: "Light", dark: "Dark" };
+  const label = `Theme: ${names[preference]}. Switch to ${names[next]}`;
+  const Icon = preference === "auto" ? Monitor : preference === "light" ? Sun : Moon;
+  return <button className="theme-toggle" type="button" aria-label={label} title={label} onClick={() => {
     current.current = next;
     setPreference(next);
     try { localStorage.setItem(storageKey, next); } catch { /* Keep the theme usable without storage. */ }
     applyTheme(next);
-  }}>
-    <option value="auto">Auto</option>
-    <option value="light">Light</option>
-    <option value="dark">Dark</option>
-  </select>;
+  }}><Icon size={18} aria-hidden="true" /></button>;
 }
