@@ -1503,7 +1503,7 @@ export function WalletChatApp() {
   const navState = (step: number) => workflowStep > step ? "done" : workflowStep === step ? "current" : "";
 
   return (
-    <main data-brand="action" className={`wallet-preview wallet-flow wallet-flat${resultVisible ? " wallet-result-mode" : ""}`}>
+    <main data-brand="foundation" className={`wallet-preview wallet-flow wallet-flat${resultVisible ? " wallet-result-mode" : ""}`}>
       <header className="flow-header">
         <span aria-hidden="true" />
         <div className="flow-network"><span />{config?.networkLabel ?? "Loading Mainnet"}</div>
@@ -1595,6 +1595,7 @@ export function WalletChatApp() {
               </motion.button>
               {!walletAddress && !mobileBrowser && <button className="wallet-mobile-connect" type="button" disabled={!config || phase === "authenticating"} onClick={() => void connect("mobile")}>Use Freighter Mobile / QR code</button>}
               <small className="flow-footnote wallet-sign-in-note"><LockKeyhole size={12} aria-hidden="true" /><em id="wallet-sign-in-note">{walletAddress ? "Sign the offline message in Freighter to prove this wallet is yours. No transaction, spending permission or network fee." : "Connecting shares your public wallet address. Next, you will sign in to prove ownership. Neither step makes a payment or authorizes spending."}</em></small>
+              {error?.includes("Refresh this page") && <button className="wallet-mobile-connect" type="button" onClick={() => window.location.reload()}>Reload page</button>}
               <ConnectionDiagnostics sourceCommit={config?.sourceCommit} network={config?.network} ready={config?.ready} />
             </motion.div>
           ) : !marketplaceSelected ? (
@@ -1777,7 +1778,7 @@ export function WalletChatApp() {
                 <p className="flow-alert">Fund this Mainnet wallet with XLM before adding USDC or approving a spending limit.</p>
               )}
               {walletBalances?.funded && !walletBalances.hasUsdcTrustline && !balancesLoading && (
-                <button className="flow-primary flow-outline" type="button" onClick={addUsdc} disabled={phase === "adding-asset"}><CircleDollarSign size={16} />{phase === "adding-asset" ? "Waiting for Freighter…" : "Add Circle USDC to wallet"}</button>
+                <button className="flow-primary flow-consent flow-outline" type="button" onClick={addUsdc} disabled={phase === "adding-asset"}><CircleDollarSign size={16} />{phase === "adding-asset" ? "Waiting for Freighter…" : "Add Circle USDC to wallet"}</button>
               )}
               {walletBalances?.hasUsdcTrustline && !hasEnoughUsdc && budgetValid && (
                 <div className="flow-alert"><TriangleAlert size={16} />Your wallet needs at least {budget} USDC for this limit. Lower the limit or add USDC.</div>
@@ -1800,7 +1801,7 @@ export function WalletChatApp() {
                   {phase === "revoking" ? <LoaderCircle className="spin" size={16} /> : <X size={16} />}{phase === "revoking" ? revocationProgress === "wallet" ? "Waiting for Freighter…" : "Confirming on Stellar…" : "Turn off previous spending limit"}
                 </motion.button>
               ) : stored?.pendingAllowance || (storedFresh && stored?.registrationTx && !stored.allowanceTx) ? (
-                <motion.button className="flow-primary" type="button" onClick={retryAllowance} disabled={phase === "approving" || allowancePreparing || allowanceChecking || allowanceSubmitting} aria-busy={allowanceChecking || allowanceSubmitting} whileTap={reduceMotion ? undefined : { scale: 0.985 }}>
+                <motion.button className={stored?.pendingAllowance ? "flow-primary" : "flow-primary flow-consent"} type="button" onClick={retryAllowance} disabled={phase === "approving" || allowancePreparing || allowanceChecking || allowanceSubmitting} aria-busy={allowanceChecking || allowanceSubmitting} whileTap={reduceMotion ? undefined : { scale: 0.985 }}>
                   {phase === "approving" || allowancePreparing || allowanceChecking || allowanceSubmitting ? <LoaderCircle className="spin" size={16} /> : <LockKeyhole size={16} />}
                   {stored.pendingAllowance
                     ? allowanceSubmitting ? "2 of 2 · Submitting to Stellar…"
@@ -1809,7 +1810,7 @@ export function WalletChatApp() {
                     : allowancePreparing ? "2 of 2 · Preparing allowance…" : phase === "approving" ? "2 of 2 · Confirm allowance in Freighter…" : !preparedAllowanceReady ? "2 of 2 · Prepare USDC allowance" : "2 of 2 · Approve USDC allowance"}
                 </motion.button>
               ) : (
-                <motion.button className="flow-primary" type="button" onClick={activate} disabled={!canApproveLimit || mandateBusy} whileTap={reduceMotion ? undefined : { scale: 0.985 }}>
+                <motion.button className="flow-primary flow-consent" type="button" onClick={activate} disabled={!canApproveLimit || mandateBusy} whileTap={reduceMotion ? undefined : { scale: 0.985 }}>
                   {mandateBusy ? <LoaderCircle className="spin" size={16} /> : <LockKeyhole size={16} />}
                   {config?.setup ? phase === "registering" ? "Confirming combined setup…" : "Approve spending rules & USDC limit" : phase === "registering" ? "1 of 2 · Registering mandate…" : phase === "approving" ? "2 of 2 · Confirming USDC allowance…" : "1 of 2 · Register mandate"}
                 </motion.button>

@@ -87,7 +87,7 @@ export async function connectMobileWallet(network: string, onStatus?: (status: s
     await modal!.open();
     const cancelled = new Promise<never>((_, reject) => {
       unsubscribe = modal!.subscribeState((state) => {
-        if (!state.open && !provider!.session) reject(new WalletConnectionError("access", "rejected", "Wallet connection cancelled. Connect again when ready."));
+        if (!state.open && !provider!.session) reject(new WalletConnectionError("access", "rejected", "Wallet connection cancelled. Refresh this page before reconnecting."));
       });
     });
     pairingPending = true;
@@ -114,7 +114,7 @@ export async function connectMobileWallet(network: string, onStatus?: (status: s
     selectMobileWallet(false);
     if (provider!.session) await provider!.disconnect().catch(() => {});
     if (pairingAbandoned) throw new WalletConnectionError("access", cause instanceof WalletConnectionError ? cause.outcome : "failed",
-      "The mobile connection was cancelled or timed out. Dismiss the old request in Freighter, then refresh this page before reconnecting.");
+      "The mobile connection was cancelled or timed out. Refresh this page before reconnecting. If Freighter shows an old request, dismiss it.");
     if (cause instanceof WalletConnectionError) throw cause;
     throw new WalletConnectionError("access", "invalid", "Freighter Mobile did not approve a compatible account and network. Update the app and reconnect.");
   } finally {

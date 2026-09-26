@@ -170,3 +170,18 @@ test("pairing cleanup failure preserves cancellation and closes late approvals",
   assert.equal(h.api.usesMobileWallet(), false);
   assert.equal(h.provider.session, undefined);
 });
+
+
+test("mobile approval preserves actionable network mismatch instead of suggesting an update", async () => {
+  const wrongNetwork = session();
+  wrongNetwork.namespaces.stellar.accounts = [`stellar:testnet:${user.publicKey()}`];
+  const h = harness({ connect: async () => wrongNetwork });
+  await assert.rejects(h.api.connectMobileWallet(network), /Choose one Freighter account on the network shown/);
+  assert.equal(h.api.usesMobileWallet(), false);
+  assert.equal(h.provider.session, undefined);
+});
+
+test("WalletConnect rejection codes retain a rejected diagnostic without provider payloads", async () => {
+  await assert.rejects(diagnostics.connectionRequest("access", async () => { throw { code: 5000, message: "private provider payload" }; }, 100),
+    (error: unknown) => error instanceof diagnostics.WalletConnectionError && error.outcome === "rejected" && !error.message.includes("private"));
+});

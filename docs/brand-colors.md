@@ -11,15 +11,15 @@ Owner direction, September 25, 2026: green identifies Ackrate's corporate, infra
 
 Use bright red with #111110 labels for consumer-action fills. On hover use deeper red with #FAFAF7 labels. Red on light backgrounds uses the darker text shade at small sizes; large display accents can use the bright shade. In dark mode, readable green uses lime and readable red uses bright vermilion. Green/lime is not a decorative network-status dot.
 
-The homepage, consumer entry navigation, descriptive authorization step, developer links and Ackrate mark are green/neutral. Red starts at a concrete intent/authorization control, feedback request or denial, not at a link to a consumer page. Wallet primary actions and the current step are red. Completed checks, ready configuration and settlement evidence use green while preserving labels/checkmarks. Unknown network/loading states remain neutral. Destructive actions retain explicit wording and an outlined treatment distinct from ordinary continuation.
+The homepage, consumer entry navigation, descriptive authorization step, developer links and Ackrate mark are green/neutral. Red starts at a concrete intent/authorization control, feedback request or denial, not at a link to a consumer page. Only explicit spending authorization controls and the current step use red; ordinary primary buttons and focus rings remain green/neutral. Completed checks, ready configuration and settlement evidence use green while preserving labels/checkmarks. Unknown network/loading states remain neutral. Destructive actions retain explicit wording and an outlined treatment distinct from ordinary continuation.
 
 Do not restore gradients, glows or 3D to the flat wallet. Do not alter authentication, budget validation, payment submission or recovery for a color change. Never infer permission or payment success from a color.
 
 The canonical policy is in `ackrate-private/wiki/ackrate/visual-language.md`, and the cross-session outcome is ACK-002 in its task register. The Allow It marketing site keeps its existing red-led identity; only direct Ackrate references should acquire green. Archived experiments are evidence, not a fleet of active deployment targets.
 
-## First-pass validation and screenshots (superseded navigation)
+## Historical first-pass validation and screenshots
 
-Node22 production build, TypeScript, branding gate and276 existing wallet tests passed. Actual Chrome captures cover desktop1920×871 and phone390×844, light and dark. Browser computed values match F34632 for primary consumer actions with111110 labels; navigation uses157A4B in light mode and B9F36A in dark mode. Phone controls remain46px high with no horizontal overflow. These are presentation checks, not a funded wallet acceptance run.
+Node 22 production build, TypeScript, branding gate and 276 existing wallet tests passed. Actual Chrome captures cover desktop 1920×871 and phone 390×844, light and dark. Browser computed values match #F34632 for primary consumer actions with #111110 labels; navigation uses #157A4B in light mode and #B9F36A in dark mode. Phone controls remain 46px high with no horizontal overflow. These are presentation checks, not a funded wallet acceptance run.
 
 The local development server encountered the existing instrumentation/Postgres edge-bundling error; visual validation used the successful production build with the background CLI runner disabled. No server/payment code was changed to work around it.
 
@@ -27,8 +27,10 @@ The local development server encountered the existing instrumentation/Postgres e
 
 [Dark app](previews/dual-brand/desktop-dark.png) · [Light wallet](previews/dual-brand/wallet-light.png) · [Dark wallet](previews/dual-brand/wallet-dark.png) · [Phone light](previews/dual-brand/mobile-wallet-light.png) · [Phone dark](previews/dual-brand/mobile-wallet-dark.png)
 
-The owner clarified that infrastructure stays predominantly green; red is sparse and tied to intervention, never a whole chapter or ordinary navigation. Fable UX and Opus 5.5 frontend review were attempted on September 25 but both returned HTTP 401 (revoked OAuth), before model usage. The mechanical scope correction is not specialist sign-off.
+The owner clarified that infrastructure stays predominantly green; red is sparse and tied to intervention, never a whole chapter or ordinary navigation.
 
-## Corrected navigation captures
+## Historical navigation correction captures
 
 [Light](previews/intervention-only/app-light.png) · [Dark](previews/intervention-only/app-dark.png). Homepage navigation and descriptive steps remain green/neutral. TypeScript and the production build pass after the correction; wallet/payment behavior is unchanged.
+
+All captures above predate the current wallet limits, appearance selector, mobile picker and recovery changes. They document historical appearance only; they are not current-head visual acceptance or native-device E2E evidence. Fresh Mac and phone acceptance remains pending.

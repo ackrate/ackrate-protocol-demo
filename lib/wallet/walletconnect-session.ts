@@ -1,4 +1,5 @@
 import { Buffer } from "buffer";
+import { WalletConnectionError } from "./connection-diagnostics";
 import { Keypair, Networks, StrKey, TransactionBuilder } from "@stellar/stellar-sdk";
 
 export const MOBILE_METHODS = ["stellar_signXDR", "stellar_signMessage"];
@@ -16,16 +17,16 @@ export function stellarChain(networkPassphrase: string): string {
 /** Do not assume that requested chains or methods were approved by the wallet. */
 export function mobileSessionAddress(session: StellarSession | undefined, chain: string, now = Date.now()): string {
   if (!session || !Number.isFinite(session.expiry) || session.expiry * 1000 <= now) {
-    throw new Error("The mobile wallet session has expired. Connect again.");
+    throw new WalletConnectionError("session", "invalid", "The mobile wallet session has expired. Connect again.");
   }
   const namespace = session.namespaces[chain] ?? session.namespaces.stellar;
   if (!namespace || !MOBILE_METHODS.every((method) => namespace.methods.includes(method))) {
-    throw new Error("Update Freighter Mobile to support offline sign-in and transaction signing, then reconnect.");
+    throw new WalletConnectionError("session", "invalid", "Freighter Mobile must approve offline sign-in and transaction signing. Update the app if these methods are unavailable, then reconnect.");
   }
   const accounts = [...new Set(namespace.accounts.filter((account) => account.startsWith(`${chain}:`)))];
   const address = accounts.length === 1 ? accounts[0]!.slice(chain.length + 1) : "";
   if (!StrKey.isValidEd25519PublicKey(address)) {
-    throw new Error("Choose one Freighter account on the network shown here, then reconnect.");
+    throw new WalletConnectionError("session", "mismatch", "Choose one Freighter account on the network shown here, then reconnect.");
   }
   return address;
 }

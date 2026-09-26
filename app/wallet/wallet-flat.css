@@ -256,12 +256,17 @@ body:has(.wallet-flat)::before { content: none; }
   .wallet-preview.wallet-flow.wallet-flat .wallet-result-view { padding: 24px 16px 40px; }
 }
 
-/* The selected theme also applies to the transaction workflow. */
+/* Ordinary navigation is neutral; authorization gets an explicit modifier. */
 .wallet-preview.wallet-flow.wallet-flat .flow-primary {
+  background: var(--foundation-fill); color: var(--foundation-on); border-color: var(--foundation-fill);
+}
+.wallet-preview.wallet-flow.wallet-flat .flow-primary:hover:not(:disabled) { background: var(--ackrate-muted); color: var(--brand-paper); border-color: var(--ackrate-muted); }
+.wallet-preview.wallet-flow.wallet-flat :is(button, a, input, select, textarea, summary):focus-visible { outline-color: var(--foundation-text); }
+.wallet-preview.wallet-flow.wallet-flat .flow-primary.flow-consent {
   background: var(--allowit-bright); color: var(--brand-ink); border-color: var(--allowit-bright);
 }
-.wallet-preview.wallet-flow.wallet-flat .flow-primary:hover:not(:disabled) { background: var(--allowit-muted); color: var(--brand-paper); border-color: var(--allowit-muted); }
-.wallet-preview.wallet-flow.wallet-flat :is(button, a, input, select, textarea, summary):focus-visible { outline-color: var(--action-text); }
+.wallet-preview.wallet-flow.wallet-flat .flow-primary.flow-consent:hover:not(:disabled) { background: var(--allowit-muted); color: var(--brand-paper); border-color: var(--allowit-muted); }
+.wallet-preview.wallet-flow.wallet-flat :is(.flow-consent, .flow-danger):focus-visible { outline-color: var(--action-text); }
 
 @media (max-width: 580px) {
   .wallet-preview.wallet-flow.wallet-flat .flow-header { display: flex; flex-wrap: wrap; justify-content: space-between; min-height: 48px; padding: 10px 20px; gap: 12px; }

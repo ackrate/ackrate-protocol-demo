@@ -62,14 +62,16 @@ export async function connectionRequest<T>(step: ConnectionStep, request: () => 
       Promise.resolve().then(request),
       new Promise<never>((_, reject) => {
         timer = setTimeout(() => reject(new WalletConnectionError(step, "timeout",
-          "Freighter did not respond in time. Open and unlock Freighter, dismiss any old request, then try again.")), timeoutMs);
+          "The wallet connection did not respond in time. Check your internet connection and any pending wallet request, then try again.")), timeoutMs);
       }),
     ]);
   } catch (cause) {
-    const outcome = cause instanceof WalletConnectionError ? cause.outcome : "failed";
+    // WalletConnect/JSON-RPC user rejection codes; never expose provider payloads.
+    const code = cause && typeof cause === "object" && "code" in cause ? cause.code : undefined;
+    const outcome = cause instanceof WalletConnectionError ? cause.outcome : code === 4001 || code === 5000 ? "rejected" : "failed";
     recordConnectionEvent(step, outcome);
     if (cause instanceof WalletConnectionError) throw cause;
-    throw new WalletConnectionError(step, outcome, "The Freighter request failed. Open Freighter and try again, or share the connection report below.");
+    throw new WalletConnectionError(step, outcome, outcome === "rejected" ? "The wallet request was declined. Try again when you are ready." : "The wallet connection request failed. Check your internet connection and wallet, or share the connection report below.");
   } finally {
     clearTimeout(timer);
   }
