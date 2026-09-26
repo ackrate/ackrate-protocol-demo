@@ -181,3 +181,36 @@ test("discovery errors are described as marketplace problems, not incorrect PDF 
   const upstream = safeWalletError(new Error("Agent402 discovery returned HTTP 503: unrelated URL input details"), "Unable to check the price.");
   assert.equal(upstream, text);
 });
+
+test("reviewed live prices agree across discovery, challenge, configuration and browser catalog", async () => {
+  const { loadAppConfig } = await import("../lib/wallet/app-config");
+  const { FALLBACK_MARKETPLACE_SERVICES, sourceIdForMarketplaceService } = await import("../lib/wallet/marketplace-catalog");
+  const config = loadAppConfig({ NODE_ENV: "test", ACKRATE_WALLET_NETWORK: "mainnet" });
+  // Independent values observed from unpaid discovery and 402 challenges, September 25.
+  for (const [slug, price, amount] of [["search", "0.01", "100000"], ["pdf", "0.01", "100000"], ["pdf-info", "0.001", "10000"]] as const) {
+    const tool = SUPPORTED_AGENT402_TOOLS[slug];
+    const seller = { ...discovery(tool), priceUsd: Number(price) };
+    const fetcher: typeof fetch = async (url) => String(url).includes("/api/route")
+      ? Response.json({ results: [seller] })
+      : Response.json({}, { status: 402, headers: { "Payment-Required": Buffer.from(JSON.stringify({ ...challenge(tool), accepts: [{ ...challenge(tool).accepts[0], amount }] })).toString("base64") } });
+    const verified = await preflightAgent402Tool(tool, configuredInput(slug), ASSET, fetcher);
+    assert.equal(verified.requirement.amount, amount);
+    assert.equal(config.public.catalog.find(row => row.id === tool.sourceId)?.price, price);
+    const visible = FALLBACK_MARKETPLACE_SERVICES.find(row => row.id === slug)!;
+    assert.equal(visible.price, price);
+    assert.equal(sourceIdForMarketplaceService(visible), tool.sourceId);
+  }
+});
+
+test("a changed seller price is an operator issue, not a retryable input problem", async () => {
+  const tool = SUPPORTED_AGENT402_TOOLS.search;
+  const fixture = discoveryFixture(tool, { results: [{ ...discovery(tool), priceUsd: 0.02 }] });
+  await assert.rejects(preflightAgent402Tool(tool, configuredInput("search"), ASSET, fixture.fetcher), (error: Error) => {
+    assert.match(error.message, /discovery price changed/);
+    const message = safeWalletError(error, "Check failed");
+    assert.match(message, /pricing is updated/);
+    assert.doesNotMatch(message, /try.*again shortly/);
+    return true;
+  });
+  assert.equal(fixture.requests.length, 1);
+});

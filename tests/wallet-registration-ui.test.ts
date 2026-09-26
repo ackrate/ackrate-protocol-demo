@@ -8,7 +8,9 @@ import { loadAppConfig } from "../lib/wallet/app-config";
 import * as readiness from "../lib/wallet/client-readiness";
 import * as registration from "../lib/wallet/registration-recovery";
 import * as notifications from "../lib/wallet/notifications";
+import * as connectionDiagnostics from "../lib/wallet/connection-diagnostics";
 import * as catalog from "../lib/wallet/marketplace-catalog";
+import * as prices from "../lib/wallet/agent402-prices";
 
 // Execute the shipped component and its callbacks/effects with synthetic hooks,
 // browser storage and read-only API responses. This is not a live wallet test.
@@ -46,7 +48,7 @@ function harness(initial: Record<string, any> | null, status: "confirmed" | "pen
     config, session: { authenticated: true, address: USER, network: "mainnet", expiresAt: now + 3600 },
     walletAddress: USER, stored: initial, marketplaceSelected: true, serviceConfigured: true,
     walletBalances: { address: USER, xlm: "5", usdc: "1", xlmRaw: "5", usdcRaw: "1", hasUsdcTrustline: true },
-    marketplaceQuote: { price: "0.02", payTo: AGENT, relay: AGENT, expiresAt: now + 1800 },
+    marketplaceQuote: { price: prices.AGENT402_PRICES.search.price, payTo: AGENT, relay: AGENT, expiresAt: now + 1800 },
   };
   const storage = new Map<string, string>();
   const key = `ackrate:mandate:v2:${config.network}:${config.mandateRegistryId}:${USER}`;
@@ -102,8 +104,11 @@ function harness(initial: Record<string, any> | null, status: "confirmed" | "pen
     "next/link": { default: "a" }, "framer-motion": { AnimatePresence: "fragment", motion: new Proxy({}, { get: (_target, name) => name }), useReducedMotion: () => true },
     "lucide-react": new Proxy({}, { get: (_target, name) => name }),
     "@/lib/wallet/mandate-client": clients,
+    "./ConnectionDiagnostics": { default: "connection-diagnostics" },
+    "@/lib/wallet/connection-diagnostics": connectionDiagnostics,
     "@/lib/wallet/freighter": { freighterSessionState: async () => "matches" },
     "@/lib/wallet/marketplace-catalog": catalog,
+    "@/lib/wallet/agent402-prices": prices,
     "./AssistantThread": { AssistantThread: "assistant-thread", PurchaseReport: "purchase-report", parseRecovery: () => null },
     "./ServiceConfigurator": { ServiceConfigurator: "service-configurator", initialServiceInputValues: () => ({ q: "What is Stellar?" }), serializedServiceInputs: () => ({ q: "What is Stellar?" }) },
     "@/lib/wallet/client-readiness": { ...readiness, allowanceTransactionIsFresh: () => true },

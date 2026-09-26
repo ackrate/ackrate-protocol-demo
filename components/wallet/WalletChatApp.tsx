@@ -1,7 +1,11 @@
 "use client";
 
+import { AGENT402_PRICES } from "@/lib/wallet/agent402-prices";
+
 import { useCallback, useEffect, useMemo, useRef, useState, type SetStateAction } from "react";
 import Link from "next/link";
+import ConnectionDiagnostics from "./ConnectionDiagnostics";
+import { isMobileBrowser, recordConnectionEvent, type ConnectionStep } from "@/lib/wallet/connection-diagnostics";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   Activity,
@@ -43,8 +47,8 @@ import {
   walletRpcServer,
 } from "@/lib/wallet/mandate-client";
 import type { MandateView, SafeAppConfig, SessionView } from "@/lib/wallet/types";
-import { addTokenToFreighter, connectFreighter, freighterSessionState, signFreighterMessage } from "@/lib/wallet/freighter";
-import { sourceIdForMarketplaceService, WEB_SEARCH_INPUTS, type MarketplaceService } from "@/lib/wallet/marketplace-catalog";
+import { addTokenToFreighter, connectFreighter, disconnectMobileWallet, usesMobileWallet, freighterSessionState, signFreighterMessage } from "@/lib/wallet/freighter";
+import { refreshSavedMarketplaceService, sourceIdForMarketplaceService, WEB_SEARCH_INPUTS, type MarketplaceService } from "@/lib/wallet/marketplace-catalog";
 import { AssistantThread, parseRecovery, purchaseResultForMandate, PurchaseReport, type PurchaseResult } from "./AssistantThread";
 import { initialServiceInputValues, serializedServiceInputs, ServiceConfigurator, type ServiceInputValues } from "./ServiceConfigurator";
 import type { MarketplaceQuoteView } from "@/lib/wallet/marketplace-quote";
@@ -82,6 +86,7 @@ interface StoredMandate {
 
 interface WalletBalances {
   address: string;
+  funded: boolean;
   xlm: string;
   usdc: string;
   xlmRaw: string;
@@ -101,7 +106,7 @@ const DEFAULT_MARKETPLACE_SERVICE: MarketplaceService = {
   categoryLabel: "Web & documents",
   method: "GET",
   path: "/api/search",
-  price: "0.02",
+  price: AGENT402_PRICES.search.price,
   docs: "https://agent402.tools/tools/search",
   inputs: WEB_SEARCH_INPUTS,
   schemaSource: "verified-docs",
@@ -126,7 +131,7 @@ function storedMarketplaceService(value: unknown): MarketplaceService | null {
     || typeof service.docs !== "string"
   ) return null;
   const inputs = Array.isArray(service.inputs) ? service.inputs : [];
-  const restored = { ...service, inputs } as unknown as MarketplaceService;
+  const restored = refreshSavedMarketplaceService({ ...service, inputs } as unknown as MarketplaceService);
   return isGuidedResearchService(restored)
     ? { ...restored, inputs: inputs.length ? inputs : WEB_SEARCH_INPUTS, schemaSource: inputs.length ? restored.schemaSource : "verified-docs" }
     : restored;
@@ -136,7 +141,7 @@ function isGuidedResearchService(service: MarketplaceService): boolean {
   return service.id === "search"
     && service.method === "GET"
     && service.path === "/api/search"
-    && service.price === "0.02";
+    && service.price === AGENT402_PRICES.search.price;
 }
 
 function isRunnableMarketplaceService(service: MarketplaceService): boolean {
@@ -175,7 +180,7 @@ function WalletToast({ notification, busy, onDismiss, legacy = false }: { notifi
   return <div className={`${legacy ? "toast" : "flow-toast"}${failed ? " error" : ""}`} role={failed ? "alert" : "status"} aria-atomic="true" style={{ width: "min(440px, calc(100vw - 32px))", alignItems: "start" }}>
     <span aria-hidden="true">{failed ? <TriangleAlert size={16} /> : busy ? <LoaderCircle className="spin" size={16} /> : <Info size={16} />}</span>
     <p style={{ fontSize: 13, lineHeight: 1.55, overflowWrap: "anywhere" }}>{notification.message}</p>
-    <button type="button" onClick={onDismiss} aria-label="Dismiss notification" style={{ minWidth: 28, minHeight: 28, color: "#d4d4d4" }}><X size={16} /></button>
+    <button type="button" onClick={onDismiss} aria-label="Dismiss notification" style={{ minWidth: 28, minHeight: 28, color: "var(--text)" }}><X size={16} /></button>
   </div>;
 }
 
@@ -203,14 +208,26 @@ function isHistoricalMandate(value: unknown, config: SafeAppConfig, address: str
 }
 
 async function api<T>(url: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(url, {
-    ...init,
-    credentials: "same-origin",
-    headers: { "Content-Type": "application/json", ...init?.headers },
-  });
-  const body = await response.json() as { ok: boolean; error?: string } & T;
-  if (!response.ok || !body.ok) throw new Error(body.error ?? `Request failed with HTTP ${response.status}`);
-  return body;
+  const connectionStep: ConnectionStep | undefined = ({
+    "/api/wallet/config": "config", "/api/wallet/auth/session": "session",
+    "/api/wallet/auth/challenge": "challenge", "/api/wallet/auth/verify": "verify",
+  } as Record<string, ConnectionStep>)[url];
+  if (connectionStep) recordConnectionEvent(connectionStep, "started");
+  try {
+    const response = await fetch(url, {
+      ...init,
+      ...(connectionStep && !init?.signal ? { signal: AbortSignal.timeout(15_000) } : {}),
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json", ...init?.headers },
+    });
+    const body = await response.json() as { ok: boolean; error?: string } & T;
+    if (connectionStep) recordConnectionEvent(connectionStep, response.ok && body.ok ? "ok" : "failed", response.status);
+    if (!response.ok || !body.ok) throw new Error(body.error ?? `Request failed with HTTP ${response.status}`);
+    return body;
+  } catch (cause) {
+    if (connectionStep) recordConnectionEvent(connectionStep, cause instanceof Error && cause.name === "TimeoutError" ? "timeout" : "failed");
+    throw cause;
+  }
 }
 
 const short = (value: string | null | undefined, size = 7) => value ? `${value.slice(0, size)}…${value.slice(-size)}` : "Not configured";
@@ -300,7 +317,7 @@ export function WalletChatApp() {
   const [stored, setStored] = useState<StoredMandate | null>(null);
   const [mandateHistory, setMandateHistory] = useState<StoredMandate[]>([]);
   const [mandate, setMandate] = useState<MandateView | null>(null);
-  const [budget, setBudget] = useState("0.10");
+  const [budget, setBudget] = useState<string>(AGENT402_PRICES.search.price);
   const [duration, setDuration] = useState("60");
   const [phase, setPhase] = useState<Phase>("idle");
   const [notification, setNotification] = useState<WalletNotification | null>(null);
@@ -315,6 +332,8 @@ export function WalletChatApp() {
   const [disconnectOpen, setDisconnectOpen] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
   const [revocationProgress, setRevocationProgress] = useState<"wallet" | "confirming" | null>(null);
+  const [mobileBrowser, setMobileBrowser] = useState(false);
+  useEffect(() => setMobileBrowser(isMobileBrowser()), []);
   const [usdcReady, setUsdcReady] = useState(false);
   const [walletBalances, setWalletBalances] = useState<WalletBalances | null>(null);
   const [balancesLoading, setBalancesLoading] = useState(false);
@@ -407,11 +426,11 @@ export function WalletChatApp() {
     let active = true;
     let checking = false;
     const checkConnection = async () => {
-      if (checking) return;
+      if (checking || disconnectInFlight.current) return;
       checking = true;
       try {
-        const state = await freighterSessionState(session.address!);
-        if (!active || state !== "disconnected") return;
+        const state = await freighterSessionState(session.address!, config?.networkPassphrase);
+        if (!active || (state !== "disconnected" && state !== "different")) return;
         await api("/api/wallet/auth/session", { method: "DELETE", body: "{}" });
         if (active) window.location.reload();
       } catch {
@@ -422,11 +441,13 @@ export function WalletChatApp() {
     };
     void checkConnection();
     window.addEventListener("focus", checkConnection);
+    window.addEventListener("reapp:wallet-change", checkConnection);
     return () => {
       active = false;
       window.removeEventListener("focus", checkConnection);
+      window.removeEventListener("reapp:wallet-change", checkConnection);
     };
-  }, [session.address, session.authenticated]);
+  }, [session.address, session.authenticated, config?.networkPassphrase]);
 
   useEffect(() => {
     if (!config || !session.authenticated || !session.address) return;
@@ -788,13 +809,13 @@ export function WalletChatApp() {
     }
   };
 
-  const connect = async () => {
-    if (!config) return;
+  const connect = async (transport?: "mobile" | "extension") => {
+    if (!config || phase === "authenticating") return;
     setError(null);
     setNotice("Open Freighter and connect your wallet.");
     setPhase("authenticating");
     try {
-      const address = await connectFreighter(config.networkPassphrase);
+      const address = await connectFreighter(config.networkPassphrase, setNotice, transport);
       setWalletAddress(address);
       setNotice("Wallet connected. No transaction was created, signed, or sent.");
       setPhase("idle");
@@ -806,7 +827,7 @@ export function WalletChatApp() {
   };
 
   const authenticate = async () => {
-    if (!config || !walletAddress) return;
+    if (!config?.authenticationReady || !walletAddress) return;
     setError(null);
     if (walletAddress === config.contractAuthorityAddress) {
       setError("This is the contract's 2-of-3 governance account. Use a separate personal Mainnet wallet here.");
@@ -830,7 +851,7 @@ export function WalletChatApp() {
         body: JSON.stringify({ signature }),
       });
       setSession(verified.session);
-      setNotice("Signed in. You can now choose a marketplace service.");
+      setNotice(config.ready ? "Signed in. You can now choose a marketplace service." : "Signed in. Payment service setup is still incomplete.");
       setPhase("idle");
     } catch (cause) {
       setError(safeWalletError(cause, "Wallet verification did not finish. Open Freighter to complete the sign-in request; it does not make a payment."));
@@ -935,18 +956,22 @@ export function WalletChatApp() {
     if (!config || config.network !== "mainnet") return;
     setError(null);
     setPhase("adding-asset");
+    if (usesMobileWallet()) {
+      setNotice("Open Freighter Mobile, add Circle USDC, then return here and tap Refresh to check the trustline.");
+      setPhase("idle");
+      return;
+    }
     setNotice("Approve adding USDC in Freighter.");
     try {
       await addTokenToFreighter(config.asset.contractId, config.networkPassphrase);
-      setUsdcReady(true);
-      setNotice("USDC is ready in Freighter.");
+      setNotice("Asset request completed. Checking the on-chain USDC trustline…");
       await refreshWalletBalances();
     } catch (cause) {
       const message = cause instanceof Error ? cause.message : String(cause);
       if (/already.*trustline|trustline.*already/i.test(message)) {
-        setUsdcReady(true);
         setError(null);
-        setNotice("USDC is already ready in your wallet.");
+        setNotice("Checking the existing USDC trustline…");
+        await refreshWalletBalances();
       } else {
         setError(safeWalletError(cause, "USDC setup did not finish. Open Freighter and check its pending request."));
         setNotice(null);
@@ -1126,6 +1151,8 @@ export function WalletChatApp() {
     setNotice("Spending is off. Disconnecting your wallet…");
     try {
       await api("/api/wallet/auth/session", { method: "DELETE", body: "{}" });
+      // Relay availability must not prevent server-session logout.
+      await disconnectMobileWallet().catch(() => {});
     } catch (cause) {
       setError("Spending is off, but sign-out did not finish. Retry Disconnect wallet; no new transaction or fee is needed.");
       disconnectInFlight.current = false;
@@ -1239,7 +1266,7 @@ export function WalletChatApp() {
             {walletAddress ? (
               <button className="wallet-pill" onClick={session.authenticated ? () => setDisconnectOpen(true) : disconnect} title="Disconnect wallet"><Power size={13} /> Disconnect wallet</button>
             ) : (
-              <button className="wallet-pill" onClick={connect} disabled={!config || phase === "authenticating"}><WalletCards size={14} /> Connect wallet</button>
+              <button className="wallet-pill" onClick={() => void connect()} disabled={!config || phase === "authenticating"}><WalletCards size={14} /> Connect wallet</button>
             )}
           </div>
         </header>
@@ -1323,7 +1350,7 @@ export function WalletChatApp() {
               ) : (
                 <>
                   <p className="panel-copy">Connect your Freighter wallet to display its public address. Connecting does not create, sign, or send a Mainnet transaction.</p>
-                  <button className="primary-button" onClick={connect} disabled={!config || phase === "authenticating"}><WalletCards size={16} /> {phase === "authenticating" ? "Waiting for Freighter…" : "Connect wallet"}</button>
+                  <button className="primary-button" onClick={() => void connect()} disabled={!config || phase === "authenticating"}><WalletCards size={16} /> {phase === "authenticating" ? "Waiting for Freighter…" : "Connect wallet"}</button>
                 </>
               )}
             </div>
@@ -1464,7 +1491,6 @@ export function WalletChatApp() {
   }
 
   const connected = session.authenticated && Boolean(session.address);
-  const stepOneExplorer = config ? `https://stellar.expert/explorer/${config.explorerNetwork}` : "#";
   const workflowStep = !connected ? 1 : !marketplaceSelected ? 2 : !serviceConfigured ? 3 : !showRun ? 4 : !completedPurchase ? 5 : 6;
   const budgetAtomic = walletAmountAtomic(budget, config?.asset.decimals ?? 7);
   const minimumBudget = walletAmountAtomic(servicePrice, config?.asset.decimals ?? 7);
@@ -1477,7 +1503,7 @@ export function WalletChatApp() {
   const navState = (step: number) => workflowStep > step ? "done" : workflowStep === step ? "current" : "";
 
   return (
-    <main className={`wallet-preview wallet-flow wallet-flat${resultVisible ? " wallet-result-mode" : ""}`}>
+    <main data-brand="foundation" className={`wallet-preview wallet-flow wallet-flat${resultVisible ? " wallet-result-mode" : ""}`}>
       <header className="flow-header">
         <span aria-hidden="true" />
         <div className="flow-network"><span />{config?.networkLabel ?? "Loading Mainnet"}</div>
@@ -1515,12 +1541,12 @@ export function WalletChatApp() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: reduceMotion ? 0 : 0.38, delay: reduceMotion ? 0 : 0.08, ease: "easeOut" }}
         >
-          <div className={navState(1)}><span>{workflowStep > 1 ? <Check size={14} /> : 1}</span><strong>Connect</strong><small>IDENTITY</small></div>
-          <div className={navState(2)}><span>{workflowStep > 2 ? <Check size={14} /> : 2}</span><strong>Marketplace</strong><small>DISCOVER</small></div>
-          <div className={navState(3)}><span>{workflowStep > 3 ? <Check size={14} /> : 3}</span><strong>Configure</strong><small>PAYLOAD</small></div>
-          <div className={navState(4)}><span>{workflowStep > 4 ? <Check size={14} /> : 4}</span><strong>Limit</strong><small>BOUNDARY</small></div>
-          <div className={navState(5)}><span>{workflowStep > 5 ? <Check size={14} /> : 5}</span><strong>Run</strong><small>EXECUTE</small></div>
-          <div className={navState(6)}><span>6</span><strong>Proof</strong><small>VERIFY</small></div>
+          <div className={navState(1)}><span>{workflowStep > 1 ? <Check size={14} /> : 1}</span><strong>Connect</strong></div>
+          <div className={navState(2)}><span>{workflowStep > 2 ? <Check size={14} /> : 2}</span><strong>Marketplace</strong></div>
+          <div className={navState(3)}><span>{workflowStep > 3 ? <Check size={14} /> : 3}</span><strong>Configure</strong></div>
+          <div className={navState(4)}><span>{workflowStep > 4 ? <Check size={14} /> : 4}</span><strong>Limit</strong></div>
+          <div className={navState(5)}><span>{workflowStep > 5 ? <Check size={14} /> : 5}</span><strong>Run</strong></div>
+          <div className={navState(6)}><span>6</span><strong>Proof</strong></div>
         </motion.nav>
 
         {historicalCurrent && stored && <section className="flow-history flow-history-current" aria-label="Previous spending limit">
@@ -1550,22 +1576,27 @@ export function WalletChatApp() {
                 <span><Check size={14} />Circle USDC</span>
                 <span><Check size={14} />No charge to connect</span>
               </div>
+              {walletAddress && config && !config.authenticationReady && <p className="flow-alert">Wallet connected. Sign-in service setup is still incomplete.</p>}
+              {walletAddress && config?.authenticationReady && !config.ready && <p className="flow-alert">You can sign in. Payments are not enabled yet.</p>}
               {walletAddress === config?.contractAuthorityAddress && (
                 <div className="flow-alert"><TriangleAlert size={16} />Use a personal wallet, not the contract governance account.</div>
               )}
               <motion.button
                 className="flow-primary"
                 type="button"
-                onClick={walletAddress ? authenticate : connect}
+                onClick={() => void (walletAddress ? authenticate() : connect())}
                 aria-describedby="wallet-sign-in-note"
-                disabled={!config || phase === "authenticating"}
+                disabled={!config || phase === "authenticating" || Boolean(walletAddress && !config.authenticationReady)}
                 whileHover={reduceMotion || !config || phase === "authenticating" ? undefined : { y: -2, scale: 1.005 }}
                 whileTap={reduceMotion || !config || phase === "authenticating" ? undefined : { scale: 0.985 }}
               >
                 {phase === "authenticating" ? <LoaderCircle className="spin" size={17} /> : <WalletCards size={17} />}
                 {phase === "authenticating" ? "Waiting for Freighter…" : walletAddress ? "Sign in with Freighter" : "Connect Freighter"}
               </motion.button>
-              <small className="flow-footnote wallet-sign-in-note"><LockKeyhole size={12} aria-hidden="true" /><em id="wallet-sign-in-note">{walletAddress ? "Confirm in Freighter to prove this wallet is yours and sign in. This does not authorize spending. Freighter may show a fee, but we do not submit this request to Stellar, so no fee is charged." : "Connecting shares your public wallet address. Next, you will sign in to prove ownership. Neither step makes a payment or authorizes spending."}</em></small>
+              {!walletAddress && !mobileBrowser && <button className="wallet-mobile-connect" type="button" disabled={!config || phase === "authenticating"} onClick={() => void connect("mobile")}>Use Freighter Mobile / QR code</button>}
+              <small className="flow-footnote wallet-sign-in-note"><LockKeyhole size={12} aria-hidden="true" /><em id="wallet-sign-in-note">{walletAddress ? "Sign the offline message in Freighter to prove this wallet is yours. No transaction, spending permission or network fee." : "Connecting shares your public wallet address. Next, you will sign in to prove ownership. Neither step makes a payment or authorizes spending."}</em></small>
+              {error?.includes("Refresh this page") && <button className="wallet-mobile-connect" type="button" onClick={() => window.location.reload()}>Reload page</button>}
+              <ConnectionDiagnostics sourceCommit={config?.sourceCommit} network={config?.network} ready={config?.ready} />
             </motion.div>
           ) : !marketplaceSelected ? (
             <motion.div
@@ -1631,7 +1662,7 @@ export function WalletChatApp() {
                       <span>
                         <strong>{service.name}</strong>
                         <small>{service.description}</small>
-                        <em>{service.method} · {service.categoryLabel} · {isRunnableMarketplaceService(service) ? "LIVE PAYMENT READY" : "SCHEMA PREVIEW"}</em>
+                        <em>{service.method} · {service.categoryLabel} · {isRunnableMarketplaceService(service) ? "Available" : "Preview only"}</em>
                         <span className="service-inputs">{service.inputs.length ? service.inputs.map((field) => <b key={field.name}>{field.name}{field.required ? " *" : ""}</b>) : <b>Schema unavailable</b>}</span>
                       </span>
                       <span className="service-price">{service.price} <small>USDC</small></span>
@@ -1677,7 +1708,6 @@ export function WalletChatApp() {
                   <h2>{isGuidedResearchService(marketplaceService) ? "What do you want to know?" : `Configure ${marketplaceService.name}`}</h2>
                   <p className="flow-description">Enter the inputs published for this Agent402 service. We check its payment details before you continue.</p>
                 </div>
-                <span className="flow-wallet-chip"><Globe2 size={13} />{marketplaceService.schemaSource === "agent402-find" ? "API SCHEMA" : "DOCUMENTED INPUTS"}</span>
               </div>
               <ServiceConfigurator
                 service={marketplaceService}
@@ -1709,7 +1739,7 @@ export function WalletChatApp() {
 
               <div className="selected-service-summary">
                 <span className="marketplace-source-icon"><Globe2 size={17} /></span>
-                <span><small>REAL x402 SERVICE</small><strong>Agent402 · {marketplaceService.name}</strong><em>{marketplaceService.method} · {marketplaceService.path}</em></span>
+                <span><strong>Agent402 · {marketplaceService.name}</strong><em>{marketplaceService.method} · {marketplaceService.path}</em></span>
                 <span className="service-price">{marketplaceQuote?.price ?? marketplaceService.price} <small>USDC / CALL</small></span>
               </div>
 
@@ -1744,8 +1774,11 @@ export function WalletChatApp() {
                 <p><strong>Your funds stay in your wallet.</strong>Ackrate gives the MandateRegistry contract a capped USDC allowance. The agent never receives the full limit upfront; each payment must pass the on-chain checks.</p>
               </div>
 
-              {!walletBalances?.hasUsdcTrustline && !balancesLoading && (
-                <button className="flow-primary flow-outline" type="button" onClick={addUsdc} disabled={phase === "adding-asset"}><CircleDollarSign size={16} />{phase === "adding-asset" ? "Waiting for Freighter…" : "Add Circle USDC to wallet"}</button>
+              {walletBalances?.funded === false && (
+                <p className="flow-alert">Fund this Mainnet wallet with XLM before adding USDC or approving a spending limit.</p>
+              )}
+              {walletBalances?.funded && !walletBalances.hasUsdcTrustline && !balancesLoading && (
+                <button className="flow-primary flow-consent flow-outline" type="button" onClick={addUsdc} disabled={phase === "adding-asset"}><CircleDollarSign size={16} />{phase === "adding-asset" ? "Waiting for Freighter…" : "Add Circle USDC to wallet"}</button>
               )}
               {walletBalances?.hasUsdcTrustline && !hasEnoughUsdc && budgetValid && (
                 <div className="flow-alert"><TriangleAlert size={16} />Your wallet needs at least {budget} USDC for this limit. Lower the limit or add USDC.</div>
@@ -1768,7 +1801,7 @@ export function WalletChatApp() {
                   {phase === "revoking" ? <LoaderCircle className="spin" size={16} /> : <X size={16} />}{phase === "revoking" ? revocationProgress === "wallet" ? "Waiting for Freighter…" : "Confirming on Stellar…" : "Turn off previous spending limit"}
                 </motion.button>
               ) : stored?.pendingAllowance || (storedFresh && stored?.registrationTx && !stored.allowanceTx) ? (
-                <motion.button className="flow-primary" type="button" onClick={retryAllowance} disabled={phase === "approving" || allowancePreparing || allowanceChecking || allowanceSubmitting} aria-busy={allowanceChecking || allowanceSubmitting} whileTap={reduceMotion ? undefined : { scale: 0.985 }}>
+                <motion.button className={stored?.pendingAllowance ? "flow-primary" : "flow-primary flow-consent"} type="button" onClick={retryAllowance} disabled={phase === "approving" || allowancePreparing || allowanceChecking || allowanceSubmitting} aria-busy={allowanceChecking || allowanceSubmitting} whileTap={reduceMotion ? undefined : { scale: 0.985 }}>
                   {phase === "approving" || allowancePreparing || allowanceChecking || allowanceSubmitting ? <LoaderCircle className="spin" size={16} /> : <LockKeyhole size={16} />}
                   {stored.pendingAllowance
                     ? allowanceSubmitting ? "2 of 2 · Submitting to Stellar…"
@@ -1777,7 +1810,7 @@ export function WalletChatApp() {
                     : allowancePreparing ? "2 of 2 · Preparing allowance…" : phase === "approving" ? "2 of 2 · Confirm allowance in Freighter…" : !preparedAllowanceReady ? "2 of 2 · Prepare USDC allowance" : "2 of 2 · Approve USDC allowance"}
                 </motion.button>
               ) : (
-                <motion.button className="flow-primary" type="button" onClick={activate} disabled={!canApproveLimit || mandateBusy} whileTap={reduceMotion ? undefined : { scale: 0.985 }}>
+                <motion.button className="flow-primary flow-consent" type="button" onClick={activate} disabled={!canApproveLimit || mandateBusy} whileTap={reduceMotion ? undefined : { scale: 0.985 }}>
                   {mandateBusy ? <LoaderCircle className="spin" size={16} /> : <LockKeyhole size={16} />}
                   {config?.setup ? phase === "registering" ? "Confirming combined setup…" : "Approve spending rules & USDC limit" : phase === "registering" ? "1 of 2 · Registering mandate…" : phase === "approving" ? "2 of 2 · Confirming USDC allowance…" : "1 of 2 · Register mandate"}
                 </motion.button>
@@ -1814,7 +1847,7 @@ export function WalletChatApp() {
               transition={{ duration: reduceMotion ? 0 : 0.28, ease: "easeOut" }}
             >
               <div className="flow-stage-heading">
-                <div><p className="flow-kicker">{historicalCurrent ? "PREVIOUS RUN · RECEIPT ONLY" : "STEP 5 OF 6"}</p><h2>{historicalCurrent ? "Review your earlier payment" : `Run ${marketplaceService.name}`}</h2><p className="flow-description">{historicalCurrent ? "This saved limit is no longer usable. Check its existing receipt, or create a fresh spending limit above for a separate request." : "The agent will pass the contract checks, pay Agent402 in real USDC, and return the service output."}</p></div>
+                <div><p className="flow-kicker">{historicalCurrent ? "PREVIOUS RUN · RECEIPT ONLY" : "STEP 5 OF 6"}</p><h2>{historicalCurrent ? "Review your earlier payment" : `Run ${marketplaceService.name}`}</h2><p className="flow-description">{historicalCurrent ? "This saved limit is no longer usable. Check its existing receipt, or create a fresh spending limit above for a separate request." : "The agent will pass the contract checks, pay Agent402 in USDC, and return the service output."}</p></div>
                 <span className="flow-budget"><span><small>{historicalCurrent ? "UNUSED · NOT SPENDABLE" : "REMAINING"}</small><strong>{remaining} USDC</strong></span></span>
               </div>
               {!historicalCurrent && !quoteCurrent && <div className="flow-alert"><TriangleAlert size={16} />The service quote expired. Edit the inputs to refresh its price and seller before running.</div>}
@@ -1854,7 +1887,7 @@ export function WalletChatApp() {
               <div className="flow-stage-icon success"><Check size={25} /></div>
               <p className="flow-kicker">STEP 6 OF 6</p>
               <h2>{isGuidedResearchService(marketplaceService) ? "Research delivered" : `${marketplaceService.name} delivered`}</h2>
-              <p className="flow-description">The contract payment and the real Agent402 x402 payment are independently verifiable on Stellar Mainnet.</p>
+              <p className="flow-description">View both payment receipts on Stellar Mainnet.</p>
               <div className="flow-settlement-grid">
                 <a href={`${explorer}/tx/${completedPurchase.payment.txHash}`} target="_blank" rel="noreferrer"><small>01 · ACKRATE CONTRACT</small><strong>{completedPurchase.payment.amount} {completedPurchase.payment.asset}</strong><code>{short(completedPurchase.payment.txHash, 6)}</code><span>Verify <ArrowUpRight size={12} /></span></a>
                 {externalSettlement ? <a href={`${explorer}/tx/${externalSettlement.transaction}`} target="_blank" rel="noreferrer"><small>02 · AGENT402 x402</small><strong>{externalSettlement.amount} USDC</strong><code>{short(externalSettlement.transaction, 6)}</code><span>Verify <ArrowUpRight size={12} /></span></a> : <div><small>02 · AGENT402 x402</small><strong>Proof unavailable</strong><span>Do not treat this run as complete.</span></div>}
@@ -1871,11 +1904,6 @@ export function WalletChatApp() {
           <p>These are historical records. Checking them never starts a new purchase.</p>
           {mandateHistory.map((record) => <HistoricalWalletReceipt key={record.id} record={record} config={config} />)}
         </section>}
-
-        <div className="flow-under-card">
-          <span><ShieldCheck size={14} />2-of-3 governed MandateRegistry V2</span>
-          <a href={config?.mandateRegistryId ? `${stepOneExplorer}/contract/${config.mandateRegistryId}` : "#"} target="_blank" rel="noreferrer">View contract <ArrowUpRight size={13} /></a>
-        </div>
       </section>}
 
       {resultVisible && completedPurchase && config && (

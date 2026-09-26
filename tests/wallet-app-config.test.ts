@@ -74,7 +74,7 @@ test("mainnet loads only the verified USDC release and never falls back to testn
   assert.equal(config.public.contractAuthorityAddress, "GCIURCX7JHEKQLRTW6RDZU7OJUVCDM7WWNQPIKRERIHQOHSLW7UY7TXG");
   assert.equal(config.public.asset.code, "USDC");
   assert.equal(config.public.asset.contractId, "CCW67TSZV3SSS2HXMBQ5JFGCKJNXKZM7UQUWUZPUTHXSTZLEO7SJMI75");
-  assert.equal(config.public.catalog[0]?.price, "0.02");
+  assert.equal(config.public.catalog[0]?.price, "0.01");
   assert.equal(config.public.catalog[0]?.id, "agent402-research");
   assert.equal(config.public.marketplace?.name, "Agent402");
   assert.equal(config.public.merchant.address, config.public.agentAddress);
@@ -95,6 +95,13 @@ test("production diagnostics prefer Railway's deployed commit over a stale manua
   assert.equal(config.public.sourceCommit, deployed);
 });
 
+test("Vercel diagnostics prefer the deployed commit over migrated Railway and manual pins", () => {
+  const deployed = "c".repeat(40);
+  const config = loadAppConfig({ ...validEnv(), VERCEL_GIT_COMMIT_SHA: deployed,
+    RAILWAY_GIT_COMMIT_SHA: "a".repeat(40), ACKRATE_APP_SOURCE_COMMIT: "b".repeat(40) });
+  assert.equal(config.public.sourceCommit, deployed);
+});
+
 test("merchant URL and catalog cannot redirect payments off the allowlisted origin", () => {
   const badUrl = loadAppConfig({ ...validEnv(), ACKRATE_CHAT_MERCHANT_URL: "https://user:pass@merchant.example/path" });
   assert.equal(badUrl.public.ready, false);
@@ -106,4 +113,18 @@ test("merchant URL and catalog cannot redirect payments off the allowlisted orig
   });
   assert.equal(badCatalog.public.ready, false);
   assert(badCatalog.public.blockers.some((item) => item.includes("safe origin-relative path")));
+});
+
+
+test("offline sign-in remains available while models and payments are disabled", () => {
+  const env: NodeJS.ProcessEnv = { NODE_ENV: "production", ACKRATE_SESSION_SECRET: "s".repeat(48),
+    ACKRATE_APP_ORIGIN: "https://staging.ackrate.com", DATABASE_URL: "postgres://user:pass@db.example/staging" };
+  const config = loadAppConfig(env);
+  assert.equal(config.public.authenticationReady, true);
+  assert.equal(config.public.ready, false);
+  for (const missing of ["ACKRATE_SESSION_SECRET", "ACKRATE_APP_ORIGIN", "DATABASE_URL"] as const) {
+    assert.equal(loadAppConfig({ ...env, [missing]: undefined }).public.authenticationReady, false);
+  }
+  assert.equal(loadAppConfig({ ...env, ACKRATE_SESSION_SECRET: "short" }).public.authenticationReady, false);
+  assert.equal(loadAppConfig({ ...env, ACKRATE_APP_ORIGIN: "https://user:pass@staging.ackrate.com" }).public.authenticationReady, false);
 });

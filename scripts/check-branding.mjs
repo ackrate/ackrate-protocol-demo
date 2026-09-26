@@ -2,7 +2,7 @@ import { readdir, readFile } from "node:fs/promises";
 import { join, relative } from "node:path";
 
 const root = process.cwd();
-const ignoredDirectories = new Set([".git", ".next", "node_modules"]);
+const ignoredDirectories = new Set([".git", ".next", ".vercel", "node_modules"]);
 const retiredName = String.fromCharCode(114, 101, 97, 112, 112);
 const temporaryHostname = `${retiredName}.live`;
 const standardizedIdentifiers = ["SoftwareApplication"];
@@ -21,7 +21,7 @@ async function visit(directory) {
     const content = (await readFile(absolute)).toString("latin1");
     let checkedContent = content.replaceAll(temporaryHostname, "");
     for (const identifier of standardizedIdentifiers) checkedContent = checkedContent.replaceAll(identifier, "");
-    if (checkedContent.toLowerCase().includes(retiredName)) {
+    if (new RegExp(`@${retiredName}-sdk/`, "i").test(checkedContent)) {
       findings.push(relative(root, absolute));
     }
   }
@@ -29,9 +29,9 @@ async function visit(directory) {
 
 await visit(root);
 if (findings.length > 0) {
-  console.error(`Retired-brand text remains outside the temporary ${temporaryHostname} hostname:`);
+  console.error(`Retired package scope remains:`);
   for (const file of findings) console.error(`- ${file}`);
   process.exitCode = 1;
 } else {
-  console.log(`Branding gate passed. Only the temporary ${temporaryHostname} hostname is permitted.`);
+  console.log(`Branding gate passed. REAPP product name and @ackrate packages are current.`);
 }

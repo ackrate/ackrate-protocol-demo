@@ -13,6 +13,7 @@
     "generate:starters": "node scripts/starters/generate.mjs",
     "check:starters": "node scripts/starters/verify.mjs",
     "check:branding": "node scripts/check-branding.mjs",
+    "check:marketplace": "node --import tsx scripts/check-marketplace.ts",
     "check:workflow-pins": "node scripts/check-workflow-pins.mjs",
     "test:hackathon": "node --test tests/hackathon.test.mjs tests/starter-catalog.test.mjs tests/starter-generation.test.mjs tests/starter-install.test.mjs tests/starter-presenter.test.mjs tests/starter-scenarios.test.mjs tests/shared-runtime.test.mjs tests/scenario-contract.test.mjs tests/scenario-runtime-boundary.test.mjs tests/contract-exact-payment.test.mjs tests/fulfillment-recovery.test.mjs tests/storage-recovery.test.mjs tests/operator-closure.test.mjs",
     "test:wallet": "node --import tsx --test tests/wallet-*.test.ts",
@@ -34,9 +35,11 @@
     "@assistant-ui/react": "0.15.5",
     "@assistant-ui/react-ai-sdk": "1.4.4",
     "@lobstrco/signer-extension-api": "2.1.0",
+    "@reown/appkit": "1.8.24",
     "@stellar/freighter-api": "6.0.1",
     "@stellar/stellar-sdk": "16.3.0",
     "@types/three": "^0.184.1",
+    "@walletconnect/universal-provider": "2.23.7",
     "@x402/fetch": "2.25.0",
     "@x402/stellar": "2.25.0",
     "@xterm/addon-fit": "^0.11.0",
@@ -51,6 +54,7 @@
     "next": "16.3.5",
     "openai": "^6.45.0",
     "pg": "8.23.0",
+    "prismjs": "1.30.0",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "react-markdown": "^10.1.0",
@@ -63,6 +67,7 @@
     "@types/express": "^5.0.6",
     "@types/node": "^22.10.2",
     "@types/pg": "8.23.1",
+    "@types/prismjs": "1.26.6",
     "@types/react": "19.2.17",
     "@types/react-dom": "19.2.3",
     "tailwindcss": "^4.0.0",
@@ -76,5 +81,8 @@
     "postcss": "8.5.26",
     "qs": "6.16.0",
     "sharp": "0.35.4"
+  },
+  "engines": {
+    "node": "22.x"
   }
 }

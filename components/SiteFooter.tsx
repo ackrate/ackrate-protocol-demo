@@ -1,41 +1,11 @@
 "use client";
-
 import { usePathname } from "next/navigation";
 
-const links = [
-  { href: "https://github.com/ackrate/ackrate-protocol", label: "Protocol source" },
-  { href: "https://www.npmjs.com/package/@ackrate/core", label: "SDK on npm" },
-  { href: "/llms.txt", label: "LLM context" },
-];
-
 export default function SiteFooter() {
-  const path = usePathname();
-  if (path.startsWith("/wallet") || path.startsWith("/reports/")) return null;
-  return (
-    <footer className="mt-16 border-t border-white/10 bg-black/20">
-      <div className="mx-auto grid w-full max-w-6xl gap-8 px-5 py-10 sm:grid-cols-[1.25fr_1fr] sm:px-6 lg:px-8">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/80">ACKRATE · live protocol</p>
-          <p className="mt-3 max-w-xl text-sm leading-relaxed text-white/45">
-            Open-source agent payment infrastructure with bounded mandates, Circle USDC settlement on Stellar Mainnet,
-            and transaction evidence anyone can inspect.
-          </p>
-        </div>
-        <nav className="grid content-start gap-2 sm:grid-cols-2" aria-label="ACKRATE ecosystem links">
-          {links.map((link) => (
-            <a
-              className="rounded-lg px-3 py-2 text-sm text-white/55 transition hover:bg-white/[0.04] hover:text-white"
-              href={link.href}
-              key={link.href}
-            >
-              {link.label} <span aria-hidden="true">↗</span>
-            </a>
-          ))}
-        </nav>
-      </div>
-      <div className="border-t border-white/[0.07] px-5 py-5 text-center text-[11px] uppercase tracking-[0.16em] text-white/30">
-        ACKRATE Protocol · Stellar Mainnet · Circle USDC · Agent authority stays bounded
-      </div>
-    </footer>
-  );
+  const path = usePathname() ?? "";
+  if (!path || path.startsWith("/wallet") || path.startsWith("/reports/")) return null;
+  return <footer className="site-footer"><div>
+    <span>REAPP · Powered by ACKRATE SDK</span>
+    <nav aria-label="Project resources"><a href="https://github.com/ackrate/ackrate-protocol">Source ↗</a><a href="/llms.txt">LLM context</a></nav>
+  </div></footer>;
 }

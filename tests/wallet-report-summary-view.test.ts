@@ -51,7 +51,7 @@ function closingSection(markup: string) {
   return /<section class="brief-plain-english"[^>]*>([\s\S]*?)<\/section>/.exec(markup)?.[1];
 }
 
-test("a closing summary renders three separate cited paragraphs after takeaway and before method", () => {
+test("a closing summary renders three separate cited paragraphs without duplicate takeaway and before method", () => {
   const markup = render(purchase({ summary }));
   const section = closingSection(markup);
   assert.ok(section);
@@ -59,7 +59,7 @@ test("a closing summary renders three separate cited paragraphs after takeaway a
   assert.equal((section.match(/<p>/g) ?? []).length, 3);
   assert.equal((section.match(/aria-label="Source 1: Stellar overview"/g) ?? []).length, 3);
   assert.equal((section.match(/href="https:\/\/stellar.org\/learn"/g) ?? []).length, 3);
-  assert.ok(markup.indexOf("brief-takeaway") < markup.indexOf("brief-plain-english"));
+  assert.equal(markup.includes("brief-takeaway"), false);
   assert.ok(markup.indexOf("brief-plain-english") < markup.indexOf("brief-methodology"));
 });
 

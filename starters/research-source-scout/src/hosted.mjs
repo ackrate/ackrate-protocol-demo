@@ -29,17 +29,17 @@ const RESOURCES = Object.freeze(["market", "academic", "news"]);
 const BLOCKED_RESOURCE = "patents";
 
 function printHelp() {
-  console.log(`ACKRATE hosted hackathon companion
+  console.log(`ACKRATE hosted Testnet companion
 
 Usage:
   npm run hosted -- --endpoint="https://reapp.live/api/express/WORKSPACE/source" --merchant="G..."
 
-The endpoint and merchant come from https://reapp.live/solutions. The command
+The endpoint and merchant come from https://reapp.live/docs/hosted. The command
 uses disposable Stellar testnet signers and never requests a wallet secret.`);
 }
 
 function normalizeEndpoint(value) {
-  if (typeof value !== "string" || !value) throw new Error("endpoint is required; copy it from /solutions");
+  if (typeof value !== "string" || !value) throw new Error("endpoint is required; copy it from /docs/hosted");
   const endpoint = new URL(value);
   const loopback = endpoint.hostname === "127.0.0.1" || endpoint.hostname === "localhost";
   if (

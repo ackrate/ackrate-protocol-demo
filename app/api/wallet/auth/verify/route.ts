@@ -21,7 +21,7 @@ export async function POST(request: Request) {
   try {
     const origin = await requireSameOrigin();
     const config = loadAppConfig();
-    if (!config.sessionSecret) throw new Error("wallet authentication is not configured");
+    if (!config.public.authenticationReady || !config.sessionSecret) throw new Error("wallet authentication is not configured");
     const jar = await cookies();
     const challenge = openToken(
       jar.get(challengeCookieName())?.value,

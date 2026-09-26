@@ -19,8 +19,8 @@ test("unpaid quote binds wallet, release, service, normalized inputs and publish
   const quote = verifyMarketplaceQuote({ ...input, token: issued.token });
   assert.equal(quote.payTo, seller);
   assert.equal(quote.relay, config.public.agentAddress);
-  assert.equal(quote.amountAtomic, "200000");
-  assert.equal(issued.price, "0.02");
+  assert.equal(quote.amountAtomic, "100000");
+  assert.equal(issued.price, "0.01");
   assert.equal(issued.expiresAt, now + 1800);
   assert.ok(issued.token.length < 1800);
   assert.equal(issued.token.includes(config.sessionSecret!), false);
@@ -42,7 +42,7 @@ test("expired quotes cannot start purchases; only verified settled receipts reco
 test("recipient, amount, asset and network changes fail before marketplace signing", () => {
   const { token } = issueMarketplaceQuote({ ...input, payTo: seller });
   const quote = verifyMarketplaceQuote({ ...input, token });
-  const expected = { payTo: seller, amount: "200000", asset: config.public.asset.contractId, network: "stellar:pubnet" };
+  const expected = { payTo: seller, amount: "100000", asset: config.public.asset.contractId, network: "stellar:pubnet" };
   assert.doesNotThrow(() => assertQuotedRecipient(quote, expected));
   for (const changed of [{ payTo: user }, { amount: "900000" }, { asset: "different-token" }, { network: "stellar:testnet" }]) {
     assert.throws(() => assertQuotedRecipient(quote, { ...expected, ...changed }), /payment details changed/);
@@ -51,13 +51,13 @@ test("recipient, amount, asset and network changes fail before marketplace signi
 
 test("HTTP 200 terminal failures or absent marketplace evidence are not successful deliveries", () => {
   const expected = { sourceId: "agent402-research", txHash: "a".repeat(64), mandateId: "b".repeat(64),
-    price: "0.02", assetCode: "USDC", assetContract: config.public.asset.contractId };
+    price: "0.01", assetCode: "USDC", assetContract: config.public.asset.contractId };
   assert.throws(() => assertSuccessfulDelivery({ ok: false, deliveryState: "terminal", error: "paid fulfillment failed after settlement" }, expected), /contract payment settled, but service delivery failed/);
   const delivered = { ok: true, source: expected.sourceId, settledTx: expected.txHash, mandateId: expected.mandateId,
     settledAmount: expected.price, asset: "USDC", brief: { title: "Stellar" } };
   assert.throws(() => assertSuccessfulDelivery(delivered, expected), /marketplace receipt/);
   const good = { ...delivered, marketplace: { settlement: { transaction: "c".repeat(64), network: "stellar:pubnet",
-    asset: expected.assetContract, amountAtomic: "200000", amount: "0.02", payTo: seller } } };
+    asset: expected.assetContract, amountAtomic: "100000", amount: "0.01", payTo: seller } } };
   assert.doesNotThrow(() => assertSuccessfulDelivery(good, expected));
   assert.throws(() => assertSuccessfulDelivery({ ...good, mandateId: "d".repeat(64) }, expected), /does not match/);
 });

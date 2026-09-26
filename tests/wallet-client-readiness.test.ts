@@ -6,7 +6,7 @@ import { allowanceTransactionIsFresh, mandateCanAfford, preparedAllowanceEvidenc
 import { initialServiceInputValues, serializedServiceInputs, serviceInputProblem } from "../components/wallet/ServiceConfigurator";
 import { PDF_URL_INPUTS, WEB_SEARCH_INPUTS, type MarketplaceService } from "../lib/wallet/marketplace-catalog";
 
-const search: MarketplaceService = { id: "search", name: "Web search", description: "Published search", method: "GET", path: "/api/search", price: "0.02", category: "web", categoryLabel: "Web", docs: "https://agent402.tools/tools/search", schemaSource: "verified-docs", inputs: WEB_SEARCH_INPUTS };
+const search: MarketplaceService = { id: "search", name: "Web search", description: "Published search", method: "GET", path: "/api/search", price: "0.01", category: "web", categoryLabel: "Web", docs: "https://agent402.tools/tools/search", schemaSource: "verified-docs", inputs: WEB_SEARCH_INPUTS };
 const pdf: MarketplaceService = { ...search, id: "pdf", name: "PDF to text", method: "POST", path: "/api/pdf", price: "0.01", inputs: PDF_URL_INPUTS };
 
 test("wallet money comparisons use exact token units", () => {

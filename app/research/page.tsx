@@ -206,7 +206,7 @@ export default function ResearchPage() {
           className="inline-flex items-center gap-2 rounded-full glass px-3.5 py-1.5 text-[11px] font-semibold tracking-[0.18em] text-neutral-300/90"
         >
           <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-neutral-400 shadow-[0_0_10px_rgba(255,255,255,0.9)]" />
-          STELLAR TESTNET · @ackrate/core 0.3.1
+          STELLAR TESTNET · @ackrate/core 0.4.1
         </motion.div>
         <motion.h1
           variants={{ hidden: { opacity: 0, y: 18 }, show: { opacity: 1, y: 0 } }}

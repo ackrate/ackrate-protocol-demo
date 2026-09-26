@@ -6,7 +6,7 @@ import "./wallet-flat.css";
 
 export const metadata: Metadata = {
   title: "Agent Commerce Wallet",
-  description: "Discover real x402 services and let AI agents pay with USDC inside contract-enforced spending rules.",
+  description: "Choose x402 services and set USDC spending limits for your agent.",
   alternates: { canonical: "/wallet" },
   robots: {
     index: false,

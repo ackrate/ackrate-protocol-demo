@@ -1,14 +1,14 @@
-# ⚡ ackrate-protocol-demo
+# REAPP, powered by ACKRATE SDK
 
-**The live ACKRATE developer experience: 20 production-shaped starter packs for contract-enforced agent payments on Stellar testnet. The SDK prepares the request; the MandateRegistry contract decides whether money moves.**
+REAPP demonstrates bounded agent payments on Stellar. Its SDK and CLI are published under `@ackrate`, following the REAPP SDK rename. The contract remains MandateRegistry.
 
----
+- [Consumer app](https://reapp.live/wallet): Freighter, Stellar Mainnet, Circle USDC. Purchases use real funds and XLM fees.
+- [Developer docs](https://reapp.live/docs): [SDK](https://reapp.live/docs/sdk), [CLI](https://reapp.live/docs/cli), and [quick starters](https://reapp.live/docs/quickstarts).
+- [Security evidence](docs/security-evidence.md): contract checks, receipts, and native 2-of-3 administration with no timelock.
 
 ## Choose from 20 starter packs
 
-Share the full catalog with your team at **[reapp.live/solutions](https://reapp.live/solutions)**. Each starter name below opens a standalone README you can share directly; each ZIP link downloads that exact starter.
-
-Every pack contains editable consumer and Express fulfillment source, deterministic fixtures, exact package versions, an offline gate check, a named rejection path, and a downloadable ZIP recorded in the [public SHA-256 manifest](https://reapp.live/starters/v1/manifest.json).
+Share the full catalog with your team at [Quick starters](https://reapp.live/docs/quickstarts). Each downloadable project includes both agents, exact Testnet dependencies, deterministic fixtures, payment evidence, and a named failure or recovery case. The [integrity manifest](https://reapp.live/starters/v1/manifest.json) records archive hashes.
 
 | # | Starter | Category | Level | Download |
 |---:|---|---|---|---|
@@ -33,156 +33,39 @@ Every pack contains editable consumer and Express fulfillment source, determinis
 | 19 | [**Payment Receipt Firewall**](https://github.com/ackrate/ackrate-protocol-demo/blob/main/starters/payment-receipt-firewall/README.md) | Security | Advanced | [ZIP](https://reapp.live/starters/v1/payment-receipt-firewall.zip) |
 | 20 | [**Procurement Guard**](https://github.com/ackrate/ackrate-protocol-demo/blob/main/starters/procurement-guard/README.md) | Small-business automation | Beginner | [ZIP](https://reapp.live/starters/v1/procurement-guard.zip) |
 
-### Make any starter yours
-
-Start with three files; the payment and recovery machinery can stay untouched until you need advanced customization.
-
-| File | What you change |
-|---|---|
-| `scenario/scenario.mjs` | Your product rules, fixtures, delivery checks, and rejection check. |
-| `src/consumer.mjs` | How your app requests and pays for the protected result. |
-| `src/fulfillment.mjs` | What your paid Express endpoint returns. |
-
----
-
 ## Start here: empty folder to a working testnet demo
 
-Go to **[reapp.live/solutions](https://reapp.live/solutions)** and follow five steps:
+Select a starter and terminal on the [quick-starters page](https://reapp.live/docs/quickstarts). Run its setup command in an empty folder, then:
 
-1. **Choose one** of the 20 starter packs.
-2. **Open an empty folder** in VS Code, then select **Terminal → New Terminal**.
-3. Click **Use this starter**, then copy the setup command displayed for that pack.
-4. Paste the command into the terminal and press **Enter**. It downloads the starter into the empty folder and installs its exact dependencies.
-5. Run **`npm run demo`**, then open the Stellar testnet links printed in the terminal.
-
-That is the complete beginner path. You do **not** need a wallet or a GitHub repository. The starter creates disposable testnet actors, and private signing material stays on your computer.
-
-```mermaid
-flowchart LR
-    A["① Choose a starter"] --> B["② Open an empty VS Code folder"]
-    B --> C["③ Copy its displayed setup command"]
-    C --> D["④ Paste once and press Enter"]
-    D --> E["⑤ Run npm run demo"]
-    E --> F["⑥ Inspect Stellar testnet evidence"]
-
-    style A fill:#052e2b,stroke:#14b8a6,color:#ecfdf5
-    style B fill:#082f49,stroke:#0ea5e9,color:#f0f9ff
-    style C fill:#312e81,stroke:#818cf8,color:#eef2ff
-    style D fill:#4c1d95,stroke:#a78bfa,color:#f5f3ff
-    style E fill:#064e3b,stroke:#34d399,color:#ecfdf5
-    style F fill:#0f172a,stroke:#7b73ff,color:#f8fafc
-```
-
-### What the copied setup command does
-
-The page shows one setup command for the starter you choose. Copy it as-is; it verifies the versioned ACKRATE installer, and that installer verifies the ZIP against its exact published SHA-256 before extracting anything. It then removes the temporary files and installs the locked dependencies. A changed or incomplete download is deleted before extraction.
-
-When the setup command finishes, run:
-
-```bash
+```sh
 npm run demo
 ```
 
-In a recorded clean-room run, the default starter completed setup and its full demo in about 48 seconds. Network and package-cache speed vary, so “about 60 seconds” is a measured target, not a guarantee.
+The installer verifies the ZIP's SHA-256 before extracting and runs `npm ci`. It is downloaded over HTTPS from the canonical site. No wallet is required: the SDK script creates disposable Testnet actors and logs setup, paid deliveries with explorer links, and the scenario verification result.
 
-### Prefer to inspect a clone first?
+Edit `scenario/scenario.mjs` for business rules, `src/consumer.mjs` for the runner, and `src/fulfillment.mjs` for the protected resource. Preserve `.ackrate/` recovery evidence after an interrupted payment; resolve pending state before reset.
 
-The ZIPs are the shortest beginner path. Security reviewers can run the same generated starter directly from the public source repository:
+The [optional hosted companion](https://reapp.live/docs/hosted) needs the persistent Express runtime. Local execution is the default. Starters pin the Testnet package family; follow the SDK guide for Mainnet configuration.
 
-```bash
-git clone --depth 1 https://github.com/ackrate/ackrate-protocol-demo.git
-cd ackrate-protocol-demo/starters/research-source-scout
-npm ci
-npm run demo
-```
+## Develop this site
 
-Every starter folder is self-contained. Replace `research-source-scout` with any of the other starter slugs in the table above.
+Use Node 22 and npm:
 
-### What success looks like
-
-The terminal uses six numbered, plain-English steps. It explains that `402 Payment Required` means the API is protected—not broken—then shows contract-controlled settlement, the retried `200` response, full clickable Stellar explorer links, and the starter's named safety or recovery result. Set `ACKRATE_VERBOSE=1` only when you also want the underlying developer event names.
-
-```mermaid
-sequenceDiagram
-    autonumber
-    participant A as Consumer agent
-    participant F as Express fulfillment
-    participant M as MandateRegistry
-    participant S as Stellar testnet
-
-    A->>F: GET protected resource
-    F-->>A: 402 Payment Required + bound challenge
-    A->>M: Submit the exact contract payment
-    M->>S: Verify authority and settle
-    S-->>A: Confirmed transaction hash
-    A->>F: Retry GET with bound proof
-    F-->>A: 200 + paid result
-    A->>M: Attempt the named negative path
-    M-->>A: Reject outside mandate authority
-```
-
-The SDK and Express middleware are untrusted clients of the contract. Merchant scope, amount, expiry, replay state, and remaining authority are verified before paid work is delivered.
-
----
-
-## Live protocol surfaces
-
-This repository powers the implementation guide and inspectable demonstrations at [reapp.live](https://reapp.live):
-
-| Surface | What it demonstrates |
-|---|---|
-| [**Docs**](https://reapp.live/) | SDK installation, consumer flow, Express verification, testnet execution, and safety boundary. |
-| [**CLI**](https://reapp.live/cli) | Actor setup, mandate creation, payment, and terminal rejection paths. |
-| [**Consumer**](https://reapp.live/consumer) | Give an AI agent a task, budget, approved services, and deadline without granting open-ended payment authority. |
-| [**Express**](https://reapp.live/express) | `402` challenge, contract settlement, one-time redemption, and `200` fulfillment. |
-| [**Solutions**](https://reapp.live/solutions) | Twenty blank-folder starters plus the optional hosted Research Source Scout walkthrough. |
-| [**AP2**](https://reapp.live/ap2) | Intent and transaction mandate binding, canonical signatures, scope, expiry, and replay checks. |
-| [**Composite mandates**](https://reapp.live/composites) | Multiple buyer agents coordinating an atomic group purchase. |
-| [**Research agent**](https://reapp.live/research) | Paid-source selection constrained by an on-chain budget. |
-| [**Video paywall**](https://reapp.live/video) | Three permitted unlocks followed by a contract-rejected fourth payment. |
-
-Machine-readable maps are available at [`/llms.txt`](https://reapp.live/llms.txt), [`/llms-full.txt`](https://reapp.live/llms-full.txt), [`/sitemap.xml`](https://reapp.live/sitemap.xml), and [`/robots.txt`](https://reapp.live/robots.txt).
-
-ACKRATE is the live implementation companion to [ACKRATE NETWORK](https://ackrate.network), the source-linked research and architecture field guide for agentic payments.
-
-## Run this site locally
-
-```bash
+```sh
 npm ci
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). The public demos remain on
-Stellar testnet. The navigation-listed `/wallet` canary is separately pinned to the
-verified mainnet MandateRegistry and Circle USDC, uses Freighter, charges 0.02
-USDC per web-search purchase, and stays gated unless every production variable is present.
+For release checks, run `npm run gatecheck:t3`. Regenerate changed starter sources with `npm run generate:starters`; `npm run check:starters` checks all 20 packages, ZIPs, installers, and hashes.
 
-Run the hackathon gate check before changing the starter library:
+Server configuration is documented in `.env.example` and [Deployment](docs/deployment.md). Mainnet readiness requires the verified manifest, database, configured signer, session secrets, and model provider. Never commit secrets or copy Mainnet signing material into previews.
 
-```bash
-npm run gatecheck:hackathon
-```
+## Maintainer references
 
-The research agent additionally supports Anthropic and OpenAI. Add one or both variables to `.env.local` (already ignored by Git) and to the deployed environment:
+- [Documentation index](docs/README.md): current guides and dated evidence.
+- [Presentation conventions](docs/presentation.md): names, navigation, visual treatment, and copy.
+- `starter-kit-src/` and `scripts/starters/`: canonical sources and generator; `starters/` and `public/starters/v1/` are generated.
+- `app/docs/`: developer guides; `components/wallet/`: consumer flow; `app/api/`: server endpoints.
+- [SDK source](https://github.com/ackrate/ackrate-protocol) and [contract source](https://github.com/ackrate/ackrate-protocol-contracts).
 
-```dotenv
-ANTHROPIC_API_KEY=
-OPENAI_API_KEY=
-```
-
-Without an LLM key, the starter library, Express, CLI, AP2, composite, and video demonstrations remain available; the research page shows a clear notice.
-
-## Repository map
-
-- `app/solutions/page.tsx` — starter picker, exact setup commands, and optional hosted walkthrough.
-- `starters/` — the 20 generated, inspectable starter projects.
-- `starter-kit-src/` — catalog, scenarios, and shared source used to generate the starter library.
-- `scripts/starters/` — deterministic materialization, ZIP generation, manifest creation, and verification.
-- `app/api/express/` — hosted Express session and fulfillment routes.
-- `lib/ackrate-server.ts` — server-side integration with `@ackrate/core`.
-- `app/` — the documentation and demonstration surfaces listed above.
-- [`docs/mainnet-roadmap.md`](docs/mainnet-roadmap.md) — hosted wallet and chat workstream in the canonical mainnet plan.
-
-Contract and protocol source: [ackrate/ackrate-protocol](https://github.com/ackrate/ackrate-protocol)
-
-**Verify the request. Verify the contract decision. Verify the settlement.**
+Deployment automation is prepared but project routing remains unresolved. A successful build does not establish deployed or paid-flow acceptance; see the deployment guide for the remaining checks.

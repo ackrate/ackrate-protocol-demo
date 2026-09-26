@@ -1,47 +1,47 @@
 .wallet-preview {
-  --bg: #000;
-  --panel: #0a0a0a;
-  --line: #262626;
-  --line-strong: #525252;
-  --text: #ededed;
-  --muted: #888;
-  --emerald: #fff;
-  --neutral-strong: #e5e5e5;
-  --cyan: #a3a3a3;
-  background: #000;
+  --bg: light-dark(#ffffff, #000);
+  --panel: light-dark(#f5f5f5, #0a0a0a);
+  --line: light-dark(#d9d9d9, #262626);
+  --line-strong: light-dark(#adadad, #525252);
+  --text: light-dark(#171717, #ededed);
+  --muted: light-dark(#777777, #888);
+  --emerald: light-dark(#171717, #fff);
+  --neutral-strong: light-dark(#1a1a1a, #e5e5e5);
+  --cyan: light-dark(#5c5c5c, #a3a3a3);
+  background: light-dark(#ffffff, #000);
   color: var(--text);
 }
 
 .wallet-preview::before {
-  background-image: radial-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px);
-  mask-image: linear-gradient(to bottom, #000 0%, transparent 72%);
+  background-image: radial-gradient(light-dark(rgba(0, 0, 0, 0.035), rgba(255, 255, 255, 0.035)) 1px, transparent 1px);
+  mask-image: linear-gradient(to bottom, light-dark(#ffffff, #000) 0%, transparent 72%);
 }
 
 .wallet-preview::selection {
-  color: #000;
-  background: #fff;
+  color: light-dark(#ffffff, #000);
+  background: light-dark(#171717, #fff);
 }
 
 .wallet-preview ::-webkit-scrollbar-thumb {
-  background: #333;
+  background: light-dark(#cccccc, #333);
   background-clip: padding-box;
 }
 
 .wallet-preview .aurora {
-  background: rgba(255, 255, 255, 0.055);
+  background: light-dark(rgba(0, 0, 0, 0.055), rgba(255, 255, 255, 0.055));
   filter: blur(110px);
 }
 
 .wallet-preview .glass {
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.012));
-  border-color: #262626;
-  box-shadow: inset 0 1px rgba(255, 255, 255, 0.035), 0 22px 70px rgba(0, 0, 0, 0.38);
+  background: linear-gradient(145deg, light-dark(rgba(0, 0, 0, 0.045), rgba(255, 255, 255, 0.045)), light-dark(rgba(0, 0, 0, 0.012), rgba(255, 255, 255, 0.012)));
+  border-color: light-dark(#d9d9d9, #262626);
+  box-shadow: inset 0 1px light-dark(rgba(0, 0, 0, 0.035), rgba(255, 255, 255, 0.035)), 0 22px 70px light-dark(rgba(255, 255, 255, 0.38), rgba(0, 0, 0, 0.38));
   backdrop-filter: blur(20px);
 }
 
 .wallet-preview .topbar {
-  border-color: #1f1f1f;
-  background: rgba(0, 0, 0, 0.82);
+  border-color: light-dark(#e0e0e0, #1f1f1f);
+  background: light-dark(rgba(255, 255, 255, 0.82), rgba(0, 0, 0, 0.82));
 }
 
 .wallet-preview .brand .brand-letter,
@@ -51,17 +51,17 @@
 .wallet-preview .report-rail-heading > span,
 .wallet-preview .tool-check,
 .wallet-preview .toast > span {
-  color: #000;
-  background: #fff;
-  border-color: #fff;
+  color: light-dark(#ffffff, #000);
+  background: light-dark(#171717, #fff);
+  border-color: light-dark(#171717, #fff);
   box-shadow: none;
 }
 
 .wallet-preview .pulse-dot,
 .wallet-preview .wallet-led,
 .wallet-preview .activation-orbit i:nth-child(3) {
-  background: #fff;
-  box-shadow: 0 0 12px rgba(255, 255, 255, 0.28);
+  background: light-dark(#171717, #fff);
+  box-shadow: 0 0 12px light-dark(rgba(0, 0, 0, 0.28), rgba(255, 255, 255, 0.28));
 }
 
 .wallet-preview .wallet-pill,
@@ -79,9 +79,9 @@
 .wallet-preview .tool-card,
 .wallet-preview .authority-card,
 .wallet-preview .toast {
-  color: #d4d4d4;
-  border-color: #333;
-  background: rgba(255, 255, 255, 0.035);
+  color: light-dark(#2b2b2b, #d4d4d4);
+  border-color: light-dark(#cccccc, #333);
+  background: light-dark(rgba(0, 0, 0, 0.035), rgba(255, 255, 255, 0.035));
   box-shadow: none;
 }
 
@@ -90,9 +90,9 @@
 .wallet-preview .proof-evidence a:hover,
 .wallet-preview .tool-actions button:hover,
 .wallet-preview .tool-actions a:hover {
-  color: #fff;
-  border-color: #666;
-  background: rgba(255, 255, 255, 0.075);
+  color: light-dark(#171717, #fff);
+  border-color: light-dark(#999999, #666);
+  background: light-dark(rgba(0, 0, 0, 0.075), rgba(255, 255, 255, 0.075));
 }
 
 .wallet-preview .status-chip,
@@ -121,11 +121,11 @@
 .wallet-preview .proof-evidence a,
 .wallet-preview .proof-evidence button:hover,
 .wallet-preview .proof-evidence a:hover {
-  color: #d4d4d4;
+  color: light-dark(#2b2b2b, #d4d4d4);
 }
 
 .wallet-preview .hero h1 span {
-  color: #fff;
+  color: light-dark(#171717, #fff);
   background: none;
   -webkit-text-fill-color: currentColor;
 }
@@ -133,57 +133,57 @@
 .wallet-preview .primary-button,
 .wallet-preview .quick-purchase > button,
 .wallet-preview .composer-send {
-  color: #000;
-  background: #fff;
-  border: 1px solid #fff;
+  color: light-dark(#ffffff, #000);
+  background: light-dark(#171717, #fff);
+  border: 1px solid light-dark(#171717, #fff);
   box-shadow: none;
 }
 
 .wallet-preview .primary-button:hover:not(:disabled),
 .wallet-preview .quick-purchase > button:hover:not(:disabled),
 .wallet-preview .composer-send:hover:not(:disabled) {
-  color: #000;
-  background: #e5e5e5;
-  border-color: #e5e5e5;
-  box-shadow: 0 8px 30px rgba(255, 255, 255, 0.08);
+  color: light-dark(#ffffff, #000);
+  background: light-dark(#1a1a1a, #e5e5e5);
+  border-color: light-dark(#1a1a1a, #e5e5e5);
+  box-shadow: 0 8px 30px light-dark(rgba(0, 0, 0, 0.08), rgba(255, 255, 255, 0.08));
 }
 
 .wallet-preview .primary-button.busy {
-  background: linear-gradient(90deg, #d4d4d4, #fff, #d4d4d4);
+  background: linear-gradient(90deg, light-dark(#2b2b2b, #d4d4d4), light-dark(#171717, #fff), light-dark(#2b2b2b, #d4d4d4));
   background-size: 220% 100%;
 }
 
 .wallet-preview .activation-orbit i {
-  border-color: #333;
-  border-top-color: #fff;
+  border-color: light-dark(#cccccc, #333);
+  border-top-color: light-dark(#171717, #fff);
 }
 
 .wallet-preview .activation-orbit i:nth-child(2) {
-  border-top-color: #a3a3a3;
+  border-top-color: light-dark(#5c5c5c, #a3a3a3);
 }
 
 .wallet-preview .agent-orb,
 .wallet-preview .lock-rings {
-  color: #fff;
-  border-color: #333;
-  background: rgba(255, 255, 255, 0.035);
+  color: light-dark(#171717, #fff);
+  border-color: light-dark(#cccccc, #333);
+  background: light-dark(rgba(0, 0, 0, 0.035), rgba(255, 255, 255, 0.035));
   box-shadow: none;
 }
 
 .wallet-preview .icon-tile.live,
 .wallet-preview .assistant-message .message-avatar {
-  border-color: #333;
-  background: #111;
+  border-color: light-dark(#cccccc, #333);
+  background: light-dark(#eeeeee, #111);
 }
 
 .wallet-preview .brief-header {
-  background: radial-gradient(circle at 88% 0%, rgba(255, 255, 255, 0.09), transparent 37%),
-    linear-gradient(135deg, rgba(255, 255, 255, 0.045), transparent 65%);
+  background: radial-gradient(circle at 88% 0%, light-dark(rgba(0, 0, 0, 0.09), rgba(255, 255, 255, 0.09)), transparent 37%),
+    linear-gradient(135deg, light-dark(rgba(0, 0, 0, 0.045), rgba(255, 255, 255, 0.045)), transparent 65%);
 }
 
 .wallet-preview .brief-kicker span,
 .wallet-preview .meter span {
-  background: #fff;
+  background: light-dark(#171717, #fff);
   box-shadow: none;
 }
 
@@ -193,50 +193,56 @@
 .wallet-preview .brief-takeaway p,
 .wallet-preview .report-sources-head strong,
 .wallet-preview .remaining strong {
-  color: #ededed;
+  color: light-dark(#171717, #ededed);
 }
 
 .wallet-preview .brief-finding {
-  background: #0a0a0a;
+  background: light-dark(#f5f5f5, #0a0a0a);
 }
 
 .wallet-preview .brief-takeaway {
-  border-left-color: #fff;
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.015));
+  border-left-color: light-dark(#171717, #fff);
+  background: linear-gradient(90deg, light-dark(rgba(0, 0, 0, 0.07), rgba(255, 255, 255, 0.07)), light-dark(rgba(0, 0, 0, 0.015), rgba(255, 255, 255, 0.015)));
 }
 
 .wallet-preview .composer-wrap {
-  background: linear-gradient(transparent, rgba(0, 0, 0, 0.98) 22%);
+  background: linear-gradient(transparent, light-dark(rgba(255, 255, 255, 0.98), rgba(0, 0, 0, 0.98)) 22%);
 }
 
 .wallet-preview .composer-root {
-  border-color: #333;
-  background: rgba(10, 10, 10, 0.96);
+  border-color: light-dark(#cccccc, #333);
+  background: light-dark(rgba(245, 245, 245, 0.96), rgba(10, 10, 10, 0.96));
 }
 
 .wallet-preview .tool-actions button,
 .wallet-preview .tool-actions a,
 .wallet-preview .proof-evidence button,
 .wallet-preview .proof-evidence a {
-  border-color: #333;
-  background: #111;
+  border-color: light-dark(#cccccc, #333);
+  background: light-dark(#eeeeee, #111);
 }
 
 .wallet-preview .diagnostic-grid > div {
-  background: #0a0a0a;
+  background: light-dark(#f5f5f5, #0a0a0a);
 }
 
 .wallet-preview .footer {
-  color: #737373;
+  color: light-dark(#8c8c8c, #737373);
 }
 
 .wallet-preview .footer a:hover {
-  color: #fff;
+  color: light-dark(#171717, #fff);
 }
 
 @media (prefers-contrast: more) {
   .wallet-preview {
-    --line: #404040;
-    --muted: #a3a3a3;
+    --line: light-dark(#bfbfbf, #404040);
+    --muted: light-dark(#5c5c5c, #a3a3a3);
   }
 }
+
+/* Flat surfaces and explicit labels carry state without decorative lighting. */
+.wallet-preview::before, .wallet-preview .aurora { display: none; }
+.wallet-preview .glass { background: light-dark(#eeeeee, #111); box-shadow: none; backdrop-filter: none; }
+.wallet-preview.wallet-flow.wallet-flat .flow-progress > div { color: light-dark(#5c5c5c, #a3a3a3); }
+.wallet-preview.wallet-flow.wallet-flat .flow-progress > div.current { color: light-dark(#171717, #fff); }

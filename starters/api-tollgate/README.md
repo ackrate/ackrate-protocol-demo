@@ -4,13 +4,13 @@
 
 This starter protects `GET /gateway/:service/:resourceId` with a request-bound payment on Stellar testnet. The app asks; the MandateRegistry contract decides whether money moves.
 
-## Start — two commands, no wallet
+## Run locally
 
 You need Node.js 20 or newer. You do not need a wallet or a GitHub repo.
 
 ### If you used Copy setup command
 
-The setup command on [reapp.live/solutions](https://reapp.live/solutions) already downloaded this starter, extracted it into your empty folder, and ran `npm ci`. Before extraction, it verified the ZIP against the exact SHA-256 in the [public integrity manifest](https://reapp.live/starters/v1/manifest.json). In the same VS Code terminal, run:
+The setup command on [reapp.live/docs/quickstarts](https://reapp.live/docs/quickstarts) already downloaded this starter, extracted it into your empty folder, and ran `npm ci`. Before extraction, it verified the ZIP against the exact SHA-256 in the [public integrity manifest](https://reapp.live/starters/v1/manifest.json). In the same VS Code terminal, run:
 
 ```bash
 npm run demo
@@ -18,39 +18,18 @@ npm run demo
 
 ### If you downloaded the ZIP manually
 
-Compare its SHA-256 with the [public integrity manifest](https://reapp.live/starters/v1/manifest.json), extract the ZIP, open the extracted folder in VS Code, select **Terminal → New Terminal**, then run:
+Compare its SHA-256 with the [public integrity manifest](https://reapp.live/starters/v1/manifest.json), extract the ZIP, open a terminal in the extracted folder, then run:
 
 ```bash
 npm ci
 npm run demo
 ```
 
-The demo creates disposable testnet accounts, starts the consumer and Express fulfillment service, and explains every step in plain English. It never requests a wallet or mainnet secret.
+The demo creates disposable testnet accounts, starts the consumer and Express fulfillment service, and prints concise status lines and transaction links. It never requests a wallet or mainnet secret.
 
-```mermaid
-flowchart LR
-    A["① Open an empty folder"] --> B["② Copy the setup command"]
-    B --> C["③ Run npm run demo"]
-    C --> D["④ Read the guided result"]
-    D --> E["⑤ Open the Stellar proof links"]
+## What the run verifies
 
-    style A fill:#052e2b,stroke:#14b8a6,color:#ecfdf5
-    style B fill:#082f49,stroke:#0ea5e9,color:#f0f9ff
-    style C fill:#312e81,stroke:#818cf8,color:#eef2ff
-    style D fill:#4c1d95,stroke:#a78bfa,color:#f5f3ff
-    style E fill:#064e3b,stroke:#34d399,color:#ecfdf5
-```
-
-## What the terminal will teach you
-
-The guided output uses six numbered steps and explains the important words:
-
-1. **Testnet accounts** are temporary practice accounts. No real money is used.
-2. **HTTP 402** means the API is working and requires payment.
-3. **Contract approval** means the user's exact spending rules allowed the payment.
-4. **HTTP 200** means the paid result was delivered.
-5. **Stellar proof links** let anyone inspect each accepted payment.
-6. **The safety check** proves this starter's named boundary or recovery behavior.
+No real money is used. The consumer receives HTTP 402, pays through the contract, and receives HTTP 200 with the protected result. The SDK runner prints one-line status updates and transaction links.
 
 The terminal shows the local fulfillment server starting, accepted Stellar testnet payment evidence with explorer transaction hashes, the protected result delivered to the consumer, and the named negative or recovery check reaching its documented outcome.
 

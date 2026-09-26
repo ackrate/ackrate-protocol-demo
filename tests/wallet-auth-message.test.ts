@@ -15,7 +15,7 @@ const user = stellar.Keypair.random();
 const source = (path: string) => ts.transpileModule(readFileSync(new URL(`../${path}`, import.meta.url), "utf8"), {
   compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS },
 }).outputText;
-function harness() {
+function harness(authenticationReady = true) {
   const jar = new Map<string, string>();
   const used = new Set<string>();
   let incomingOrigin = origin;
@@ -31,7 +31,7 @@ function harness() {
   const security = compile("lib/wallet/security.ts", { "node:crypto": nodeCrypto, "@stellar/stellar-sdk": stellar, "next/headers": context });
   const modules = { "@stellar/stellar-sdk": stellar, zod: { z }, "next/headers": context, "next/server": { NextResponse },
     "@/lib/wallet/security": security, "@/lib/wallet/http": http,
-    "@/lib/wallet/app-config": { loadAppConfig: () => ({ sessionSecret: secret, public: { network: "mainnet" } }) },
+    "@/lib/wallet/app-config": { loadAppConfig: () => ({ sessionSecret: secret, public: { network: "mainnet", authenticationReady, ready: false } }) },
     "@/lib/wallet/journal": { consumeChallenge: async (id: string) => { if (used.has(id)) return false; used.add(id); return true; } },
   };
   const challenge = compile("app/api/wallet/auth/challenge/route.ts", modules);
@@ -70,5 +70,15 @@ test("auth handlers reject foreign origins, legacy transaction payloads and wron
   assert.equal(h.used.size, 0);
   h.setOrigin("https://attacker.test");
   assert.equal((await h.verify.POST(h.request({ signature: user.signMessage(body.message).toString("base64") }))).status, 401);
+  assert.equal(h.used.size, 0);
+});
+
+
+test("auth endpoints fail closed when durable sign-in configuration is unavailable", async () => {
+  const h = harness(false);
+  const issued = await h.challenge.POST(h.request({ address: user.publicKey() }));
+  assert.equal(issued.status, 400);
+  assert.equal(issued.cookies.get(h.security.challengeCookieName()), undefined);
+  assert.equal((await h.verify.POST(h.request({ signature: "a".repeat(88) }))).status, 401);
   assert.equal(h.used.size, 0);
 });

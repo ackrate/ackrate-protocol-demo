@@ -23,11 +23,11 @@ export function ReportEditorial({ brief, titleId, standalone = false, paymentLab
   const Heading = standalone ? "h2" : "h3";
   return <>
     <header className="brief-header">
-      <div className="brief-kicker"><span />{brief.kicker}</div>
+      <div className="brief-kicker"><span />{standalone ? "RESEARCH REPORT" : brief.kicker}</div>
       <Title id={titleId}>{brief.title}</Title>
       <p><CitedText text={brief.subtitle} sources={brief.sources} /></p>
       <div className="brief-meta">
-        <span>LIVE WEB EVIDENCE</span>
+        <span>{standalone ? "SAVED RESEARCH REPORT" : "PURCHASED SOURCE EVIDENCE"}</span>
         {paymentLabel}
         {!standalone && <span>{brief.editorialPasses === 2 ? "TWO-MODEL REVIEW" : brief.editorialPasses === 1 ? "MODEL REVIEW" : "SOURCE-ONLY BRIEF"}</span>}
       </div>
@@ -40,8 +40,8 @@ export function ReportEditorial({ brief, titleId, standalone = false, paymentLab
           <div><Heading>{finding.title}</Heading><p><CitedText text={finding.body} sources={brief.sources} /></p></div>
         </section>)}
       </div>
-      <aside className="brief-takeaway"><span>THE TAKEAWAY</span><p><CitedText text={brief.takeaway} sources={brief.sources} /></p></aside>
-      {brief.summary && <section className="brief-plain-english" aria-label="Summary">
+      {!brief.summary?.length && <aside className="brief-takeaway"><span>Summary</span><p><CitedText text={brief.takeaway} sources={brief.sources} /></p></aside>}
+      {!!brief.summary?.length && <section className="brief-plain-english" aria-label="Summary">
         <Heading>Summary</Heading>
         {brief.summary.map((paragraph, index) => <p key={index}><CitedText text={paragraph} sources={brief.sources} /></p>)}
       </section>}

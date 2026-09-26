@@ -26,7 +26,7 @@ function includes(source: string, values: string[]) {
 
 test("wallet and experimental remain separate pages with separate styles and indexing exclusions", () => {
   const nav = read("components/Nav.tsx");
-  assert.match(nav, /\{ href: "\/wallet"/);
+  assert.match(nav, /href="\/wallet"/);
   assert.doesNotMatch(nav, /\{ href: "\/experimental"/);
   const robots = read("app/robots.ts");
   assert.match(robots, /disallow: \[[^\]]*"\/api\/"/);
@@ -53,7 +53,7 @@ for (const surface of surfaces) {
   const ui = journey(surface);
 
   test(`${surface}: connecting does not sign or register a mandate`, () => {
-    const connect = section(app, "const connect = async () =>", "const authenticate = async () =>");
+    const connect = section(app, "const connect = async (", "const authenticate = async () =>");
     const authenticate = section(app, "const authenticate = async () =>", "const activate = async () =>");
     assert.match(connect, /connectFreighter/);
     assert.doesNotMatch(connect, /auth\/challenge|signFreighterTransaction|registerWithFreighter|approveWithFreighter/);
@@ -148,7 +148,8 @@ for (const surface of surfaces) {
 
   test(`${surface}: trustline readiness and saved mandate identity preserve the current release`, () => {
     assert.match(app, /already\.\*trustline\|trustline\.\*already/i);
-    assert.match(app, /USDC is already ready in your wallet\./);
+    if (surface === "wallet") assert.match(section(app, "const addUsdc", "const retryAllowance"), /await refreshWalletBalances\(\)/);
+    else assert.match(app, /USDC is already ready in your wallet\./);
     assert.match(ui, /usdcReady \? "USDC is ready" : "Add USDC to wallet"/);
     includes(app, ["schemaVersion: 2", "registryId: config.mandateRegistryId", "releaseFingerprint: config.releaseFingerprint", "id: registration.mandateId", "credentialHash: intent.id"]);
   });
@@ -179,7 +180,7 @@ for (const surface of surfaces) {
       const layout = read("app/wallet/layout.tsx");
       assert.ok(layout.indexOf('import "./wallet-flat.css"') > layout.indexOf('import "./wallet-flow.css"'));
       const flat = read("app/wallet/wallet-flat.css");
-      includes(flat, ['font-family: "Wallet Geist"', "background: #000", "position: static", "repeat(3, minmax(0, 1fr))", ":focus-visible"]);
+      includes(flat, ['font-family: "Wallet Geist"', "background: light-dark(#ffffff, #000)", "position: static", "repeat(3, minmax(0, 1fr))", ":focus-visible"]);
       assert.doesNotMatch(flat, /radial-gradient|linear-gradient|translateZ|rotateY/);
       return;
     }

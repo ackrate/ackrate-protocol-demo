@@ -4,7 +4,7 @@ Project guidance for agents working in `ackrate-protocol-demo`.
 
 ## What this is
 
-A Next.js 15 (App Router) demo of [`@ackrate/core`](https://www.npmjs.com/package/@ackrate/core).
+A Next.js 16 (App Router) demo of [`@ackrate/core`](https://www.npmjs.com/package/@ackrate/core).
 An AI agent makes pay-per-use payments that are enforced on-chain by the ACKRATE
 MandateRegistry Soroban contract. Public demos run on Stellar testnet; the
 navigation-listed `/wallet` canary uses the manifest-pinned mainnet contract and
@@ -35,15 +35,19 @@ New reports include a cited, three-paragraph plain-English closing summary.
 
 ## Routes
 
-- `/` — **Docs** (landing page). Source: `app/page.tsx`.
+Deployment uses the GitHub Actions Vercel workflow; see `docs/deployment.md`
+for branch routing, project ownership, secrets and the persistent CLI runner limit.
+
+- `/` — REAPP landing page, focused on Stellar and linking the consumer app.
+- `/docs` — SDK, CLI, and quick-starter guides under one Docs menu.
 - `/consumer` — person-facing preview for giving an AI agent a task while retaining
   explicit control over its budget, approved services, deadline, and exceptions. Source:
   `app/consumer/page.tsx`.
 - `/research` — research agent demo (LLM). Source: `app/research/page.tsx`.
 - `/video` — video paywall demo. Source: `app/video/page.tsx`.
-- `/solutions` — beginner onboarding: scaffold a clean project, connect it to
-  hosted Express fulfillment, and watch local `agent.fetch()` evidence arrive.
-  Source: `app/solutions/page.tsx`.
+- `/docs/quickstarts` — choose one SDK starter and copy its setup command.
+- `/docs/hosted` — optional persistent Testnet Express companion.
+- `/solutions` — redirect to `/docs/quickstarts`.
 - `/toolkit` — product-facing developer toolkit hub. Source:
   `app/toolkit/page.tsx`.
 - `/toolkit/cli` — live **xterm.js terminal** that runs the real `ackrate` CLI on
@@ -53,11 +57,10 @@ New reports include a cited, three-paragraph plain-English closing summary.
   transaction. Runs against the composite build of MandateRegistry (a separate
   testnet deployment; id pinned in `lib/composites-client.ts`). Source: `app/composites/page.tsx`.
 
-Nav order is defined in `components/Nav.tsx` (`links` array): Docs · CLI ·
-Express · Wallet · Security · AP2 · Research · Solutions. The `/consumer` and `/video` routes remain
-available by direct link. The toolkit and composite surfaces are UNLISTED (not
-in the nav): `/toolkit` and `/composites` are reachable by direct link only;
-the `/toolkit` hub links to `/composites`.
+Primary navigation is REAPP home, Consumer app, and Docs. The Docs dropdown
+contains SDK, CLI, quick starters, Express demo, and AP2 demo. Security evidence stays in `docs/security-evidence.md` and the contract repository. Legacy research,
+video, consumer preview, toolkit, and composite routes remain direct-link references.
+See `docs/presentation.md` for the current naming and visual conventions.
 
 ## Key files
 
@@ -86,3 +89,9 @@ the `/toolkit` hub links to `/composites`.
   "*-POWERED", "slick", "Premium", emphatic "Real …"). Keep concrete, accurate
   technical statements (the on-chain budget cap, contract-enforced limits, revocable mandate).
 - Use relative paths in symlinks and imports — never absolute.
+
+## Functional brand colors
+
+Follow [docs/brand-colors.md](docs/brand-colors.md) and the mirrored `app/brand-colors.css` tokens: green for Ackrate infrastructure/enforcement/evidence, red for consumer actions and human intervention. Use bright and readable shades deliberately; preserve state labels, contrast, transaction behavior and product names. The canonical cross-repository policy and task register live in ackrate-private (wiki/ackrate/visual-language.md and wiki/tasks/index.md).
+
+Infrastructure and ordinary navigation stay predominantly green/neutral. Red marks a specific intent-setting control, requested user feedback, or denial; do not color a whole chapter red because it describes consumer actions. Specialist ownership is recorded in the private wiki: Fable for UX, Opus 5.5 for frontend design, Codex for backlog/integration/backend. Record blocked reviews truthfully.

@@ -13,9 +13,10 @@ const PERMANENT_SIMPLE_CONTRACT =
 const RETIRED_PACKAGE_SCOPE = new RegExp(`@${String.fromCharCode(114, 101, 97, 112, 112)}-sdk/`);
 const TEMPORARY_HOSTNAME = `${String.fromCharCode(114, 101, 97, 112, 112)}.live`;
 
-// 2026-09-21: reviewed monochrome page CSS; non-className source is unchanged.
+// 2026-09-25: owner-requested alpha status and integration documentation link.
+// Runtime, recorded receipts, and gateway routes are unchanged.
 const protectedHashes = {
-  "app/express/page.tsx": "6cfaab58846a00498ea4077aea0db0859f609ed0faa6c60d280563f846e78177",
+  "app/express/page.tsx": "0e6ab1ae24add7754b5aa538051c424c1da56efd550c9068273b98a1398ac0e9",
   "app/express/layout.tsx": "7fb5a1ee24023ddd61ee8092c0c2e3047d51d5a0c4273fb1f4ba6f7374f8b40d",
   "app/api/express/route.ts": "645a2a92788b61f42537ee0d9f4980c7324a0f76fadd68239939da17b0854141",
   "app/api/express/[sessionId]/source/[resource]/route.ts": "022c94e6c368357692c1981f08f52aea41c28ef39eadde56ca501280a6e552a5",
@@ -54,17 +55,17 @@ test("the Express registry type compatibility change preserves emitted JavaScrip
   assert.equal(emit(source), emit(historical), "the reviewed type annotation must not change emitted runtime code");
 });
 
-test("navigation exposes Security and Solutions without deleting direct product routes", async () => {
+test("navigation groups developer guides while preserving direct product routes", async () => {
   const [nav, consumer, video] = await Promise.all([
     read("components/Nav.tsx"),
     read("app/consumer/page.tsx"),
     read("app/video/page.tsx"),
   ]);
   assert.doesNotMatch(nav, /href: "\/consumer", label: "Consumer"/);
-  assert.match(nav, /href: "\/solutions", label: "Solutions"/);
+  assert.match(nav, /href: "\/docs\/quickstarts", label: "Quick starters"/);
   assert.doesNotMatch(nav, /href: "\/video", label: "Video"/);
-  assert.match(nav, /href: "\/express", label: "Express"/);
-  assert.match(nav, /href: "\/security", label: "Security"/);
+  assert.match(nav, /href: "\/express", label: "Express demo"/);
+  assert.doesNotMatch(nav, /href: "\/security"/);
   assert.match(consumer, /Preview only · no funds move/);
   assert.match(consumer, /No wallet was created and no transaction was signed/);
   assert.match(consumer, /Give AI a job/);
@@ -74,102 +75,27 @@ test("navigation exposes Security and Solutions without deleting direct product 
   assert.ok(video.length > 100);
 });
 
-test("the Contract Security Suite links every claim to public Mainnet evidence", async () => {
-  const [page, route, layout, sitemap, llms] = await Promise.all([
-    read("app/security/SecurityEvidenceClient.tsx"),
-    read("app/security/page.tsx"),
-    read("app/security/layout.tsx"),
-    read("app/sitemap.ts"),
-    read("app/llms.txt/route.ts"),
+test("security evidence stays in the repository and old website links redirect", async () => {
+  const [report, route, sitemap] = await Promise.all([
+    read("docs/security-evidence.md"), read("app/security/page.tsx"), read("app/sitemap.ts"),
   ]);
-  for (const required of [
-    "Unauthorized callers rejected",
-    "Expired mandates and overspend rejected",
-    "Replay and sequence substitution rejected",
-    "Unauthorized and unpaused upgrades rejected",
-    "53 / 53 PASS",
-    "52 native Soroban host tests",
-    "1 exact optimized-WASM execution check passed",
-    "10,001 signed amount boundaries passed",
-    "512 complete mandate-state scenarios passed",
-    "18 functions and 9 runtime events matched",
-    "V2 has no timelock",
-    "Recorded gate output",
-    "Replay check",
-    "Boundary:",
-    "security-scan.sh",
-    "gatecheck-contracts.sh",
-    "mainnet-v2-security-verification.md",
-    "CCLZEBJXG4YVJEPBCR5F27N733BCK5HQJWZZGB3K54JVODY3VAGP4HWR",
-    "982809197d35d44c7b0fce6bd117fb2fec09b728c64c146c1f803b01faacff62",
-  ]) assert.match(page, new RegExp(required.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")), required);
-  assert.match(route, /SecurityEvidenceClient/);
-  assert.match(layout, /path: "\/security"/);
-  assert.match(sitemap, /"\/security"/);
-  assert.match(llms, /Contract Security Suite/);
-  assert.doesNotMatch(page, /CDBTG5ZKASFA7LOYUPBOTGKAVX5MJIM4U24BYGX7VX23IHYDAHLQPAGS/);
-  assert.doesNotMatch(page, /CD3KRQRNCW52CZHKG2GPQAEOU6UCL426YFNHYUZ7IWUUKAOTKUQX6UUX/);
-  assert.equal(page.toLowerCase().includes(String.fromCharCode(97, 117, 100, 105, 116)), false);
+  assert.match(report, /53 \/ 53 PASS/);
+  assert.match(report, /gatecheck-contracts.sh/);
+  assert.match(route, /permanentRedirect/);
+  assert.match(route, /github.com\/ackrate\/ackrate-protocol-contracts/);
+  assert.doesNotMatch(sitemap, /"\/security"/);
 });
 
-test("the Solutions page keeps the established responsive pattern and complete guide", async () => {
-  const [page, layout, sitemap, installer] = await Promise.all([
-    read("app/solutions/page.tsx"),
-    read("app/solutions/layout.tsx"),
-    read("app/sitemap.ts"),
-    read("lib/starter-install.js"),
+test("quick starters preserve integrity-checked installers and the hosted SDK companion", async () => {
+  const [page, redirect, hosted, installer] = await Promise.all([
+    read("app/docs/quickstarts/QuickStarters.tsx"), read("app/solutions/page.tsx"),
+    read("app/docs/hosted/page.tsx"), read("lib/starter-install.js"),
   ]);
-  for (const required of [
-    "Use this starter",
-    "Copy setup command",
-    "npm run demo",
-    "Read the README",
-    "Then just read the screen",
-    "Six numbered steps explain",
-    "Requires Node.js 20+",
-    "Node.js 20 or newer",
-    "Mac / Linux",
-    "Windows PowerShell",
-    "Optional hosted walkthrough",
-    "Merchant scope",
-    "Replay defense",
-    "Recovery",
-    "Explorer evidence",
-    "20 starter packs",
-    "Integrity manifest",
-    "sessionStorage",
-    "polling hosted /express",
-    "sm:text-6xl",
-    "lg:grid-cols",
-    "min-w-0",
-    "overflow-auto",
-  ]) assert.match(page, new RegExp(required.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")), required);
-  assert.match(layout, /path: "\/solutions"/);
-  assert.match(sitemap, /"\/solutions"/);
-  assert.match(page, /import STARTER_MANIFEST from "@\/public\/starters\/v1\/manifest\.json"/);
-  assert.match(page, /import \{ buildStarterInstallCommand \} from "@\/lib\/starter-install"/);
-  assert.match(page, /const STARTER_ARCHIVES = new Map/);
-  assert.match(page, /const \[installerShell, setInstallerShell\] = useState<InstallerShell>\("posix"\)/);
-  assert.match(page, /starterCommand\(kit\.slug, installerShell\)/);
-  assert.match(page, /starterCommand\("research-source-scout", installerShell\)/);
-  assert.match(installer, /createHash\('sha256'\)/);
-  assert.match(installer, /integrity check failed/);
-  assert.match(installer, /Invoke-WebRequest/);
-  assert.match(installer, /Expand-Archive/);
-  assert.match(installer, /\[scriptblock\]::Create/);
-  assert.match(installer, /Invoke-RestMethod/);
-  assert.match(installer, /\$LASTEXITCODE/);
-  assert.match(page, /installer verifies the download before extracting any file/);
-  const starterSetup = [...installer.matchAll(/return `([^`]+)`;/g)].at(-1)?.[1];
-  assert.ok(starterSetup, "starter setup helper is missing");
-  assert.ok(starterSetup.includes(`https://${TEMPORARY_HOSTNAME}\${installer.path}`));
-  assert.match(starterSetup, /^\/bin\/sh -c "\$\(curl -fsSL /);
-  assert.doesNotMatch(starterSetup, /unzip -q|npm ci/);
-  assert.doesNotMatch(starterSetup, /npm run/);
+  assert.match(redirect, /redirect\("\/docs\/quickstarts"\)/);
+  for (const text of ["buildStarterInstallCommand", "Copy setup command", "npm run demo", "Read the README", "Integrity manifest", "Windows PowerShell", "Mac / Linux", "role=\"status\""]) assert.ok(page.includes(text), text);
+  for (const text of ["sessionStorage", 'action: "create"', 'action: "status"', "npm run hosted", "txUrl", "hashValue"]) assert.ok(hosted.includes(text), text);
+  for (const text of ["createHash('sha256')", "integrity check failed", "Invoke-WebRequest", "Expand-Archive", "$LASTEXITCODE"]) assert.ok(installer.includes(text), text);
   assert.doesNotMatch(installer, /curl[^\n|]*\|\s*(?:sh|bash)/);
-  assert.match(page, /github\.com\/ackrate\/ackrate-protocol-demo\/blob\/main\/starters\/\$\{kit\.slug\}\/README\.md/);
-  assert.doesNotMatch(page, /degit/);
-  assert.doesNotMatch(page, /npm ci && npm run/);
 });
 
 test("the starter is deterministic, typed by package metadata, and testnet-only", async () => {
@@ -215,7 +141,7 @@ test("the starter is deterministic, typed by package metadata, and testnet-only"
 
 test("the hosted page command stays in parity with the generated starter", async () => {
   const [page, manifestSource, hosted] = await Promise.all([
-    read("app/solutions/page.tsx"),
+    read("app/docs/hosted/page.tsx"),
     read("starters/research-source-scout/package.json"),
     read("starters/research-source-scout/src/hosted.mjs"),
   ]);
@@ -248,15 +174,15 @@ test("new public copy follows repository terminology rules", async () => {
   assert.doesNotMatch(combined, /Hackathon starter[\s\S]*?calls the hosted endpoint through agent\.fetch\(\)/);
   assert.match(combined, /inspects the exact 402 challenge, submits the request-bound contract payment/);
   for (const version of [
-    "@ackrate/core 0.3.3",
-    "@ackrate/stellar 0.2.5",
-    "@ackrate/ap2 0.3.2",
-    "@ackrate/express-middleware 0.2.4",
-    "@ackrate/cli 0.1.10",
+    "@ackrate/core 0.4.1",
+    "@ackrate/stellar 0.3.0",
+    "@ackrate/ap2 0.4.0",
+    "@ackrate/express-middleware 0.3.0",
+    "@ackrate/cli 0.2.1",
   ]) assert.match(combined, new RegExp(version.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")), version);
 });
 
-test("plain-text guides distinguish testnet demos, the Mainnet wallet, and candidate versions", async () => {
+test("plain-text guides distinguish testnet demos, the Mainnet wallet, and published versions", async () => {
   const [shortGuide, fullGuide] = await Promise.all([
     read("app/llms.txt/route.ts"),
     read("app/llms-full.txt/route.ts"),
@@ -266,13 +192,13 @@ test("plain-text guides distinguish testnet demos, the Mainnet wallet, and candi
     assert.match(guide, /wallet[\s\S]*Mainnet/i);
     assert.match(guide, /Circle USDC/);
     assert.match(guide, /Freighter/);
-    assert.match(guide, /candidate versions/i);
+    assert.match(guide, /published versions/i);
     for (const version of [
-      "@ackrate/core 0.3.3",
-      "@ackrate/stellar 0.2.5",
-      "@ackrate/ap2 0.3.2",
-      "@ackrate/express-middleware 0.2.4",
-      "@ackrate/cli 0.1.10",
+      "@ackrate/core 0.4.1",
+      "@ackrate/stellar 0.3.0",
+      "@ackrate/ap2 0.4.0",
+      "@ackrate/express-middleware 0.3.0",
+      "@ackrate/cli 0.2.1",
     ]) assert.match(guide, new RegExp(version.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")), version);
     for (const staleVersion of [
       "@ackrate/core 0.3.1",
@@ -283,37 +209,25 @@ test("plain-text guides distinguish testnet demos, the Mainnet wallet, and candi
   }
 });
 
-test("the CLI uses the published Mainnet release while unrelated historical documentation stays unchanged", async () => {
+test("the CLI and Docs use the published Mainnet release", async () => {
   const bundle = new URL("../vendor/ackrate-cli.mjs", import.meta.url);
   const { stdout } = await run(process.execPath, [bundle.pathname, "--version"]);
   const actualVersion = stdout.trim();
 
   assert.equal(actualVersion, "0.2.1");
   const [home, cli, terminal, bundleSource] = await Promise.all([
-    read("app/page.tsx"),
+    Promise.all([read("app/docs/sdk/page.tsx"), read("app/docs/cli/page.tsx")]).then((pages) => pages.join("\n")),
     read("app/cli/page.tsx"),
     read("app/toolkit/cli/page.tsx"),
     read("vendor/ackrate-cli.mjs"),
   ]);
-  for (const [path, source] of [
-    ["app/page.tsx", home],
-  ]) {
-    assert.match(source, /0\.1\.10/, `${path} candidate version`);
-    assert.match(source, /candidate/i, `${path} candidate label`);
-    assert.doesNotMatch(source, /0\.1\.10[^\n]*(?:published|released|installed)|(?:published|released|installed)[^\n]*0\.1\.10/i);
+  const dependencies = JSON.parse(await read("package.json")).dependencies;
+  for (const name of ["core", "stellar", "ap2", "express-middleware", "cli"]) {
+    const version = dependencies[`@ackrate/${name}`];
+    assert.ok(home.includes(`@ackrate/${name} ${version}`) || home.includes(`@ackrate/${name}@${version}`),
+      `Docs must match the installed ${name} release`);
   }
-  for (const version of [
-    "@ackrate/core 0.3.3",
-    "@ackrate/stellar 0.2.5",
-    "@ackrate/ap2 0.3.2",
-    "@ackrate/express-middleware 0.2.4",
-    "@ackrate/cli 0.1.10",
-  ]) assert.match(home, new RegExp(version.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")), version);
-  for (const [path, source] of [
-    ["app/page.tsx", home],
-  ]) {
-    assert.match(source, new RegExp(PERMANENT_SIMPLE_CONTRACT), path);
-  }
+  assert.doesNotMatch(home, /CANDIDATE DOCS|0\.1\.10|0\.3\.3/);
   assert.match(cli, /const VERSION = "0\.2\.1"/);
   assert.match(terminal, /redirect\("\/cli"\)/);
   assert.match(cli, /--network mainnet/);

@@ -15,7 +15,7 @@ export function createPageMetadata({ title, description, path, keywords = [] }: 
     alternates: { canonical: path },
     openGraph: {
       type: "website",
-      siteName: "ACKRATE",
+      siteName: "REAPP",
       title,
       description,
       url: path,

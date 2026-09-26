@@ -38,13 +38,14 @@ test("returns Mainnet XLM and Circle USDC balances without caching", async () =>
   };
   try {
     const response = await GET(new NextRequest(`http://localhost/api/wallet/balances?address=${address}`));
-    const body = await response.json() as { ok: boolean; balances: { address: string; xlm: string; usdc: string; xlmRaw: string; usdcRaw: string; hasUsdcTrustline: boolean } };
+    const body = await response.json() as { ok: boolean; balances: { address: string; funded: boolean; xlm: string; usdc: string; xlmRaw: string; usdcRaw: string; hasUsdcTrustline: boolean } };
     assert.equal(response.status, 200);
     assert.match(response.headers.get("cache-control") ?? "", /\bno-store\b/);
     assert.deepEqual(body, {
       ok: true,
       balances: {
         address,
+        funded: true,
         xlm: "60.2561044",
         usdc: "2.6761063",
         xlmRaw: "60.2561044",
@@ -55,4 +56,22 @@ test("returns Mainnet XLM and Circle USDC balances without caching", async () =>
   } finally {
     globalThis.fetch = originalFetch;
   }
+});
+
+test("an unfunded account is a known balance state; provider failure is not a zero balance", async () => {
+  const original = globalThis.fetch;
+  const address = Keypair.random().publicKey();
+  const request = () => new NextRequest(`https://example.test/api/wallet/balances?address=${address}`);
+  try {
+    globalThis.fetch = async () => Response.json({}, { status: 404 });
+    const absent = await GET(request());
+    assert.equal(absent.status, 200);
+    assert.deepEqual((await absent.json()).balances, {
+      address, funded: false, xlm: "0.00", usdc: "0.00", xlmRaw: "0", usdcRaw: "0", hasUsdcTrustline: false,
+    });
+    globalThis.fetch = async () => Response.json({}, { status: 503 });
+    const unavailable = await GET(request());
+    assert.equal(unavailable.status, 502);
+    assert.equal((await unavailable.json()).ok, false);
+  } finally { globalThis.fetch = original; }
 });
