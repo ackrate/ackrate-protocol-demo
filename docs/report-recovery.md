@@ -61,6 +61,8 @@ attempt uses the unconfirmed-outcome state. POST service errors remain visible
 when a follow-up GET finds no reserved attempt; refreshes never submit another POST.
 Running status reads keep the focusable control mounted without a checking-state
 flash. A cancelled or incomplete wallet sign-in is followed only by a status read.
+The retry and sharing controls have distinct payment-scoped identities, so adding
+the summary replaces the existing status instead of remounting the retry control.
 
 Backend tests use an actual temporary PostgreSQL-compatible database and prohibit
 network requests and transaction broadcasts. They cover ownership, origin,
@@ -68,6 +70,8 @@ evidence identity, concurrency, immutable receipt records, and terminal retry
 states. Controller tests cover status-first reads, duplicate clicks, interrupted
 responses, reconnect cancellation, and focus intent. Run `npm run gatecheck:t3`
 for the repository checks.
+Live DOM tests cover manual completion and saved-summary reload, including a single
+status region, stable sharing controls, tab-return reads, focus, and unchanged receipts.
 
 For a synthetic visual review, run
 `node --import tsx tests/fixtures/render-report-retry.tsx /tmp/reapp-report-retry-fixture`
