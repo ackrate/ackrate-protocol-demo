@@ -16,9 +16,9 @@ const copy: Record<SummaryRetryState, string> = {
   failed: "Retry did not produce a summary. Your sources and receipt are still available. No further retry for this purchase.",
   used: "Summary retry already used for this purchase.",
   uncertain: "The retry outcome is unconfirmed. No further retry is available for this purchase. Your sources and receipt are unchanged.",
-  unavailable: "The saved summary could not be opened. Your sources and receipt are unchanged.",
-  wrong_wallet: "This report is not available for the signed-in wallet. Use the wallet that paid for it. Your sources and receipt are unchanged.",
-  temporarily_unavailable: "Written summaries are temporarily unavailable. Your sources and receipt are saved. You can check again later.",
+  unavailable: "Summary retry is unavailable for this report. Your sources and receipt are saved. Read Sources or use Download report and Receipt JSON.",
+  wrong_wallet: "Summary retry is unavailable for this report with the signed-in wallet. Your sources and receipt are saved.",
+  temporarily_unavailable: "Summary retry is temporarily unavailable. Your sources and receipt are saved. Reload the page later to try again.",
   hidden: "",
 };
 
@@ -65,7 +65,7 @@ export function createSummaryRetryClient(input: { mandateId: string; txHash: str
     else { set("unavailable"); return false; }
     return true;
   }
-  async function load() {
+  async function readStatus() {
     if (disposed || posting || reading) return;
     reading = true;
     if (state !== "running" && state !== "succeeded") set("checking");
@@ -75,6 +75,10 @@ export function createSummaryRetryClient(input: { mandateId: string; txHash: str
       }), false);
     } catch { if (!disposed) set("temporarily_unavailable"); }
     finally { reading = false; }
+  }
+  async function load() {
+    // Reconnect owns its final status read; tab-return checks must not race it.
+    if (!reconnecting) await readStatus();
   }
   async function retry() {
     if (disposed || posting || reading || state !== "eligible") return;
@@ -95,7 +99,7 @@ export function createSummaryRetryClient(input: { mandateId: string; txHash: str
     set("checking");
     try { await authenticate(); }
     catch { if (!disposed) set("connect_incomplete"); reconnecting = false; return; }
-    try { if (!disposed) await load(); }
+    try { if (!disposed) await readStatus(); }
     finally { reconnecting = false; }
   }
   return { load, retry, reconnect, dispose() { disposed = true; controller.abort(); } };
@@ -137,9 +141,13 @@ export function SummaryRetryView({ state, canReconnect = false, statusId, helpId
   state: SummaryRetryState; canReconnect?: boolean; statusId: string; helpId: string; onClick?: () => void;
 }) {
   if (state === "hidden") return null;
-  const button = state === "eligible" || state === "running" || ((state === "connect" || state === "connect_incomplete") && canReconnect);
+  const connectionNeeded = state === "connect" || state === "connect_incomplete";
+  const button = state === "eligible" || state === "running" || (connectionNeeded && canReconnect);
+  const message = connectionNeeded && !canReconnect
+    ? "Summary retry requires wallet sign-in, which this view cannot start. Your sources and receipt are saved."
+    : copy[state];
   return <div className="report-summary-retry" aria-busy={state === "running" || state === "checking"}>
-    <p id={statusId} role="status" aria-live="polite" aria-atomic="true">{state === "succeeded" && <Check size={14} aria-hidden="true" />}<span>{copy[state]}</span></p>
+    <p id={statusId} role="status" aria-live="polite" aria-atomic="true">{state === "succeeded" && <Check size={14} aria-hidden="true" />}<span>{message}</span></p>
     {button && <>
       <button type="button" aria-describedby={helpId} aria-disabled={state === "running" || undefined} onClick={state === "running" ? undefined : onClick}>
         {state === "running" ? <><LoaderCircle size={16} className="spin" aria-hidden="true" />Retrying…</> : "Retry written summary"}

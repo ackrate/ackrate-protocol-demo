@@ -83,6 +83,30 @@ test("reconnect cancellation is recoverable; a successful sign-in checks status 
   ui.dispose();
 });
 
+test("tab-return checks during sign-in cannot race the authenticated final status read", async () => {
+  let signedIn = false;
+  let signIns = 0;
+  let finishSignIn!: () => void;
+  const waitingForWallet = new Promise<void>((resolve) => { finishSignIn = resolve; });
+  const methods: string[] = [];
+  const ui = client(async (_url, options) => {
+    methods.push(options?.method ?? "GET");
+    return signedIn ? response("eligible") : new Response(null, { status: 401 });
+  });
+  await ui.load(); assert.equal(ui.states.at(-1), "connect");
+  const reconnect = ui.reconnect(async () => { signIns++; await waitingForWallet; signedIn = true; });
+  // Visibility changes while the native wallet window is open must not start GETs.
+  await ui.load(); await ui.load();
+  assert.deepEqual(methods, ["GET"]);
+  assert.equal(ui.states.at(-1), "checking");
+  finishSignIn(); await reconnect;
+  assert.equal(ui.states.at(-1), "eligible");
+  assert.equal(ui.states.includes("connect_incomplete"), false);
+  assert.deepEqual(methods, ["GET", "GET"]);
+  assert.equal(signIns, 1);
+  ui.dispose();
+});
+
 test("unmount suppresses late responses and malformed revision responses never claim success", async () => {
   let finish!: (response: Response) => void;
   const ui = client(async () => new Promise<Response>((resolve) => { finish = resolve; }));
@@ -155,6 +179,21 @@ test("retry states keep one live status, described action and a focusable runnin
     summarySlot: createElement(SummaryRetryView, { state: "succeeded", statusId: "status", helpId: "help" }) }));
   assert.match(markup, /Written summary added/);
   assert.match(markup, /id="summary" tabindex="-1"/);
+});
+
+test("retry availability copy preserves the visible report and does not promise absent sign-in controls", () => {
+  const render = (state: SummaryRetryState, canReconnect = false) => renderToStaticMarkup(createElement(SummaryRetryView, { state, canReconnect, statusId: "status", helpId: "help" }));
+  assert.match(render("wrong_wallet"), /Summary retry is unavailable for this report with the signed-in wallet/);
+  assert.doesNotMatch(render("wrong_wallet"), /This report is not available|Use the wallet that paid/);
+  assert.match(render("unavailable"), /Summary retry is unavailable/);
+  assert.match(render("unavailable"), /Read Sources or use Download report and Receipt JSON/);
+  assert.doesNotMatch(render("unavailable"), /saved summary could not be opened/);
+  assert.match(render("temporarily_unavailable"), /Reload the page later to try again/);
+  for (const state of ["connect", "connect_incomplete"] as const) {
+    assert.match(render(state), /wallet sign-in, which this view cannot start/);
+    assert.doesNotMatch(render(state), /<button|Reconnect to retry/);
+    assert.match(render(state, true), /<button/);
+  }
 });
 
 test("derived report download preserves byte-identical original receipt and purchase data", () => {
