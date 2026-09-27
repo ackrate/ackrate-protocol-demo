@@ -1,13 +1,15 @@
 # Hosted wallet: human test
 
-Use [the hosted wallet](https://reapp.live/wallet) in Chrome with Freighter.
+Use [the staging wallet](https://staging.ackrate.com/wallet) in Chrome with Freighter.
+This configured acceptance deployment uses Stellar Mainnet and real USDC. Record
+its displayed source revision before testing; a PR preview may lack payment services.
 No deployment or automated check substitutes for completing this flow.
 
 1. Refresh the page. Disconnect and reconnect your personal mainnet wallet if
    you want to demonstrate the connection from the beginning.
 2. Choose **Web search**. Configure the query **What is Stellar?** and review
    the fresh service quote. The price comes from the marketplace, not this guide.
-3. Set a spending limit covering the quoted price, for example **0.10 USDC**,
+3. Set a spending limit covering the quoted price, for example **0.01 USDC** when that covers one quoted call,
    and an expiry. Approve registration and then the capped USDC allowance in
    Freighter. If submission is uncertain, **Check USDC approval — no new fee**
    checks the original transaction instead of submitting another.

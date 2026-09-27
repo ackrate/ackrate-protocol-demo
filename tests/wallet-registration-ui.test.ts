@@ -109,6 +109,7 @@ function harness(initial: Record<string, any> | null, status: "confirmed" | "pen
     "@/lib/wallet/freighter": { freighterSessionState: async () => "matches" },
     "@/lib/wallet/marketplace-catalog": catalog,
     "@/lib/wallet/agent402-prices": prices,
+    "./WalletNavPortal": { default: "wallet-nav-portal" },
     "./AssistantThread": { AssistantThread: "assistant-thread", PurchaseReport: "purchase-report", parseRecovery: () => null },
     "./ServiceConfigurator": { ServiceConfigurator: "service-configurator", initialServiceInputValues: () => ({ q: "What is Stellar?" }), serializedServiceInputs: () => ({ q: "What is Stellar?" }) },
     "@/lib/wallet/client-readiness": { ...readiness, allowanceTransactionIsFresh: () => true },

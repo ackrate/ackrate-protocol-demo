@@ -1,9 +1,9 @@
 // This buffer accepts only fixed event names and numeric status codes. Never pass
 // wallet payloads, messages, addresses, signatures, XDR, or request/response bodies.
-export type ConnectionStep = "detect" | "access" | "network" | "message" | "config" | "session" | "challenge" | "verify" | "transaction" | "disconnect";
+export type ConnectionStep = "detect" | "access" | "network" | "message" | "config" | "session" | "wallet-session" | "challenge" | "verify" | "transaction" | "disconnect";
 export type ConnectionOutcome = "started" | "ok" | "unavailable" | "timeout" | "rejected" | "invalid" | "mismatch" | "failed";
 export interface ConnectionEvent { at: string; step: ConnectionStep; outcome: ConnectionOutcome; code?: number }
-const steps: readonly string[] = ["detect", "access", "network", "message", "config", "session", "challenge", "verify", "transaction", "disconnect"];
+const steps: readonly string[] = ["detect", "access", "network", "message", "config", "session", "wallet-session", "challenge", "verify", "transaction", "disconnect"];
 const outcomes: readonly string[] = ["started", "ok", "unavailable", "timeout", "rejected", "invalid", "mismatch", "failed"];
 const events: ConnectionEvent[] = [];
 let requestedTransport: "walletconnect" | "freighter-extension" | undefined;

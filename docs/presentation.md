@@ -1,6 +1,8 @@
 # Presentation conventions
 
-REAPP is the consumer demonstration, powered by ACKRATE SDK. The SDK and CLI were renamed from REAPP to ACKRATE and use the `@ackrate` package scope. Keep ACKRATE CLI and MandateRegistry identifiers unchanged. Do not introduce another product name in this release.
+The header reads **REAPP powered by Ackrate SDK**, with REAPP prominent and the attribution secondary. The SDK and CLI use the `@ackrate` package scope. Keep ACKRATE CLI and MandateRegistry identifiers unchanged.
+
+Wallet disconnect and Verification belong in the main navigation. The wallet page does not need a second network masthead or slogans about payment and receipt counts. Keep chain, asset, cap, fees, relay and seller details at the steps where users authorize spending, and keep both receipt links with the result.
 
 Use white or black backgrounds and neutral gray surfaces. Follow the functional brand palette: Ackrate green identifies infrastructure, enforcement and evidence; Allow It vermilion identifies consumer choices and intervention. No decorative glow, gradients, animated emblems, or multicolor category badges. Preserve explicit status labels and explorer links; color alone must not communicate transaction state.
 
