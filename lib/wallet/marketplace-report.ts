@@ -17,7 +17,19 @@ const Structure = z.object({
   summary: z.array(z.string().trim().min(80).max(1_200)).min(3).max(4),
 }).strict();
 
-export const REPORT_RESPONSE_FORMAT = { name: "purchased_source_report", schema: z.toJSONSchema(Structure) };
+// Keep local string bounds, but send only the provider's supported schema subset.
+function providerSchema(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(providerSchema);
+  if (!value || typeof value !== "object") return value;
+  const schema = value as Record<string, unknown>;
+  const result = Object.fromEntries(Object.entries(schema).filter(([key]) => !["$schema", "minLength", "maxLength"].includes(key))
+    .map(([key, nested]) => [key, providerSchema(nested)]));
+  if (schema.type === "string" && typeof schema.minLength === "number" && typeof schema.maxLength === "number") {
+    result.description = `Use ${schema.minLength} to ${schema.maxLength} characters.`;
+  }
+  return result;
+}
+export const REPORT_RESPONSE_FORMAT = { name: "purchased_source_report", schema: providerSchema(z.toJSONSchema(Structure)) as Record<string, unknown> };
 export type ReportDiagnostic = { category: string; stage: "provider" | "validation"; elapsedMs: number; status?: number; issues?: string[] };
 class ReportOutputError extends Error {
   constructor(readonly category: string) { super(category); }
@@ -61,7 +73,7 @@ function fallback(question: string, evidence: Agent402Evidence): MarketBrief {
     opening: evidence.results[0]?.description
       ?? "The marketplace purchase completed, but the source index returned limited descriptive text. The original links remain available for direct review.",
     findings,
-    takeaway: "Your search results are saved below. A written summary is not available for this report, so follow the source links for the full context.",
+    takeaway: "Your search results are saved in Sources. A written summary is not available for this report, so follow the source links for the full context.",
     sources: evidence.results.map((result) => ({ publisher: publisher(result.url), title: result.title, url: result.url })),
     question,
     generatedAt: new Date().toISOString(),

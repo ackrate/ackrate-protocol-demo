@@ -31,7 +31,7 @@ export function ReportEditorial({ brief, titleId, standalone = false, paymentLab
       <div className="brief-meta">
         <span>{standalone ? "SAVED RESEARCH REPORT" : "PURCHASED SOURCE EVIDENCE"}</span>
         {paymentLabel}
-        {!standalone && <span>{brief.editorialPasses === 2 ? "TWO-MODEL REVIEW" : brief.editorialPasses === 1 ? "MODEL REVIEW" : "SOURCE-ONLY BRIEF"}</span>}
+        {!standalone && <span>{brief.summary?.length ? "WRITTEN SUMMARY" : brief.editorialPasses ? "RESEARCH BRIEF" : "SOURCE-ONLY BRIEF"}</span>}
       </div>
     </header>
     <div className="brief-body">

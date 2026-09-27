@@ -2231,7 +2231,8 @@
 .wallet-preview .report-share { display: grid; gap: 12px; min-width: 0; }
 .wallet-preview .report-summary-retry { display: grid; gap: 10px; min-width: 0; }
 .wallet-preview .report-summary-retry > p { margin: 0; color: light-dark(#393939, #c6c6c6); font-size: 12px; line-height: 1.6; }
-.wallet-preview .report-summary-retry p svg { color: var(--foundation-text); margin-right: 6px; vertical-align: middle; }
+.wallet-preview .report-summary-retry > [role="status"] { display: flex; align-items: flex-start; gap: 6px; }
+.wallet-preview .report-summary-retry p svg { flex: 0 0 auto; color: var(--foundation-text); margin-top: 3px; }
 .wallet-preview .report-summary-retry button { display: inline-flex; align-items: center; gap: 8px; justify-self: start; min-height: 44px; padding: 11px 17px; border: 1px solid currentColor; border-radius: 8px; background: transparent; color: var(--action-text); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
 .wallet-preview .report-summary-retry button:hover { background: var(--action-soft); }
 .wallet-preview .report-summary-retry button[aria-disabled="true"] { cursor: progress; opacity: .75; }

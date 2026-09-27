@@ -74,9 +74,12 @@ test("reconnect cancellation is recoverable; a successful sign-in checks status 
   });
   await ui.load(); assert.equal(ui.states.at(-1), "connect");
   await ui.reconnect(async () => { throw new Error("User cancelled"); });
-  assert.equal(ui.states.at(-1), "connect"); assert.deepEqual(methods, ["GET"]);
+  assert.equal(ui.states.at(-1), "connect_incomplete"); assert.deepEqual(methods, ["GET"]);
+  // WalletChatApp.authenticate catches cancellation and returns without a session.
+  await ui.reconnect(async () => {});
+  assert.equal(ui.states.at(-1), "connect_incomplete"); assert.deepEqual(methods, ["GET", "GET"]);
   await ui.reconnect(async () => { signedIn = true; });
-  assert.equal(ui.states.at(-1), "eligible"); assert.deepEqual(methods, ["GET", "GET"]);
+  assert.equal(ui.states.at(-1), "eligible"); assert.deepEqual(methods, ["GET", "GET", "GET"]);
   ui.dispose();
 });
 
@@ -87,19 +90,66 @@ test("unmount suppresses late responses and malformed revision responses never c
   assert.deepEqual(ui.states, ["checking"]); assert.deepEqual(ui.results, []);
   await ui.load(); await ui.retry();
   const invalid = client(async () => response("succeeded", { brief: { ...brief, summary: [] } }));
-  await invalid.load(); assert.equal(invalid.states.at(-1), "uncertain"); assert.deepEqual(invalid.results, []);
+  await invalid.load(); assert.equal(invalid.states.at(-1), "unavailable"); assert.deepEqual(invalid.results, []);
   invalid.dispose();
 });
 
+test("status errors distinguish missing report, wrong wallet and service outage without implying an attempt", async () => {
+  for (const [status, expected] of [[400, "unavailable"], [403, "unavailable"], [404, "wrong_wallet"], [503, "temporarily_unavailable"]] as const) {
+    const methods: string[] = [];
+    const ui = client(async (_url, options) => { methods.push(options?.method ?? "GET"); return Response.json({ error: "Untrusted server text" }, { status }); });
+    await ui.load(); await ui.retry();
+    assert.equal(ui.states.at(-1), expected);
+    assert.deepEqual(methods, ["GET"]);
+    assert.equal(ui.states.includes("uncertain"), false);
+    ui.dispose();
+  }
+  const offline = client(async () => { throw new Error("Offline"); });
+  await offline.load(); assert.equal(offline.states.at(-1), "temporarily_unavailable"); offline.dispose();
+});
+
+test("POST outage feedback survives eligible reconciliation and cannot resend automatically", async () => {
+  const methods: string[] = [];
+  const ui = client(async (_url, options) => {
+    methods.push(options?.method ?? "GET");
+    return options?.method === "POST" ? Response.json({ ok: false, error: "Unavailable" }, { status: 503 }) : response("eligible");
+  });
+  await ui.load(); await ui.retry(); await ui.retry();
+  assert.deepEqual(methods, ["GET", "POST", "GET"]);
+  assert.equal(ui.states.at(-1), "temporarily_unavailable");
+  await ui.load(); assert.equal(ui.states.at(-1), "temporarily_unavailable");
+  ui.dispose();
+});
+
+test("running and success status refreshes do not pass through checking or drop the running control", async () => {
+  let status = "running";
+  let finish: ((response: Response) => void) | undefined;
+  const ui = client(async () => finish ? new Promise<Response>((resolve) => { finish = resolve; }) : response(status, { brief }));
+  await ui.load(); assert.equal(ui.states.at(-1), "running");
+  const previous = ui.states.length;
+  finish = () => {};
+  const poll = ui.load();
+  assert.equal(ui.states.length, previous);
+  finish(response("running")); await poll;
+  assert.deepEqual(ui.states.slice(previous), ["running"]);
+  finish = undefined; status = "succeeded"; await ui.load();
+  const succeeded = ui.states.length;
+  await ui.load();
+  assert.deepEqual(ui.states.slice(succeeded), ["succeeded"]);
+  assert.equal(ui.results.at(-1)?.focus, false);
+  ui.dispose();
+});
+
 test("retry states keep one live status, described action and a focusable running button", () => {
-  for (const state of ["checking", "eligible", "connect", "running", "succeeded", "failed", "used", "uncertain"] as const) {
+  for (const state of ["checking", "eligible", "connect", "connect_incomplete", "running", "succeeded", "failed", "used", "uncertain", "unavailable", "wrong_wallet", "temporarily_unavailable"] as const) {
     const markup = renderToStaticMarkup(createElement(SummaryRetryView, { state, canReconnect: true, statusId: "status", helpId: "help" }));
     assert.equal((markup.match(/role="status"/g) ?? []).length, 1);
-    if (["eligible", "connect", "running"].includes(state)) {
+    if (["eligible", "connect", "connect_incomplete", "running"].includes(state)) {
       assert.match(markup, /aria-describedby="help"/);
       assert.match(markup, /No new search or wallet payment/);
     } else assert.doesNotMatch(markup, /<button/);
     if (state === "running") { assert.match(markup, /aria-disabled="true"/); assert.doesNotMatch(markup, / disabled=/); }
+    if (state === "uncertain") { assert.doesNotMatch(markup, /Reload to check/); assert.match(markup, /No further retry/); }
   }
   const markup = renderToStaticMarkup(createElement(ReportEditorial, { brief, titleId: "report", summaryHeadingId: "summary",
     summarySlot: createElement(SummaryRetryView, { state: "succeeded", statusId: "status", helpId: "help" }) }));

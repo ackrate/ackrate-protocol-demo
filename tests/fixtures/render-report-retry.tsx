@@ -8,13 +8,13 @@ import type { MarketBrief } from "../../lib/wallet/market-brief";
 
 const directory = resolve(process.argv[2] ?? "/tmp/reapp-report-retry-fixture");
 if (!directory.startsWith("/tmp/") && !directory.startsWith("/private/tmp/")) throw new Error("Write synthetic fixtures under /tmp only");
-const states: SummaryRetryState[] = ["checking", "eligible", "connect", "running", "succeeded", "failed", "used", "uncertain"];
+const states: SummaryRetryState[] = ["checking", "eligible", "connect", "connect_incomplete", "running", "succeeded", "failed", "used", "uncertain", "unavailable", "wrong_wallet", "temporarily_unavailable"];
 const source = { publisher: "example.org", title: "Illustrative library guide", url: "https://example.org/library" };
 const fallback: MarketBrief = {
   kicker: "SAVED RESEARCH", title: "How do library loans work?", subtitle: "An invented report for visual review.",
   opening: "This illustrative guide describes borrowing and returning library books. [1]",
   findings: [{ number: "01", title: "Borrowing a book", body: "A library lends a book for a set period. Its guide explains how to return it. [1]" }],
-  takeaway: "Your search results are saved below. A written summary is not available for this report, so follow the source links for the full context.",
+  takeaway: "Your search results are saved in Sources. A written summary is not available for this report, so follow the source links for the full context.",
   sources: [source], editorialPasses: 0,
 };
 const complete: MarketBrief = { ...fallback, editorialPasses: 1,

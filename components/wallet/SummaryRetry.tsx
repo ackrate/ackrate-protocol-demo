@@ -5,16 +5,20 @@ import { Check, LoaderCircle } from "lucide-react";
 import type { MarketBrief } from "../../lib/wallet/market-brief";
 import { sharedReportBrief } from "../../lib/wallet/shared-report";
 
-export type SummaryRetryState = "checking" | "eligible" | "connect" | "running" | "succeeded" | "failed" | "used" | "uncertain" | "hidden";
+export type SummaryRetryState = "checking" | "eligible" | "connect" | "connect_incomplete" | "running" | "succeeded" | "failed" | "used" | "uncertain" | "unavailable" | "wrong_wallet" | "temporarily_unavailable" | "hidden";
 const copy: Record<SummaryRetryState, string> = {
   checking: "Checking summary status…",
-  eligible: "Written summary unavailable. Your sources and receipt are saved.",
+  eligible: "Your sources and receipt are saved.",
   connect: "Written summary unavailable. Your sources and receipt are saved. Reconnect to retry. This is not a payment.",
+  connect_incomplete: "Sign-in did not finish. Open your wallet and sign in with the account that paid for this report, then try again. This is not a payment.",
   running: "Retrying written summary from saved sources.",
-  succeeded: "Written summary added. Shared links continue to show the original result.",
+  succeeded: "Written summary added. Download report includes it. Receipt JSON and shared links keep the original result.",
   failed: "Retry did not produce a summary. Your sources and receipt are still available. No further retry for this purchase.",
   used: "Summary retry already used for this purchase.",
-  uncertain: "We could not confirm whether the retry finished. Reload to check. Sources and receipt are unchanged.",
+  uncertain: "The retry outcome is unconfirmed. No further retry is available for this purchase. Your sources and receipt are unchanged.",
+  unavailable: "The saved summary could not be opened. Your sources and receipt are unchanged.",
+  wrong_wallet: "This report is not available for the signed-in wallet. Use the wallet that paid for it. Your sources and receipt are unchanged.",
+  temporarily_unavailable: "Written summaries are temporarily unavailable. Your sources and receipt are saved. You can check again later.",
   hidden: "",
 };
 
@@ -29,34 +33,47 @@ export function createSummaryRetryClient(input: { mandateId: string; txHash: str
   let reading = false;
   let disposed = false;
   let initiated = false;
+  let reconnecting = false;
+  let postUnavailable = false;
   const controller = new AbortController();
   function set(next: SummaryRetryState) { state = next; if (!disposed) dependencies.onState(next); }
   async function readResponse(response: Response, fromPost: boolean) {
-    if (response.status === 401) { set("connect"); return; }
-    const body = await response.json() as { ok?: boolean; status?: string; retryAllowed?: boolean; brief?: unknown };
-    if (!response.ok || body.ok !== true || typeof body.retryAllowed !== "boolean"
-      || body.retryAllowed !== (body.status === "eligible")) throw new Error("Status unavailable");
+    if (response.status === 401) { set(reconnecting ? "connect_incomplete" : "connect"); return true; }
+    if (response.status === 404) { set("wrong_wallet"); return true; }
+    if (response.status === 400 || response.status === 403) { set("unavailable"); return true; }
+    if (!response.ok) {
+      if (fromPost) postUnavailable = true;
+      set("temporarily_unavailable"); return false;
+    }
+    let body: { ok?: boolean; status?: string; retryAllowed?: boolean; brief?: unknown };
+    try { body = await response.json(); }
+    catch { set("unavailable"); return false; }
+    if (!body || body.ok !== true || typeof body.retryAllowed !== "boolean"
+      || body.retryAllowed !== (body.status === "eligible")) { set("unavailable"); return false; }
     if (body.status === "succeeded") {
       const brief = sharedReportBrief(body.brief);
       const passes = (body.brief as { editorialPasses?: unknown })?.editorialPasses;
-      if (!brief?.summary || (passes !== 1 && passes !== 2)) throw new Error("Invalid report revision");
-      if (!disposed) dependencies.onResult({ ...brief, editorialPasses: passes }, initiated);
+      if (!brief?.summary || (passes !== 1 && passes !== 2)) { set("unavailable"); return false; }
+      try { if (!disposed) dependencies.onResult({ ...brief, editorialPasses: passes }, initiated); }
+      catch { set("unavailable"); return false; }
       initiated = false;
       set("succeeded");
     } else if (body.status === "failed") set(fromPost ? "failed" : "used");
     else if (body.status === "not_needed") set("hidden");
-    else if (["eligible", "running", "uncertain"].includes(body.status ?? "")) set(body.status as SummaryRetryState);
-    else throw new Error("Unknown report status");
+    else if (body.status === "eligible") set(postUnavailable ? "temporarily_unavailable" : "eligible");
+    else if (["running", "uncertain"].includes(body.status ?? "")) set(body.status as SummaryRetryState);
+    else { set("unavailable"); return false; }
+    return true;
   }
   async function load() {
     if (disposed || posting || reading) return;
     reading = true;
-    set("checking");
+    if (state !== "running" && state !== "succeeded") set("checking");
     try {
       await readResponse(await fetcher(`/api/wallet/reports/retry?${new URLSearchParams(input)}`, {
         credentials: "same-origin", cache: "no-store", signal: AbortSignal.any([controller.signal, AbortSignal.timeout(15_000)]),
       }), false);
-    } catch { if (!disposed) set("uncertain"); }
+    } catch { if (!disposed) set("temporarily_unavailable"); }
     finally { reading = false; }
   }
   async function retry() {
@@ -64,7 +81,7 @@ export function createSummaryRetryClient(input: { mandateId: string; txHash: str
     posting = true; initiated = true; set("running");
     let reconcile = false;
     try {
-      await readResponse(await fetcher("/api/wallet/reports/retry", {
+      reconcile = !await readResponse(await fetcher("/api/wallet/reports/retry", {
         method: "POST", credentials: "same-origin", cache: "no-store", headers: { "Content-Type": "application/json" },
         body: JSON.stringify(input), signal: AbortSignal.any([controller.signal, AbortSignal.timeout(100_000)]),
       }), true);
@@ -73,11 +90,13 @@ export function createSummaryRetryClient(input: { mandateId: string; txHash: str
     if (reconcile && !disposed) await load();
   }
   async function reconnect(authenticate: () => Promise<void>) {
-    if (disposed || posting || reading || state !== "connect") return;
+    if (disposed || posting || reading || (state !== "connect" && state !== "connect_incomplete")) return;
+    reconnecting = true;
     set("checking");
     try { await authenticate(); }
-    catch { if (!disposed) set("connect"); return; }
-    if (!disposed) await load();
+    catch { if (!disposed) set("connect_incomplete"); reconnecting = false; return; }
+    try { if (!disposed) await load(); }
+    finally { reconnecting = false; }
   }
   return { load, retry, reconnect, dispose() { disposed = true; controller.abort(); } };
 }
@@ -106,7 +125,7 @@ export function SummaryRetry({ mandateId, txHash, onResult, onReconnect }: {
     return () => window.clearInterval(timer);
   }, [state]);
   const click = async () => {
-    if (state === "connect" && callbacks.current.onReconnect) {
+    if ((state === "connect" || state === "connect_incomplete") && callbacks.current.onReconnect) {
       await client.current?.reconnect(callbacks.current.onReconnect);
     } else if (state === "eligible") await client.current?.retry();
   };
@@ -118,9 +137,9 @@ export function SummaryRetryView({ state, canReconnect = false, statusId, helpId
   state: SummaryRetryState; canReconnect?: boolean; statusId: string; helpId: string; onClick?: () => void;
 }) {
   if (state === "hidden") return null;
-  const button = state === "eligible" || state === "running" || (state === "connect" && canReconnect);
+  const button = state === "eligible" || state === "running" || ((state === "connect" || state === "connect_incomplete") && canReconnect);
   return <div className="report-summary-retry" aria-busy={state === "running" || state === "checking"}>
-    <p id={statusId} role="status" aria-live="polite" aria-atomic="true">{state === "succeeded" && <Check size={14} aria-hidden="true" />}{copy[state]}</p>
+    <p id={statusId} role="status" aria-live="polite" aria-atomic="true">{state === "succeeded" && <Check size={14} aria-hidden="true" />}<span>{copy[state]}</span></p>
     {button && <>
       <button type="button" aria-describedby={helpId} aria-disabled={state === "running" || undefined} onClick={state === "running" ? undefined : onClick}>
         {state === "running" ? <><LoaderCircle size={16} className="spin" aria-hidden="true" />Retrying…</> : "Retry written summary"}

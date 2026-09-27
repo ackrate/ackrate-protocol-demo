@@ -165,6 +165,21 @@ test("summary shape and citations are checked against purchased sources", async 
   assert.equal((await createMarketplaceReport(evidence.query, evidence, { llm })).summary?.length, 4);
 });
 
+test("local string bounds still reject otherwise structured output after provider schema relaxation", async (t) => {
+  t.mock.method(console, "warn", () => {});
+  for (const changed of [
+    { title: "Short" }, { title: "x".repeat(121) }, { subtitle: "x".repeat(221) },
+    { opening: "x".repeat(1201) }, { takeaway: "x".repeat(901) },
+    { findings: [{ ...draft.findings[0], body: "x".repeat(1001) }, ...draft.findings.slice(1)] },
+    { summary: [draft.summary[0], draft.summary[1], `${"x".repeat(1200)} [1]`] },
+  ]) {
+    const { llm, calls } = llmSequence([completion({ ...draft, ...changed })]);
+    const result = await createMarketplaceReport(evidence.query, evidence, { llm, singlePass: true });
+    assert.equal(result.editorialPasses, 0);
+    assert.equal(calls.length, 1);
+  }
+});
+
 test("composition records only safe failure categories and never model or error content", async (t) => {
   const warnings: unknown[][] = [];
   t.mock.method(console, "warn", (...args: unknown[]) => { warnings.push(args); });

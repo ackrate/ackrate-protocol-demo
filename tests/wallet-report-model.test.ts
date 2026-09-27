@@ -36,6 +36,12 @@ test("structured format is report-only and preserves completion outcome metadata
   assert.equal(bodies[1].response_format, undefined);
   assert.equal(REPORT_RESPONSE_FORMAT.schema.additionalProperties, false);
   assert.deepEqual(REPORT_RESPONSE_FORMAT.schema.required, ["title", "subtitle", "opening", "findings", "takeaway", "summary"]);
+  const schema = JSON.stringify(REPORT_RESPONSE_FORMAT.schema);
+  assert.doesNotMatch(schema, /"(?:\$schema|minLength|maxLength)":/);
+  const properties = REPORT_RESPONSE_FORMAT.schema.properties as Record<string, Record<string, unknown>>;
+  assert.deepEqual(properties.title, { type: "string", description: "Use 8 to 120 characters." });
+  assert.deepEqual(properties.summary, { type: "array", items: { type: "string", description: "Use 80 to 1200 characters." }, minItems: 3, maxItems: 4 });
+  assert.deepEqual(properties.findings.items, { type: "object", properties: { title: { type: "string", description: "Use 4 to 120 characters." }, body: { type: "string", description: "Use 30 to 1000 characters." } }, required: ["title", "body"], additionalProperties: false });
 });
 
 test("text-only report uses supported reasoning and completion bounds without changing tool requests", async () => {

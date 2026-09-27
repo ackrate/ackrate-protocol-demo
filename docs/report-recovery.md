@@ -3,7 +3,10 @@
 A completed paid Web search can retain its source evidence even when report
 composition fails. `lib/wallet/marketplace-report.ts` requests provider-supported
 strict JSON Schema output, then validates length, citation bounds, and paragraph
-shape locally. Failure keeps the deterministic source-only report. Diagnostics
+shape locally. The provider schema recursively omits `$schema`, `minLength`, and
+`maxLength`; supported descriptions give the model length guidance, and the
+unchanged local Zod schema enforces those bounds. Failure keeps
+the deterministic source-only report. Diagnostics
 contain only a fixed failure category, processing stage, elapsed time, optional
 HTTP status, and bounded schema field paths. They exclude source text, model
 output, provider error messages, credentials, and wallet identifiers.
@@ -52,6 +55,12 @@ The derived brief is read separately from the original purchase. Successful
 composition updates the displayed brief and **Download report**. **Receipt JSON**
 and sharing continue to use the original saved purchase. Sources and payment
 proofs stay fixed. Reload reads the derived brief again without model work.
+Unreadable references, an unavailable report for the signed-in wallet, and temporary
+service errors have distinct status text. Only an explicitly uncertain stored
+attempt uses the unconfirmed-outcome state. POST service errors remain visible
+when a follow-up GET finds no reserved attempt; refreshes never submit another POST.
+Running status reads keep the focusable control mounted without a checking-state
+flash. A cancelled or incomplete wallet sign-in is followed only by a status read.
 
 Backend tests use an actual temporary PostgreSQL-compatible database and prohibit
 network requests and transaction broadcasts. They cover ownership, origin,
