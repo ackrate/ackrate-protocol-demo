@@ -223,7 +223,7 @@ a, button, summary, select { -webkit-tap-highlight-color: transparent; }
 .docs-menu a { display: flex; align-items: center; min-height: 44px; padding: 0 12px; }
 .docs-menu a:hover, .docs-menu a[aria-current="page"] { background: var(--panel); }
 .site-nav-context { display: flex; flex: none; align-items: center; gap: 24px; }
-/* /wallet routes: Verification from Nav, Disconnect portaled in by WalletChatApp. */
+/* /wallet routes: Disconnect portaled in by WalletChatApp. */
 .site-nav-wallet { display: flex; flex: none; align-items: center; gap: 20px; font-size: 14px; }
 .site-nav-wallet-slot { display: flex; }
 .site-nav-wallet-slot:empty { display: none; }

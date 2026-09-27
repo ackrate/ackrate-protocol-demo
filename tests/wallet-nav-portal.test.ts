@@ -69,7 +69,7 @@ test("wallet controls portal into the shared nav once, update, clean up, and rem
 
     await render("/wallet/diagnostics", false);
     assert.equal(buttons().length, 0, "leaving the wallet removes its portaled action");
-    assert.equal(container.querySelector('a[href="/wallet/diagnostics"]')?.getAttribute("aria-current"), "page");
+    assert.equal(container.querySelector('a[href="/wallet/diagnostics"]'), null);
     assert.equal(container.querySelector(`#${WALLET_NAV_SLOT_ID}`)?.childNodes.length, 0);
     await render("/docs", false);
     assert.equal(container.querySelector(`#${WALLET_NAV_SLOT_ID}`), null);

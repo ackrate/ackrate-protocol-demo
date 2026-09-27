@@ -58,7 +58,6 @@ export default function Nav() {
         <div className={walletRoute ? "site-nav-context site-nav-context-wallet" : "site-nav-context"}>
           {walletRoute && (
             <div className="site-nav-wallet">
-              <Link href="/wallet/diagnostics" aria-current={path === "/wallet/diagnostics" ? "page" : undefined}>Verification</Link>
               {/* WalletChatApp portals its Disconnect control here; empty otherwise. */}
               <div id={WALLET_NAV_SLOT_ID} className="site-nav-wallet-slot" />
             </div>
