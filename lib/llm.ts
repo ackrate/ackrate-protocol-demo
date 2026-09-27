@@ -276,7 +276,7 @@ export class OpenAIProvider implements LlmProvider {
                   id: canonical(tc.id),
                   type: "function" as const,
                   function: { name: tc.name, arguments: JSON.stringify(tc.input) },
-                  ...(tc.extraContent ? { extra_content: tc.extraContent } : {}),
+                  ...(this.id === "gemini" && tc.extraContent ? { extra_content: tc.extraContent } : {}),
                 })),
               }
             : {}),
@@ -343,7 +343,9 @@ export class GeminiProvider extends OpenAIProvider {
   override readonly brand = "Gemini";
   constructor(label: string, report = false) {
     const model = (report ? process.env.GEMINI_REPORT_MODEL : undefined) || process.env.GEMINI_MODEL || "gemini-3.8-flash";
-    super(label, new OpenAI({ apiKey: process.env.GEMINI_API_KEY, baseURL: "https://generativelanguage.googleapis.com/v1beta/openai/" }), { main: model, sub: model });
+    const apiKey = process.env.GEMINI_API_KEY?.trim();
+    if (!apiKey) throw new Error("Gemini API key is required");
+    super(label, new OpenAI({ apiKey, baseURL: "https://generativelanguage.googleapis.com/v1beta/openai/" }), { main: model, sub: model });
   }
 }
 

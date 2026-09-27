@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type OpenAI from "openai";
-import { buildReportLlm, OpenAIProvider } from "../lib/llm";
+import { buildReportLlm, GeminiProvider, OpenAIProvider } from "../lib/llm";
 import { REPORT_RESPONSE_FORMAT } from "../lib/wallet/marketplace-report";
 
 test("report model is scoped separately from the chat model and defaults to the requested model", async (t) => {
@@ -73,4 +73,31 @@ test("report composition falls back from unavailable Luna to Gemini without anot
   const result = await buildReportLlm().complete({ system: "fixture", messages: [], maxTokens: 10 }, "main");
   assert.deepEqual(calls, ["openai", "gemini"]);
   assert.equal(result.providerId, "gemini");
+});
+
+test("Gemini refuses a missing key instead of inheriting a Gateway credential", (t) => {
+  const saved = process.env.GEMINI_API_KEY;
+  delete process.env.GEMINI_API_KEY;
+  t.after(() => { if (saved !== undefined) process.env.GEMINI_API_KEY = saved; });
+  assert.throws(() => new GeminiProvider("fixture"), /Gemini API key is required/);
+});
+
+test("Google tool metadata is preserved for Gemini and excluded from Gateway requests", async () => {
+  const bodies: Record<string, unknown>[] = [];
+  const extraContent = { google: { thought_signature: "synthetic-signature" } };
+  const client = { chat: { completions: { create: async (body: Record<string, unknown>) => {
+    bodies.push(body);
+    return { choices: [{ finish_reason: "tool_calls", message: { content: "", tool_calls: [{ id: "tool1", type: "function", function: { name: "lookup", arguments: "{}" }, extra_content: extraContent }] } }] };
+  } } } } as unknown as OpenAI;
+  class GoogleFixture extends OpenAIProvider { override readonly id = "gemini"; }
+  const google = new GoogleFixture("fixture", client);
+  const request = { system: "fixture", messages: [], maxTokens: 20 };
+  const response = await google.complete(request, "main");
+  assert.deepEqual(response.toolCalls[0].extraContent, extraContent);
+  const replay = { ...request, messages: [{ role: "assistant" as const, text: "", toolCalls: response.toolCalls }] };
+  await google.complete(replay, "main");
+  await new OpenAIProvider("fixture", client).complete(replay, "main");
+  const signature = (body: Record<string, unknown>) => JSON.stringify(body.messages).includes("synthetic-signature");
+  assert.equal(signature(bodies[1]), true);
+  assert.equal(signature(bodies[2]), false);
 });
