@@ -18,7 +18,7 @@ export default function QuickStarters() {
   }
   return <><p className="eyebrow">Docs / Quick starters</p><h1>Run the whole flow.</h1>
     <p className="lead">A consumer agent buys a protected resource from a local Express API. The SDK handles the payment; the starter verifies delivery and a failure or recovery case.</p>
-    <p>Stellar Testnet · XLM demo funds · Node.js 20+ · No wallet required.</p>
+    <p>Stellar Testnet · XLM demo funds · Node.js 20+.</p>
     <label className="field-label" htmlFor="starter">Choose a starter</label><select id="starter" value={slug} onChange={(event) => { setSlug(event.target.value); setCopyState(""); }}>{HACKATHON_STARTER_CATALOG.kits.map((item) => <option key={item.slug} value={item.slug}>{item.title}</option>)}</select>
     <h2>{kit.title}</h2><p>{kit.summary}</p><p><strong>Verified outcome:</strong> {kit.negativePath.outcome}</p>
     <h2>1. Set up an empty folder</h2>
