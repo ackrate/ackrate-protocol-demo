@@ -1448,6 +1448,7 @@ export function WalletChatApp() {
         {completedPurchase && config && (
           <PurchaseReport
             result={completedPurchase}
+            onReconnect={authenticate}
             explorerNetwork={config.explorerNetwork}
             registryId={config.mandateRegistryId}
             registrationTx={stored?.registrationTx}
@@ -1917,6 +1918,7 @@ export function WalletChatApp() {
           </div>
           <PurchaseReport
             result={completedPurchase}
+            onReconnect={authenticate}
             explorerNetwork={config.explorerNetwork}
             registryId={config.mandateRegistryId}
             registrationTx={stored?.registrationTx}
