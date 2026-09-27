@@ -1,4 +1,3 @@
-import { createOpenAI } from "@ai-sdk/openai";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { APICallError, convertToModelMessages, stepCountIs, streamText } from "ai";
 import { requireReadyConfig } from "../../../../lib/wallet/app-config";
@@ -8,7 +7,7 @@ import { requireSameOrigin, requireSession } from "../../../../lib/wallet/securi
 import { normalizeAgent402ToolInput, supportedAgent402ToolForSource } from "../../../../lib/wallet/agent402-tools";
 import { verifyMarketplaceQuote } from "../../../../lib/wallet/marketplace-quote";
 import { ConfiguredChatBody, configuredPurchaseTool } from "../../../../lib/wallet/chat-run";
-import { withPreStreamFallback } from "../../../../lib/wallet/chat-model";
+import { createConfiguredGeminiChat, createConfiguredOpenAIChat, withPreStreamFallback } from "../../../../lib/wallet/chat-model";
 
 export const maxDuration = 120;
 
@@ -16,7 +15,7 @@ export async function POST(request: Request) {
   try {
     await requireSameOrigin();
     const config = requireReadyConfig();
-    if (!config.sessionSecret || (!config.openAiKey && !config.anthropicKey)) throw new Error("chat execution is not configured");
+    if (!config.sessionSecret || (!config.openAiKey && !config.anthropicKey && !config.geminiKey)) throw new Error("chat execution is not configured");
     const session = await requireSession(config.sessionSecret, config.public.network);
     if (!session.address) throw new Error("wallet-authenticated session required");
     const sessionAddress = session.address;
@@ -32,7 +31,8 @@ export async function POST(request: Request) {
     // One explicit Run action has one durable purchase key. Neither parallel
     // model calls nor a replayed HTTP request can allocate another charge.
     const models = config.llmProviders.map((id) => id === "openai"
-      ? createOpenAI({ apiKey: config.openAiKey! })(config.openAiModel)
+      ? createConfiguredOpenAIChat(config.openAiKey!, config.openAiModel)
+      : id === "gemini" ? createConfiguredGeminiChat(config.geminiKey!, config.geminiModel)
       : createAnthropic({ apiKey: config.anthropicKey! })(config.anthropicModel));
     const model = withPreStreamFallback(models[0], models[1]);
     const result = streamText({

@@ -30,7 +30,7 @@ export type LlmTool = {
   inputSchema: Record<string, unknown>;
 };
 
-export type LlmToolCall = { id: string; name: string; input: Record<string, unknown> };
+export type LlmToolCall = { id: string; name: string; input: Record<string, unknown>; extraContent?: Record<string, unknown> };
 
 export type LlmMessage =
   | { role: "user"; text: string }
@@ -226,8 +226,8 @@ export class AnthropicProvider implements LlmProvider {
 // ---- OpenAI adapter ----
 
 export class OpenAIProvider implements LlmProvider {
-  readonly id = "openai";
-  readonly brand = "ChatGPT";
+  readonly id: string = "openai";
+  readonly brand: string = "ChatGPT";
   private models: Record<Tier, string>;
 
   constructor(
@@ -276,6 +276,7 @@ export class OpenAIProvider implements LlmProvider {
                   id: canonical(tc.id),
                   type: "function" as const,
                   function: { name: tc.name, arguments: JSON.stringify(tc.input) },
+                  ...(this.id === "gemini" && tc.extraContent ? { extra_content: tc.extraContent } : {}),
                 })),
               }
             : {}),
@@ -326,12 +327,25 @@ export class OpenAIProvider implements LlmProvider {
       } catch {
         input = {};
       }
-      toolCalls.push({ id: tc.id, name: tc.function.name, input });
+      const extraContent = (tc as unknown as { extra_content?: Record<string, unknown> }).extra_content;
+      toolCalls.push({ id: tc.id, name: tc.function.name, input, ...(extraContent ? { extraContent } : {}) });
     }
 
     return { text, toolCalls, stopReason: choice?.finish_reason === "tool_calls" ? "tool_calls" : "end",
       ...(req.responseFormat ? { metadata: { finishReason: choice?.finish_reason,
         refused: Boolean(msg?.refusal), requestId: resp._request_id ?? undefined } } : {}) };
+  }
+}
+
+/** Gemini uses its OpenAI-compatible endpoint for text/report completion. */
+export class GeminiProvider extends OpenAIProvider {
+  override readonly id = "gemini";
+  override readonly brand = "Gemini";
+  constructor(label: string, report = false) {
+    const model = (report ? process.env.GEMINI_REPORT_MODEL : undefined) || process.env.GEMINI_MODEL || "gemini-3.8-flash";
+    const apiKey = process.env.GEMINI_API_KEY?.trim();
+    if (!apiKey) throw new Error("Gemini API key is required");
+    super(label, new OpenAI({ apiKey, baseURL: "https://generativelanguage.googleapis.com/v1beta/openai/" }), { main: model, sub: model });
   }
 }
 
@@ -407,7 +421,9 @@ export function buildFailoverLlm(): FailoverLlm {
   const providers: LlmProvider[] = [];
 
   for (const vendor of order) {
-    if (vendor === "anthropic" && process.env.ANTHROPIC_API_KEY) {
+    if (vendor === "gemini" && process.env.GEMINI_API_KEY) {
+      providers.push(new GeminiProvider(labels[providers.length]));
+    } else if (vendor === "anthropic" && process.env.ANTHROPIC_API_KEY) {
       providers.push(new AnthropicProvider(labels[providers.length]));
     } else if (vendor === "openai" && process.env.OPENAI_API_KEY) {
       providers.push(new OpenAIProvider(labels[providers.length]));
@@ -420,5 +436,11 @@ export function buildFailoverLlm(): FailoverLlm {
 /** Report-only selection. Chat/tool routes retain their existing model policy. */
 export function buildReportLlm(): FailoverLlm {
   const model = process.env.OPENAI_REPORT_MODEL?.trim() || "gpt-6-astra";
+  if (process.env.LLM_PROVIDER_MODE?.trim().toLowerCase() === "openai-gemini-failover") {
+    const providers: LlmProvider[] = [];
+    if (process.env.OPENAI_API_KEY?.trim()) providers.push(new OpenAIProvider("report editor", undefined, { main: model, sub: model }));
+    if (process.env.GEMINI_API_KEY?.trim()) providers.push(new GeminiProvider("backup report editor", true));
+    return new FailoverLlm(providers);
+  }
   return new FailoverLlm([new OpenAIProvider("report editor", undefined, { main: model, sub: model })]);
 }
