@@ -14,14 +14,13 @@ export default function IntegrationsDocs() {
     <p className="lead">Run a paid Express API on Stellar Testnet with the Research Source Scout starter. You need Node.js 20 or later.</p>
 
     <h2>1. Run the demo</h2>
-    <p>Download Research Source Scout from <Link href="/docs/quickstarts">Quick starters</Link>, verify its SHA-256 against the linked manifest, and extract it. In the starter folder, run:</p>
-    <CodeBlock>{`npm ci
-npm run demo`}</CodeBlock>
-    <p>The setup command on the Quick starters page already runs <code>npm ci</code>. The demo funds Testnet accounts, starts the consumer and Express gateway, and serves three paid resources. The contract rejects the fourth payment when the budget is exhausted.</p>
+    <p>Open <Link href="/docs/quickstarts">Quick starters</Link>, select Research Source Scout, and run its setup command in an empty folder. Then run:</p>
+    <CodeBlock>npm run demo</CodeBlock>
+    <p>The setup command verifies the download and runs <code>npm ci</code>. The demo funds Testnet accounts and starts the Express gateway. The consumer buys three resources. The contract rejects the fourth payment when the budget is exhausted.</p>
 
     <h2>2. Add your resource</h2>
     <p>Edit <code>scenario/scenario.mjs</code> to set the price, response, and business rules. <code>src/fulfillment.mjs</code> configures Express; <code>src/consumer.mjs</code> runs the consumer.</p>
-    <p>The API returns a 402 challenge. The consumer pays through <code>agent.fetch()</code>, then retries with a payment proof. <code>@ackrate/express-middleware</code> verifies the ACKRATE proof on Stellar before calling your fulfillment callback and returning its JSON.</p>
+    <p>The API returns a 402 challenge. The consumer pays through the SDK, then retries with an ACKRATE bound-v2 payment proof. <code>@ackrate/express-middleware</code> verifies the ACKRATE proof on Stellar before calling your fulfillment callback and returning its JSON.</p>
 
     <h2>3. Run the gateway separately</h2>
     <p>Copy <code>.env.example</code> to <code>.env</code> and set <code>ACKRATE_MERCHANT</code> to a funded Testnet public address. Then run:</p>
