@@ -11,7 +11,6 @@ export const metadata = createPageMetadata({
 export default function IntegrationsDocs() {
   return <>
     <h1>x402 Gateway</h1>
-    <p className="lead">Run a paid Express API on Stellar Testnet with the Research Source Scout starter. You need Node.js 20 or later.</p>
 
     <h2>1. Run the demo</h2>
     <p>Open <Link href="/docs/quickstarts">Quick starters</Link>, select Research Source Scout, and run its setup command in an empty folder. Then run:</p>
