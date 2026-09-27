@@ -35,7 +35,7 @@ New reports include a cited, three-paragraph plain-English closing summary.
 
 ## Routes
 
-Deployment uses the GitHub Actions Vercel workflow; see `docs/deployment.md`
+Deployment uses Vercel native Git builds; see `docs/deployment.md`
 for branch routing, project ownership, secrets and the persistent CLI runner limit.
 
 - `/` — REAPP landing page, focused on Stellar and linking the consumer app.
