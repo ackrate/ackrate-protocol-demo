@@ -1,15 +1,34 @@
 import Link from "next/link";
+import CodeBlock from "@/components/CodeBlock";
 import { createPageMetadata } from "@/lib/site-metadata";
-export const metadata = createPageMetadata({ title: "x402 integrations · alpha", description: "Supported Stellar payment flows, hosted gateway status, and integration requests.", path: "/docs/integrations" });
+
+export const metadata = createPageMetadata({
+  title: "x402 Gateway",
+  description: "Run a Node.js Express gateway that verifies ACKRATE payments before returning JSON.",
+  path: "/docs/integrations",
+});
+
 export default function IntegrationsDocs() {
-  return <><p className="eyebrow">Docs / Integrations · alpha</p><h1>Connect a paid service.</h1>
-    <p className="lead">ACKRATE bounds an agent’s spending on Stellar. The integration layer connects that authority to a service’s payment and delivery flow.</p>
-    <h2>Supported paths</h2>
-    <dl className="module-list"><dt>ACKRATE Express middleware</dt><dd><code>@ackrate/express-middleware</code> verifies ACKRATE payment proofs before returning a protected resource. Run the complete merchant and consumer pair with the <Link href="/docs/quickstarts">Testnet SDK starters</Link>.</dd>
-    <dt>Agent402 · Stellar x402 v2</dt><dd>The wallet adapter supports the <code>exact</code> scheme for Circle USDC on Stellar Mainnet. <a href="https://agent402.tools/stellar">Agent402</a> exposes search, extraction, rendering, PDF and research tools. The wallet checks each service’s live schema, price and settlement requirements before offering it; a marketplace listing alone does not establish compatibility.</dd></dl>
-    <p>ACKRATE contract settlement and the marketplace’s x402 payment are separate steps. A MandateRegistry receipt is not a generic x402 <code>exact</code> payment. The adapter binds both settlements and preserves recovery evidence.</p>
-    <h2>Hosted gateway status</h2><p>The Express companion is moving from its legacy deployment to Vercel. Hosted sessions are not available yet: durable storage and recovery must be configured first. Use the local Testnet SDK starter in the meantime.</p>
-    <p>Vercel staging serves the app, docs and wallet API functions. The companion’s process-local sessions are being replaced before hosted access is enabled. The <Link href="/express">Express demo</Link> retains historical August Mainnet receipts, not evidence of current gateway availability. Wallet sign-in and payments also require deployment readiness.</p>
-    <h2>More integrations are coming</h2><p>This is alpha software. Additional gateways and consumer-agent integrations are planned. <a href="mailto:consumer-contact@ackrate.com?subject=REAPP%20integration">Contact us to integrate your gateway or consumer agent</a> with your service URL, network, payment scheme and intended user flow.</p>
+  return <>
+    <h1>x402 Gateway</h1>
+    <p className="lead">Run a paid Express API on Stellar Testnet with the Research Source Scout starter. You need Node.js 20 or later.</p>
+
+    <h2>1. Run the demo</h2>
+    <p>Download Research Source Scout from <Link href="/docs/quickstarts">Quick starters</Link>, verify its SHA-256 against the linked manifest, and extract it. In the starter folder, run:</p>
+    <CodeBlock>{`npm ci
+npm run demo`}</CodeBlock>
+    <p>The setup command on the Quick starters page already runs <code>npm ci</code>. The demo funds Testnet accounts, starts the consumer and Express gateway, and serves three paid resources. The contract rejects the fourth payment when the budget is exhausted.</p>
+
+    <h2>2. Add your resource</h2>
+    <p>Edit <code>scenario/scenario.mjs</code> to set the price, response, and business rules. <code>src/fulfillment.mjs</code> configures Express; <code>src/consumer.mjs</code> runs the consumer.</p>
+    <p>The API returns a 402 challenge. The consumer pays through <code>agent.fetch()</code>, then retries with a payment proof. <code>@ackrate/express-middleware</code> verifies the ACKRATE proof on Stellar before calling your fulfillment callback and returning its JSON.</p>
+
+    <h2>3. Run the gateway separately</h2>
+    <p>Copy <code>.env.example</code> to <code>.env</code> and set <code>ACKRATE_MERCHANT</code> to a funded Testnet public address. Then run:</p>
+    <CodeBlock>npm run fulfillment</CodeBlock>
+    <p>The gateway listens at <code>http://127.0.0.1:4021</code> and serves <code>GET /source/:sourceId</code>. Keep <code>.ackrate/</code>, which stores keys and payment recovery evidence.</p>
+
+    <h2>Demos and reference</h2>
+    <p><Link href="/express">Express demo</Link> · <Link href="/cli">CLI demo</Link> · <a href="https://www.npmjs.com/package/@ackrate/express-middleware">Middleware reference</a></p>
   </>;
 }
