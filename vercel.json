@@ -3,5 +3,7 @@
   "framework": "nextjs",
   "buildCommand": "npm run build",
   "installCommand": "npm ci",
-  "git": { "deploymentEnabled": false }
+  "git": {
+    "deploymentEnabled": true
+  }
 }

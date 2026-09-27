@@ -35,7 +35,7 @@ New reports include a cited, three-paragraph plain-English closing summary.
 
 ## Routes
 
-Deployment uses the GitHub Actions Vercel workflow; see `docs/deployment.md`
+Deployment uses Vercel native Git builds; see `docs/deployment.md`
 for branch routing, project ownership, secrets and the persistent CLI runner limit.
 
 - `/` — REAPP landing page, focused on Stellar and linking the consumer app.
@@ -101,3 +101,7 @@ See `docs/presentation.md` for the current naming and visual conventions.
 Follow [docs/brand-colors.md](docs/brand-colors.md) and the mirrored `app/brand-colors.css` tokens: green for Ackrate infrastructure/enforcement/evidence, red for consumer actions and human intervention. Use bright and readable shades deliberately; preserve state labels, contrast, transaction behavior and product names. The canonical cross-repository policy and task register live in ackrate-private (wiki/ackrate/visual-language.md and wiki/tasks/index.md).
 
 Infrastructure and ordinary navigation stay predominantly green/neutral. Red marks a specific intent-setting control, requested user feedback, or denial; do not color a whole chapter red because it describes consumer actions. Specialist ownership is recorded in the private wiki: Fable for UX, Opus 5.5 for frontend design, Codex for backlog/integration/backend. Record blocked reviews truthfully.
+
+## Native Vercel deployment (September 27, 2026)
+
+This section supersedes earlier separate-project and Actions deployment instructions. Vercel builds the connected Git repository. GitHub Actions runs validation only. See docs/vercel-native.md for production branch and environment routing. Preserve independent review gates and never promote preview code implicitly.
