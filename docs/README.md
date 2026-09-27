@@ -13,5 +13,6 @@ Use the [SDK](https://reapp.live/docs/sdk), [CLI](https://reapp.live/docs/cli), 
 | [Human wallet test](wallet-human-test.md) | Wallet signing and transaction acceptance procedure. |
 | [Settlement compatibility](marketplace-settlement-compatibility.md) | Contract and seller settlement boundaries. |
 | [Provider configuration](llm-failover-brief.md) | Model-provider routing and failure behavior. |
+| [Report recovery](report-recovery.md) | Bounded summary retry from saved sources, immutable receipts, and validation. |
 
 The dated wallet reports and JSON receipts are historical evidence. Preserve their dates and identifiers; rerun acceptance for new deployments. `mainnet-roadmap.md` is a planning reference, not proof that every item is complete.

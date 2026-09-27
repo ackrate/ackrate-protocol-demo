@@ -99,6 +99,16 @@ test("missing or invalid model output returns explicitly labeled purchased evide
   }
 });
 
+test("a completed empty search offers no summary retry and does not call a model", async () => {
+  const empty = { ...evidence, count: 0, results: [] };
+  const { llm, calls } = llmSequence([]);
+  const brief = await createMarketplaceReport(evidence.query, empty, { llm });
+  assert.equal(calls.length, 0);
+  const markup = renderToStaticMarkup(createElement(PurchaseReport, { result: purchase({ brief, marketplace: empty }), explorerNetwork: "public", registryId: "fixture" }));
+  assert.match(markup, /No search results were returned/);
+  assert.doesNotMatch(markup, /report-summary-retry|Checking summary status|Retry written summary/);
+});
+
 test("research result shows linked citations and downloads the report and full two-leg receipt", async () => {
   const { llm } = llmSequence([completion(draft), new Error("no second editor")]);
   const brief = await createMarketplaceReport(evidence.query, evidence, { llm });
@@ -153,6 +163,31 @@ test("summary shape and citations are checked against purchased sources", async 
   }
   const { llm } = llmSequence([completion({ ...draft, summary: [...draft.summary, draft.summary[0]] }), new Error("no second editor")]);
   assert.equal((await createMarketplaceReport(evidence.query, evidence, { llm })).summary?.length, 4);
+});
+
+test("composition records only safe failure categories and never model or error content", async (t) => {
+  const warnings: unknown[][] = [];
+  t.mock.method(console, "warn", (...args: unknown[]) => { warnings.push(args); });
+  for (const response of [
+    completion("PRIVATE_MODEL_TEXT"),
+    completion({ ...draft, PRIVATE_FIELD_SECRET: "PRIVATE_MODEL_TEXT" }),
+    { ...completion(draft), response: { ...completion(draft).response, metadata: { refused: true, finishReason: "stop" } } },
+    { ...completion(draft), response: { ...completion(draft).response, metadata: { refused: false, finishReason: "length" } } },
+    new Error("PRIVATE_API_KEY and PRIVATE_PROMPT"),
+  ]) {
+    const { llm, calls } = llmSequence([response]);
+    const diagnostics: unknown[] = [];
+    const brief = await createMarketplaceReport(evidence.query, evidence, { llm, onDiagnostic: (value) => diagnostics.push(value), singlePass: true });
+    assert.equal(brief.editorialPasses, 0);
+    assert.equal(calls.length, 1);
+    assert.equal(diagnostics.length, 1);
+  }
+  const serialized = JSON.stringify(warnings);
+  for (const secret of ["PRIVATE_MODEL_TEXT", "PRIVATE_FIELD_SECRET", "PRIVATE_API_KEY", "PRIVATE_PROMPT", evidence.query]) assert.equal(serialized.includes(secret), false);
+  for (const category of ["invalid_json", "invalid_schema", "refusal", "truncated", "provider_network"]) assert.ok(serialized.includes(category));
+  const { llm, calls } = llmSequence([completion(draft)]);
+  assert.equal((await createMarketplaceReport(evidence.query, evidence, { llm, singlePass: true })).editorialPasses, 1);
+  assert.equal(calls.length, 1, "report retry does not purchase a second editor call");
 });
 
 test("tool output downloads retain complete text or structured JSON without inventing a PDF", () => {

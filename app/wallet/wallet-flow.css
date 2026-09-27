@@ -2229,6 +2229,13 @@
 .wallet-preview.wallet-flow .report-section .tool-output-toolbar button:hover { background: light-dark(#171717, #fff); }
 .wallet-preview.wallet-flow .report-download-status { display: block; margin: 0; padding: 12px 20px; color: light-dark(#202020, #dfdfdf); background: light-dark(#e0e0e0, #1f1f1f); font-size: 12px; line-height: 1.5; }
 .wallet-preview .report-share { display: grid; gap: 12px; min-width: 0; }
+.wallet-preview .report-summary-retry { display: grid; gap: 10px; min-width: 0; }
+.wallet-preview .report-summary-retry > p { margin: 0; color: light-dark(#393939, #c6c6c6); font-size: 12px; line-height: 1.6; }
+.wallet-preview .report-summary-retry p svg { color: var(--foundation-text); margin-right: 6px; vertical-align: middle; }
+.wallet-preview .report-summary-retry button { display: inline-flex; align-items: center; gap: 8px; justify-self: start; min-height: 44px; padding: 11px 17px; border: 1px solid currentColor; border-radius: 8px; background: transparent; color: var(--action-text); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+.wallet-preview .report-summary-retry button:hover { background: var(--action-soft); }
+.wallet-preview .report-summary-retry button[aria-disabled="true"] { cursor: progress; opacity: .75; }
+.wallet-preview .report-summary-retry button:focus-visible { outline: 2px solid var(--action-text); outline-offset: 4px; }
 .wallet-preview .report-share button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; justify-self: start; min-height: 44px; padding: 12px 18px; border: 0; border-radius: 8px; background: light-dark(#171717, #f5f7fa); color: light-dark(#eeece7, #111318); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
 .wallet-preview .report-share button:disabled { opacity: .65; cursor: wait; }
 .wallet-preview .report-share button:focus-visible { outline: 2px solid light-dark(#3f3f3f, #c0c0c0); outline-offset: 4px; }

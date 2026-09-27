@@ -48,12 +48,15 @@ export type LlmRequest = {
   signal?: AbortSignal;
   /** Scoped reasoning budget for text-only report composition. */
   reasoningEffort?: "low" | "medium" | "high";
+  /** Report-only structured text; tool/chat callers leave this unset. */
+  responseFormat?: { name: string; schema: Record<string, unknown> };
 };
 
 export type LlmResponse = {
   text: string;
   toolCalls: LlmToolCall[];
   stopReason: "tool_calls" | "end";
+  metadata?: { finishReason?: string; refused: boolean; requestId?: string };
 };
 
 /** Which model class to use. Each provider maps these to its own model ids. */
@@ -293,6 +296,8 @@ export class OpenAIProvider implements LlmProvider {
       model: this.models[tier],
       max_completion_tokens: req.maxTokens,
       ...(req.reasoningEffort ? { reasoning_effort: req.reasoningEffort } : {}),
+      ...(req.responseFormat ? { response_format: { type: "json_schema" as const,
+        json_schema: { ...req.responseFormat, strict: true } } } : {}),
       ...(req.tools
         ? {
             tools: req.tools.map((t) => ({
@@ -324,7 +329,9 @@ export class OpenAIProvider implements LlmProvider {
       toolCalls.push({ id: tc.id, name: tc.function.name, input });
     }
 
-    return { text, toolCalls, stopReason: choice?.finish_reason === "tool_calls" ? "tool_calls" : "end" };
+    return { text, toolCalls, stopReason: choice?.finish_reason === "tool_calls" ? "tool_calls" : "end",
+      ...(req.responseFormat ? { metadata: { finishReason: choice?.finish_reason,
+        refused: Boolean(msg?.refusal), requestId: resp._request_id ?? undefined } } : {}) };
   }
 }
 

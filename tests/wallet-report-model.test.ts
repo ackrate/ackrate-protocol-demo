@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import type OpenAI from "openai";
 import { buildReportLlm, OpenAIProvider } from "../lib/llm";
+import { REPORT_RESPONSE_FORMAT } from "../lib/wallet/marketplace-report";
 
 test("report model is scoped separately from the chat model and defaults to the requested model", async (t) => {
   const saved = { key: process.env.OPENAI_API_KEY, chat: process.env.OPENAI_MODEL, report: process.env.OPENAI_REPORT_MODEL };
@@ -18,6 +19,23 @@ test("report model is scoped separately from the chat model and defaults to the 
   assert.equal(result.providerId, "openai");
   assert.match(result.engine, /GPT-6-astra/);
   assert.equal(process.env.OPENAI_MODEL, "existing-chat-model");
+});
+
+test("structured format is report-only and preserves completion outcome metadata", async () => {
+  const bodies: Record<string, unknown>[] = [];
+  const client = { chat: { completions: { create: async (body: Record<string, unknown>) => {
+    bodies.push(body);
+    return { _request_id: "req_fixture", choices: [{ finish_reason: "length", message: { content: "partial", refusal: null } }] };
+  } } } } as unknown as OpenAI;
+  const provider = new OpenAIProvider("report", client);
+  const request = { system: "Public fixture", messages: [], maxTokens: 6000 };
+  const structured = await provider.complete({ ...request, responseFormat: REPORT_RESPONSE_FORMAT }, "main");
+  assert.deepEqual(bodies[0].response_format, { type: "json_schema", json_schema: { ...REPORT_RESPONSE_FORMAT, strict: true } });
+  assert.deepEqual(structured.metadata, { finishReason: "length", refused: false, requestId: "req_fixture" });
+  await provider.complete(request, "main");
+  assert.equal(bodies[1].response_format, undefined);
+  assert.equal(REPORT_RESPONSE_FORMAT.schema.additionalProperties, false);
+  assert.deepEqual(REPORT_RESPONSE_FORMAT.schema.required, ["title", "subtitle", "opening", "findings", "takeaway", "summary"]);
 });
 
 test("text-only report uses supported reasoning and completion bounds without changing tool requests", async () => {
