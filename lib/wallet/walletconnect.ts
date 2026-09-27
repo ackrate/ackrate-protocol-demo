@@ -4,6 +4,7 @@ import type { UniversalProvider } from "@walletconnect/universal-provider";
 import type { AppKit } from "@reown/appkit/core";
 import { connectionRequest, recordConnectionEvent, WalletConnectionError } from "./connection-diagnostics";
 import { MOBILE_METHODS, mobileSessionAddress, stellarChain, validateMobileTransaction } from "./walletconnect-session";
+import { prepareMobileSigningProvider } from "./walletconnect-provider";
 
 const TRANSPORT_KEY = "reapp:wallet-transport";
 // Public project identifier. Reown's dashboard must allowlist the deployment origins.
@@ -135,7 +136,9 @@ async function assertSession(address: string, network: string): Promise<string> 
   if (await mobileSessionState(address, network) !== "matches") {
     throw new WalletConnectionError("session", "mismatch", "The mobile wallet account or network changed. Connect and sign in again.");
   }
-  return stellarChain(network);
+  const chain = stellarChain(network);
+  prepareMobileSigningProvider(provider!, chain, address);
+  return chain;
 }
 
 export async function mobileSignMessage(message: string, address: string, network: string): Promise<string> {
