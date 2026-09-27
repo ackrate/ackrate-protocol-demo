@@ -6,6 +6,7 @@ import ts from "typescript";
 import { Account, Keypair, Networks, Operation, TransactionBuilder } from "@stellar/stellar-sdk";
 import * as sessions from "../lib/wallet/walletconnect-session";
 import * as diagnostics from "../lib/wallet/connection-diagnostics";
+import * as routing from "../lib/wallet/walletconnect-provider";
 
 const user = Keypair.random();
 const network = Networks.PUBLIC;
@@ -43,24 +44,27 @@ test("mobile transactions cannot change payload or substitute a signer", () => {
 const source = ts.transpileModule(readFileSync(new URL("../lib/wallet/walletconnect.ts", import.meta.url), "utf8"), {
   compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS },
 }).outputText;
-function harness({ configured = true, initial = undefined as ReturnType<typeof session> | undefined, connect = undefined as (() => Promise<ReturnType<typeof session>>) | undefined } = {}) {
+function harness({ configured = true, missingRouting = false, initial = undefined as ReturnType<typeof session> | undefined, connect = undefined as (() => Promise<ReturnType<typeof session>>) | undefined } = {}) {
   const calls: { method: string; params?: unknown; chain?: string }[] = [];
   const events: Record<string, () => void> = {};
   const storage = new Map<string, string>();
   let stateListener: ((state: { open: boolean }) => void) | undefined;
   const provider = { session: initial,
+    rpcProviders: { stellar: { namespace: { methods: missingRouting ? undefined as string[] | undefined : [...sessions.MOBILE_METHODS], accounts: [`${chain}:${user.publicKey()}`], chains: [chain] },
+      updateNamespace: (approved: { methods: string[] }) => { calls.push({ method: "hydrate" }); provider.rpcProviders.stellar.namespace.methods = [...approved.methods]; } } },
     on: (name: string, listener: () => void) => { events[name] = listener; },
     connect: async (params: unknown) => { calls.push({ method: "connect", params }); provider.session = connect ? await connect() : session(); return provider.session; },
     disconnect: async () => { calls.push({ method: "disconnect" }); provider.session = undefined; },
     cleanupPendingPairings: async () => { calls.push({ method: "cleanup-pairings" }); },
     request: async ({ method, params }: { method: string; params: { message: string; xdr: string } }, requestedChain: string) => {
+      assert.ok(provider.rpcProviders.stellar.namespace.methods?.includes(method), "signing routing must be hydrated before request");
       calls.push({ method, params, chain: requestedChain });
       if (method === "stellar_signMessage") return { signature: user.signMessage(params.message).toString("base64") };
       const tx = TransactionBuilder.fromXDR(params.xdr, network); tx.sign(user); return { signedXDR: tx.toXDR() };
     },
   };
   const modules: Record<string, unknown> = {
-    "./connection-diagnostics": diagnostics, "./walletconnect-session": sessions,
+    "./connection-diagnostics": diagnostics, "./walletconnect-session": sessions, "./walletconnect-provider": routing,
     "@walletconnect/universal-provider": { UniversalProvider: { init: async () => provider } },
     "@reown/appkit/core": { createAppKit: (options: { customWallets: { name: string; mobile_link: string }[] }) => {
       assert.equal(options.customWallets[0]?.name, "Freighter");
@@ -184,4 +188,15 @@ test("mobile approval preserves actionable network mismatch instead of suggestin
 test("WalletConnect rejection codes retain a rejected diagnostic without provider payloads", async () => {
   await assert.rejects(diagnostics.connectionRequest("access", async () => { throw { code: 5000, message: "private provider payload" }; }, 100),
     (error: unknown) => error instanceof diagnostics.WalletConnectionError && error.outcome === "rejected" && !error.message.includes("private"));
+});
+
+
+test("restored adapter hydrates missing routing before its request and validates again afterward", async () => {
+  const h = harness({ initial: session(), missingRouting: true });
+  assert.equal(await h.api.connectMobileWallet(network), user.publicKey());
+  const proof = await h.api.mobileSignMessage("Restored offline sign-in", user.publicKey(), network);
+  assert.equal(user.verifyMessage("Restored offline sign-in", Buffer.from(proof, "base64")), true);
+  assert.deepEqual(h.calls.map((call) => call.method), ["hydrate", "stellar_signMessage"]);
+  await h.api.mobileSignTransaction(transaction().toXDR(), user.publicKey(), network);
+  assert.deepEqual(h.calls.map((call) => call.method), ["hydrate", "stellar_signMessage", "stellar_signXDR"]);
 });
