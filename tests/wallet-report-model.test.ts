@@ -58,3 +58,19 @@ test("text-only report uses supported reasoning and completion bounds without ch
   assert.equal(submitted?.max_completion_tokens, 6_000);
   for (const key of ["temperature", "top_p", "logprobs", "tools"]) assert.equal(submitted?.[key], undefined);
 });
+
+test("report composition falls back from unavailable Luna to Gemini without another purchase", async (t) => {
+  const updates = { OPENAI_API_KEY: "fixture-gateway", GEMINI_API_KEY: "fixture-google", LLM_PROVIDER_MODE: "openai-gemini-failover", OPENAI_REPORT_MODEL: "openai/gpt-6-luna", GEMINI_MODEL: "gemini-3.8-flash" };
+  const saved = Object.fromEntries(Object.keys(updates).map((k) => [k, process.env[k]]));
+  Object.assign(process.env, updates);
+  t.after(() => { for (const [k,v] of Object.entries(saved)) { if (v === undefined) delete process.env[k]; else process.env[k] = v; } });
+  const calls: string[] = [];
+  t.mock.method(OpenAIProvider.prototype, "complete", async function (this: OpenAIProvider) {
+    calls.push(this.id);
+    if (this.id === "openai") throw Object.assign(new Error("synthetic unavailable"), { status: 403 });
+    return { text: "fixture report", toolCalls: [], stopReason: "end" as const };
+  });
+  const result = await buildReportLlm().complete({ system: "fixture", messages: [], maxTokens: 10 }, "main");
+  assert.deepEqual(calls, ["openai", "gemini"]);
+  assert.equal(result.providerId, "gemini");
+});

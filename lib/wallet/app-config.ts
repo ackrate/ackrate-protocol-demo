@@ -42,11 +42,13 @@ export interface AppConfig {
   appOrigin: string | null;
   challengeSecret: string | null;
   sessionSecret: string | null;
+  geminiKey: string | null;
+  geminiModel: string;
   openAiKey: string | null;
   openAiModel: string;
   anthropicKey: string | null;
   anthropicModel: string;
-  llmProviders: ("openai" | "anthropic")[];
+  llmProviders: ("openai" | "anthropic" | "gemini")[];
   databaseUrl: string | null;
 }
 
@@ -196,7 +198,7 @@ export function loadAppConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   if (!challengeSecret || Buffer.byteLength(challengeSecret, "utf8") < 32) {
     blockers.push("fulfillment challenge secret must contain at least 32 bytes");
   }
-  let llmProviders: ("openai" | "anthropic")[] = [];
+  let llmProviders: ("openai" | "anthropic" | "gemini")[] = [];
   try {
     llmProviders = configuredLlmProviders(env);
   } catch (error) {
@@ -204,7 +206,8 @@ export function loadAppConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   }
   const openAiKey = llmProviders.includes("openai") ? present(env.OPENAI_API_KEY) : null;
   const anthropicKey = llmProviders.includes("anthropic") ? present(env.ANTHROPIC_API_KEY) : null;
-  if (!openAiKey && !anthropicKey) blockers.push("a chat model API key is missing");
+  const geminiKey = llmProviders.includes("gemini") ? present(env.GEMINI_API_KEY) : null;
+  if (!openAiKey && !anthropicKey && !geminiKey) blockers.push("a chat model API key is missing");
   const databaseUrl = present(env.DATABASE_URL);
   if (networkName === "mainnet" && !databaseUrl) blockers.push("durable DATABASE_URL is required on mainnet");
 
@@ -274,6 +277,8 @@ export function loadAppConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     appOrigin,
     challengeSecret,
     sessionSecret,
+    geminiKey,
+    geminiModel: present(env.GEMINI_MODEL) ?? "gemini-3.8-flash",
     openAiKey,
     openAiModel: present(env.OPENAI_MODEL) ?? "gpt-5-mini",
     anthropicKey,

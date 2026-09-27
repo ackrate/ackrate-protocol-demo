@@ -15,3 +15,9 @@ test("failover must be explicitly enabled and respects enabled key ordering", ()
   assert.deepEqual(configuredLlmProviders({ NODE_ENV: "test", ANTHROPIC_API_KEY: "backup", LLM_PROVIDER_MODE: "failover" }), ["anthropic"]);
   assert.throws(() => configuredLlmProviders({ ...keys, LLM_PROVIDER_MODE: "typo" }), /LLM_PROVIDER_MODE/);
 });
+
+test("Luna/Gemini policy enables only the requested providers in order", () => {
+  assert.deepEqual(configuredLlmProviders({ ...keys, GEMINI_API_KEY: "fixture", LLM_PROVIDER_MODE: "openai-gemini-failover" }), ["openai", "gemini"]);
+  assert.deepEqual(configuredLlmProviders({ ...keys, OPENAI_API_KEY: "", GEMINI_API_KEY: "fixture", LLM_PROVIDER_MODE: "openai-gemini-failover" }), ["gemini"]);
+  assert.deepEqual(configuredLlmProviders({ ...keys, GEMINI_API_KEY: "fixture" }), ["openai"]);
+});
