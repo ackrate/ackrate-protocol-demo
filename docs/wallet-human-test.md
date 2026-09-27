@@ -54,3 +54,25 @@ If a payment record exists, recover or inspect it before starting another Run.
 
 Retain the deployed commit and both transaction links with the human result.
 This page does not claim all release requirements are complete.
+
+
+## Mobile connection recovery
+
+Test a fresh Freighter Mobile connection and a restored connection separately.
+After approving the connection, sign the offline ownership message. Then reload
+before another sign-in attempt and verify that the existing approved account,
+network and methods remain valid and the native signing request still appears.
+Neither sign-in step should submit an on-chain transaction or charge a fee.
+
+A page reload can restore WalletConnect's approved session before its separate
+provider routing cache has been written. The adapter rebuilds missing signing
+method routing only from that approved session through the SDK's public
+`updateNamespace` API. Conflicting accounts, chains or methods fail closed;
+transaction and signature verification still run before results are accepted.
+If a wallet session update removes a previously approved account or method,
+reconnect so stale additive provider routing cannot retain that permission.
+
+A development simulator wallet uses its own application URL scheme and may
+need manual pairing. Record that separately from stock Freighter on a real
+phone; a successful simulator connection does not certify native-device payment
+or platform-switching behavior.
