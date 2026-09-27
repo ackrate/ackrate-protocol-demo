@@ -75,6 +75,12 @@ See `docs/presentation.md` for the current naming and visual conventions.
 
 ## Conventions
 
+- The owner-supplied header is **REAPP powered by Ackrate SDK**. Keep REAPP as
+  the product name and the attribution secondary. This exact attribution is
+  intentional and takes precedence over the generic ban on promotional
+  "powered" wording below. Wallet disconnect and Verification belong in the
+  main navigation. Avoid duplicate network mastheads and decorative slogans;
+  retain network, amount, fee and recipient information at spending decisions.
 - **No "Claude"/Anthropic branding in user-facing surfaces.** UI copy, README prose,
   comments, and log/banner strings refer to the model generically — *agent*, *AI*, or
   *LLM*. The only allowed references are functional and required to run: the

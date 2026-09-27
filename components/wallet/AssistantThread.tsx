@@ -920,14 +920,14 @@ export function PurchaseReport({
           {downloadStatus}
           <ReportEditorial brief={shown ?? brief} titleId="research-brief-title" summaryHeadingId={retried ? summaryHeadingId : undefined}
             summarySlot={explorerNetwork === "public" && result.source.id === "agent402-research" && brief.sources.length > 0 && brief.editorialPasses === 0 && !brief.summary
-              ? <SummaryRetry key={`${result.payment.mandateId}:${result.payment.txHash}`} mandateId={result.payment.mandateId} txHash={result.payment.txHash} onReconnect={onReconnect}
+              ? <SummaryRetry key={`summary:${result.payment.mandateId}:${result.payment.txHash}`} mandateId={result.payment.mandateId} txHash={result.payment.txHash} onReconnect={onReconnect}
                 onResult={(next, focus) => {
                   if (next.sources.length !== brief.sources.length || next.sources.some((source, index) => source.url !== brief.sources[index].url || source.title !== brief.sources[index].title)) throw new Error("Report sources changed");
                   focusSummary.current = focus;
                   setRetried({ txHash: result.payment.txHash, brief: next });
                 }} /> : undefined}
             paymentLabel={<><span>PAID IN {result.payment.asset}</span><span>CONTRACT PAYMENT VERIFIED</span></>}>
-            <ReportShareButton key={`${result.payment.mandateId}:${result.payment.txHash}`} mandateId={result.payment.mandateId} txHash={result.payment.txHash} />
+            <ReportShareButton key={`share:${result.payment.mandateId}:${result.payment.txHash}`} mandateId={result.payment.mandateId} txHash={result.payment.txHash} />
           </ReportEditorial>
         </article>
 

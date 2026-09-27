@@ -273,16 +273,16 @@ export function WalletChatApp() {
   /* A verified session outlives Freighter's own connected-apps list. If the
      site was removed there, drop the session so the journey restarts at the
      threshold instead of claiming a wallet that is no longer attached. A
-     different account merely selected in Freighter is not a disconnect: the
-     verified wallet still signs, so only say so. Saved mandates stay in this
-     browser either way. */
+     different account or network selected in Freighter is reported without
+     removing saved mandates. Signing still verifies the configured account
+     and network before returning a result. */
   useEffect(() => {
-    if (!session.authenticated || !session.address) return;
+    if (!config || !session.authenticated || !session.address) return;
     let active = true;
-    void freighterSessionState(session.address).then(async (state) => {
+    void freighterSessionState(session.address, config.networkPassphrase).then(async (state) => {
       if (!active || state === "matches" || state === "unknown") return;
       if (state === "different") {
-        setNotice(`Freighter has a different account selected. Switch back to ${short(session.address, 4)} before approving anything.`);
+        setNotice(`Freighter has a different account or network selected. Select ${short(session.address, 4)} on ${config.networkLabel} before approving anything.`);
         return;
       }
       try {
@@ -303,7 +303,7 @@ export function WalletChatApp() {
       setNotice("Freighter is no longer connected to this site. Connect a wallet to start again.");
     });
     return () => { active = false; };
-  }, [session.address, session.authenticated]);
+  }, [session.address, session.authenticated, config?.networkPassphrase, config?.networkLabel]);
 
   /* Any wallet call that finds the verified session gone sends the journey
      back to the threshold. The saved limit stays in this browser and resumes

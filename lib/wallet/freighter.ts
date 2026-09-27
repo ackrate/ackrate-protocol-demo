@@ -11,9 +11,10 @@ import {
   signMessage,
 } from "@stellar/freighter-api";
 import { Buffer } from "buffer";
-import { Keypair, Networks, StrKey } from "@stellar/stellar-sdk";
+import { Keypair, StrKey } from "@stellar/stellar-sdk";
 import type { SignTransaction } from "@stellar/stellar-sdk/contract";
 import { connectionRequest, setConnectionTransport, isMobileBrowser, recordConnectionEvent, WalletConnectionError } from "./connection-diagnostics";
+import { validateSignedTransaction } from "./transaction-proof";
 
 import { connectMobileWallet, disconnectMobileWallet, mobileSessionState, mobileSignMessage, mobileSignTransaction, selectMobileWallet, usesMobileWallet } from "./walletconnect";
 
@@ -106,13 +107,19 @@ export async function signFreighterTransaction(
   networkPassphrase: string,
 ): Promise<string> {
   if (usesMobileWallet()) return mobileSignTransaction(xdr, address, networkPassphrase);
+  // Preserve the click's activation: open the wallet before asynchronous reads.
+  // Every returned signature is checked before callers can retain or submit it.
   const signed = await signTransaction(xdr, { address, networkPassphrase });
   if (signed.error) throw new Error(message(signed.error, "Freighter signing was rejected"));
   if (signed.signerAddress && signed.signerAddress !== address) {
     throw new Error("Freighter returned a different signer account");
   }
-  if (!signed.signedTxXdr) throw new Error("Freighter did not return a signed transaction");
-  return signed.signedTxXdr;
+  const verified = validateSignedTransaction(xdr, signed.signedTxXdr, address, networkPassphrase);
+  if (usesMobileWallet() || await freighterSessionState(address, networkPassphrase) !== "matches") {
+    recordConnectionEvent("wallet-session", "mismatch");
+    throw new WalletConnectionError("wallet-session", "mismatch", "The wallet account or network could not be confirmed. Reconnect before signing again. Nothing was submitted.");
+  }
+  return verified;
 }
 
 export async function addTokenToFreighter(contractId: string, networkPassphrase: string): Promise<void> {
@@ -125,20 +132,28 @@ export async function addTokenToFreighter(contractId: string, networkPassphrase:
 
 /**
  * Silent check used on load: is this site still allowed in Freighter, and
- * does Freighter's selected account still match the verified session? Never
+ * do Freighter's selected account and network still match the verified session? Never
  * prompts. Returns "unknown" when Freighter is unavailable so a missing
  * extension never signs anyone out.
  */
-export async function freighterSessionState(expectedAddress: string, networkPassphrase: string = Networks.PUBLIC): Promise<"matches" | "disconnected" | "different" | "unknown"> {
+export async function freighterSessionState(expectedAddress: string, networkPassphrase: string): Promise<"matches" | "disconnected" | "different" | "unknown"> {
   if (usesMobileWallet()) return mobileSessionState(expectedAddress, networkPassphrase);
   try {
-    const allowed = await isAllowed();
-    if (allowed.error) return "unknown";
-    if (!allowed.isAllowed) return "disconnected";
-    const current = await getAddress();
-    if (current.error || !current.address) return "unknown";
-    return current.address === expectedAddress ? "matches" : "different";
+    const state = await connectionRequest<"matches" | "disconnected" | "different" | "unknown">("wallet-session", async () => {
+      const allowed = await isAllowed();
+      if (allowed.error) return "unknown";
+      if (!allowed.isAllowed) return "disconnected";
+      const current = await getAddress();
+      if (current.error || !current.address) return "unknown";
+      if (current.address !== expectedAddress) return "different";
+      const network = await getNetworkDetails();
+      if (network.error || !network.networkPassphrase) return "unknown";
+      return network.networkPassphrase === networkPassphrase ? "matches" : "different";
+    }, 10_000);
+    recordConnectionEvent("wallet-session", state === "matches" ? "ok" : state === "different" ? "mismatch" : "unavailable");
+    return state;
   } catch {
+    // connectionRequest already recorded the timeout or failure.
     return "unknown";
   }
 }
