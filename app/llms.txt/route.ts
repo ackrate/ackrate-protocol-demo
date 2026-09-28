@@ -9,22 +9,22 @@ ACKRATE separates adaptive agent planning from deterministic financial authority
 
 ## Start here
 
-- [ACKRATE SDK documentation](https://reapp.live/docs/sdk): Install the published packages and understand the end-to-end consumer and merchant flow.
-- [Consumer product preview](https://reapp.live/consumer): Give an AI agent a task while retaining explicit control over its budget, approved services, deadline, and exceptions.
-- [Express demo](https://reapp.live/express): Historical August Mainnet fulfillment using the earlier PAGS registry; current wallet prices require a fresh quote.
-- [Merchant assurance](https://reapp.live/merchants): Legacy registry and timelock reference; use the GitHub contract verification report for current WR registry evidence and its no-timelock boundary.
+- [ACKRATE SDK documentation](https://reapp.ackrate.com/docs/sdk): Install the published packages and understand the end-to-end consumer and merchant flow.
+- [Consumer product preview](https://reapp.ackrate.com/consumer): Give an AI agent a task while retaining explicit control over its budget, approved services, deadline, and exceptions.
+- [Express demo](https://reapp.ackrate.com/express): Historical August Mainnet fulfillment using the earlier PAGS registry; current wallet prices require a fresh quote.
+- [Merchant assurance](https://reapp.ackrate.com/merchants): Legacy registry and timelock reference; use the GitHub contract verification report for current WR registry evidence and its no-timelock boundary.
 - [Contract verification report](https://github.com/ackrate/ackrate-protocol-contracts/blob/main/docs/mainnet-v2-security-verification.md): Reproduce the 53-check Mainnet V2 contract gate, inspect trust boundaries and dependency results, and follow every claim to source and chain evidence.
-- [Quick starters](https://reapp.live/docs/quickstarts): Start from an empty folder, run a local consumer against hosted fulfillment, and inspect matching testnet evidence.
-- [AP2 demo](https://reapp.live/ap2): Canonical intent and transaction mandate checks, signatures, scope, expiry, and replay protection.
-- [CLI](https://reapp.live/cli): Initialize actors, create a mandate, pay, inspect evidence, and exercise rejection paths.
-- [Wallet canary](https://reapp.live/wallet): Connect Freighter on Stellar Mainnet, set a Circle USDC spending limit, buy a protected report, and inspect each transaction.
+- [Quick starters](https://reapp.ackrate.com/docs/quickstarts): Start from an empty folder, run the local consumer and fulfillment service together, and inspect their testnet evidence. An optional hosted companion requires a separately configured persistent runtime.
+- [AP2 demo](https://reapp.ackrate.com/ap2): Canonical intent and transaction mandate checks, signatures, scope, expiry, and replay protection.
+- [CLI](https://reapp.ackrate.com/cli): Initialize actors, create a mandate, pay, inspect evidence, and exercise rejection paths.
+- [Wallet canary](https://reapp.ackrate.com/wallet): Connect Freighter on Stellar Mainnet, set a Circle USDC spending limit, buy a protected report, and inspect each transaction.
 
 ## Live demonstrations
 
-- [Research agent](https://reapp.live/research): An AI agent buys paid sources until the on-chain budget is exhausted.
-- [Video paywall](https://reapp.live/video): Three permitted pay-per-use unlocks followed by a rejected fourth payment.
-- [Composite mandates](https://reapp.live/composites): Multiple agents coordinate a group buy and atomic clearing result.
-- [Toolkit preview](https://reapp.live/toolkit): Guided access to the CLI runner and composite-payment demonstrations.
+- [Research agent](https://reapp.ackrate.com/research): An AI agent buys paid sources until the on-chain budget is exhausted.
+- [Video paywall](https://reapp.ackrate.com/video): Three permitted pay-per-use unlocks followed by a rejected fourth payment.
+- [Composite mandates](https://reapp.ackrate.com/composites): Multiple agents coordinate a group buy and atomic clearing result.
+- [Toolkit preview](https://reapp.ackrate.com/toolkit): Guided access to the CLI runner and composite-payment demonstrations.
 
 ## Published package set and source
 
@@ -34,7 +34,7 @@ ACKRATE separates adaptive agent planning from deterministic financial authority
 - [@ackrate/express-middleware 0.3.0](https://www.npmjs.com/package/@ackrate/express-middleware): Express settlement and redemption verification.
 - [@ackrate/cli 0.2.1](https://www.npmjs.com/package/@ackrate/cli): Terminal workflows plus fail-closed testnet and Mainnet demonstrations.
 - [Protocol repository](https://github.com/ackrate/ackrate-protocol): Contracts, SDK packages, tests, and examples.
-- [Full implementation context](https://reapp.live/llms-full.txt): One plain-text technical brief for assistants working with the protocol.
+- [Full implementation context](https://reapp.ackrate.com/llms-full.txt): One plain-text technical brief for assistants working with the protocol.
 
 These published versions target the WR Mainnet registry. Review network, signing configuration, and payment consent before execution.
 

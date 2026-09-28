@@ -10,7 +10,7 @@ You need Node.js 20 or newer. You do not need a wallet or a GitHub repo.
 
 ### If you used Copy setup command
 
-The setup command on [reapp.live/docs/quickstarts](https://reapp.live/docs/quickstarts) already downloaded this starter, extracted it into your empty folder, and ran `npm ci`. Before extraction, it verified the ZIP against the exact SHA-256 in the [public integrity manifest](https://reapp.live/starters/v1/manifest.json). In the same VS Code terminal, run:
+The setup command on [reapp.ackrate.com/docs/quickstarts](https://reapp.ackrate.com/docs/quickstarts) already downloaded this starter, extracted it into your empty folder, and ran `npm ci`. Before extraction, it verified the ZIP against the exact SHA-256 in the [public integrity manifest](https://reapp.ackrate.com/starters/v1/manifest.json). In the same VS Code terminal, run:
 
 ```bash
 npm run demo
@@ -18,7 +18,7 @@ npm run demo
 
 ### If you downloaded the ZIP manually
 
-Compare its SHA-256 with the [public integrity manifest](https://reapp.live/starters/v1/manifest.json), extract the ZIP, open a terminal in the extracted folder, then run:
+Compare its SHA-256 with the [public integrity manifest](https://reapp.ackrate.com/starters/v1/manifest.json), extract the ZIP, open a terminal in the extracted folder, then run:
 
 ```bash
 npm ci

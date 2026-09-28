@@ -4,11 +4,11 @@ Desktop uses `@stellar/freighter-api`. Freighter Mobile uses WalletConnect, incl
 
 ## Enable mobile on a deployment
 
-1. Use an organization-owned project in [Reown Dashboard](https://dashboard.reown.com/). Allowlist the actual deployment origins, including `https://staging.ackrate.com` and the stable randomized Vercel domain. Add preview origins only when needed.
+1. Use an organization-owned project in [Reown Dashboard](https://dashboard.reown.com/). Allowlist the production origin `https://reapp.ackrate.com`. Add an exact Preview or retained staging origin only when that environment is an intended test target.
 2. Set `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` in the corresponding Vercel project environments, then rebuild and deploy. This is a public 32-character project identifier, never a wallet key or CI token.
 3. Validate the native Freighter handoff on iOS and Android. Confirm pairing approval and rejection, offline sign-in, reload, disconnect, changed account/network, and exact transaction signing before accepting mobile support.
 
-On September 25, 2026, the REAPP staging project was created in Reown under the REAPP team (Starter plan). Its public project ID is configured in the Vercel staging production environment. Only `https://staging.ackrate.com` and `https://ackrate-ackrate-protocol-demo-a7c4d19.vercel.app` are allowlisted. Rebuild after changing this environment variable. Native iOS/Android pairing and signing require separate acceptance from server readiness.
+On September 25, 2026, the REAPP staging project was created in Reown under the REAPP team (Starter plan). Its public project ID is configured in the Vercel staging production environment. At that checkpoint, only `https://staging.ackrate.com` and `https://ackrate-ackrate-protocol-demo-a7c4d19.vercel.app` were allowlisted. Production requires `https://reapp.ackrate.com` in its configured Reown project allowlist; see [production configuration](vercel-native.md#production-runtime). Rebuild after changing this environment variable. Native iOS/Android pairing and signing require separate acceptance from server readiness.
 
 ## Available adapters
 
@@ -42,7 +42,7 @@ The provider manages WalletConnect session and pairing state in its own browser 
 
 ## Collect a report
 
-Open `/wallet`, attempt a connection, then expand **Troubleshoot wallet connection**. Review the JSON and choose **Share / copy report** or **Download report**. Send it with the phone OS, Freighter version and URL used. The source commit distinguishes staging from the older `reapp.live` deployment.
+Open `/wallet`, attempt a connection, then expand **Troubleshoot wallet connection**. Review the JSON and choose **Share / copy report** or **Download report**. Send it with the phone OS, Freighter version and URL used. Use the origin and source commit together to distinguish production, Preview and retained staging builds.
 
 The report keeps the last 40 connection/signing events in memory: fixed stage/outcome names, numeric provider/HTTP codes, OS/browser family, origin, transport, network, source commit and server readiness. It excludes addresses, raw user agents, request bodies, messages, cookies, keys, signatures, envelopes and query parameters. Nothing is uploaded automatically. Export before refreshing.
 

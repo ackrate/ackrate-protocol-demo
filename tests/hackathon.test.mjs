@@ -64,7 +64,7 @@ test("navigation groups developer guides while preserving direct product routes"
   assert.doesNotMatch(nav, /href: "\/consumer", label: "Consumer"/);
   assert.match(nav, /href: "\/docs\/quickstarts", label: "Quick starters"/);
   assert.doesNotMatch(nav, /href: "\/video", label: "Video"/);
-  assert.match(nav, /href: "\/express", label: "Express demo"/);
+  assert.doesNotMatch(nav, /href: "\/(?:express|ap2)"/);
   assert.doesNotMatch(nav, /href: "\/security"/);
   assert.match(consumer, /Preview only · no funds move/);
   assert.match(consumer, /No wallet was created and no transaction was signed/);

@@ -58,7 +58,7 @@ for branch routing, project ownership, secrets and the persistent CLI runner lim
   testnet deployment; id pinned in `lib/composites-client.ts`). Source: `app/composites/page.tsx`.
 
 Primary navigation is REAPP home, Consumer app, and Docs. The Docs dropdown
-contains SDK, CLI, quick starters, Express demo, and AP2 demo. Security evidence stays in `docs/security-evidence.md` and the contract repository. Legacy research,
+contains Overview, SDK, CLI, quick starters, and Integrations. Express and AP2 demos remain available by direct link. Security evidence stays in `docs/security-evidence.md` and the contract repository. Legacy research,
 video, consumer preview, toolkit, and composite routes remain direct-link references.
 See `docs/presentation.md` for the current naming and visual conventions.
 
@@ -94,6 +94,7 @@ See `docs/presentation.md` for the current naming and visual conventions.
 - **No marketing hype / AI-slop copy.** Avoid empty intensifiers ("NO MOCKS",
   "*-POWERED", "slick", "Premium", emphatic "Real …"). Keep concrete, accurate
   technical statements (the on-chain budget cap, contract-enforced limits, revocable mandate).
+- Current app and documentation links use `https://reapp.ackrate.com`. Preserve dated evidence URLs as historical records; do not reuse them in current setup instructions.
 - Use relative paths in symlinks and imports — never absolute.
 
 ## Functional brand colors
