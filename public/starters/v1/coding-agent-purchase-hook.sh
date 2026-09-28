@@ -3,7 +3,7 @@ set -eu
 archive='ackrate-coding-agent-purchase-hook.zip'
 cleanup() { rm -f "$archive"; }
 trap cleanup EXIT HUP INT TERM
-curl -fsSLo "$archive" 'https://staging.ackrate.com/starters/v1/coding-agent-purchase-hook.zip'
+curl -fsSLo "$archive" 'https://reapp.ackrate.com/starters/v1/coding-agent-purchase-hook.zip'
 node -e "const f='ackrate-coding-agent-purchase-hook.zip',e='9c0582026c974c1f685fcd45d5ab6e9acd3735419cd4a988663fb451a8144ee3',s=require('node:fs'),a=require('node:crypto').createHash('sha256').update(s.readFileSync(f)).digest('hex');if(a!==e){s.rmSync(f);throw Error('Starter integrity check failed')}"
 unzip -q "$archive"
 rm -f "$archive"
