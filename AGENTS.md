@@ -58,7 +58,7 @@ for branch routing, project ownership, secrets and the persistent CLI runner lim
   testnet deployment; id pinned in `lib/composites-client.ts`). Source: `app/composites/page.tsx`.
 
 Primary navigation is REAPP home, Consumer app, and Docs. The Docs dropdown
-contains SDK, CLI, quick starters, Express demo, and AP2 demo. Security evidence stays in `docs/security-evidence.md` and the contract repository. Legacy research,
+contains Overview, SDK, CLI, quick starters, and Integrations. Express and AP2 demos remain available by direct link. Security evidence stays in `docs/security-evidence.md` and the contract repository. Legacy research,
 video, consumer preview, toolkit, and composite routes remain direct-link references.
 See `docs/presentation.md` for the current naming and visual conventions.
 

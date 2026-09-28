@@ -14,8 +14,6 @@ const guides = [
   { href: "/docs/cli", label: "CLI" },
   { href: "/docs/quickstarts", label: "Quick starters" },
   { href: "/docs/integrations", label: "Integrations · alpha" },
-  { href: "/express", label: "Express demo" },
-  { href: "/ap2", label: "AP2 demo" },
 ];
 
 export default function Nav() {
