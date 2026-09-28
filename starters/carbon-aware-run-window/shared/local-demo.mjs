@@ -476,6 +476,7 @@ export async function runLocalTestnetDemo({
         const revokeTx = await ackrate.revokeMandate(
           mandateEvidence.mandate,
           { signer: actors.user },
+          ackrate.testnet,
         );
         const before = await readMandateState();
         if (before.status !== "Revoked") {

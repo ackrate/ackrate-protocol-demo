@@ -6,7 +6,7 @@ This starter protects `GET /source/:sourceId` with a request-bound payment on St
 
 ## Run locally
 
-You need Node.js 20 or newer. You do not need a wallet or a GitHub repo.
+You need Node.js 22 or newer. You do not need a wallet or a GitHub repo.
 
 ### If you used Copy setup command
 

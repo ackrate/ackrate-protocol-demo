@@ -10,6 +10,7 @@ import {
 import {
   acknowledgeResolvedTerminalBoundJson,
   canonicalMandateSnapshot,
+  setupTestnetMandate,
   createBoundTestnetConsumer,
   isBudgetRejection,
   isExpiryRejection,
@@ -162,7 +163,10 @@ function fakeConsumer(store, {
 function bindFakeConsumer(store, mandate, signer, options) {
   const fake = fakeConsumer(store, options);
   const originalFactory = ackrate.agent;
-  ackrate.agent = () => fake;
+  ackrate.agent = (_options, network) => {
+    assert.equal(network, ackrate.testnet, "starter consumer must never inherit the SDK Mainnet default");
+    return fake;
+  };
   try {
     const consumer = createBoundTestnetConsumer({ mandate, agent: signer, receiptStore: store });
     return Object.freeze({ consumer, calls: fake.calls });
@@ -561,4 +565,44 @@ test("resolved terminal bytes are durably committed before receipt acknowledgmen
     }),
     DeliveryPendingError,
   );
+});
+
+test("testnet setup retains the confirmed registry id before freezing and approving", async () => {
+  const user = Keypair.random();
+  const agent = Keypair.random();
+  const merchant = Keypair.random().publicKey();
+  const originalRegister = ackrate.registerMandate;
+  const originalApprove = ackrate.approveBudget;
+  const confirmedId = "d".repeat(64);
+  let pending;
+  ackrate.registerMandate = async (mandate, options, network) => {
+    assert.equal(network, ackrate.testnet);
+    assert.equal(options.signer, user);
+    assert.equal(Object.isFrozen(mandate), false);
+    assert.equal(mandate.asset, ackrate.testnet.nativeSac);
+    pending = mandate;
+    mandate.id = confirmedId;
+    mandate.idBuffer = Buffer.from(confirmedId, "hex");
+    return "e".repeat(64);
+  };
+  ackrate.approveBudget = async (mandate, options, network) => {
+    assert.equal(network, ackrate.testnet);
+    assert.equal(options.signer, user);
+    assert.equal(mandate.id, confirmedId);
+    assert.equal(mandate.idBuffer.toString("hex"), confirmedId);
+    assert.equal(Object.isFrozen(mandate), true);
+    return "f".repeat(64);
+  };
+  try {
+    const result = await setupTestnetMandate({ user, agent, merchant, budgetXlm: "3" });
+    pending.idBuffer.fill(0);
+    pending.id = "0".repeat(64);
+    assert.equal(result.mandate.id, confirmedId);
+    assert.equal(result.mandate.idBuffer.toString("hex"), confirmedId);
+    assert.equal(result.registerTx, "e".repeat(64));
+    assert.equal(result.approveTx, "f".repeat(64));
+  } finally {
+    ackrate.registerMandate = originalRegister;
+    ackrate.approveBudget = originalApprove;
+  }
 });
