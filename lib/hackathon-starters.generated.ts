@@ -584,11 +584,11 @@ export const HACKATHON_STARTER_CATALOG = {
 } as const;
 
 export const HACKATHON_STARTER_DEPENDENCIES = {
-  "@ackrate/ap2": "0.3.0",
-  "@ackrate/core": "0.3.1",
-  "@ackrate/express-middleware": "0.2.2",
-  "@ackrate/stellar": "0.2.2",
-  "@stellar/stellar-sdk": "14.6.1",
+  "@ackrate/ap2": "0.4.0",
+  "@ackrate/core": "0.4.1",
+  "@ackrate/express-middleware": "0.3.0",
+  "@ackrate/stellar": "0.3.0",
+  "@stellar/stellar-sdk": "16.3.0",
   "express": "5.2.1"
 } as const;
 

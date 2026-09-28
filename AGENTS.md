@@ -94,6 +94,7 @@ See `docs/presentation.md` for the current naming and visual conventions.
 - **No marketing hype / AI-slop copy.** Avoid empty intensifiers ("NO MOCKS",
   "*-POWERED", "slick", "Premium", emphatic "Real …"). Keep concrete, accurate
   technical statements (the on-chain budget cap, contract-enforced limits, revocable mandate).
+- Current app and documentation links use `https://reapp.ackrate.com`. Preserve dated evidence URLs as historical records; do not reuse them in current setup instructions.
 - Use relative paths in symlinks and imports — never absolute.
 
 ## Functional brand colors

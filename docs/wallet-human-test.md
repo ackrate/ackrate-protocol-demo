@@ -1,8 +1,7 @@
 # Hosted wallet: human test
 
-Use [the staging wallet](https://staging.ackrate.com/wallet) in Chrome with Freighter.
-This configured acceptance deployment uses Stellar Mainnet and real USDC. Record
-its displayed source revision before testing; a PR preview may lack payment services.
+Use [the production wallet](https://reapp.ackrate.com/wallet) in Chrome with Freighter. Record the exact origin and source revision before testing; a Preview or retained staging deployment is a separate acceptance target.
+This configured acceptance deployment uses Stellar Mainnet and real USDC; a PR preview may lack payment services.
 No deployment or automated check substitutes for completing this flow.
 
 1. Refresh the page. Disconnect and reconnect your personal mainnet wallet if
@@ -26,11 +25,12 @@ adapters are supported.
 
 ## Model configuration
 
-`LLM_PROVIDER_MODE=openai-only` is the default for both streaming chat and
-report composition. Only `OPENAI_API_KEY` is used in this mode, even when an
-alternate key remains in Railway. `LLM_PRIMARY` cannot override this restriction.
-The existing `OPENAI_MODEL` selection is preserved. An operator may explicitly
-enable `LLM_PROVIDER_MODE=failover` later; it is not needed for this demo.
+Check the [production runtime configuration](vercel-native.md#production-runtime)
+for the tested deployment. Production currently uses
+`LLM_PROVIDER_MODE=openai-gemini-failover`: OpenAI through Vercel AI Gateway,
+with a direct Gemini fallback. The source default remains `openai-only` when
+no mode is configured; it is not the production setting. Record the selected
+mode and deployed source revision with the test result.
 
 Model access and credit are separate from the wallet's USDC balance.
 Formatting failure must not trigger another payment: a saved marketplace
