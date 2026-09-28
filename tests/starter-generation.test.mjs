@@ -133,6 +133,8 @@ test("all twenty generated packages are self-contained and use one exact canonic
     assert.equal(packageJson.scripts.demo, "node src/consumer.mjs");
     assert.equal(packageJson.scripts.fulfillment, "node src/fulfillment.mjs");
     assert.equal(packageJson.scripts.check, "node src/check.mjs");
+    assert.equal(Boolean(packageJson.scripts["demo:mainnet"]), kit.id === "research-source-scout");
+    assert.equal(files.has("src/mainnet.mjs"), kit.id === "research-source-scout");
     assert.equal(files.has("README.md"), true);
     const readme = files.get("README.md").toString("utf8");
     assert.match(readme, /If you used Copy setup command/);
@@ -144,7 +146,7 @@ test("all twenty generated packages are self-contained and use one exact canonic
     assert.match(readme, /```bash\nnpm ci\nnpm run demo\n```/);
     assert.doesNotMatch(readme, /npm ci && npm run/);
     assert.match(readme, /You do not need a wallet or a GitHub repo/);
-    assert.match(readme, /What the run verifies/);
+    assert.match(readme, /What the Testnet run verifies/);
     assert.match(readme, /accepted Stellar testnet payment evidence with explorer transaction hashes/i);
     assert.match(readme, /named negative or recovery check reaching its documented outcome/);
     assert.match(readme, /HTTP 402/);

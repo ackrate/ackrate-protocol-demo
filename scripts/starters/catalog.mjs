@@ -20,6 +20,7 @@ const EXPECTED_CONSTRAINTS = Object.freeze({
 
 const EXPECTED_DEPENDENCIES = Object.freeze({
   "@ackrate/ap2": "0.4.0",
+  "@ackrate/cli": "0.2.1",
   "@ackrate/core": "0.4.1",
   "@ackrate/express-middleware": "0.3.0",
   "@ackrate/stellar": "0.3.0",

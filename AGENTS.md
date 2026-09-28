@@ -19,7 +19,10 @@ npm run dev        # http://localhost:3000
 ```
 
 The public research, video, composite, and starter flows run on Stellar **testnet**
-with ephemeral keys. The wallet canary runs on Stellar **mainnet** with
+with ephemeral keys. Research Source Scout alone additionally exposes an explicit
+`demo:mainnet` companion through pinned `@ackrate/cli` 0.2.1; it keeps the
+Testnet scenario unchanged and uses separate `.ackrate-mainnet/` recovery state.
+The wallet canary runs on Stellar **mainnet** with
 Circle USDC and the manifest-pinned registry. The research agent
 additionally needs an LLM API key in `.env.local` (gitignored).
 `LLM_PROVIDER_MODE=openai-only` is the default and ignores the alternate key.

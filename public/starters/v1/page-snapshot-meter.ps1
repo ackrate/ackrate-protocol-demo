@@ -2,7 +2,7 @@ $ErrorActionPreference = 'Stop'
 $archive = 'ackrate-page-snapshot-meter.zip'
 try {
   Invoke-WebRequest -Uri 'https://reapp.ackrate.com/starters/v1/page-snapshot-meter.zip' -OutFile $archive
-  node -e "const f='ackrate-page-snapshot-meter.zip',e='d58ffb323dd03efb18c34a219c73bd3733dc2bfe10492337e86cd459e47557d4',s=require('node:fs'),a=require('node:crypto').createHash('sha256').update(s.readFileSync(f)).digest('hex');if(a!==e){s.rmSync(f);throw Error('Starter integrity check failed')}"
+  node -e "const f='ackrate-page-snapshot-meter.zip',e='1e74ac6019df42798f4eed59812849be0ffea680ac87d0aab4a9ee8446fe5472',s=require('node:fs'),a=require('node:crypto').createHash('sha256').update(s.readFileSync(f)).digest('hex');if(a!==e){s.rmSync(f);throw Error('Starter integrity check failed')}"
   if ($LASTEXITCODE -ne 0) { throw 'Starter integrity verification failed' }
   Expand-Archive -LiteralPath $archive -DestinationPath '.' -Force
   Remove-Item -LiteralPath $archive

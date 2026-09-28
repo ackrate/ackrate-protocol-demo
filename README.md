@@ -45,7 +45,7 @@ The installer verifies the ZIP's SHA-256 before extracting and runs `npm ci`. It
 
 Edit `scenario/scenario.mjs` for business rules, `src/consumer.mjs` for the runner, and `src/fulfillment.mjs` for the protected resource. Preserve `.ackrate/` recovery evidence after an interrupted payment; resolve pending state before reset.
 
-The [optional hosted companion](https://reapp.ackrate.com/docs/hosted) needs the persistent Express runtime. Local execution is the default. Starters pin the Testnet package family; follow the SDK guide for Mainnet configuration.
+The [optional hosted companion](https://reapp.ackrate.com/docs/hosted) needs the persistent Express runtime. Local execution is the default. All custom starter scenarios default to Testnet. Research Source Scout additionally includes `npm run demo:mainnet`, an explicit Mainnet companion using the pinned published CLI reference runner. See its generated README for named signers, canonical USDC readiness, consent, fees, and separate recovery state.
 
 ## Develop this site
 

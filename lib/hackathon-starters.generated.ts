@@ -585,6 +585,7 @@ export const HACKATHON_STARTER_CATALOG = {
 
 export const HACKATHON_STARTER_DEPENDENCIES = {
   "@ackrate/ap2": "0.4.0",
+  "@ackrate/cli": "0.2.1",
   "@ackrate/core": "0.4.1",
   "@ackrate/express-middleware": "0.3.0",
   "@ackrate/stellar": "0.3.0",

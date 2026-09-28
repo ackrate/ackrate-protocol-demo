@@ -37,7 +37,39 @@ The local demo above is the primary starter flow. The optional browser companion
 
 The browser and terminal then show the same hosted paid flow. Your private signers and recovery evidence stay in this local folder.
 
-## What the run verifies
+## Continue on Mainnet
+
+Research Source Scout alone also includes a separate published reference runner, pinned to @ackrate/cli 0.2.1. It makes three request-bound USDC purchases and verifies that a fourth exceeds the budget. It does not run the custom Testnet scenario on Mainnet. The other starter scenarios remain Testnet-only.
+
+Use Node.js 22 or newer and the Stellar CLI. Before running, configure distinct named user and agent signing identities plus a merchant public address. The user and agent each need at least 0.50 spendable XLM after reserves, with additional headroom for transaction fees; the user needs at least the chosen USDC budget. Both user and merchant need authorized canonical USDC trustlines with capacity. Supply the agent's detached-proof signing secret through a private environment variable or secret manager. Its public key must match the named agent identity. Never place the secret in an argument, this README, or a recording.
+
+The launcher uses the published CLI's canonical Mainnet registry and USDC manifest, readiness checks, and durable pending-settlement guards. There is no funding helper or network/manifest override. Inspect the names, merchant, price, budget, and available fee balance before explicitly consenting:
+
+```bash
+npm run demo:mainnet -- --help
+npm run demo:mainnet -- --user-signer my-mainnet-user --agent-signer my-mainnet-agent --agent-secret-env ACKRATE_AGENT_SECRET --merchant G_REPLACE_WITH_MERCHANT_PUBLIC_ADDRESS --price 0.01 --budget 0.03 --confirm-real-usdc
+```
+
+The budget must cover three prices but remain below four prices. The second command transfers up to 0.03 USDC for three results, plus XLM network fees. The example merchant placeholder must be replaced. The confirmation flag is required and is never added automatically. CLI preflight must pass before registration, allowance, or payments.
+
+Mainnet recovery state stays in this project's private, Git-ignored `.ackrate-mainnet/` directory, regardless of an inherited `ACKRATE_HOME`. Keep that same folder for retries. Unresolved settlement evidence stops another run; follow the CLI recovery instructions instead of deleting state or starting in a different folder. `npm run reset` archives only the default Testnet `.ackrate/` state and rejects custom reset paths in this starter. It never resets Mainnet. Inspect pending evidence with the installed, pinned CLI from the project folder. These commands only reconcile retained settlements; they do not start another purchase.
+
+Mac / Linux:
+
+```bash
+ACKRATE_HOME="$PWD/.ackrate-mainnet" node node_modules/@ackrate/cli/dist/ackrate-cli.bundle.mjs settlement reconcile
+```
+
+Windows PowerShell:
+
+```powershell
+$env:ACKRATE_HOME = Join-Path (Get-Location).Path '.ackrate-mainnet'
+node node_modules/@ackrate/cli/dist/ackrate-cli.bundle.mjs settlement reconcile
+```
+
+Use that same pinned CLI path and Mainnet state directory for any later recovery command. Review the retained receipt and delivery outcome before acknowledging it; do not acknowledge merely to clear a blocker. A setup-registration recovery requires its exact transaction hash and the same original identities. Never reset pending state or blindly start another demo.
+
+## What the Testnet run verifies
 
 No real money is used. The consumer receives HTTP 402, pays through the contract, and receives HTTP 200 with the protected result. The SDK runner prints one-line status updates and transaction links.
 
