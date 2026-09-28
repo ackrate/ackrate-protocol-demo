@@ -19,11 +19,11 @@ const EXPECTED_CONSTRAINTS = Object.freeze({
 });
 
 const EXPECTED_DEPENDENCIES = Object.freeze({
-  "@ackrate/ap2": "0.3.0",
-  "@ackrate/core": "0.3.1",
-  "@ackrate/express-middleware": "0.2.2",
-  "@ackrate/stellar": "0.2.2",
-  "@stellar/stellar-sdk": "14.6.1",
+  "@ackrate/ap2": "0.4.0",
+  "@ackrate/core": "0.4.1",
+  "@ackrate/express-middleware": "0.3.0",
+  "@ackrate/stellar": "0.3.0",
+  "@stellar/stellar-sdk": "16.3.0",
   express: "5.2.1",
 });
 
@@ -141,7 +141,7 @@ export function validateDependencyPolicy(policy) {
   requireCondition(policy.policyId === "ackrate-hackathon-starter-dependencies-v1", "dependency policy id is not supported");
   requireCondition(policy.packageManager === "npm", "dependency policy packageManager must be npm");
   requireCondition(policy.installCommand === "npm ci", "dependency policy install command must be npm ci");
-  requireCondition(policy.nodeEngine === ">=20", "dependency policy Node engine must be >=20");
+  requireCondition(policy.nodeEngine === ">=22", "dependency policy Node engine must be >=22");
   requireExactObject(policy.dependencies, EXPECTED_DEPENDENCIES, "dependency pins");
   requireExactObject(policy.rules, EXPECTED_POLICY_RULES, "dependency rules");
   for (const [packageName, version] of Object.entries(policy.dependencies)) {

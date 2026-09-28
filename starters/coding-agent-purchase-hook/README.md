@@ -6,7 +6,7 @@ This starter protects `GET /artifacts/:issueId/patch` with a request-bound payme
 
 ## Run locally
 
-You need Node.js 20 or newer. You do not need a wallet or a GitHub repo.
+You need Node.js 22 or newer. You do not need a wallet or a GitHub repo.
 
 ### If you used Copy setup command
 

@@ -138,7 +138,7 @@ export async function setupTestnetMandate({
   if (!Number.isSafeInteger(expiry) || expiry <= Math.floor(Date.now() / 1_000)) {
     throw new Error("mandate expiry must be a future whole Unix timestamp");
   }
-  const mandate = canonicalMandateSnapshot(ackrate.createIntentMandate({
+  const pendingMandate = ackrate.createIntentMandate({
     user: user.publicKey(),
     agent: agent.publicKey(),
     merchant,
@@ -146,9 +146,13 @@ export async function setupTestnetMandate({
     maxAmount: budgetXlm,
     expiry,
     nonce,
-  }));
-  const registerTx = await ackrate.registerMandate(mandate, { signer: user });
-  const approveTx = await ackrate.approveBudget(mandate, { signer: user });
+  }, ackrate.testnet);
+  // Validate before submission, then retain the SDK-confirmed storage key.
+  // Registration updates id/idBuffer, so freeze only the registered snapshot.
+  canonicalMandateSnapshot(pendingMandate);
+  const registerTx = await ackrate.registerMandate(pendingMandate, { signer: user }, ackrate.testnet);
+  const mandate = canonicalMandateSnapshot(pendingMandate);
+  const approveTx = await ackrate.approveBudget(mandate, { signer: user }, ackrate.testnet);
   return Object.freeze({ mandate, registerTx, approveTx });
 }
 
@@ -163,7 +167,7 @@ export function createBoundTestnetConsumer({ mandate, agent, receiptStore }) {
     signer: agent,
     proofPolicy: "bound-v2-only",
     receiptStore,
-  });
+  }, ackrate.testnet);
   for (const method of [
     "pay",
     "retryDelivery",
