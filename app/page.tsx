@@ -4,7 +4,7 @@ export default function Home() {
   return <main className="editorial-page">
     <div className="editorial-wrap">
       <section className="landing-hero">
-        <p className="eyebrow">REAPP · Powered by ACKRATE SDK</p>
+        <p className="eyebrow">Real Agentic Payment Protocol</p>
         <h1>Agent payments.<br />Your limits.</h1>
         <p className="landing-intro">Give an agent a budget on Stellar. You choose the merchant, spending limit, and expiry. MandateRegistry enforces them on-chain.</p>
         <div className="editorial-actions"><Link className="primary-action" href="/wallet">Open consumer app <span aria-hidden="true">↗</span></Link><Link href="/docs">Developer docs <span aria-hidden="true">→</span></Link></div>
