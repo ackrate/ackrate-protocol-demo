@@ -7,7 +7,7 @@ export default function robots(): MetadataRoute.Robots {
       allow: "/",
       disallow: ["/api/", "/wallet", "/reports/"],
     },
-    sitemap: "https://reapp.live/sitemap.xml",
-    host: "https://reapp.live",
+    sitemap: "https://reapp.ackrate.com/sitemap.xml",
+    host: "https://reapp.ackrate.com",
   };
 }
