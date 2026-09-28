@@ -17,8 +17,11 @@ npm run demo:mainnet -- --user-signer NAME --agent-signer NAME \\
 Use distinct user/agent/merchant accounts and authorized USDC trustlines.
 User and agent each need at least 0.50 spendable XLM after reserves.
 Budget must cover three prices but remain below four prices; XLM fees are separate.
-The named environment variable must hold the agent's detached-proof signing secret.
-Transaction signers remain named Stellar CLI identities. Never put secrets in argv.
+The named user identity signs user transactions through Stellar CLI.
+The supplied agent environment key signs BOTH agent transactions and detached proofs.
+The named agent identity is used to verify that key's public address matches.
+Secure Store identities do not export the raw key this CLI requires. Use a dedicated
+supported private identity/secret provider; never bypass Secure Store or put keys in argv.
 State stays in .ackrate-mainnet/ beside package.json; do not delete pending evidence.
 Testnet reset does not reset Mainnet. Network and manifest overrides are not accepted.`;
 

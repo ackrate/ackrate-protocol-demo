@@ -10,17 +10,17 @@
       "installers": {
         "posix": {
           "path": "/starters/v1/research-source-scout.sh",
-          "sha256": "edc8976490545ae30889706524e17e412c238096ea0270de32e5bd82967f6580",
+          "sha256": "9b7ed77e72a20351b58900d52ec58241a1ce10511903d882c5584e5579deb6eb",
           "size": 615
         },
         "powershell": {
           "path": "/starters/v1/research-source-scout.ps1",
-          "sha256": "981a9b4af2c48b9bb5e2013784d7e2a37dbcddf50ddfd470cff9366d3fb9cc85",
+          "sha256": "0cdf0152ef2b152d70a9fd2fc46ed15b898442140784267b21567f9a169b20dc",
           "size": 928
         }
       },
-      "sha256": "30bf64f980d048649f5f002e981b9dcc218540f589289d4dc8fe2cd40891a2a8",
-      "size": 240046,
+      "sha256": "0145c717a73e8a824b6ef4f779aaa6fef9e49446d136f9c0047ad6f577f7b48f",
+      "size": 240933,
       "slug": "research-source-scout"
     },
     {
