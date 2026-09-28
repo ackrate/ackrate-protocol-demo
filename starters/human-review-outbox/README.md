@@ -27,7 +27,7 @@ npm run demo
 
 The demo creates disposable testnet accounts, starts the consumer and Express fulfillment service, and prints concise status lines and transaction links. It never requests a wallet or mainnet secret.
 
-## What the run verifies
+## What the Testnet run verifies
 
 No real money is used. The consumer receives HTTP 402, pays through the contract, and receives HTTP 200 with the protected result. The SDK runner prints one-line status updates and transaction links.
 

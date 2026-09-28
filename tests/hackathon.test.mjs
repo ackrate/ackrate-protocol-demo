@@ -249,7 +249,7 @@ test("starter runtime ships the SDK bytes exercised by the root integration test
     read("starter-kit-src/template/package-lock.json"),
   ]).then((locks) => locks.map(JSON.parse));
   for (const name of [
-    "@ackrate/core", "@ackrate/stellar", "@ackrate/ap2",
+    "@ackrate/core", "@ackrate/stellar", "@ackrate/ap2", "@ackrate/cli",
     "@ackrate/express-middleware", "@stellar/stellar-sdk",
   ]) {
     const path = `node_modules/${name}`;

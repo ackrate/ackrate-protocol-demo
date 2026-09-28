@@ -1,13 +1,14 @@
 {
   "dependencies": {
     "@ackrate/ap2": "0.4.0",
+    "@ackrate/cli": "0.2.1",
     "@ackrate/core": "0.4.1",
     "@ackrate/express-middleware": "0.3.0",
     "@ackrate/stellar": "0.3.0",
     "@stellar/stellar-sdk": "16.3.0",
     "express": "5.2.1"
   },
-  "description": "Self-contained ACKRATE bound-v2 starter for Stellar testnet.",
+  "description": "ACKRATE Testnet starter with an explicit Mainnet CLI companion.",
   "engines": {
     "node": ">=22"
   },
@@ -16,6 +17,7 @@
   "scripts": {
     "check": "node src/check.mjs",
     "demo": "node src/consumer.mjs",
+    "demo:mainnet": "node src/mainnet.mjs",
     "fulfillment": "node src/fulfillment.mjs",
     "hosted": "node src/hosted.mjs",
     "reset": "node src/reset.mjs"
