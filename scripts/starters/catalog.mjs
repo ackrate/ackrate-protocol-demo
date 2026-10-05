@@ -137,8 +137,10 @@ async function readJson(relativePath, label) {
 }
 
 export function validateDependencyPolicy(policy) {
-  requireExactKeys(policy, ["schemaVersion", "policyId", "packageManager", "installCommand", "nodeEngine", "dependencies", "rules"], "dependency policy");
+  requireExactKeys(policy, ["schemaVersion", "policyId", "packageManager", "installCommand", "nodeEngine", "dependencies", "overrides", "rules"], "dependency policy");
   requireCondition(policy.schemaVersion === 1, "dependency policy schemaVersion must be 1");
+  requireExactKeys(policy.overrides, ["axios"], "dependency overrides");
+  requireCondition(policy.overrides.axios === "1.20.0", "starter Axios security patch must stay pinned");
   requireCondition(policy.policyId === "ackrate-hackathon-starter-dependencies-v1", "dependency policy id is not supported");
   requireCondition(policy.packageManager === "npm", "dependency policy packageManager must be npm");
   requireCondition(policy.installCommand === "npm ci", "dependency policy install command must be npm ci");

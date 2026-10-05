@@ -2,7 +2,7 @@ $ErrorActionPreference = 'Stop'
 $archive = 'ackrate-fleet-corridor-authority.zip'
 try {
   Invoke-WebRequest -Uri 'https://reapp.ackrate.com/starters/v1/fleet-corridor-authority.zip' -OutFile $archive
-  node -e "const f='ackrate-fleet-corridor-authority.zip',e='2d4052eb6b4b19bd826ea739ddcb49e102ebc650262d3ae40e69bcc254e121f4',s=require('node:fs'),a=require('node:crypto').createHash('sha256').update(s.readFileSync(f)).digest('hex');if(a!==e){s.rmSync(f);throw Error('Starter integrity check failed')}"
+  node -e "const f='ackrate-fleet-corridor-authority.zip',e='1538d75c413d0ab21704b215a136c03b0a33339d2f25cb967ad006086640c0ea',s=require('node:fs'),a=require('node:crypto').createHash('sha256').update(s.readFileSync(f)).digest('hex');if(a!==e){s.rmSync(f);throw Error('Starter integrity check failed')}"
   if ($LASTEXITCODE -ne 0) { throw 'Starter integrity verification failed' }
   Expand-Archive -LiteralPath $archive -DestinationPath '.' -Force
   Remove-Item -LiteralPath $archive

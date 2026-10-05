@@ -13,6 +13,9 @@
     "node": ">=22"
   },
   "name": "ackrate-hackathon-starter",
+  "overrides": {
+    "axios": "1.20.0"
+  },
   "private": true,
   "scripts": {
     "check": "node src/check.mjs",
