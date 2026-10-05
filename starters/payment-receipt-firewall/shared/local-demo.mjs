@@ -36,7 +36,7 @@ import {
   createFulfillmentMetrics,
   startFulfillmentServer,
 } from "./fulfillment.mjs";
-import { fetchWithTimeout } from "./http.mjs";
+import { fetchExactRecoveryBytes, fetchWithTimeout } from "./http.mjs";
 import { loadOrCreateChallengeSecret } from "./private-secret.mjs";
 import {
   createDisposableTestnetActors,
@@ -529,7 +529,7 @@ export async function runLocalTestnetDemo({
           throw new Error("fulfillment restart did not preserve the exact paid URL");
         }
 
-        const response = await fetchWithTimeout(receipt.url, {
+        const response = await fetchExactRecoveryBytes(receipt.url, {
           method: "GET",
           headers: {
             accept: "application/json",
@@ -538,7 +538,7 @@ export async function runLocalTestnetDemo({
           },
           redirect: "error",
         }, 30_000);
-        const recoveredBytes = Buffer.from(await response.arrayBuffer());
+        const recoveredBytes = response.bytes;
         if (response.status !== 200) {
           throw new Error(`durable replay returned HTTP ${response.status}; expected 200`);
         }

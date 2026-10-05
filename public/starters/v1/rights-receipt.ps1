@@ -2,7 +2,7 @@ $ErrorActionPreference = 'Stop'
 $archive = 'ackrate-rights-receipt.zip'
 try {
   Invoke-WebRequest -Uri 'https://reapp.ackrate.com/starters/v1/rights-receipt.zip' -OutFile $archive
-  node -e "const f='ackrate-rights-receipt.zip',e='23066c82531ee8ba14862656a2a98dd0971979928ce4e0481b46eebadd73947b',s=require('node:fs'),a=require('node:crypto').createHash('sha256').update(s.readFileSync(f)).digest('hex');if(a!==e){s.rmSync(f);throw Error('Starter integrity check failed')}"
+  node -e "const f='ackrate-rights-receipt.zip',e='38605973226a34c6cafdb1b185f8f09e9bf9ba3eef5fb0117574794b273cefbc',s=require('node:fs'),a=require('node:crypto').createHash('sha256').update(s.readFileSync(f)).digest('hex');if(a!==e){s.rmSync(f);throw Error('Starter integrity check failed')}"
   if ($LASTEXITCODE -ne 0) { throw 'Starter integrity verification failed' }
   Expand-Archive -LiteralPath $archive -DestinationPath '.' -Force
   Remove-Item -LiteralPath $archive
