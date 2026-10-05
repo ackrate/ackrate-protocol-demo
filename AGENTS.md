@@ -32,8 +32,10 @@ Set `OPENAI_API_KEY` for chat and report formatting. Explicitly selecting
 `OPENAI_MODEL` / `OPENAI_MODEL_SUB` set the model ids. See
 `.env.example`. The failover layer lives in `lib/llm.ts`. Without any key the
 video demo still works and the research page shows a notice.
-Marketplace report composition uses its own OpenAI-only model setting,
-`OPENAI_REPORT_MODEL` (default `gpt-6-astra`), without changing chat/tool routing.
+`LLM_PROVIDER_MODE=openai-gemini-failover` selects the OpenAI-compatible endpoint
+and direct Gemini fallback. Marketplace report composition uses
+`OPENAI_REPORT_MODEL` (default `gpt-6-astra`), with Gemini report fallback in that
+mode, without changing chat/tool routing. See `docs/llm-failover-brief.md`.
 New reports include a cited, three-paragraph plain-English closing summary.
 
 ## Routes

@@ -9,9 +9,14 @@ No deployment or automated check substitutes for completing this flow.
 2. Choose **Web search**. Configure the query **What is Stellar?** and review
    the fresh service quote. The price comes from the marketplace, not this guide.
 3. Set a spending limit covering the quoted price, for example **0.01 USDC** when that covers one quoted call,
-   and an expiry. Approve registration and then the capped USDC allowance in
-   Freighter. If submission is uncertain, **Check USDC approval — no new fee**
-   checks the original transaction instead of submitting another.
+   and an expiry. Follow the setup shown by the deployed configuration. With a
+   verified setup helper, **Approve spending rules & USDC limit** requests one
+   transaction that registers the mandate and approves the capped allowance.
+   Without that helper, approve registration and then the separate capped USDC
+   allowance. Each transaction has an XLM network fee; setup does not buy a service.
+   If submission is uncertain, use the displayed confirmation check to inspect
+   the original transaction before requesting another signature. Record which
+   setup path ran and retain its transaction evidence.
 4. Press **Run** once. The agent uses the selected inputs and current quote,
    makes the mandate-checked payment, and requests the marketplace service.
    The model formats the returned evidence; it does not invent a purchase.

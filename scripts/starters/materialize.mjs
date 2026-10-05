@@ -92,6 +92,7 @@ function renderPackageJson(dependencyPolicy, kit) {
     engines: { node: dependencyPolicy.nodeEngine },
     scripts,
     dependencies: dependencyPolicy.dependencies,
+    overrides: dependencyPolicy.overrides,
   })}\n`;
 }
 

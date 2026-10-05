@@ -67,7 +67,7 @@ The GitHub report records release-gate evidence for ACKRATE Mainnet contracts. I
 
 ### Mainnet wallet canary — https://reapp.ackrate.com/wallet
 
-The wallet canary connects a Freighter G-account on Stellar Mainnet. A person chooses a small Circle USDC spending limit, signs mandate registration and contract allowance transactions, and then lets the consumer agent request a protected report. MandateRegistry re-checks the caller, merchant, asset, amount, expiry, status, and sequence before every payment. The page links registration, allowance, payment, and shutdown transactions to Stellar Explorer. Disconnecting first turns off any active spending limit, then clears the browser session.
+The wallet canary connects a Freighter G-account on Stellar Mainnet. A person chooses a small Circle USDC spending limit, authorizes mandate registration and the capped contract allowance through the configured setup path (separate transactions, or one combined transaction when a verified helper is enabled), and then lets the consumer agent request a protected report. MandateRegistry re-checks the caller, merchant, asset, amount, expiry, status, and sequence before every payment. The page links registration, allowance, payment, and shutdown transactions to Stellar Explorer. Disconnecting first turns off any active spending limit, then clears the browser session.
 
 ### Quick starters — https://reapp.ackrate.com/docs/quickstarts
 
