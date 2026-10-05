@@ -31,11 +31,14 @@ const BLOCKED_RESOURCE = "patents";
 function printHelp() {
   console.log(`ACKRATE hosted Testnet companion
 
-Usage:
-  npm run hosted -- --endpoint="https://reapp.live/api/express/WORKSPACE/source" --merchant="G..."
+Example only (WORKSPACE and G... are placeholders):
+  npm run hosted -- --endpoint="https://reapp.ackrate.com/api/express/WORKSPACE/source" --merchant="G..."
 
-The endpoint and merchant come from https://reapp.live/docs/hosted. The command
-uses disposable Stellar testnet signers and never requests a wallet secret.`);
+Copy the actual endpoint and merchant from a configured hosted session at
+https://reapp.ackrate.com/docs/hosted; do not run the example unchanged. The command
+uses disposable Stellar testnet signers and never requests a wallet secret.
+The hosted companion requires a separately configured persistent runtime;
+its availability is not verified by the local demo.`);
 }
 
 function normalizeEndpoint(value) {

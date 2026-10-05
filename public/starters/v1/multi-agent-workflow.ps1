@@ -1,8 +1,8 @@
 $ErrorActionPreference = 'Stop'
 $archive = 'ackrate-multi-agent-workflow.zip'
 try {
-  Invoke-WebRequest -Uri 'https://staging.ackrate.com/starters/v1/multi-agent-workflow.zip' -OutFile $archive
-  node -e "const f='ackrate-multi-agent-workflow.zip',e='7524a97af724805215285546f0a3f5bb50e9a793b798c06082ceb0b68b2339ee',s=require('node:fs'),a=require('node:crypto').createHash('sha256').update(s.readFileSync(f)).digest('hex');if(a!==e){s.rmSync(f);throw Error('Starter integrity check failed')}"
+  Invoke-WebRequest -Uri 'https://reapp.ackrate.com/starters/v1/multi-agent-workflow.zip' -OutFile $archive
+  node -e "const f='ackrate-multi-agent-workflow.zip',e='e5b49264e6670d3f3c73c5d6e3d72d8fca585cb17e81fc629beb58f3929936b4',s=require('node:fs'),a=require('node:crypto').createHash('sha256').update(s.readFileSync(f)).digest('hex');if(a!==e){s.rmSync(f);throw Error('Starter integrity check failed')}"
   if ($LASTEXITCODE -ne 0) { throw 'Starter integrity verification failed' }
   Expand-Archive -LiteralPath $archive -DestinationPath '.' -Force
   Remove-Item -LiteralPath $archive

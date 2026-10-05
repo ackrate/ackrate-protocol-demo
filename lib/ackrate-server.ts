@@ -8,6 +8,7 @@ import { TESTNET, token } from "@ackrate/stellar";
 import { EXPLORER_BASE } from "./explorer";
 import { log } from "./log";
 import { journaledPay } from "./payment-journal";
+import { restoreTestnetMandate, type DemoMandateInputs } from "./testnet-mandate";
 
 export const EXPLORER = EXPLORER_BASE;
 export const UNLOCK_PRICE = "1.00"; // XLM per content unlock
@@ -53,7 +54,7 @@ export async function init() {
 
 /** The mandate inputs the client round-trips so the server can rebuild the
  *  exact same mandate (same nonce, same id) on every action. */
-export type MandateInputs = CreateIntentMandateInput;
+export type MandateInputs = DemoMandateInputs;
 
 /** Register the mandate + approve the SEP-41 allowance (user-signed). */
 export async function setup(args: {
@@ -61,7 +62,7 @@ export async function setup(args: {
   agentPublic: string;
   merchantPublic: string;
 }) {
-  const inputs: MandateInputs = {
+  const inputs: CreateIntentMandateInput = {
     user: Keypair.fromSecret(args.userSecret).publicKey(),
     agent: args.agentPublic,
     merchant: args.merchantPublic,
@@ -70,23 +71,23 @@ export async function setup(args: {
     expiry: Math.floor(Date.now() / 1000) + 3600,
     nonce: `${Date.now()}:${Math.random().toString(36).slice(2)}`,
   };
-  const mandate = ackrate.createIntentMandate(inputs);
+  const mandate = ackrate.createIntentMandate(inputs, TESTNET);
   log.step("authorizing mandate", { budget: `${BUDGET} XLM`, merchant: short(args.merchantPublic), id: short(mandate.id) });
-  const registerTx = await ackrate.registerMandate(mandate, { signer: args.userSecret });
+  const registerTx = await ackrate.registerMandate(mandate, { signer: args.userSecret }, TESTNET);
   log.chain("register_mandate confirmed", { tx: short(registerTx) });
-  const approveTx = await ackrate.approveBudget(mandate, { signer: args.userSecret });
+  const approveTx = await ackrate.approveBudget(mandate, { signer: args.userSecret }, TESTNET);
   log.chain("approveBudget confirmed (SEP-41 allowance to contract)", { tx: short(approveTx) });
-  return { inputs, mandateId: mandate.id, registerTx, approveTx };
+  return { inputs: { ...inputs, registeredMandateId: mandate.id }, mandateId: mandate.id, registerTx, approveTx };
 }
 
 /** Agent pays the unlock price. Returns the tx hash, or throws if the contract
  *  rejects it (overspend, revoked, expired), which is the whole point. */
 export async function pay(args: { inputs: MandateInputs; agentSecret: string; amount?: string; expectedSeq: number }) {
   const amount = args.amount ?? UNLOCK_PRICE;
-  const mandate = ackrate.createIntentMandate(args.inputs); // same nonce, same id
+  const mandate = restoreTestnetMandate(args.inputs);
   log.step("execute_payment (agent-signed)", { amount: `${amount} XLM`, mandate: short(mandate.id) });
   const hash = await journaledPay(
-    ackrate.agent({ mandate, signer: args.agentSecret }),
+    ackrate.agent({ mandate, signer: args.agentSecret }, TESTNET),
     amount,
     `server:${mandate.id}:${args.expectedSeq}`,
     args.expectedSeq,
@@ -97,9 +98,9 @@ export async function pay(args: { inputs: MandateInputs; agentSecret: string; am
 
 /** User revokes the mandate. */
 export async function revoke(args: { inputs: MandateInputs; userSecret: string }) {
-  const mandate = ackrate.createIntentMandate(args.inputs);
+  const mandate = restoreTestnetMandate(args.inputs);
   log.step("revoke_mandate (user-signed)", { mandate: short(mandate.id) });
-  const hash = await ackrate.revokeMandate(mandate, { signer: args.userSecret });
+  const hash = await ackrate.revokeMandate(mandate, { signer: args.userSecret }, TESTNET);
   log.chain("mandate revoked on-chain", { tx: short(hash) });
   return { hash };
 }

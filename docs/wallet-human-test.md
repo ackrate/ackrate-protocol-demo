@@ -1,8 +1,7 @@
 # Hosted wallet: human test
 
-Use [the staging wallet](https://staging.ackrate.com/wallet) in Chrome with Freighter.
-This configured acceptance deployment uses Stellar Mainnet and real USDC. Record
-its displayed source revision before testing; a PR preview may lack payment services.
+Use [the production wallet](https://reapp.ackrate.com/wallet) in Chrome with Freighter. Record the exact origin and source revision before testing; a Preview or retained staging deployment is a separate acceptance target.
+This configured acceptance deployment uses Stellar Mainnet and real USDC; a PR preview may lack payment services.
 No deployment or automated check substitutes for completing this flow.
 
 1. Refresh the page. Disconnect and reconnect your personal mainnet wallet if
@@ -10,9 +9,14 @@ No deployment or automated check substitutes for completing this flow.
 2. Choose **Web search**. Configure the query **What is Stellar?** and review
    the fresh service quote. The price comes from the marketplace, not this guide.
 3. Set a spending limit covering the quoted price, for example **0.01 USDC** when that covers one quoted call,
-   and an expiry. Approve registration and then the capped USDC allowance in
-   Freighter. If submission is uncertain, **Check USDC approval — no new fee**
-   checks the original transaction instead of submitting another.
+   and an expiry. Follow the setup shown by the deployed configuration. With a
+   verified setup helper, **Approve spending rules & USDC limit** requests one
+   transaction that registers the mandate and approves the capped allowance.
+   Without that helper, approve registration and then the separate capped USDC
+   allowance. Each transaction has an XLM network fee; setup does not buy a service.
+   If submission is uncertain, use the displayed confirmation check to inspect
+   the original transaction before requesting another signature. Record which
+   setup path ran and retain its transaction evidence.
 4. Press **Run** once. The agent uses the selected inputs and current quote,
    makes the mandate-checked payment, and requests the marketplace service.
    The model formats the returned evidence; it does not invent a purchase.
@@ -26,11 +30,12 @@ adapters are supported.
 
 ## Model configuration
 
-`LLM_PROVIDER_MODE=openai-only` is the default for both streaming chat and
-report composition. Only `OPENAI_API_KEY` is used in this mode, even when an
-alternate key remains in Railway. `LLM_PRIMARY` cannot override this restriction.
-The existing `OPENAI_MODEL` selection is preserved. An operator may explicitly
-enable `LLM_PROVIDER_MODE=failover` later; it is not needed for this demo.
+Check the [production runtime configuration](vercel-native.md#production-runtime)
+for the tested deployment. Production currently uses
+`LLM_PROVIDER_MODE=openai-gemini-failover`: OpenAI through Vercel AI Gateway,
+with a direct Gemini fallback. The source default remains `openai-only` when
+no mode is configured; it is not the production setting. Record the selected
+mode and deployed source revision with the test result.
 
 Model access and credit are separate from the wallet's USDC balance.
 Formatting failure must not trigger another payment: a saved marketplace

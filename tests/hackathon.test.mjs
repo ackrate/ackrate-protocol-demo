@@ -113,10 +113,10 @@ test("the starter is deterministic, typed by package metadata, and testnet-only"
   ];
   const sources = Object.fromEntries(await Promise.all(paths.map(async (path) => [path, await read(path)])));
   const manifest = JSON.parse(sources["starters/research-source-scout/package.json"]);
-  assert.equal(manifest.dependencies["@ackrate/core"], "0.3.1");
-  assert.equal(manifest.dependencies["@ackrate/stellar"], "0.2.2");
-  assert.equal(manifest.dependencies["@ackrate/ap2"], "0.3.0");
-  assert.equal(manifest.dependencies["@ackrate/express-middleware"], "0.2.2");
+  assert.equal(manifest.dependencies["@ackrate/core"], "0.4.1");
+  assert.equal(manifest.dependencies["@ackrate/stellar"], "0.3.0");
+  assert.equal(manifest.dependencies["@ackrate/ap2"], "0.4.0");
+  assert.equal(manifest.dependencies["@ackrate/express-middleware"], "0.3.0");
   assert.ok(manifest.scripts.demo);
   assert.ok(manifest.scripts.fulfillment);
   assert.equal(manifest.scripts.hosted, "node src/hosted.mjs");
@@ -241,4 +241,26 @@ test("the CLI and Docs use the published Mainnet release", async () => {
   assert.equal(packageJson.dependencies["@ackrate/cli"], actualVersion);
   assert.equal(lock.packages["node_modules/@ackrate/cli"].version, actualVersion);
   assert.equal(createHash("sha256").update(bundleSource).digest("hex"), "c2e6c113a6fdcad618927c59a304da525628041c7d10626d430712c2f7e2ce69");
+});
+
+test("starter runtime ships the SDK bytes exercised by the root integration tests", async () => {
+  const [rootLock, starterLock] = await Promise.all([
+    read("package-lock.json"),
+    read("starter-kit-src/template/package-lock.json"),
+  ]).then((locks) => locks.map(JSON.parse));
+  for (const name of [
+    "@ackrate/core", "@ackrate/stellar", "@ackrate/ap2", "@ackrate/cli",
+    "@ackrate/express-middleware", "@stellar/stellar-sdk",
+  ]) {
+    const path = `node_modules/${name}`;
+    const exercised = rootLock.packages[path];
+    const shipped = starterLock.packages[path];
+    assert.ok(exercised?.version && exercised?.integrity, `${name} must be integrity-pinned in the test environment`);
+    assert.ok(shipped?.version && shipped?.integrity, `${name} must be integrity-pinned in the starter`);
+    assert.deepEqual(
+      { version: shipped.version, integrity: shipped.integrity },
+      { version: exercised.version, integrity: exercised.integrity },
+      `${name}: clean starter installations must use the SDK bytes exercised by runtime tests`,
+    );
+  }
 });

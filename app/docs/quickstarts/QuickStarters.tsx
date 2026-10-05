@@ -18,7 +18,7 @@ export default function QuickStarters() {
   }
   return <><p className="eyebrow">Docs / Quick starters</p><h1>Run the whole flow.</h1>
     <p className="lead">A consumer agent buys a protected resource from a local Express API. The SDK handles the payment; the starter verifies delivery and a failure or recovery case.</p>
-    <p>Stellar Testnet · XLM demo funds · Node.js 20+.</p>
+    <p>Stellar Testnet · XLM demo funds · Node.js 22+.</p>
     <label className="field-label" htmlFor="starter">Choose a starter</label><select id="starter" value={slug} onChange={(event) => { setSlug(event.target.value); setCopyState(""); }}>{HACKATHON_STARTER_CATALOG.kits.map((item) => <option key={item.slug} value={item.slug}>{item.title}</option>)}</select>
     <h2>{kit.title}</h2><p>{kit.summary}</p><p><strong>Verified outcome:</strong> {kit.negativePath.outcome}</p>
     <h2>1. Set up an empty folder</h2>
@@ -28,6 +28,6 @@ export default function QuickStarters() {
     <h2>2. Run</h2><CodeBlock>npm run demo</CodeBlock><p>The SDK script prints one-line status updates and a Stellar explorer link for each delivered payment. Structured recovery evidence stays in <code>.ackrate/</code>; do not delete it to retry an interrupted payment.</p>
     <h2>3. Adapt</h2><p>Edit <code>scenario/scenario.mjs</code> for the business rules, <code>src/consumer.mjs</code> for the SDK runner, and <code>src/fulfillment.mjs</code> for the paid resource.</p>
     <p><a href={`https://github.com/ackrate/ackrate-protocol-demo/blob/main/starters/${kit.slug}/README.md`}>Read the README →</a></p>
-    <details><summary>Package versions and hosted example</summary><p>These starters intentionally pin the Testnet package family: core 0.3.1, stellar 0.2.2, AP2 0.3.0, and Express middleware 0.2.2. Use the SDK guide for Mainnet.</p><p>The Research Source Scout README also documents an <a href="/docs/hosted">optional hosted Express walkthrough</a>. Local execution is the default.</p></details>
+    <details><summary>Package versions and hosted example</summary><p>The custom scenarios default to Testnet. Exact pins: core 0.4.1, stellar 0.3.0, AP2 0.4.0, Express middleware 0.3.0, and CLI 0.2.1. Research Source Scout alone includes a separate Mainnet companion via the published CLI reference runner. Its README covers explicit consent, named signers, USDC readiness, fees, and isolated recovery state.</p><p>The Research Source Scout README also documents an <a href="/docs/hosted">optional hosted Express walkthrough</a>. Local execution is the default.</p></details>
   </>;
 }

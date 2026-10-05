@@ -19,7 +19,10 @@ npm run dev        # http://localhost:3000
 ```
 
 The public research, video, composite, and starter flows run on Stellar **testnet**
-with ephemeral keys. The wallet canary runs on Stellar **mainnet** with
+with ephemeral keys. Research Source Scout alone additionally exposes an explicit
+`demo:mainnet` companion through pinned `@ackrate/cli` 0.2.1; it keeps the
+Testnet scenario unchanged and uses separate `.ackrate-mainnet/` recovery state.
+The wallet canary runs on Stellar **mainnet** with
 Circle USDC and the manifest-pinned registry. The research agent
 additionally needs an LLM API key in `.env.local` (gitignored).
 `LLM_PROVIDER_MODE=openai-only` is the default and ignores the alternate key.
@@ -29,8 +32,10 @@ Set `OPENAI_API_KEY` for chat and report formatting. Explicitly selecting
 `OPENAI_MODEL` / `OPENAI_MODEL_SUB` set the model ids. See
 `.env.example`. The failover layer lives in `lib/llm.ts`. Without any key the
 video demo still works and the research page shows a notice.
-Marketplace report composition uses its own OpenAI-only model setting,
-`OPENAI_REPORT_MODEL` (default `gpt-6-astra`), without changing chat/tool routing.
+`LLM_PROVIDER_MODE=openai-gemini-failover` selects the OpenAI-compatible endpoint
+and direct Gemini fallback. Marketplace report composition uses
+`OPENAI_REPORT_MODEL` (default `gpt-6-astra`), with Gemini report fallback in that
+mode, without changing chat/tool routing. See `docs/llm-failover-brief.md`.
 New reports include a cited, three-paragraph plain-English closing summary.
 
 ## Routes
@@ -94,6 +99,7 @@ See `docs/presentation.md` for the current naming and visual conventions.
 - **No marketing hype / AI-slop copy.** Avoid empty intensifiers ("NO MOCKS",
   "*-POWERED", "slick", "Premium", emphatic "Real …"). Keep concrete, accurate
   technical statements (the on-chain budget cap, contract-enforced limits, revocable mandate).
+- Current app and documentation links use `https://reapp.ackrate.com`. Preserve dated evidence URLs as historical records; do not reuse them in current setup instructions.
 - Use relative paths in symlinks and imports — never absolute.
 
 ## Functional brand colors

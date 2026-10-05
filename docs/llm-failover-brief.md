@@ -1,58 +1,52 @@
-# Orchestration engine: how it works, and why we don't need OpenRouter
+# Model providers and recovery
 
-## How the orchestration engine works
+`lib/llm-policy.ts` selects enabled providers. Keys alone do not enable failover.
+The source default is `LLM_PROVIDER_MODE=openai-only`.
 
-The research agent never calls an LLM SDK directly. It calls one function, the
-orchestration engine (`lib/llm.ts`), and asks for a completion. The agent code
-has zero provider knowledge.
+| Mode | Chat and research provider order | Report formatting |
+| --- | --- | --- |
+| `openai-only` | OpenAI | OpenAI |
+| `failover` | OpenAI, then the alternate provider; `LLM_PRIMARY=anthropic` reverses the order | OpenAI |
+| `openai-gemini-failover` | OpenAI-compatible endpoint, then direct Gemini | OpenAI-compatible endpoint, then direct Gemini |
 
-The engine holds an ordered list of providers. Each provider runs two model
-tiers: a main model for the agent's reasoning loop, and a faster sub model for
-the per-source findings calls. Both tiers fail over together.
+Chat/research includes only configured keys. Outside Gateway/Gemini mode, reports
+require `OPENAI_API_KEY`; without it, the saved source result remains available
+without a model summary. With `openai-only`, the alternate provider
+keys are ignored. `OPENAI_BASE_URL` can select Vercel AI Gateway for the
+OpenAI-compatible endpoint. See [deployment configuration](vercel-native.md#production-runtime)
+for the deployed settings; source defaults are not a record of live configuration.
 
-1. **Primary**: Anthropic. Main: Claude Opus 4.8. Sub: Claude Sonnet 4.6.
-2. **Backup**: OpenAI. Main and sub: ChatGPT GPT-5.5.
+## Models and credentials
 
-On each call it sends the request to the primary. If the primary fails in a way
-worth retrying (out of credit/quota, rate limited / 429, a 5xx, or a network
-error), the engine transparently re-sends the same request to the backup. A real
-bad request (400) is not retried, because the backup would reject it too.
+- `OPENAI_API_KEY`: server-only OpenAI or Gateway credential.
+- `OPENAI_BASE_URL`: optional OpenAI-compatible endpoint.
+- `OPENAI_MODEL` and `OPENAI_MODEL_SUB`: chat/research and source-formatting models.
+- `OPENAI_REPORT_MODEL`: report-formatting model, separate from chat/tool routing.
+- `GEMINI_API_KEY` and `GEMINI_MODEL`: direct Gemini fallback.
+- `GEMINI_REPORT_MODEL`: optional report override, otherwise `GEMINI_MODEL`.
+- `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL`, and `ANTHROPIC_MODEL_SUB`: optional
+  alternate provider settings used only in `failover` mode.
 
-The engine returns the answer plus which model served it. Every turn reports that
-model, shown live in the UI (the ORCHESTRATOR chip and LLM engine bar) and the
-logs. If both providers are down, the agent still returns a real report from the
-sources it already bought on chain. Provider order and models are env config, so
-swapping providers is a config change, not a code change.
+Keep credentials in the deployment's secret storage or a gitignored `.env.local`.
+Use model identifiers supported by the selected endpoint. API access, quotas and
+billing are separate from Stellar balances and wallet authorization.
 
-## Why we don't need OpenRouter
+## Failure behavior
 
-- **Direct calls.** Straight to Anthropic and OpenAI via official SDKs. No third
-  party in a path that also settles payments: no added latency, no extra outage
-  surface, no prompt data through a middleman.
-- **No markup, no extra balance.** We spend the providers' own credits on
-  accounts we control, not a funded OpenRouter balance with a per-call fee.
-- **Day-one models + full features**, with no wait for a router to support them.
-- **We own the policy.** ~250 reviewable lines, not a black box.
-- **One less key/account to secure.**
+The research completion wrapper in `lib/llm.ts` can advance to the next enabled
+provider for quota, authentication, rate-limit, network or transient failures.
+Billing/quota errors can fail over regardless of status. Other bad-request errors
+such as HTTP 400, 404 and 422 stop that completion. Each
+completion selects its own provider; main and sub calls need not use the same one.
+The legacy research demonstration uses generated source findings and can return a
+labelled degraded report when model access fails. It is separate from the wallet's
+marketplace results.
 
-Bottom line: OpenRouter solves "many providers behind one key." We have two,
-called directly, with our own failover. A router would add cost, latency, and a
-dependency for no benefit.
+Wallet chat uses `lib/wallet/chat-model.ts`. It can switch on HTTP 401, 403, 429 or 5xx only before
+the response stream starts. A failure after streaming or a paid tool execution
+must preserve the existing operation and receipts rather than start another purchase.
 
-## One myth to kill: the "5 hour window"
-
-That's a consumer chat-subscription limit, not an API-key one. We use
-pay-as-you-go API keys, which have no 5-hour window. The only limits are credit
-balance and per-minute rate limits, and the failover covers both.
-
-## Configuration
-
-```
-ANTHROPIC_API_KEY=hidden
-OPENAI_API_KEY=hidden
-LLM_PRIMARY=anthropic
-ANTHROPIC_MODEL=claude-opus-4-8
-ANTHROPIC_MODEL_SUB=claude-sonnet-4-6
-OPENAI_MODEL=gpt-5.5
-OPENAI_MODEL_SUB=gpt-5.5
-```
+Marketplace report formatting uses `buildReportLlm()` and saved source data.
+In Gateway/Gemini mode, Gemini can retry formatting without another payment.
+A failed summary retains the source result and settlement evidence; report recovery
+must never buy the service again. See [report recovery](report-recovery.md).
