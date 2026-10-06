@@ -129,7 +129,7 @@ const evidence = [
   {
     title: "Gate-check results",
     copy: "34 total contract tests: 23 Registry tests, 11 TimelockController tests, plus dependency results and reproduction commands.",
-    href: `https://github.com/ackrate/ackrate-project/blob/main/instance/artifacts/108-other-repository-artifacts/ackrate-protocol-contracts/docs/security-scan-report.md`,
+    href: `https://github.com/ackrate/ackrate-protocol-contracts/blob/e0dc3a7e6a38058031bf2f6489a6604141c6a8aa/docs/security-scan-report.md`,
     icon: Fingerprint,
   },
   {
@@ -152,7 +152,7 @@ const requirements = [
     label: "Negative paths",
     result: "6 NAMED PATHS COVERED",
     copy: "The suite covers unauthorized callers, expiry, overspend, replay, reentrancy, and upgrade attempts; 34 is the total Mainnet test count.",
-    href: `https://github.com/ackrate/ackrate-project/blob/main/instance/artifacts/108-other-repository-artifacts/ackrate-protocol-contracts/docs/security-scan-report.md#results`,
+    href: `https://github.com/ackrate/ackrate-protocol-contracts/blob/e0dc3a7e6a38058031bf2f6489a6604141c6a8aa/docs/security-scan-report.md#results`,
     icon: ShieldCheck,
   },
   {
@@ -173,14 +173,14 @@ const requirements = [
     label: "Dependency gate",
     result: "REQUIRED GATE",
     copy: "The required workflow fails on actionable dependency or yanked-package findings; the latest run and versioned report are authoritative.",
-    href: `https://github.com/ackrate/ackrate-project/blob/main/instance/artifacts/108-other-repository-artifacts/ackrate-protocol-contracts/docs/security-scan-report.md#findings-and-disposition`,
+    href: `https://github.com/ackrate/ackrate-protocol-contracts/blob/e0dc3a7e6a38058031bf2f6489a6604141c6a8aa/docs/security-scan-report.md#findings-and-disposition`,
     icon: Fingerprint,
   },
   {
     label: "Independent replay",
     result: "ONE COMMAND",
     copy: "An external reviewer can reproduce dependency checks, formatting, linting, contract tests, and portable WASM builds.",
-    href: `https://github.com/ackrate/ackrate-project/blob/main/instance/artifacts/108-other-repository-artifacts/ackrate-protocol-contracts/docs/security-scan-report.md#reviewer-reproduction`,
+    href: `https://github.com/ackrate/ackrate-protocol-contracts/blob/e0dc3a7e6a38058031bf2f6489a6604141c6a8aa/docs/security-scan-report.md#reviewer-reproduction`,
     icon: ClipboardCheck,
   },
 ] as const;
@@ -537,7 +537,7 @@ export default function MerchantsPage() {
               ["Deployment manifest", `${REPO}/blob/main/contracts/mainnet/deployment-manifest.json`],
               ["Canonical Mainnet source", `${REPO}/tree/main/contracts/mainnet`],
               ["Build provenance", `${REPO}/actions/runs/33049143306`],
-              ["Verification report", `https://github.com/ackrate/ackrate-project/blob/main/instance/artifacts/108-other-repository-artifacts/ackrate-protocol-contracts/docs/security-scan-report.md`],
+              ["Verification report", `https://github.com/ackrate/ackrate-protocol-contracts/blob/e0dc3a7e6a38058031bf2f6489a6604141c6a8aa/docs/security-scan-report.md`],
             ].map(([label, href]) => (
               <a key={label} href={href} target="_blank" rel="noreferrer" className="flex items-center justify-between gap-3 rounded-xl border border-white/[0.07] bg-black/15 px-4 py-3 text-sm font-semibold text-white/65 transition hover:border-neutral-300/25 hover:text-neutral-100">
                 {label}<ArrowUpRight className="h-4 w-4 text-neutral-300" />
@@ -636,7 +636,7 @@ export default function MerchantsPage() {
       <motion.section {...fade(0.28)} className="mt-12 overflow-hidden rounded-3xl border border-neutral-300/15 bg-[radial-gradient(circle_at_20%_0%,rgba(255,255,255,.14),transparent_38%),rgba(255,255,255,.02)] p-7 sm:p-10">
         <div className="grid gap-8 lg:grid-cols-[1fr_auto] lg:items-center">
           <div><div className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.17em] text-neutral-300/75"><ShieldCheck className="h-4 w-4" /> Independent verification</div><h2 className="mt-3 text-3xl font-black tracking-tight text-white sm:text-4xl">Run the gate. Follow every claim to source.</h2><p className="mt-4 max-w-2xl text-sm leading-relaxed text-white/50">The repository is organized so an external reviewer can reproduce the test and dependency gates, inspect every contract function, verify the trust boundaries, and compare the governed source and artifacts with Mainnet.</p></div>
-          <a href={`https://github.com/ackrate/ackrate-project/blob/main/instance/artifacts/108-other-repository-artifacts/ackrate-protocol-contracts/docs/security-scan-report.md`} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center gap-2 rounded-xl bg-neutral-400 px-5 py-3 text-sm font-bold text-[#1a1a1a] transition hover:bg-neutral-300">Open gate-check report <ArrowUpRight className="h-4 w-4" /></a>
+          <a href={`https://github.com/ackrate/ackrate-protocol-contracts/blob/e0dc3a7e6a38058031bf2f6489a6604141c6a8aa/docs/security-scan-report.md`} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center gap-2 rounded-xl bg-neutral-400 px-5 py-3 text-sm font-bold text-[#1a1a1a] transition hover:bg-neutral-300">Open gate-check report <ArrowUpRight className="h-4 w-4" /></a>
         </div>
       </motion.section>
     </main>
