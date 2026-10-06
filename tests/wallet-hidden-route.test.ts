@@ -167,10 +167,10 @@ for (const surface of surfaces) {
 
   test(`${surface}: reports expose contract, marketplace, registration, and allowance proofs`, () => {
     includes(app, ["<PurchaseReport", "registrationTx={stored?.registrationTx}", "allowanceTx={stored?.allowanceTx}"]);
-    includes(ui, ["ACKRATE CONTRACT", "AGENT402 x402", "Read the cited report", "Open service output", "View transaction"]);
+    includes(ui, [surface === "wallet" ? "Receipt 1 · Ackrate contract" : "ACKRATE CONTRACT", surface === "wallet" ? "Receipt 2 · Agent402 marketplace" : "AGENT402 x402", "Read the cited report", "Open service output", "View transaction"]);
     includes(thread, ["Mandate registration", "USDC allowance", "Agent402 x402", "Stellar Explorer", 'className="research-brief report-document"', "report-rail report-proof-rail"]);
     const editorial = surface === "wallet" ? read("components/wallet/ReportEditorial.tsx") : thread;
-    includes(editorial, ["Research sources", "report-rail report-source-rail", "TWO-MODEL REVIEW"]);
+    includes(editorial, ["Research sources", "report-rail report-source-rail", surface === "wallet" ? "WRITTEN SUMMARY" : "TWO-MODEL REVIEW"]);
   });
 
   test(`${surface}: rendering matches the page presentation`, () => {

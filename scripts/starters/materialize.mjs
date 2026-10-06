@@ -82,16 +82,17 @@ function renderPackageJson(dependencyPolicy, kit) {
     fulfillment: "node src/fulfillment.mjs",
     reset: "node src/reset.mjs",
   };
-  if (kit.id === "research-source-scout") scripts.hosted = "node src/hosted.mjs";
+  if (kit.id === "research-source-scout") { scripts.hosted = "node src/hosted.mjs"; scripts["demo:mainnet"] = "node src/mainnet.mjs"; }
   return `${stableStringify({
     name: "ackrate-hackathon-starter",
     version: "0.0.0",
     private: true,
-    description: "Self-contained ACKRATE bound-v2 starter for Stellar testnet.",
+    description: kit.id === "research-source-scout" ? "ACKRATE Testnet starter with an explicit Mainnet CLI companion." : "Self-contained ACKRATE bound-v2 starter for Stellar testnet.",
     type: "module",
     engines: { node: dependencyPolicy.nodeEngine },
     scripts,
     dependencies: dependencyPolicy.dependencies,
+    overrides: dependencyPolicy.overrides,
   })}\n`;
 }
 
@@ -286,11 +287,14 @@ const BLOCKED_RESOURCE = "patents";
 function printHelp() {
   console.log(\`ACKRATE hosted Testnet companion
 
-Usage:
-  npm run hosted -- --endpoint="https://reapp.live/api/express/WORKSPACE/source" --merchant="G..."
+Example only (WORKSPACE and G... are placeholders):
+  npm run hosted -- --endpoint="https://reapp.ackrate.com/api/express/WORKSPACE/source" --merchant="G..."
 
-The endpoint and merchant come from https://reapp.live/docs/hosted. The command
-uses disposable Stellar testnet signers and never requests a wallet secret.\`);
+Copy the actual endpoint and merchant from a configured hosted session at
+https://reapp.ackrate.com/docs/hosted; do not run the example unchanged. The command
+uses disposable Stellar testnet signers and never requests a wallet secret.
+The hosted companion requires a separately configured persistent runtime;
+its availability is not verified by the local demo.\`);
 }
 
 function normalizeEndpoint(value) {
@@ -481,12 +485,13 @@ console.log(\`Offline gate check passed: \${scenario.id} · \${results.length} v
 `;
 }
 
-function renderResetSource() {
+function renderResetSource(kit) {
   return `import { resolve } from "node:path";
 
 import { runSafeReset } from "../shared/reset.mjs";
 
-const result = await runSafeReset({
+${kit.id === "research-source-scout" ? `if (process.env.ACKRATE_STATE_ROOT || process.env.ACKRATE_ARCHIVE_ROOT) throw new Error("Research Source Scout reset only supports default Testnet state; preserve .ackrate-mainnet for CLI recovery.");
+` : ""}const result = await runSafeReset({
   stateRoot: resolve(process.env.ACKRATE_STATE_ROOT ?? ".ackrate"),
   archiveRoot: resolve(process.env.ACKRATE_ARCHIVE_ROOT ?? ".ackrate-archive"),
 });
@@ -499,15 +504,51 @@ function renderEnvExample() {
 }
 
 function renderGitIgnore() {
-  return `node_modules/\n.env\n.env.local\n.ackrate/\n.ackrate-archive/\n*.log\n.DS_Store\n`;
+  return `node_modules/\n.env\n.env.local\n.ackrate/\n.ackrate-archive/\n.ackrate-mainnet/\n*.log\n.DS_Store\n`;
+}
+
+function renderMainnetReadme() {
+  return `## Continue on Mainnet
+
+Research Source Scout alone also includes a separate published reference runner, pinned to @ackrate/cli 0.2.1. It makes three request-bound USDC purchases and verifies that a fourth exceeds the budget. It does not run the custom Testnet scenario on Mainnet. The other starter scenarios remain Testnet-only.
+
+Use Node.js 22 or newer and the Stellar CLI. Before running, configure a named user transaction signer, a named agent identity, and a distinct merchant public address. Stellar CLI signs the user's transactions. The supplied agent environment key signs both the agent's transactions and detached request proofs; the named agent identity is only used to verify that the supplied key has the expected public address. The user and agent each need at least 0.50 spendable XLM after reserves, with additional headroom for transaction fees; the user needs at least the chosen USDC budget. Both user and merchant need authorized canonical USDC trustlines with capacity. Supply the agent key through a private environment variable or secret manager. Its public key must match the named agent identity. Stellar CLI Secure Store identities deliberately do not export this raw key, so an existing nonexportable agent identity cannot supply this runner. Use a dedicated supported private file identity or a secret provider that can securely supply the matching agent key. Keep file identities outside the repository and media artifacts, in a private directory with restrictive permissions. Do not bypass Secure Store or place a secret in an argument, this README, logs, or a recording.
+
+The launcher uses the published CLI's canonical Mainnet registry and USDC manifest, readiness checks, and durable pending-settlement guards. There is no funding helper or network/manifest override. Inspect the names, merchant, price, budget, and available fee balance before explicitly consenting:
+
+\`\`\`bash
+npm run demo:mainnet -- --help
+npm run demo:mainnet -- --user-signer my-mainnet-user --agent-signer my-mainnet-agent --agent-secret-env ACKRATE_AGENT_SECRET --merchant G_REPLACE_WITH_MERCHANT_PUBLIC_ADDRESS --price 0.01 --budget 0.03 --confirm-real-usdc
+\`\`\`
+
+The budget must cover three prices but remain below four prices. The second command transfers up to 0.03 USDC for three results, plus XLM network fees. The example merchant placeholder must be replaced. The confirmation flag is required and is never added automatically. CLI preflight must pass before registration, allowance, or payments.
+
+Mainnet recovery state stays in this project's private, Git-ignored \`.ackrate-mainnet/\` directory, regardless of an inherited \`ACKRATE_HOME\`. Keep that same folder for retries. Unresolved settlement evidence stops another run; follow the CLI recovery instructions instead of deleting state or starting in a different folder. \`npm run reset\` archives only the default Testnet \`.ackrate/\` state and rejects custom reset paths in this starter. It never resets Mainnet. Inspect pending evidence with the installed, pinned CLI from the project folder. These commands only reconcile retained settlements; they do not start another purchase.
+
+Mac / Linux:
+
+\`\`\`bash
+ACKRATE_HOME="$PWD/.ackrate-mainnet" node node_modules/@ackrate/cli/dist/ackrate-cli.bundle.mjs settlement reconcile
+\`\`\`
+
+Windows PowerShell:
+
+\`\`\`powershell
+$env:ACKRATE_HOME = Join-Path (Get-Location).Path '.ackrate-mainnet'
+node node_modules/@ackrate/cli/dist/ackrate-cli.bundle.mjs settlement reconcile
+\`\`\`
+
+Use that same pinned CLI path and Mainnet state directory for any later recovery command. Review the retained receipt and delivery outcome before acknowledging it; do not acknowledge merely to clear a blocker. A setup-registration recovery requires its exact transaction hash and the same original identities. Never reset pending state or blindly start another demo.
+
+`;
 }
 
 function renderReadme(kit, metadata, dependencyPolicy) {
   const features = kit.features.map((feature) => `- \`${feature}\``).join("\n");
   const hosted = kit.id === "research-source-scout"
-    ? `## Optional hosted walkthrough\n\nThe local demo above is the primary starter flow. To connect the same project to the browser companion afterward:\n\n1. Open [the hosted walkthrough](https://reapp.live/docs/hosted).\n2. Start the optional hosted walkthrough.\n3. Copy the displayed \`npm run hosted -- --endpoint=... --merchant=...\` command into this project's VS Code terminal and press **Enter**.\n\nThe browser and terminal then show the same hosted paid flow. Your private signers and recovery evidence stay in this local folder.\n\n`
+    ? `## Optional hosted walkthrough\n\nThe local demo above is the primary starter flow. The optional browser companion requires a separately configured persistent runtime. Its hosted availability is not verified by the local demo. When that runtime is available:\n\n1. Open [the hosted walkthrough](https://reapp.ackrate.com/docs/hosted).\n2. Start the optional hosted walkthrough.\n3. Copy the displayed \`npm run hosted -- --endpoint=... --merchant=...\` command into this project's VS Code terminal and press **Enter**.\n\nThe browser and terminal then show the same hosted paid flow. Your private signers and recovery evidence stay in this local folder.\n\n`
     : "";
-  return `# ${kit.title}\n\n**${kit.summary}**\n\nThis starter protects \`${kit.paidResource}\` with a request-bound payment on Stellar testnet. The app asks; the MandateRegistry contract decides whether money moves.\n\n## Run locally\n\nYou need Node.js 20 or newer. You do not need a wallet or a GitHub repo.\n\n### If you used Copy setup command\n\nThe setup command on [reapp.live/docs/quickstarts](https://reapp.live/docs/quickstarts) already downloaded this starter, extracted it into your empty folder, and ran \`npm ci\`. Before extraction, it verified the ZIP against the exact SHA-256 in the [public integrity manifest](https://reapp.live/starters/v1/manifest.json). In the same VS Code terminal, run:\n\n\`\`\`bash\nnpm run demo\n\`\`\`\n\n### If you downloaded the ZIP manually\n\nCompare its SHA-256 with the [public integrity manifest](https://reapp.live/starters/v1/manifest.json), extract the ZIP, open a terminal in the extracted folder, then run:\n\n\`\`\`bash\n${dependencyPolicy.installCommand}\nnpm run demo\n\`\`\`\n\nThe demo creates disposable testnet accounts, starts the consumer and Express fulfillment service, and prints concise status lines and transaction links. It never requests a wallet or mainnet secret.\n\n${hosted}## What the run verifies\n\nNo real money is used. The consumer receives HTTP 402, pays through the contract, and receives HTTP 200 with the protected result. The SDK runner prints one-line status updates and transaction links.\n\nThe terminal shows the local fulfillment server starting, accepted Stellar testnet payment evidence with explorer transaction hashes, the protected result delivered to the consumer, and the named negative or recovery check reaching its documented outcome.\n\n\`\`\`mermaid\nsequenceDiagram\n    autonumber\n    participant You\n    participant Agent as Consumer agent\n    participant API as Express API\n    participant Contract as MandateRegistry\n    participant Stellar as Stellar testnet\n\n    You->>Agent: Run npm run demo\n    Agent->>API: GET protected result\n    API-->>Agent: 402 Payment Required\n    Agent->>Contract: Request the exact payment\n    Contract->>Stellar: Verify the spending rules\n    Stellar-->>Agent: Confirm payment\n    Agent->>API: Retry with payment proof\n    API-->>Agent: 200 + protected result\n    Agent->>Agent: Verify the named safety or recovery check\n\`\`\`\n\n## Scenario\n\n- Paid resource: \`${kit.paidResource}\`\n- Price policy: exact decimal amounts declared by the scenario\n- Safety or recovery check: \`${kit.negativePath.id}\`\n- Expected outcome: ${kit.negativePath.outcome}\n- Fixtures: ${kit.fixtures}\n\n${kit.businessLogic}\n\n### Capabilities\n\n${features}\n\n## Make it yours\n\nStart with these three files:\n\n| File | What to change |\n|---|---|\n| \`scenario/scenario.mjs\` | Your product's rules, sample data, delivery checks, and rejection check. |\n| \`src/consumer.mjs\` | How your app requests and pays for the protected result. |\n| \`src/fulfillment.mjs\` | What your paid Express endpoint returns. |\n\nThe shared payment and recovery code lives in \`shared/\`. Leave it unchanged until your project needs advanced customization.\n\n## Run fulfillment separately\n\nThe one-command demo starts both sides automatically. To inspect or modify the server independently:\n\n\`\`\`bash\ncp .env.example .env\n# Put a funded Stellar testnet public G-address in ACKRATE_MERCHANT.\nnpm run fulfillment\n\`\`\`\n\nKeep the challenge secret private and stable. The reference file store is for one local Node process; multi-process deployments need one shared linearizable store implementing the same interface.\n\n## Safety and recovery\n\n- Paid work is GET-only and bound to the exact origin, method, resource, merchant, asset, amount, registry, and short-lived challenge.\n- Delivery evidence is committed before the client acknowledges and clears a settlement receipt.\n- Exact same-proof replay returns byte-identical recovery; an old proof on a new resource is rejected, and a freshly rebound proof reusing an old transaction conflicts.\n- State under \`.ackrate/\` is private and ignored by Git. Run \`npm run reset\` only after all payment and fulfillment evidence is resolved.\n\nCatalog identity: \`${metadata.id}\` · fixture policy: \`${metadata.fixturePolicy}\`.\n`;
+  return `# ${kit.title}\n\n**${kit.summary}**\n\nThis starter protects \`${kit.paidResource}\` with a request-bound payment on Stellar testnet. The app asks; the MandateRegistry contract decides whether money moves.\n\n## Run locally\n\nYou need Node.js 22 or newer. You do not need a wallet or a GitHub repo.\n\n### If you used Copy setup command\n\nThe setup command on [reapp.ackrate.com/docs/quickstarts](https://reapp.ackrate.com/docs/quickstarts) already downloaded this starter, extracted it into your empty folder, and ran \`npm ci\`. Before extraction, it verified the ZIP against the exact SHA-256 in the [public integrity manifest](https://reapp.ackrate.com/starters/v1/manifest.json). In the same VS Code terminal, run:\n\n\`\`\`bash\nnpm run demo\n\`\`\`\n\n### If you downloaded the ZIP manually\n\nCompare its SHA-256 with the [public integrity manifest](https://reapp.ackrate.com/starters/v1/manifest.json), extract the ZIP, open a terminal in the extracted folder, then run:\n\n\`\`\`bash\n${dependencyPolicy.installCommand}\nnpm run demo\n\`\`\`\n\nThe demo creates disposable testnet accounts, starts the consumer and Express fulfillment service, and prints concise status lines and transaction links. It never requests a wallet or mainnet secret.\n\n${hosted}${kit.id === "research-source-scout" ? renderMainnetReadme() : ""}## What the Testnet run verifies\n\nNo real money is used. The consumer receives HTTP 402, pays through the contract, and receives HTTP 200 with the protected result. The SDK runner prints one-line status updates and transaction links.\n\nThe terminal shows the local fulfillment server starting, accepted Stellar testnet payment evidence with explorer transaction hashes, the protected result delivered to the consumer, and the named negative or recovery check reaching its documented outcome.\n\n\`\`\`mermaid\nsequenceDiagram\n    autonumber\n    participant You\n    participant Agent as Consumer agent\n    participant API as Express API\n    participant Contract as MandateRegistry\n    participant Stellar as Stellar testnet\n\n    You->>Agent: Run npm run demo\n    Agent->>API: GET protected result\n    API-->>Agent: 402 Payment Required\n    Agent->>Contract: Request the exact payment\n    Contract->>Stellar: Verify the spending rules\n    Stellar-->>Agent: Confirm payment\n    Agent->>API: Retry with payment proof\n    API-->>Agent: 200 + protected result\n    Agent->>Agent: Verify the named safety or recovery check\n\`\`\`\n\n## Scenario\n\n- Paid resource: \`${kit.paidResource}\`\n- Price policy: exact decimal amounts declared by the scenario\n- Safety or recovery check: \`${kit.negativePath.id}\`\n- Expected outcome: ${kit.negativePath.outcome}\n- Fixtures: ${kit.fixtures}\n\n${kit.businessLogic}\n\n### Capabilities\n\n${features}\n\n## Make it yours\n\nStart with these three files:\n\n| File | What to change |\n|---|---|\n| \`scenario/scenario.mjs\` | Your product's rules, sample data, delivery checks, and rejection check. |\n| \`src/consumer.mjs\` | How your app requests and pays for the protected result. |\n| \`src/fulfillment.mjs\` | What your paid Express endpoint returns. |\n\nThe shared payment and recovery code lives in \`shared/\`. Leave it unchanged until your project needs advanced customization.\n\n## Run fulfillment separately\n\nThe one-command demo starts both sides automatically. To inspect or modify the server independently:\n\n\`\`\`bash\ncp .env.example .env\n# Put a funded Stellar testnet public G-address in ACKRATE_MERCHANT.\nnpm run fulfillment\n\`\`\`\n\nKeep the challenge secret private and stable. The reference file store is for one local Node process; multi-process deployments need one shared linearizable store implementing the same interface.\n\n## Safety and recovery\n\n- Paid work is GET-only and bound to the exact origin, method, resource, merchant, asset, amount, registry, and short-lived challenge.\n- Delivery evidence is committed before the client acknowledges and clears a settlement receipt.\n- Exact same-proof replay returns byte-identical recovery; an old proof on a new resource is rejected, and a freshly rebound proof reusing an old transaction conflicts.\n- State under \`.ackrate/\` is private and ignored by Git. Run \`npm run reset\` only after all payment and fulfillment evidence is resolved.\n\nCatalog identity: \`${metadata.id}\` · fixture policy: \`${metadata.fixturePolicy}\`.\n`;
 }
 
 async function listRegularFiles(root, prefix = "") {
@@ -546,7 +587,7 @@ function appendFile(files, path, value) {
   files.set(checked, Buffer.isBuffer(value) ? Buffer.from(value) : text(value));
 }
 
-function buildKitFiles({ catalog, kit, dependencyPolicy, canonicalLockSource, sharedSources, scenarioSources }) {
+function buildKitFiles({ catalog, kit, dependencyPolicy, canonicalLockSource, sharedSources, scenarioSources, mainnetSource }) {
   const metadata = expectedMetadata(kit, catalog);
   const files = new Map();
   appendFile(files, ".env.example", renderEnvExample());
@@ -561,7 +602,8 @@ function buildKitFiles({ catalog, kit, dependencyPolicy, canonicalLockSource, sh
   appendFile(files, "src/consumer.mjs", renderConsumerSource(kit));
   appendFile(files, "src/fulfillment.mjs", renderFulfillmentSource());
   if (kit.id === "research-source-scout") appendFile(files, "src/hosted.mjs", renderHostedConsumerSource());
-  appendFile(files, "src/reset.mjs", renderResetSource());
+  if (kit.id === "research-source-scout") appendFile(files, "src/mainnet.mjs", mainnetSource);
+  appendFile(files, "src/reset.mjs", renderResetSource(kit));
   return files;
 }
 
@@ -751,9 +793,10 @@ async function loadCanonicalLock(dependencyPolicy) {
 
 export async function buildStarterArtifacts() {
   const { catalog, dependencyPolicy } = await loadCatalogInputs();
-  const [canonicalLockSource, sharedSources] = await Promise.all([
+  const [canonicalLockSource, sharedSources, mainnetSource] = await Promise.all([
     loadCanonicalLock(dependencyPolicy),
     loadSharedSources(),
+    readFile(resolveRepositoryPath("starter-kit-src/template/mainnet.mjs")),
   ]);
   const kits = [];
   for (const kit of catalog.kits) {
@@ -765,6 +808,7 @@ export async function buildStarterArtifacts() {
       canonicalLockSource,
       sharedSources,
       scenarioSources,
+      mainnetSource,
     });
     const archive = createStoredZip(files);
     const digest = sha256(archive);

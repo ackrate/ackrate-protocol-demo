@@ -1,11 +1,11 @@
 import { z } from "zod";
-import { buildReportLlm, type FailoverLlm } from "../llm";
+import { AllProvidersExhausted, buildReportLlm, classifyError, type FailoverLlm, type LlmResponse } from "../llm";
 import type { MarketBrief } from "./market-brief";
 import type { Agent402Evidence, Agent402SearchResult } from "./marketplace-types";
 
 export const REPORT_FORMAT_TIMEOUT_MS = 90_000;
 
-const Draft = z.object({
+const Structure = z.object({
   title: z.string().trim().min(8).max(120),
   subtitle: z.string().trim().min(12).max(220),
   opening: z.string().trim().min(40).max(1_200),
@@ -14,10 +14,46 @@ const Draft = z.object({
     body: z.string().trim().min(30).max(1_000),
   }).strict()).min(3).max(5),
   takeaway: z.string().trim().min(30).max(900),
-  summary: z.array(z.string().trim().min(80).max(1_200)
-    .refine((paragraph) => !/\n\s*\n/.test(paragraph), "Each summary item must be one paragraph.")
-    .refine((paragraph) => /\[\d+(?:\s*[,–-]\s*\d+)*\]/.test(paragraph), "Each summary paragraph needs a source citation.")).min(3).max(4),
+  summary: z.array(z.string().trim().min(80).max(1_200)).min(3).max(4),
 }).strict();
+
+// Keep local string bounds, but send only the provider's supported schema subset.
+function providerSchema(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(providerSchema);
+  if (!value || typeof value !== "object") return value;
+  const schema = value as Record<string, unknown>;
+  const result = Object.fromEntries(Object.entries(schema).filter(([key]) => !["$schema", "minLength", "maxLength"].includes(key))
+    .map(([key, nested]) => [key, providerSchema(nested)]));
+  if (schema.type === "string" && typeof schema.minLength === "number" && typeof schema.maxLength === "number") {
+    result.description = `Use ${schema.minLength} to ${schema.maxLength} characters.`;
+  }
+  return result;
+}
+export const REPORT_RESPONSE_FORMAT = { name: "purchased_source_report", schema: providerSchema(z.toJSONSchema(Structure)) as Record<string, unknown> };
+export type ReportDiagnostic = { category: string; stage: "provider" | "validation"; elapsedMs: number; status?: number; issues?: string[] };
+class ReportOutputError extends Error {
+  constructor(readonly category: string) { super(category); }
+}
+
+function checkedText(response: LlmResponse): string {
+  if (response.metadata?.refused) throw new ReportOutputError("refusal");
+  if (response.metadata?.finishReason === "length") throw new ReportOutputError("truncated");
+  if (!response.text.trim()) throw new ReportOutputError("empty_output");
+  return response.text;
+}
+
+function diagnostic(cause: unknown, stage: ReportDiagnostic["stage"], started: number): ReportDiagnostic {
+  const error = cause instanceof AllProvidersExhausted ? cause.lastError : cause;
+  const status = typeof error === "object" && error !== null && "status" in error
+    && typeof error.status === "number" && Number.isInteger(error.status) && error.status >= 100 && error.status <= 599 ? error.status : undefined;
+  const category = cause instanceof ReportOutputError ? cause.category : cause instanceof z.ZodError ? "invalid_schema"
+    : cause instanceof SyntaxError ? "invalid_json" : stage === "provider" ? `provider_${classifyError(error).kind}` : "unexpected";
+  // Paths come only from our schema. Unknown property names/messages may contain model content.
+  const fields = new Set(["title", "subtitle", "opening", "findings", "body", "takeaway", "summary"]);
+  const issues = cause instanceof z.ZodError ? cause.issues.slice(0, 8).map((issue) => issue.path
+    .map((part) => typeof part === "number" ? "item" : fields.has(String(part)) ? String(part) : "field").join(".")) : undefined;
+  return { category, stage, elapsedMs: Math.max(0, Date.now() - started), ...(status ? { status } : {}), ...(issues ? { issues } : {}) };
+}
 
 function publisher(url: string): string {
   const hostname = new URL(url).hostname.replace(/^www\./, "");
@@ -37,7 +73,7 @@ function fallback(question: string, evidence: Agent402Evidence): MarketBrief {
     opening: evidence.results[0]?.description
       ?? "The marketplace purchase completed, but the source index returned limited descriptive text. The original links remain available for direct review.",
     findings,
-    takeaway: "Your search results are saved below. A written summary is not available for this report, so follow the source links for the full context.",
+    takeaway: "Your search results are saved in Sources. A written summary is not available for this report, so follow the source links for the full context.",
     sources: evidence.results.map((result) => ({ publisher: publisher(result.url), title: result.title, url: result.url })),
     question,
     generatedAt: new Date().toISOString(),
@@ -62,22 +98,38 @@ function sourcePacket(results: Agent402SearchResult[]): string {
 }
 
 function parseDraft(text: string, sourceCount: number) {
-  const draft = Draft.parse(parseJson(text));
+  const draft = Structure.parse(parseJson(text));
+  for (const paragraph of draft.summary) {
+    if (/\n\s*\n/.test(paragraph) || !/\[\d+(?:\s*[,–-]\s*\d+)*\]/.test(paragraph)) {
+      throw new ReportOutputError("invalid_citation");
+    }
+  }
   const sections = [draft.title, draft.subtitle, draft.opening, draft.takeaway, ...draft.summary, ...draft.findings.flatMap((finding) => [finding.title, finding.body])];
   for (const section of sections) {
     for (const citation of section.matchAll(/\[(\d+(?:\s*[,–-]\s*\d+)*)\]/g)) {
       if (citation[1].split(/\s*[,–-]\s*/).some((number) => Number(number) < 1 || Number(number) > sourceCount)) {
-        throw new Error("The report cited a source outside the purchased evidence.");
+        throw new ReportOutputError("invalid_citation");
       }
     }
   }
   return draft;
 }
 
+/** Validate a derived revision against the original purchased packet before saving it. */
+export function validComposedReport(value: MarketBrief, evidence: Agent402Evidence, question = evidence.query): boolean {
+  try {
+    const { title, subtitle, opening, findings, takeaway, summary } = value;
+    parseDraft(JSON.stringify({ title, subtitle, opening, findings: findings.map(({ title, body }) => ({ title, body })), takeaway, summary }), evidence.results.length);
+    return (value.editorialPasses === 1 || value.editorialPasses === 2) && value.question === question
+      && value.sources.length === evidence.results.length
+      && value.sources.every((source, index) => source.url === evidence.results[index].url && source.title === evidence.results[index].title);
+  } catch { return false; }
+}
+
 export async function createMarketplaceReport(
   question: string,
   evidence: Agent402Evidence,
-  dependencies: { llm?: Pick<FailoverLlm, "complete"> } = {},
+  dependencies: { llm?: Pick<FailoverLlm, "complete">; onDiagnostic?: (value: ReportDiagnostic) => void; singlePass?: boolean } = {},
 ): Promise<MarketBrief> {
   const safeFallback = fallback(question, evidence);
   if (evidence.results.length === 0) return {
@@ -88,14 +140,16 @@ export async function createMarketplaceReport(
     methodology: "Agent402 returned an empty search result. No model summary was generated.",
   };
   const controller = new AbortController();
+  const started = Date.now();
+  let stage: ReportDiagnostic["stage"] = "provider";
   let timer: ReturnType<typeof setTimeout> | undefined;
   const deadline = new Promise<never>((_, reject) => {
     timer = setTimeout(() => {
       controller.abort();
-      reject(new Error("Report formatting deadline reached"));
+      reject(new ReportOutputError("timeout"));
     }, REPORT_FORMAT_TIMEOUT_MS);
   });
-  const requestBounds = { timeoutMs: REPORT_FORMAT_TIMEOUT_MS, maxRetries: 0, signal: controller.signal };
+  const requestBounds = { timeoutMs: REPORT_FORMAT_TIMEOUT_MS, maxRetries: 0, signal: controller.signal, responseFormat: REPORT_RESPONSE_FORMAT };
   try {
     const llm = dependencies.llm ?? buildReportLlm();
     const packet = sourcePacket(evidence.results);
@@ -126,13 +180,15 @@ export async function createMarketplaceReport(
       maxTokens: 6_000,
       reasoningEffort: "low",
     }, "main"), deadline]);
-    let draft = parseDraft(firstPass.response.text, evidence.results.length);
+    stage = "validation";
+    let draft = parseDraft(checkedText(firstPass.response), evidence.results.length);
     let editorialPasses = 1;
 
     // When both provider keys are configured, a distinct second model acts as
     // the fact-checking editor. If that provider is unavailable or returns an
     // invalid shape, the already-validated first pass remains the safe result.
     try {
+      if (dependencies.singlePass) throw new Error("One report call requested");
       const reviewed = await Promise.race([llm.complete({
         ...requestBounds,
         system: [
@@ -156,7 +212,7 @@ export async function createMarketplaceReport(
         maxTokens: 6_000,
         reasoningEffort: "low",
       }, "main", { excludeProviderId: firstPass.providerId }), deadline]);
-      draft = parseDraft(reviewed.response.text, evidence.results.length);
+      draft = parseDraft(checkedText(reviewed.response), evidence.results.length);
       editorialPasses = 2;
     } catch {
       // One healthy provider still produces a complete, source-bounded report.
@@ -181,7 +237,10 @@ export async function createMarketplaceReport(
         : "Live Agent402 web search followed by model synthesis of the purchased titles and snippets. The report composer did not fetch the full cited pages.",
       editorialPasses,
     };
-  } catch {
+  } catch (cause) {
+    const detail = diagnostic(cause, stage, started);
+    console.warn("[wallet.report] composition unavailable", detail);
+    dependencies.onDiagnostic?.(detail);
     return safeFallback;
   } finally {
     if (timer !== undefined) clearTimeout(timer);

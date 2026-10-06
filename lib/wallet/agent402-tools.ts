@@ -1,5 +1,6 @@
 import { isIP } from "node:net";
 import { z } from "zod";
+import { AGENT402_PRICES } from "./agent402-prices";
 
 export type SupportedAgent402Slug = "search" | "pdf" | "pdf-info";
 
@@ -23,8 +24,7 @@ export const SUPPORTED_AGENT402_TOOLS: Record<SupportedAgent402Slug, SupportedAg
     method: "GET",
     path: "/api/search",
     url: "https://agent402.tools/api/search",
-    price: "0.02",
-    amountAtomic: "200000",
+    ...AGENT402_PRICES.search,
     parameterNames: ["q", "count", "freshness"],
   },
   pdf: {
@@ -34,8 +34,7 @@ export const SUPPORTED_AGENT402_TOOLS: Record<SupportedAgent402Slug, SupportedAg
     method: "POST",
     path: "/api/pdf",
     url: "https://agent402.tools/api/pdf",
-    price: "0.01",
-    amountAtomic: "100000",
+    ...AGENT402_PRICES.pdf,
     parameterNames: ["url"],
   },
   "pdf-info": {
@@ -45,8 +44,7 @@ export const SUPPORTED_AGENT402_TOOLS: Record<SupportedAgent402Slug, SupportedAg
     method: "POST",
     path: "/api/pdf-info",
     url: "https://agent402.tools/api/pdf-info",
-    price: "0.002",
-    amountAtomic: "20000",
+    ...AGENT402_PRICES["pdf-info"],
     parameterNames: ["url"],
   },
 };

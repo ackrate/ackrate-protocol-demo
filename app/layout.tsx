@@ -4,7 +4,7 @@ import Nav from "@/components/Nav";
 import SiteFooter from "@/components/SiteFooter";
 import SiteAnalytics from "@/components/SiteAnalytics";
 
-const SITE = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://reapp.live").replace(/\/$/, "");
+const SITE = "https://reapp.ackrate.com";
 
 const title = "REAPP — Agent payments on Stellar";
 const description =
@@ -61,7 +61,7 @@ const structuredData = {
       "@type": "WebSite",
       "@id": `${SITE}/#website`,
       name: "REAPP",
-      alternateName: ["ACKRATE Protocol", "reapp.live"],
+      alternateName: ["ACKRATE Protocol", "reapp.ackrate.com"],
       url: SITE,
       description,
       inLanguage: "en",

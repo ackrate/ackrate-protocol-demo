@@ -4,6 +4,7 @@ import type { UniversalProvider } from "@walletconnect/universal-provider";
 import type { AppKit } from "@reown/appkit/core";
 import { connectionRequest, recordConnectionEvent, WalletConnectionError } from "./connection-diagnostics";
 import { MOBILE_METHODS, mobileSessionAddress, stellarChain, validateMobileTransaction } from "./walletconnect-session";
+import { prepareMobileSigningProvider } from "./walletconnect-provider";
 
 const TRANSPORT_KEY = "reapp:wallet-transport";
 // Public project identifier. Reown's dashboard must allowlist the deployment origins.
@@ -40,6 +41,16 @@ async function initialize(): Promise<void> {
     // control: only the Stellar namespace below is requested from the wallet.
     modal = createAppKit({ projectId, networks: [mainnet], universalProvider: provider, manualWCControl: true,
       allWallets: "HIDE",
+      // AppKit filters Explorer results by its placeholder EVM network. Keep the
+      // Stellar wallet explicit so phones get its native handoff, not only a QR.
+      // Verified against Freighter's public WalletConnect directory listing.
+      customWallets: [{
+        id: "freighter-mobile", name: "Freighter", homepage: "https://www.freighter.app/",
+        image_url: "https://api.web3modal.org/getWalletImage/114aa875-487a-4d86-5c87-6f22f4559100",
+        mobile_link: "freighterwallet://wc-redirect",
+        app_store: "https://apps.apple.com/us/app/freighter/id6743947720",
+        play_store: "https://play.google.com/store/apps/details?id=org.stellar.freighterwallet",
+      }],
       includeWalletIds: ["997a355c8f682468706a76cff1b004a7115f505fb962dac54b6e9b442dd1c380"],
       featuredWalletIds: ["997a355c8f682468706a76cff1b004a7115f505fb962dac54b6e9b442dd1c380"],
       features: { analytics: false, email: false, socials: false, swaps: false, onramp: false },
@@ -77,7 +88,7 @@ export async function connectMobileWallet(network: string, onStatus?: (status: s
     await modal!.open();
     const cancelled = new Promise<never>((_, reject) => {
       unsubscribe = modal!.subscribeState((state) => {
-        if (!state.open && !provider!.session) reject(new WalletConnectionError("access", "rejected", "Wallet connection cancelled. Connect again when ready."));
+        if (!state.open && !provider!.session) reject(new WalletConnectionError("access", "rejected", "Wallet connection cancelled. Refresh this page before reconnecting."));
       });
     });
     pairingPending = true;
@@ -99,12 +110,12 @@ export async function connectMobileWallet(network: string, onStatus?: (status: s
     return address;
   } catch (cause) {
     pairingAbandoned = pairingPending;
-    await provider!.cleanupPendingPairings({ deletePairings: true });
+    await provider!.cleanupPendingPairings({ deletePairings: true }).catch(() => {});
     // Late pairing approvals cannot become the app's selected transport.
     selectMobileWallet(false);
     if (provider!.session) await provider!.disconnect().catch(() => {});
     if (pairingAbandoned) throw new WalletConnectionError("access", cause instanceof WalletConnectionError ? cause.outcome : "failed",
-      "The mobile connection was cancelled or timed out. Dismiss the old request in Freighter, then refresh this page before reconnecting.");
+      "The mobile connection was cancelled or timed out. Refresh this page before reconnecting. If Freighter shows an old request, dismiss it.");
     if (cause instanceof WalletConnectionError) throw cause;
     throw new WalletConnectionError("access", "invalid", "Freighter Mobile did not approve a compatible account and network. Update the app and reconnect.");
   } finally {
@@ -125,7 +136,9 @@ async function assertSession(address: string, network: string): Promise<string> 
   if (await mobileSessionState(address, network) !== "matches") {
     throw new WalletConnectionError("session", "mismatch", "The mobile wallet account or network changed. Connect and sign in again.");
   }
-  return stellarChain(network);
+  const chain = stellarChain(network);
+  prepareMobileSigningProvider(provider!, chain, address);
+  return chain;
 }
 
 export async function mobileSignMessage(message: string, address: string, network: string): Promise<string> {
@@ -146,8 +159,11 @@ export async function mobileSignTransaction(xdr: string, address: string, networ
 
 export async function disconnectMobileWallet(): Promise<void> {
   if (!usesMobileWallet()) return;
-  await initialize();
-  if (provider!.session) await connectionRequest("disconnect", () => provider!.disconnect(), 15_000);
-  disconnected = true;
-  selectMobileWallet(false);
+  try {
+    await connectionRequest("disconnect", initialize, 15_000);
+    if (provider!.session) await connectionRequest("disconnect", () => provider!.disconnect(), 15_000);
+  } finally {
+    disconnected = true;
+    selectMobileWallet(false);
+  }
 }

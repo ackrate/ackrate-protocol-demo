@@ -5,22 +5,22 @@
   "kits": [
     {
       "archive": "/starters/v1/research-source-scout.zip",
-      "files": 27,
+      "files": 28,
       "id": "research-source-scout",
       "installers": {
         "posix": {
           "path": "/starters/v1/research-source-scout.sh",
-          "sha256": "278acc7b26ecb1b24f16938a1fac880b0326f08298e45c24558bafd42aba6c2d",
-          "size": 608
+          "sha256": "4eac3f9c1f674e87b62827bc4d1595d025b6069b43fada844e99baf589a12c72",
+          "size": 615
         },
         "powershell": {
           "path": "/starters/v1/research-source-scout.ps1",
-          "sha256": "fe6e277093dcde8c5d38a6edf5f63296c919df6e1aca2c0a8b588f6dca74b668",
-          "size": 921
+          "sha256": "d2bc506f96808d42136bf89a81b684549200bb46d9ee626cf01505152881ec28",
+          "size": 928
         }
       },
-      "sha256": "a36459eb9ef32baa38e7f18ff076a0c79fe8eb087ea047fca3d3e10797ac60b1",
-      "size": 233458,
+      "sha256": "2671100dfa6f48606976769c490793a7b577a5d3d4874d7c420f82a7c706518a",
+      "size": 241751,
       "slug": "research-source-scout"
     },
     {
@@ -30,17 +30,17 @@
       "installers": {
         "posix": {
           "path": "/starters/v1/page-snapshot-meter.sh",
-          "sha256": "20e3abcc6c710ca23dd0780437e359fa6ddb22035d98c12ea44ad472125e59dd",
-          "size": 602
+          "sha256": "3f4272deb1ccfd2415623debe4b942f472016112dc8677bce4d4f2ce766d598f",
+          "size": 609
         },
         "powershell": {
           "path": "/starters/v1/page-snapshot-meter.ps1",
-          "sha256": "fa8af5a9b48f2ac95a4cc649d31b7286cdd5d9ae9f2cfa2fb77d2ca14040974e",
-          "size": 915
+          "sha256": "317201b214486fe777b3fde45a40293aed3e0b9b2a732636beb4ed365039c8da",
+          "size": 922
         }
       },
-      "sha256": "573e6ede1bdcdef40375f12eef2941089c3066f6382678723c6861b6ce23c84f",
-      "size": 224706,
+      "sha256": "672c7e7f0d9a0b245ccc3974169112b9af6768499081b58641673ab5213c3bee",
+      "size": 223388,
       "slug": "page-snapshot-meter"
     },
     {
@@ -50,17 +50,17 @@
       "installers": {
         "posix": {
           "path": "/starters/v1/api-tollgate.sh",
-          "sha256": "e02dab0da8529f14375c25a8acdb469b695e32ed7393d1afade0b7efbbbe3756",
-          "size": 581
+          "sha256": "a81a9c89ea6f027e3a3facbda92d26a937b0cb48571c65e82c2e4cdb05abef0b",
+          "size": 588
         },
         "powershell": {
           "path": "/starters/v1/api-tollgate.ps1",
-          "sha256": "b4e2aab75951977ac347771016690d7e7cbe6c6a5f792c04cdc839c74763b1a3",
-          "size": 894
+          "sha256": "f94d9bbefe4a9de4a246b644664b9d6e4adf92af453c6520cdf3d661f02c258a",
+          "size": 901
         }
       },
-      "sha256": "18553123d06167231f444a760988da1d7b72c7f349c264119a3be85508fad827",
-      "size": 224147,
+      "sha256": "531ddd6ed2a6ad7532dc05008ee3e781da868b99bf69954b7f803bdd110bdc54",
+      "size": 222829,
       "slug": "api-tollgate"
     },
     {
@@ -70,17 +70,17 @@
       "installers": {
         "posix": {
           "path": "/starters/v1/paid-tool-gateway.sh",
-          "sha256": "8728cd271f2191c347cf01b0d0c02278a77d1515bb49fe936cfd7f20abba8f41",
-          "size": 596
+          "sha256": "ec311a9f1510ecb655282a8c45a6ab05ec2c38014dabacb6163cf9e6d0189b9d",
+          "size": 603
         },
         "powershell": {
           "path": "/starters/v1/paid-tool-gateway.ps1",
-          "sha256": "35d1592d2e168be5e1aa773a7028e14f9bb21e3d503a435b326ac04904044a8a",
-          "size": 909
+          "sha256": "34f468dec02c77d8fc2bcc9fe7b4ff64b69f82a1b7ef645057ef1afb0beb1533",
+          "size": 916
         }
       },
-      "sha256": "6d96f9749f61e3390ba71720e4845acf6c89e6a88c2ef14da9ae42747dfc3296",
-      "size": 224504,
+      "sha256": "de561303df0cf586d6720bdad5d8a4abe2ed31614133ad52d60277b140061993",
+      "size": 223186,
       "slug": "paid-tool-gateway"
     },
     {
@@ -90,17 +90,17 @@
       "installers": {
         "posix": {
           "path": "/starters/v1/coding-agent-purchase-hook.sh",
-          "sha256": "d6ff684c53c5381600a0e585479c93bf055a6b20d436e96ceafcd03fd172405f",
-          "size": 623
+          "sha256": "b8b6b62c4f497dce481e6d9ae6747a44141b1338cda943f898aee81f6171c69f",
+          "size": 630
         },
         "powershell": {
           "path": "/starters/v1/coding-agent-purchase-hook.ps1",
-          "sha256": "b053226f0051227e30b200e6150721c44844e0d951de62dd40b3bfb678f2be72",
-          "size": 936
+          "sha256": "a82cbae8918b910e34583cecc2edeaae9bf78a51be98e3046eeeb17a8d58830b",
+          "size": 943
         }
       },
-      "sha256": "f7ccdf5b5f1d4b783ccf56cdafd71c55fbf58c86327c11a09e7505a2232c69b1",
-      "size": 224855,
+      "sha256": "064d72637310bb075b106f3f4333d64b532fd074d00c3d0a2994030d705a5ceb",
+      "size": 223537,
       "slug": "coding-agent-purchase-hook"
     },
     {
@@ -110,17 +110,17 @@
       "installers": {
         "posix": {
           "path": "/starters/v1/service-bazaar.sh",
-          "sha256": "973e0b49dbedbba5932ddceee33814353c13fefcc33a0dcb11dccad715dc5979",
-          "size": 587
+          "sha256": "45dae7f3c2f283e6c93822d09e0cf50f0d1d7d136d6c373905aacbb5e36ebf7d",
+          "size": 594
         },
         "powershell": {
           "path": "/starters/v1/service-bazaar.ps1",
-          "sha256": "feae8159853e1a28c5438586284171d7476157f6a5bc9e0fefdfe269e0bdad71",
-          "size": 900
+          "sha256": "18561567a8000a8e4cf2e257cd6a2fc4f0c9985d0c353b5740e873221563ed5d",
+          "size": 907
         }
       },
-      "sha256": "621a71ec5fab30687ceaa3262a7b05e06bf78038764f8078675d629a2acf74a8",
-      "size": 225192,
+      "sha256": "fe3ab1ea1e02f03cf89b5c40cc8a95683a94e5091bc37bfca995fcb4081db847",
+      "size": 223874,
       "slug": "service-bazaar"
     },
     {
@@ -130,17 +130,17 @@
       "installers": {
         "posix": {
           "path": "/starters/v1/agent-reputation-snapshot.sh",
-          "sha256": "3e55e621e57360161a481dbb80d901714879351296d81e405ca4ab95c6d432e6",
-          "size": 620
+          "sha256": "a8d03aab1fda670b5104d420d106610e10d19cd593145a84a5db2dd3d5cc0ed4",
+          "size": 627
         },
         "powershell": {
           "path": "/starters/v1/agent-reputation-snapshot.ps1",
-          "sha256": "628f99ca3e57e39d393ccaa60f6447aeeaaaea4b44fc33f71506338d963f7350",
-          "size": 933
+          "sha256": "aa9e12e0e2dd695691caadcab6dfe2298e7335176d615b9277801cc38b570fde",
+          "size": 940
         }
       },
-      "sha256": "2eb937b71d72bed60c762a115cbd2fc1d9aecb5cdbf93a41edb9e1ebf9bde6c8",
-      "size": 226387,
+      "sha256": "bf1cdbbca92ce5daecbbef48d11d5a34a97e40a741740c9f941028e0123406a7",
+      "size": 225069,
       "slug": "agent-reputation-snapshot"
     },
     {
@@ -150,17 +150,17 @@
       "installers": {
         "posix": {
           "path": "/starters/v1/multi-agent-workflow.sh",
-          "sha256": "67f2d185612d9d35b6b4ae193412817c86a5543155c7813823888f73429aba16",
-          "size": 605
+          "sha256": "8bcdd63b14a57dd60991315e3056fde35be3a0a6cb1f93c32586320fdf075ce7",
+          "size": 612
         },
         "powershell": {
           "path": "/starters/v1/multi-agent-workflow.ps1",
-          "sha256": "918d4a2e58881f404e021ba1c1e2d40d5a2b80d831627b19dfebfaef4457763a",
-          "size": 918
+          "sha256": "2c59aae6a1a53f7d759eb6c2b0da4f401b4d6b51f71989eefbb0663035436f04",
+          "size": 925
         }
       },
-      "sha256": "7524a97af724805215285546f0a3f5bb50e9a793b798c06082ceb0b68b2339ee",
-      "size": 225345,
+      "sha256": "f0de4e798a1d915923c3ce27c5814270439efb324fc3a0adc3907a0db830ccb9",
+      "size": 224027,
       "slug": "multi-agent-workflow"
     },
     {
@@ -170,17 +170,17 @@
       "installers": {
         "posix": {
           "path": "/starters/v1/compute-broker.sh",
-          "sha256": "7ab247323929e879d6ac9871532165ce255260803bc9e03e6eea6c599309f0b0",
-          "size": 587
+          "sha256": "bcc82901127caab95d6d0190051551974bbe3a287657d4580ac9cc482c67d280",
+          "size": 594
         },
         "powershell": {
           "path": "/starters/v1/compute-broker.ps1",
-          "sha256": "a3ba7f2d79f16982a874d0dc1c73d5f4628e6b1fc2f17191fd92b73b1a7689e6",
-          "size": 900
+          "sha256": "6a8eefd258ae2f1449038680df819fc5559a032b63cc95540f855e01fb35d027",
+          "size": 907
         }
       },
-      "sha256": "df9464d642938c35b5611e571ab63a3d6b052033a93501cfd5d2425274b825b5",
-      "size": 224946,
+      "sha256": "a14f9dc5fe5994a073bdb02b8b895dfd93bda9fe9fd08b878614f34f17d3bc04",
+      "size": 223628,
       "slug": "compute-broker"
     },
     {
@@ -190,17 +190,17 @@
       "installers": {
         "posix": {
           "path": "/starters/v1/private-test-runner.sh",
-          "sha256": "017561618f8912d05e7383ed073a4fd42a6dac323da391b191fa140d88de41bf",
-          "size": 602
+          "sha256": "73c98ef5c54c35c4b08cb7cf80a53e07609a02582c7cb25428ae9d874c374845",
+          "size": 609
         },
         "powershell": {
           "path": "/starters/v1/private-test-runner.ps1",
-          "sha256": "7aaab5ef1848f41967bc3f19aa2e4ece90823a1db1d8d7ec1a702333f209dc8c",
-          "size": 915
+          "sha256": "96e8569c4f60cb08874e3ec5869c4f0f7ba83bb910c61d7a4cd3c7dd12f2a378",
+          "size": 922
         }
       },
-      "sha256": "ae89a3c64e50b611ab1ee3e759f9fc3300ed5584e5e90a75152b4c4016370d0b",
-      "size": 224502,
+      "sha256": "23930ebc7f6dbd6521f61d5efb3b4ca5bef8b3e489264f10788541cd2286dde5",
+      "size": 223184,
       "slug": "private-test-runner"
     },
     {
@@ -210,17 +210,17 @@
       "installers": {
         "posix": {
           "path": "/starters/v1/build-notary.sh",
-          "sha256": "1af8f220f23994b20d421a986332bc41473bab318971f35fbba5d3c1639bbd0e",
-          "size": 581
+          "sha256": "ce381ddff33808de332705141de8a7048c6811628fc82b0db0f86f3630d3b612",
+          "size": 588
         },
         "powershell": {
           "path": "/starters/v1/build-notary.ps1",
-          "sha256": "c193d5ebfc2d463e3a17c5a092c4afa744c125bd805ec9916df31ad65114bba2",
-          "size": 894
+          "sha256": "01cc49cc9644bf019fdbc7cd1eff07331998ebb452ccd498024a2f163bc3184b",
+          "size": 901
         }
       },
-      "sha256": "612841a70d60a1f73780d99be8f2ad9f482832a8e73b32d3781da73deb58f4cf",
-      "size": 225605,
+      "sha256": "508573435c861bd7dd4710b22d5ed95dff475059a70e0222871025a7975666b7",
+      "size": 224287,
       "slug": "build-notary"
     },
     {
@@ -230,17 +230,17 @@
       "installers": {
         "posix": {
           "path": "/starters/v1/model-route-bazaar.sh",
-          "sha256": "5f09f693d313e3d922c7d058b4af4fa6c6be0f38c62a1d983a9820e20a0e74eb",
-          "size": 599
+          "sha256": "d0ddf67d815b39b65806ede8cc7520f547626d381c1ee6c76030421f95e3edb9",
+          "size": 606
         },
         "powershell": {
           "path": "/starters/v1/model-route-bazaar.ps1",
-          "sha256": "2249bf625b3d81e0616157e4a88170c67a5bfab1855425bf046799c24ef119b2",
-          "size": 912
+          "sha256": "1ce0a23d6bb24c2df49906c88d875d14168994f39b6b9d1aabe8e6e4be8d6260",
+          "size": 919
         }
       },
-      "sha256": "b5df3f311e407fff1a57aeb267d5237c9d7a56a1db1391d819c5f3329a9b7e4f",
-      "size": 225324,
+      "sha256": "a3f29ed65f001f28a1822faa13b07594e8c3221e2f5e8539c1ef0758716c0eb9",
+      "size": 224006,
       "slug": "model-route-bazaar"
     },
     {
@@ -250,17 +250,17 @@
       "installers": {
         "posix": {
           "path": "/starters/v1/rights-receipt.sh",
-          "sha256": "c6cc4cfd1a6461e84735ef1f5686469cac7f88b823077e25d0c43926f6ca2bfc",
-          "size": 587
+          "sha256": "cf096d0eed66184b035c88b0471c8631c3147178214565b1a2fa69d65d0da88a",
+          "size": 594
         },
         "powershell": {
           "path": "/starters/v1/rights-receipt.ps1",
-          "sha256": "66ba3acf2aa9e2da2654ae49613942b5e3c6de17029be1cdae65b726cfe121cb",
-          "size": 900
+          "sha256": "3df645dd6d370f3b1e2a8bd6b54a5023d427f5b58878145ec7f4fcfdaded22c8",
+          "size": 907
         }
       },
-      "sha256": "0092b6063999ea4c80bf19f85b42ebc9701960c65d47b3340949c04203ad113c",
-      "size": 225035,
+      "sha256": "38605973226a34c6cafdb1b185f8f09e9bf9ba3eef5fb0117574794b273cefbc",
+      "size": 223717,
       "slug": "rights-receipt"
     },
     {
@@ -270,17 +270,17 @@
       "installers": {
         "posix": {
           "path": "/starters/v1/data-owner-gateway.sh",
-          "sha256": "fe977f2923b04c026e05c3b685ac951006429b55da0b0e34999f4e8e14391d4c",
-          "size": 599
+          "sha256": "c48525082ffeae6adb2103b6a03f256f55d7ee4e509057f510d648bb38fb8a8c",
+          "size": 606
         },
         "powershell": {
           "path": "/starters/v1/data-owner-gateway.ps1",
-          "sha256": "e61f6fffe3fd3cc2737220cc66b0caf25966f749b0f79c03b514c1068a13419b",
-          "size": 912
+          "sha256": "95bd9e5c73fc64adfcff74ded4b096ddad68a5c5be83303a93a4a54dfa906ba1",
+          "size": 919
         }
       },
-      "sha256": "86af0e9f918ecc6947b4c4ea635b13205c815219706377d03c2f12f49e0a8935",
-      "size": 224815,
+      "sha256": "8f244ea6c64d3d440661805be737f40a76fbe9af4e9614ea05a76c35c8ee81c6",
+      "size": 223497,
       "slug": "data-owner-gateway"
     },
     {
@@ -290,17 +290,17 @@
       "installers": {
         "posix": {
           "path": "/starters/v1/human-review-outbox.sh",
-          "sha256": "eaa61911d371cc86fb10b90abf7bdfee4f3657ae90af0198b6774ee4ec530c31",
-          "size": 602
+          "sha256": "dc315545c10f442f25f2bc1945dc6627e1d4bed905bf4bc5709db925a53c10c6",
+          "size": 609
         },
         "powershell": {
           "path": "/starters/v1/human-review-outbox.ps1",
-          "sha256": "f8d386acfaef03a01615a3cd019256a0aa82fcdba3c6dddcf8f465df63742b88",
-          "size": 915
+          "sha256": "1c91c03511aec5d895850dbe95d0a8e229c324e0b340a4cc0bb14dd06257cd01",
+          "size": 922
         }
       },
-      "sha256": "86ab102b3ca67816c5bd443063581ed905a8b0f774bf33ce03f6d5f4ea75cd84",
-      "size": 225502,
+      "sha256": "1b94e6c8828fe21e89b7635da812ac730035d341ed9b221d1fcb574a4bd6668f",
+      "size": 224184,
       "slug": "human-review-outbox"
     },
     {
@@ -310,17 +310,17 @@
       "installers": {
         "posix": {
           "path": "/starters/v1/cold-chain-passport.sh",
-          "sha256": "590cbf67df9c00062640dd2c55624c523be82709838ce15acadbd1f00e538919",
-          "size": 602
+          "sha256": "addb067ae1991129d67bce31d7f09dc54a5bcdf745c2c84b6572c76904e587a7",
+          "size": 609
         },
         "powershell": {
           "path": "/starters/v1/cold-chain-passport.ps1",
-          "sha256": "bd8f27781b6182468cde0dbaaa745d6fee05171c28ac7f004ff89f89dc784ce5",
-          "size": 915
+          "sha256": "c562bf610b52fb77ef67f636ecaca5942fb0a350f9c8af4944f4aedb8e12fbd9",
+          "size": 922
         }
       },
-      "sha256": "4faa82d89aebb9da0835dcd09770a4dd9185536a85723121f3bade97a3095bb3",
-      "size": 225640,
+      "sha256": "5721a9501c4e423ab4edde14ea57273a77e28c07d01ab808fe8765da82f25f3c",
+      "size": 224322,
       "slug": "cold-chain-passport"
     },
     {
@@ -330,17 +330,17 @@
       "installers": {
         "posix": {
           "path": "/starters/v1/carbon-aware-run-window.sh",
-          "sha256": "f5299f7ec5f029254d15e496734a1e1f373d82057265bc5a04ee416344a43935",
-          "size": 614
+          "sha256": "89da44acbb94a1fb7f29b352fb8bd4b111dd154980b1be01ae4bf6f3597f6b7e",
+          "size": 621
         },
         "powershell": {
           "path": "/starters/v1/carbon-aware-run-window.ps1",
-          "sha256": "132d90b1b16456c26c809507e6cc16ddcf8e20464c3a7accfd06afc252a90a20",
-          "size": 927
+          "sha256": "db3bb20f09ecc72963f474d98cdfa2f919b8fb9c8b4cd12e5be65cee91678774",
+          "size": 934
         }
       },
-      "sha256": "d836debcff757ea74d97245764d8f5c7682512cd039e0766993a9167c3ae816e",
-      "size": 225190,
+      "sha256": "0e7a14d294e223795dd4aa4f0bc03428d24d37cef6b0254a4f58ac30378ada6b",
+      "size": 223872,
       "slug": "carbon-aware-run-window"
     },
     {
@@ -350,17 +350,17 @@
       "installers": {
         "posix": {
           "path": "/starters/v1/fleet-corridor-authority.sh",
-          "sha256": "9b9dc9077a114f84bf344e81d79b07b62403e01b0f674334eaed7c9515db555e",
-          "size": 617
+          "sha256": "42498de104d025116103ca815e95f455b48c7047ba7c3fa738a225353598a27e",
+          "size": 624
         },
         "powershell": {
           "path": "/starters/v1/fleet-corridor-authority.ps1",
-          "sha256": "b22075eab3b3278ab28c47b9ce81abdca6fa2c9dfc07cbff4f8bbfb21e10508a",
-          "size": 930
+          "sha256": "9b7de10a69af80f9982733c22845de94b9ba5d12e135ad7cfe64e5a411c4e13f",
+          "size": 937
         }
       },
-      "sha256": "5b23bcf594d98452644911908fea29c49eab7f8ce5fd234246cea51eb6d606d0",
-      "size": 225278,
+      "sha256": "28a5e56a37b68794328491143405ebecc3fdaf1f08c1ef3eae1ce41172c0e00e",
+      "size": 223960,
       "slug": "fleet-corridor-authority"
     },
     {
@@ -370,17 +370,17 @@
       "installers": {
         "posix": {
           "path": "/starters/v1/payment-receipt-firewall.sh",
-          "sha256": "77e109c6e8dd24065ca428ab1b962a4c8424a6502b847775b79f4ef72fa9c170",
-          "size": 617
+          "sha256": "310bdeff67cfff087d850ef9f427272f8bc4f4044c0596c05ed89a8b4818ba22",
+          "size": 624
         },
         "powershell": {
           "path": "/starters/v1/payment-receipt-firewall.ps1",
-          "sha256": "9685e4982eaddac91e7b6410c338f120cb28d78b7e8c750eafe85c20346af3eb",
-          "size": 930
+          "sha256": "b7208451e19347a8b4478451dd56903c2f7baba8cbbf262d34c2f8510de29ee0",
+          "size": 937
         }
       },
-      "sha256": "2827cfd2ecb2770e871325c02ef2e7492a727df3a23cf70f324bff4034711917",
-      "size": 224713,
+      "sha256": "e0b9b7d0914a17de4f6e13b3197b06097159156213f24e2abc3a0407d4ab8c05",
+      "size": 223395,
       "slug": "payment-receipt-firewall"
     },
     {
@@ -390,17 +390,17 @@
       "installers": {
         "posix": {
           "path": "/starters/v1/procurement-guard.sh",
-          "sha256": "77d6538d19961c7445b8eb58881332570bbe8e793ec0964223dbbb5f580e8341",
-          "size": 596
+          "sha256": "39ab1889132bbf6dbaced513f2f48ba455f1e4ff52e71f45fd6ffd405e97eaad",
+          "size": 603
         },
         "powershell": {
           "path": "/starters/v1/procurement-guard.ps1",
-          "sha256": "8932b7445b11ba4cc3a9da799b02c8d9e76869bbdd66581de0fa56abd79aa566",
-          "size": 909
+          "sha256": "290ecbc0571fbbf98abe40a2eb208e491d1a5999264c5c83b111af69e8d7ab19",
+          "size": 916
         }
       },
-      "sha256": "9ad78b89e8f87b78530aef640cb97d18d2fb64c044c9d85c451f6aba7504e0a9",
-      "size": 225148,
+      "sha256": "fb7a980e64d29633d16ef3b7ad96ace1686388d5b4247dc077f6d14da333a76e",
+      "size": 223830,
       "slug": "procurement-guard"
     }
   ],

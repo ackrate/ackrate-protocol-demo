@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { AGENT402_PRICES } from "@/lib/wallet/agent402-prices";
+
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { AssistantRuntimeProvider, MessagePrimitive, ThreadPrimitive, useAuiState, type TextMessagePartProps, type ToolCallMessagePartProps, type ThreadMessage } from "@assistant-ui/react";
 import { AssistantChatTransport, useChatRuntime } from "@assistant-ui/react-ai-sdk";
 import ReactMarkdown from "react-markdown";
@@ -24,6 +26,7 @@ import { initialServiceInputValues, serializedServiceInputs, serviceInputProblem
 import { safeWalletError } from "../../lib/wallet/notifications";
 import { isSharedReportId } from "../../lib/wallet/shared-report";
 import { ReportEditorial, ReportSources } from "./ReportEditorial";
+import { SummaryRetry } from "./SummaryRetry";
 
 export interface PurchaseResult {
   source: { id: string; title: string };
@@ -39,7 +42,7 @@ const DEFAULT_SEARCH_SERVICE: MarketplaceService = {
   categoryLabel: "Web",
   method: "GET",
   path: "/api/search",
-  price: "0.02",
+  price: AGENT402_PRICES.search.price,
   docs: "https://agent402.tools/tools/search",
   inputs: WEB_SEARCH_INPUTS,
   schemaSource: "verified-docs",
@@ -68,7 +71,7 @@ interface ConfiguredRun {
 export function AssistantThread({
   mandateId,
   asset,
-  price = "0.02",
+  price = AGENT402_PRICES.search.price,
   service = DEFAULT_SEARCH_SERVICE,
   parameters,
   quoteToken,
@@ -647,9 +650,9 @@ interface ResultDownload {
   mimeType: string;
 }
 
-export function purchaseResultDownload(result: PurchaseResult, format: "receipt" | "output" | "report"): ResultDownload {
+export function purchaseResultDownload(result: PurchaseResult, format: "receipt" | "output" | "report", reportRevision?: MarketBrief | null): ResultDownload {
   const filename = result.source.id.replace(/[^a-z0-9_-]/gi, "-").slice(0, 64) || "service";
-  const brief = parseBrief(result.delivered);
+  const brief = format === "report" && reportRevision ? reportRevision : parseBrief(result.delivered);
   if (format === "report" && brief) {
     const marketplace = parseMarketplace(result.delivered);
     const content = [
@@ -763,6 +766,7 @@ export function PurchaseReport({
   registrationTx,
   allowanceTx,
   autoScroll = true,
+  onReconnect,
 }: {
   result: PurchaseResult;
   explorerNetwork: "testnet" | "public";
@@ -770,15 +774,20 @@ export function PurchaseReport({
   registrationTx?: string;
   allowanceTx?: string;
   autoScroll?: boolean;
+  onReconnect?: () => Promise<void>;
 }) {
   const brief = parseBrief(result.delivered);
+  const [retried, setRetried] = useState<{ txHash: string; brief: MarketBrief } | null>(null);
+  const shown = retried?.txHash === result.payment.txHash ? retried.brief : brief;
+  const focusSummary = useRef(false);
+  const summaryHeadingId = useId();
   const marketplace = parseMarketplace(result.delivered);
   const toolDelivery = parseToolDelivery(result.delivered);
   const briefRef = useRef<HTMLElement>(null);
   const [downloadNotice, setDownloadNotice] = useState<{ message: string; failed: boolean } | null>(null);
   const downloadResult = (format: "receipt" | "output" | "report") => {
     try {
-      const file = purchaseResultDownload(result, format);
+      const file = purchaseResultDownload(result, format, shown);
       saveDownload(file);
       setDownloadNotice({ message: `Download requested: ${file.filename}. Check your browser's downloads.`, failed: false });
     } catch {
@@ -786,6 +795,13 @@ export function PurchaseReport({
     }
   };
   const downloadStatus = downloadNotice && <p className="report-download-status" role={downloadNotice.failed ? "alert" : "status"}>{downloadNotice.message}</p>;
+
+  useEffect(() => {
+    if (retried?.txHash === result.payment.txHash && focusSummary.current) {
+      document.getElementById(summaryHeadingId)?.focus();
+      focusSummary.current = false;
+    }
+  }, [retried, result.payment.txHash, summaryHeadingId]);
 
   useEffect(() => {
     if (explorerNetwork !== "public") return;
@@ -902,8 +918,16 @@ export function PurchaseReport({
             <button type="button" title="Download the saved payment receipt and service response as JSON" onClick={() => downloadResult("receipt")}>Receipt JSON</button>
           </div>
           {downloadStatus}
-          <ReportEditorial brief={brief} titleId="research-brief-title" paymentLabel={<><span>PAID IN {result.payment.asset}</span><span>CONTRACT PAYMENT VERIFIED</span></>}>
-            <ReportShareButton key={`${result.payment.mandateId}:${result.payment.txHash}`} mandateId={result.payment.mandateId} txHash={result.payment.txHash} />
+          <ReportEditorial brief={shown ?? brief} titleId="research-brief-title" summaryHeadingId={retried ? summaryHeadingId : undefined}
+            summarySlot={explorerNetwork === "public" && result.source.id === "agent402-research" && brief.sources.length > 0 && brief.editorialPasses === 0 && !brief.summary
+              ? <SummaryRetry key={`summary:${result.payment.mandateId}:${result.payment.txHash}`} mandateId={result.payment.mandateId} txHash={result.payment.txHash} onReconnect={onReconnect}
+                onResult={(next, focus) => {
+                  if (next.sources.length !== brief.sources.length || next.sources.some((source, index) => source.url !== brief.sources[index].url || source.title !== brief.sources[index].title)) throw new Error("Report sources changed");
+                  focusSummary.current = focus;
+                  setRetried({ txHash: result.payment.txHash, brief: next });
+                }} /> : undefined}
+            paymentLabel={<><span>PAID IN {result.payment.asset}</span><span>CONTRACT PAYMENT VERIFIED</span></>}>
+            <ReportShareButton key={`share:${result.payment.mandateId}:${result.payment.txHash}`} mandateId={result.payment.mandateId} txHash={result.payment.txHash} />
           </ReportEditorial>
         </article>
 

@@ -12,6 +12,7 @@ export async function GET() {
     if (app.databaseUrl) await verifyPostgres(app.databaseUrl);
     return NextResponse.json({
       ok: config.ready,
+      authenticationReady: config.authenticationReady,
       releaseState: config.releaseState,
       network: config.network,
       sourceCommit: config.sourceCommit,

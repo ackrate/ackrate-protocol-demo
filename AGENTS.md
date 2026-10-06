@@ -19,7 +19,10 @@ npm run dev        # http://localhost:3000
 ```
 
 The public research, video, composite, and starter flows run on Stellar **testnet**
-with ephemeral keys. The wallet canary runs on Stellar **mainnet** with
+with ephemeral keys. Research Source Scout alone additionally exposes an explicit
+`demo:mainnet` companion through pinned `@ackrate/cli` 0.2.1; it keeps the
+Testnet scenario unchanged and uses separate `.ackrate-mainnet/` recovery state.
+The wallet canary runs on Stellar **mainnet** with
 Circle USDC and the manifest-pinned registry. The research agent
 additionally needs an LLM API key in `.env.local` (gitignored).
 `LLM_PROVIDER_MODE=openai-only` is the default and ignores the alternate key.
@@ -29,13 +32,15 @@ Set `OPENAI_API_KEY` for chat and report formatting. Explicitly selecting
 `OPENAI_MODEL` / `OPENAI_MODEL_SUB` set the model ids. See
 `.env.example`. The failover layer lives in `lib/llm.ts`. Without any key the
 video demo still works and the research page shows a notice.
-Marketplace report composition uses its own OpenAI-only model setting,
-`OPENAI_REPORT_MODEL` (default `gpt-6-astra`), without changing chat/tool routing.
+`LLM_PROVIDER_MODE=openai-gemini-failover` selects the OpenAI-compatible endpoint
+and direct Gemini fallback. Marketplace report composition uses
+`OPENAI_REPORT_MODEL` (default `gpt-6-astra`), with Gemini report fallback in that
+mode, without changing chat/tool routing. See `docs/llm-failover-brief.md`.
 New reports include a cited, three-paragraph plain-English closing summary.
 
 ## Routes
 
-Deployment uses the GitHub Actions Vercel workflow; see `docs/deployment.md`
+Deployment uses Vercel native Git builds; see `docs/deployment.md`
 for branch routing, project ownership, secrets and the persistent CLI runner limit.
 
 - `/` — REAPP landing page, focused on Stellar and linking the consumer app.
@@ -58,7 +63,7 @@ for branch routing, project ownership, secrets and the persistent CLI runner lim
   testnet deployment; id pinned in `lib/composites-client.ts`). Source: `app/composites/page.tsx`.
 
 Primary navigation is REAPP home, Consumer app, and Docs. The Docs dropdown
-contains SDK, CLI, quick starters, Express demo, and AP2 demo. Security evidence stays in [historical artifact](https://github.com/ackrate/ackrate-project/blob/main/instance/artifacts/108-other-repository-artifacts/ackrate-protocol-demo/docs/security-evidence.md) and the contract repository. Legacy research,
+contains Overview, SDK, CLI, quick starters, and Integrations. Express and AP2 demos remain available by direct link. Security evidence stays in [historical artifact](https://github.com/ackrate/ackrate-project/blob/main/instance/artifacts/108-other-repository-artifacts/ackrate-protocol-demo/docs/security-evidence.md) and the contract repository. Legacy research,
 video, consumer preview, toolkit, and composite routes remain direct-link references.
 See `docs/presentation.md` for the current naming and visual conventions.
 
@@ -75,6 +80,12 @@ See `docs/presentation.md` for the current naming and visual conventions.
 
 ## Conventions
 
+- The owner-supplied header is **REAPP powered by Ackrate SDK**. Keep REAPP as
+  the product name and the attribution secondary. This exact attribution is
+  intentional and takes precedence over the generic ban on promotional
+  "powered" wording below. Wallet disconnect belongs in the
+  main navigation. Avoid duplicate network mastheads and decorative slogans;
+  retain network, amount, fee and recipient information at spending decisions.
 - **No "Claude"/Anthropic branding in user-facing surfaces.** UI copy, README prose,
   comments, and log/banner strings refer to the model generically — *agent*, *AI*, or
   *LLM*. The only allowed references are functional and required to run: the
@@ -88,6 +99,7 @@ See `docs/presentation.md` for the current naming and visual conventions.
 - **No marketing hype / AI-slop copy.** Avoid empty intensifiers ("NO MOCKS",
   "*-POWERED", "slick", "Premium", emphatic "Real …"). Keep concrete, accurate
   technical statements (the on-chain budget cap, contract-enforced limits, revocable mandate).
+- Current app and documentation links use `https://reapp.ackrate.com`. Preserve dated evidence URLs as historical records; do not reuse them in current setup instructions.
 - Use relative paths in symlinks and imports — never absolute.
 
 ## Functional brand colors
@@ -96,6 +108,12 @@ Follow [docs/brand-colors.md](docs/brand-colors.md) and the mirrored `app/brand-
 
 Infrastructure and ordinary navigation stay predominantly green/neutral. Red marks a specific intent-setting control, requested user feedback, or denial; do not color a whole chapter red because it describes consumer actions. Specialist ownership is recorded in the private wiki: Fable for UX, Opus 5.5 for frontend design, Codex for backlog/integration/backend. Record blocked reviews truthfully.
 
+## Native Vercel deployment (September 27, 2026)
+
+This section supersedes earlier separate-project and Actions deployment instructions. Vercel builds the connected Git repository. GitHub Actions runs validation only. See docs/vercel-native.md for production branch and environment routing. Preserve independent review gates and never promote preview code implicitly.
+
 ## Project knowledge and task artifacts
 
-Authored plans, reviews, run evidence, screenshots, and handoff artifacts belong in the [Ackrate project wiki](https://github.com/ackrate/ackrate-project). Commit original Markdown evidence through its `instance/scripts/knowledge.mjs` ingest workflow into `sources/`, and retain original artifact bytes under `instance/artifacts/`. Do not commit task outputs in this code repository. Keep executable source, test fixtures, package/build inputs, and technical API/usage documentation here.
+Authored plans, review reports, run evidence, screenshots, and handoff artifacts belong in the canonical [Ackrate project wiki](https://github.com/ackrate/ackrate-project). Commit original Markdown evidence through its `instance/scripts/knowledge.mjs` ingest workflow into `sources/`; retain original artifact bytes under `instance/artifacts/`. Do not commit these task outputs in this code repository. Keep executable source, test fixtures, package/build inputs, and technical API/usage documentation here.
+
+Historical artifacts from this repository are preserved in [the project artifact archive](https://github.com/ackrate/ackrate-project/blob/main/instance/artifacts/108-other-repository-artifacts/ackrate-protocol-demo). Update project task status in the parent wiki.

@@ -113,7 +113,7 @@ export function MarketplaceStage({
                 <span className="volume-body">
                   <strong>{service.name}</strong>
                   <small>{service.description}</small>
-                  <em>{service.method} · {service.categoryLabel} · {live ? "LIVE PAYMENT READY" : "SCHEMA PREVIEW"}</em>
+                  <em>{service.method} · {service.categoryLabel} · {live ? "Available" : "Preview only"}</em>
                   <span className="service-inputs">{service.inputs.length ? service.inputs.map((field) => <b key={field.name}>{field.name}{field.required ? " *" : ""}</b>) : <b>Schema unavailable</b>}</span>
                 </span>
                 <span className="volume-tag"><b>{service.price}</b><small>USDC / CALL</small></span>

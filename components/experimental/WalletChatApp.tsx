@@ -1,5 +1,6 @@
 "use client";
 
+import { AGENT402_PRICES } from "@/lib/wallet/agent402-prices";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
@@ -70,7 +71,7 @@ const DEFAULT_MARKETPLACE_SERVICE: MarketplaceService = {
   categoryLabel: "Web & documents",
   method: "GET",
   path: "/api/search",
-  price: "0.02",
+  price: AGENT402_PRICES.search.price,
   docs: "https://agent402.tools/tools/search",
   inputs: WEB_SEARCH_INPUTS,
   schemaSource: "verified-docs",
@@ -194,7 +195,7 @@ export function WalletChatApp() {
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [stored, setStored] = useState<StoredMandate | null>(null);
   const [mandate, setMandate] = useState<MandateView | null>(null);
-  const [budget, setBudget] = useState("0.10");
+  const [budget, setBudget] = useState<string>(AGENT402_PRICES.search.price);
   const [duration, setDuration] = useState("60");
   const [phase, setPhase] = useState<Phase>("idle");
   const [notice, setNotice] = useState<string | null>(null);
@@ -272,16 +273,16 @@ export function WalletChatApp() {
   /* A verified session outlives Freighter's own connected-apps list. If the
      site was removed there, drop the session so the journey restarts at the
      threshold instead of claiming a wallet that is no longer attached. A
-     different account merely selected in Freighter is not a disconnect: the
-     verified wallet still signs, so only say so. Saved mandates stay in this
-     browser either way. */
+     different account or network selected in Freighter is reported without
+     removing saved mandates. Signing still verifies the configured account
+     and network before returning a result. */
   useEffect(() => {
-    if (!session.authenticated || !session.address) return;
+    if (!config || !session.authenticated || !session.address) return;
     let active = true;
-    void freighterSessionState(session.address).then(async (state) => {
+    void freighterSessionState(session.address, config.networkPassphrase).then(async (state) => {
       if (!active || state === "matches" || state === "unknown") return;
       if (state === "different") {
-        setNotice(`Freighter has a different account selected. Switch back to ${short(session.address, 4)} before approving anything.`);
+        setNotice(`Freighter has a different account or network selected. Select ${short(session.address, 4)} on ${config.networkLabel} before approving anything.`);
         return;
       }
       try {
@@ -302,7 +303,7 @@ export function WalletChatApp() {
       setNotice("Freighter is no longer connected to this site. Connect a wallet to start again.");
     });
     return () => { active = false; };
-  }, [session.address, session.authenticated]);
+  }, [session.address, session.authenticated, config?.networkPassphrase, config?.networkLabel]);
 
   /* Any wallet call that finds the verified session gone sends the journey
      back to the threshold. The saved limit stays in this browser and resumes
@@ -907,8 +908,6 @@ export function WalletChatApp() {
       </section>
 
       <footer className="hall-foot">
-        <span>MandateRegistry V2 · 2-of-3 governed</span>
-        <a href={config?.mandateRegistryId ? `${explorer}/contract/${config.mandateRegistryId}` : "#"} target="_blank" rel="noreferrer">View contract <ArrowUpRight size={11} /></a>
         <span className="hall-hint" aria-hidden>Drag to look around</span>
       </footer>
 

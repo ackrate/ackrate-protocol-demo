@@ -44,7 +44,9 @@ async function waitForSite() {
 try {
   const solutions = await waitForSite();
   assert.equal(solutions.status, 200);
-  const solutionsPage = await solutions.text();
+  const solutionsHtml = await solutions.text();
+  // Syntax tokens introduce spans without changing the visible command.
+  const solutionsPage = solutionsHtml.replace(/<[^>]*>/g, "");
   for (const required of ["Choose a starter", "Copy setup command", "npm run demo", "Read the README", "optional hosted Express walkthrough"]) {
     assert.match(solutionsPage, new RegExp(required), required);
   }
@@ -52,7 +54,7 @@ try {
   const legacy = await fetch(`${origin}/solutions`, { redirect: "manual" });
   assert.equal(legacy.status, 307);
   assert.equal(legacy.headers.get("location"), "/docs/quickstarts");
-  for (const path of ["/", "/docs", "/docs/sdk", "/docs/cli", "/docs/hosted", "/wallet"]) {
+  for (const path of ["/", "/docs", "/docs/sdk", "/docs/cli", "/docs/hosted", "/docs/integrations", "/wallet"]) {
     assert.equal((await fetch(`${origin}${path}`)).status, 200, path);
   }
   const removedRoute = await fetch(`${origin}/${["hack", "athon"].join("")}`, { redirect: "manual" });

@@ -13,6 +13,7 @@ export interface SafeAppConfig {
   networkLabel: "Stellar Testnet" | "Stellar Mainnet";
   releaseState: "configuration-required" | "testnet-ready" | "mainnet-ready";
   ready: boolean;
+  authenticationReady: boolean;
   blockers: string[];
   rpcUrl: string;
   networkPassphrase: string;

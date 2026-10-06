@@ -38,6 +38,7 @@ import {
 } from "../starter-kit-src/shared/fulfillment.mjs";
 import {
   createIdempotentServerCloser,
+  fetchExactRecoveryBytes,
 } from "../starter-kit-src/shared/http.mjs";
 import {
   expectBoundProofRejected,
@@ -57,6 +58,49 @@ import {
   FileSettlementReceiptStore,
 } from "../starter-kit-src/shared/storage.mjs";
 import { waitForTestnetLedgerTime } from "../starter-kit-src/shared/testnet.mjs";
+
+test("restart recovery retries a failed transport with the identical retained proof", async (t) => {
+  const requests = [];
+  t.mock.method(globalThis, "fetch", async (url, init) => {
+    requests.push({ url, method: init.method, redirect: init.redirect, proof: init.headers.get("X-PAYMENT") });
+    if (requests.length === 1) throw new TypeError("fetch failed", { cause: new Error("socket closed") });
+    return new Response("stored response", { status: 200 });
+  });
+  const recovered = await fetchExactRecoveryBytes("http://127.0.0.1:4021/vault/alpha", {
+    method: "GET", redirect: "error", headers: { "X-PAYMENT": "exact-signed-proof" },
+  });
+  assert.equal(recovered.status, 200);
+  assert.equal(recovered.bytes.toString(), "stored response");
+  assert.equal(requests.length, 2);
+  assert.deepEqual(requests[1], requests[0]);
+});
+
+test("restart recovery retries a lost response body, but never an HTTP rejection", async (t) => {
+  let calls = 0;
+  t.mock.method(globalThis, "fetch", async () => {
+    calls += 1;
+    if (calls === 1) return { status: 200, async arrayBuffer() { throw new Error("response connection lost"); } };
+    return new Response("rejected", { status: 403 });
+  });
+  const response = await fetchExactRecoveryBytes("http://127.0.0.1:4021/vault/alpha", { method: "GET", redirect: "error" });
+  assert.equal(calls, 2);
+  assert.equal(response.status, 403);
+  assert.equal(response.bytes.toString(), "rejected");
+});
+
+test("restart recovery bounds transport attempts and preserves cancellation", async (t) => {
+  let calls = 0;
+  t.mock.method(globalThis, "fetch", async () => { calls += 1; throw new Error("offline"); });
+  const init = { method: "GET", redirect: "error" };
+  await assert.rejects(fetchExactRecoveryBytes("http://127.0.0.1:4021/vault/alpha", init), /offline/);
+  assert.equal(calls, 2);
+  const controller = new AbortController();
+  controller.abort();
+  await assert.rejects(fetchExactRecoveryBytes("http://127.0.0.1:4021/vault/alpha", { ...init, signal: controller.signal }), /offline/);
+  assert.equal(calls, 3);
+  await assert.rejects(fetchExactRecoveryBytes("http://127.0.0.1:4021/vault/alpha", { method: "POST", redirect: "error" }), /requires GET/);
+  assert.equal(calls, 3);
+});
 
 class CaptureSocket extends Duplex {
   constructor() {

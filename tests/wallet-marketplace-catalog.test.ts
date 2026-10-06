@@ -99,3 +99,15 @@ test("marketplace search finds real service types and keeps a compact result set
   assert.equal(featured.services.length, 4);
   assert.equal(featured.services[0]?.id, "search");
 });
+
+test("a saved draft picks up reviewed pricing without making an unknown endpoint runnable", async () => {
+  const { refreshSavedMarketplaceService, sourceIdForMarketplaceService } = await import("../lib/wallet/marketplace-catalog");
+  const saved = { ...FALLBACK_MARKETPLACE_SERVICES[0]!, price: "0.02" };
+  const refreshed = refreshSavedMarketplaceService(saved);
+  assert.equal(refreshed.price, "0.01");
+  assert.equal(refreshed.inputs, saved.inputs);
+  assert.equal(saved.price, "0.02");
+  const changed = { ...saved, path: "/api/other" };
+  assert.equal(refreshSavedMarketplaceService(changed), changed);
+  assert.equal(sourceIdForMarketplaceService(changed), null);
+});

@@ -27,13 +27,14 @@ import {
   type SupportedAgent402Tool,
 } from "./agent402-tools";
 import { ensureAgentUsdcTrustline } from "./trustline";
+import { AGENT402_PRICES } from "./agent402-prices";
 
 export const AGENT402_MARKETPLACE_URL = "https://agent402.tools/stellar";
 export const AGENT402_DISCOVERY_URL = "https://agent402.tools/api/route";
 export const AGENT402_SEARCH_URL = "https://agent402.tools/api/search";
 export const AGENT402_NETWORK = "stellar:pubnet" as const;
-export const AGENT402_AMOUNT_ATOMIC = "200000" as const;
-export const AGENT402_PRICE = "0.02" as const;
+export const AGENT402_AMOUNT_ATOMIC = AGENT402_PRICES.search.amountAtomic;
+export const AGENT402_PRICE = AGENT402_PRICES.search.price;
 
 const Agent402SearchInputSchema = z.object({
   q: z.string().transform((value) => value.replace(/\s+/g, " ").trim()).pipe(z.string().min(3).max(400)),
@@ -88,9 +89,12 @@ function selectedDiscoverySeller(value: unknown, tool: SupportedAgent402Tool): z
   const parsed = DiscoveryCandidate.safeParse(matches[0]);
   if (!parsed.success) throw new Error("Agent402 discovery returned invalid details for the selected seller");
   const candidate = parsed.data;
+  if (candidate.priceUsd !== Number(tool.price)) {
+    throw new Error("Agent402 discovery price changed; this service needs an operator pricing update");
+  }
   if (candidate.name !== tool.name || candidate.method !== tool.method
     || candidate.route !== tool.path || candidate.url !== tool.url
-    || candidate.priceUsd !== Number(tool.price) || candidate.health !== 1
+    || candidate.health !== 1
     || !candidate.paymentNetworksKnown || !candidate.routerDispatchEligible) {
     throw new Error(`Agent402 discovery did not return the expected healthy ${tool.name} seller`);
   }
@@ -102,6 +106,7 @@ const SearchResult = z.object({
   url: z.string().url().max(2_000),
   description: z.string().trim().max(4_000).default(""),
   age: z.union([z.string().max(100), z.null()]).optional().default(null),
+  publishedAt: z.string().max(100).nullable().optional(),
 }).strict();
 
 const SearchResponse = z.object({
@@ -111,6 +116,10 @@ const SearchResponse = z.object({
   untrustedContent: z.literal(true),
 }).passthrough().refine((response) => response.results.length > 0 || response.count === 0,
   "An empty search response must report zero results");
+
+export function parseAgent402SearchResponse(value: unknown) {
+  return SearchResponse.parse(value);
+}
 
 export interface Agent402Preflight {
   question: string;
@@ -758,7 +767,7 @@ export async function runAgent402Research(input: {
   let search: z.infer<typeof SearchResponse>;
   let results: Agent402SearchResult[];
   try {
-    search = SearchResponse.parse(retained.output);
+    search = parseAgent402SearchResponse(retained.output);
     results = validatedSearchResults(search.results);
   } catch {
     await saveEvidence({ ...rawEvidence, delivery: { ...retained.delivery,

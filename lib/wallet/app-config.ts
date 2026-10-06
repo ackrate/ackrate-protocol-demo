@@ -6,6 +6,7 @@ import setupRelease from "./setup-release.json";
 import mainnetReleaseManifest from "./mainnet-release.json";
 import type { CatalogItem, NetworkName, SafeAppConfig } from "./types";
 import { configuredLlmProviders } from "../llm-policy";
+import { AGENT402_PRICES } from "./agent402-prices";
 
 export const MAINNET_CONFIRMATION = "ACTIVATE_VERIFIED_ACKRATE_MAINNET";
 
@@ -15,21 +16,21 @@ const DEFAULT_CATALOG: CatalogItem[] = [
     title: "Live research report",
     description: "Current web evidence purchased from the Agent402 Stellar marketplace and synthesized into a cited report.",
     path: "/api/wallet/source/agent402-research",
-    price: "0.02",
+    price: AGENT402_PRICES.search.price,
   },
   {
     id: "agent402-pdf",
     title: "PDF to text",
     description: "Text extracted from a public PDF by the live Agent402 Stellar marketplace service.",
     path: "/api/wallet/source/agent402-pdf",
-    price: "0.01",
+    price: AGENT402_PRICES.pdf.price,
   },
   {
     id: "agent402-pdf-info",
     title: "PDF information",
     description: "Document metadata inspected by the live Agent402 Stellar marketplace service.",
     path: "/api/wallet/source/agent402-pdf-info",
-    price: "0.002",
+    price: AGENT402_PRICES["pdf-info"].price,
   },
 ];
 
@@ -41,11 +42,13 @@ export interface AppConfig {
   appOrigin: string | null;
   challengeSecret: string | null;
   sessionSecret: string | null;
+  geminiKey: string | null;
+  geminiModel: string;
   openAiKey: string | null;
   openAiModel: string;
   anthropicKey: string | null;
   anthropicModel: string;
-  llmProviders: ("openai" | "anthropic")[];
+  llmProviders: ("openai" | "anthropic" | "gemini")[];
   databaseUrl: string | null;
 }
 
@@ -195,7 +198,7 @@ export function loadAppConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   if (!challengeSecret || Buffer.byteLength(challengeSecret, "utf8") < 32) {
     blockers.push("fulfillment challenge secret must contain at least 32 bytes");
   }
-  let llmProviders: ("openai" | "anthropic")[] = [];
+  let llmProviders: ("openai" | "anthropic" | "gemini")[] = [];
   try {
     llmProviders = configuredLlmProviders(env);
   } catch (error) {
@@ -203,7 +206,8 @@ export function loadAppConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   }
   const openAiKey = llmProviders.includes("openai") ? present(env.OPENAI_API_KEY) : null;
   const anthropicKey = llmProviders.includes("anthropic") ? present(env.ANTHROPIC_API_KEY) : null;
-  if (!openAiKey && !anthropicKey) blockers.push("a chat model API key is missing");
+  const geminiKey = llmProviders.includes("gemini") ? present(env.GEMINI_API_KEY) : null;
+  if (!openAiKey && !anthropicKey && !geminiKey) blockers.push("a chat model API key is missing");
   const databaseUrl = present(env.DATABASE_URL);
   if (networkName === "mainnet" && !databaseUrl) blockers.push("durable DATABASE_URL is required on mainnet");
 
@@ -218,12 +222,20 @@ export function loadAppConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   if (networkName === "mainnet" && (!sourceCommit || !/^[0-9a-f]{40}$/.test(sourceCommit))) {
     blockers.push("exact 40-character application source commit is required on mainnet");
   }
+  // Offline ownership proof does not require a funded signer, model or payment activation.
+  // Hosted sessions must retain one-time challenges across function instances.
+  const hostedAuthentication = networkName === "mainnet" || env.NODE_ENV === "production" || Boolean(env.VERCEL);
+  const authenticationReady = Boolean(
+    sessionSecret && Buffer.byteLength(sessionSecret, "utf8") >= 32
+    && (!hostedAuthentication || (appOrigin && databaseUrl)),
+  );
   const ready = blockers.length === 0;
   const publicConfig: SafeAppConfig = {
     network: networkName,
     networkLabel: networkName === "mainnet" ? "Stellar Mainnet" : "Stellar Testnet",
     releaseState: ready ? (networkName === "mainnet" ? "mainnet-ready" : "testnet-ready") : "configuration-required",
     ready,
+    authenticationReady,
     blockers,
     rpcUrl: appOrigin ? `${appOrigin}/api/wallet/rpc` : network.rpcUrl,
     networkPassphrase: network.networkPassphrase,
@@ -242,7 +254,7 @@ export function loadAppConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
       homeUrl: "https://agent402.tools/stellar",
       serviceUrl: "https://agent402.tools/api/search",
       network: "stellar:pubnet",
-      price: "0.02",
+      price: AGENT402_PRICES.search.price,
     },
     catalog,
     explorerNetwork: networkName === "mainnet" ? "public" : "testnet",
@@ -265,6 +277,8 @@ export function loadAppConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     appOrigin,
     challengeSecret,
     sessionSecret,
+    geminiKey,
+    geminiModel: present(env.GEMINI_MODEL) ?? "gemini-3.8-flash",
     openAiKey,
     openAiModel: present(env.OPENAI_MODEL) ?? "gpt-5-mini",
     anthropicKey,

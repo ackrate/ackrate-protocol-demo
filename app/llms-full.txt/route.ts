@@ -5,7 +5,7 @@ export function GET() {
 
 > Technical context for building, testing, and explaining bounded agentic payments with ACKRATE.
 
-Canonical site: https://reapp.live/
+Canonical site: https://reapp.ackrate.com/
 Source: https://github.com/ackrate/ackrate-protocol
 Research companion: https://ackrate.network/
 Environment: public research, video, composite, and starter demonstrations use Stellar testnet; the CLI uses Stellar Mainnet; the /wallet canary uses Stellar Mainnet, Circle USDC, and Freighter authorization.
@@ -41,51 +41,53 @@ These published versions target the WR Mainnet registry. Review network, signing
 
 ## Public routes
 
-### Documentation — https://reapp.live/docs
+### Documentation — https://reapp.ackrate.com/docs
 
-The landing page presents REAPP, powered by ACKRATE SDK. The SDK and CLI were renamed from REAPP to ACKRATE; MandateRegistry retains its name. Developer guides live under /docs, with SDK, CLI, and quick starters in the Docs menu.
+REAPP is the product. The landing page uses the eyebrow “Real Agentic Payment Protocol” and headline “Agent payments. Your limits.” Its footer reads “Ackrate.” REAPP uses ACKRATE SDK, ACKRATE CLI, and MandateRegistry; the SDK and CLI were renamed from REAPP to ACKRATE. Developer guides live under /docs, with SDK, CLI, and quick starters in the Docs menu.
 
-### CLI — https://reapp.live/cli
+### CLI — https://reapp.ackrate.com/cli
 
 The CLI surface demonstrates actor setup, mandate creation, payment submission, inspection, and rejection paths from the terminal. CLI output should be treated as an interface over contract and rail evidence, not as the source of truth for settlement.
 
-### Consumer — https://reapp.live/consumer
+### Consumer — https://reapp.ackrate.com/consumer
 
 The Consumer page previews a person-facing task flow for giving an AI agent a job without giving it a blank check. A person chooses the outcome, hard budget limit, approved services, deadline, and exception rule. The interactive spending controls translate those choices into a plain-language plan; the preview does not create a wallet, sign a transaction, or move funds.
 
-### Express — https://reapp.live/express
+### Express — https://reapp.ackrate.com/express
 
 The Express page records the historical August Mainnet demonstration using the earlier PAGS registry. Its prices and receipts are historical; the current wallet provides a fresh quote. A 402 response describes a scoped requirement; the consumer checks it against the mandate, settles, and retries with proof. The middleware verifies the ACKRATE event and token transfer before the route handler can return the protected value. Production deployments need a shared durable redemption store across workers.
 
-### Merchant assurance — https://reapp.live/merchants
+### Merchant assurance — https://reapp.ackrate.com/merchants
 
 The Merchants page is a legacy reference and is not current governance evidence. Use the GitHub contract verification report for the WR Mainnet registry, native 2-of-3 administration, and its no-timelock boundary.
 
-### Contract verification report — https://github.com/ackrate/ackrate-protocol-contracts/blob/main/docs/mainnet-v2-security-verification.md
+### Contract verification report — https://github.com/ackrate/ackrate-project/blob/main/instance/artifacts/108-other-repository-artifacts/ackrate-protocol-contracts/docs/mainnet-v2-security-verification.md
 
 The GitHub report records release-gate evidence for ACKRATE Mainnet contracts. It maps named negative paths to exact Rust tests, documents the registry enforcement boundary and atomic USDC data flow, links dependency results and the deployed WR registry, and provides a reproducible local gate command. The recorded V2 gate contains 52 native checks and one optimized-WASM check, for 53 total. Administration uses native Stellar 2-of-3 authorization; this deployment has no timelock. The latest required workflow and versioned report are authoritative for dependency status.
 
-### Mainnet wallet canary — https://reapp.live/wallet
+### Mainnet wallet canary — https://reapp.ackrate.com/wallet
 
-The wallet canary connects a Freighter G-account on Stellar Mainnet. A person chooses a small Circle USDC spending limit, signs mandate registration and contract allowance transactions, and then lets the consumer agent request a protected report. MandateRegistry re-checks the caller, merchant, asset, amount, expiry, status, and sequence before every payment. The page links registration, allowance, payment, and shutdown transactions to Stellar Explorer. Disconnecting first turns off any active spending limit, then clears the browser session.
+The wallet canary connects a Freighter G-account on Stellar Mainnet. A person chooses a small Circle USDC spending limit, authorizes mandate registration and the capped contract allowance through the configured setup path (separate transactions, or one combined transaction when a verified helper is enabled), and then lets the consumer agent request a protected report. MandateRegistry re-checks the caller, merchant, asset, amount, expiry, status, and sequence before every payment. The page links registration, allowance, payment, and shutdown transactions to Stellar Explorer. Disconnecting first turns off any active spending limit, then clears the browser session.
 
-### Quick starters — https://reapp.live/docs/quickstarts
+### Quick starters — https://reapp.ackrate.com/docs/quickstarts
 
-Twenty local SDK starter projects run end-to-end on Stellar Testnet and log concise status lines. The optional /docs/hosted companion creates a disposable fulfillment session on the persistent canonical runtime; it is unavailable on Vercel previews. The local consumer owns its ephemeral signers, registers a scoped testnet mandate, inspects the exact 402 challenge, submits the request-bound contract payment, and retries delivery with the stored receipt. It streams the resulting challenge, settlement, proof, delivery, budget, and rejection evidence back to the browser page. The generated project includes editable consumer and fulfillment source files plus guided examples for merchant scope, expiry, replay defense, recovery, and explorer evidence.
+Twenty local SDK starter projects run the consumer and fulfillment service together on Stellar Testnet and log concise status lines. The local consumer owns its ephemeral signers, registers a scoped testnet mandate, inspects the exact 402 challenge, submits the request-bound contract payment, and retries delivery with the stored receipt. The generated project includes editable consumer and fulfillment source files plus guided examples for merchant scope, expiry, replay defense, recovery, and explorer evidence.
 
-### AP2 — https://reapp.live/ap2
+The optional /docs/hosted Express companion requires a separately configured persistent runtime. Serving that page on Vercel does not establish that the companion is available. When configured, it creates a disposable fulfillment session and shows the endpoint and merchant to use; the local consumer streams its challenge, settlement, proof, delivery, budget, and rejection evidence back to that page. The local demo does not verify hosted availability.
+
+### AP2 — https://reapp.ackrate.com/ap2
 
 The AP2 page demonstrates canonical mandate binding and negative cases. It covers signature validity, merchant mismatch, amount limits, expiry, and replay. AP2 artifacts represent intent and transaction authority; ACKRATE maps those artifacts into enforceable payment constraints rather than treating signed text as unlimited permission.
 
-### Research agent — https://reapp.live/research
+### Research agent — https://reapp.ackrate.com/research
 
 The research agent can autonomously buy paid sources. Each purchase consumes the same bounded mandate. It may decide that another source is useful, but the contract rejects purchases after the budget is exhausted. The final answer is therefore constrained by both available evidence and financial authority.
 
-### Video paywall — https://reapp.live/video
+### Video paywall — https://reapp.ackrate.com/video
 
 The video demonstration prices each unlock at 1 XLM under a 3 XLM mandate. Three items can be settled and unlocked. A fourth attempt is rejected by the contract. The flow makes budget consumption and explorer evidence visible.
 
-### Composite mandates — https://reapp.live/composites
+### Composite mandates — https://reapp.ackrate.com/composites
 
 The composite demonstration coordinates multiple buyer agents in one group purchase. Commitments and a clearing condition are joined into an atomic settlement outcome. It is a specialized coordination example, not a replacement for principal-level authority or merchant fulfillment evidence.
 
@@ -101,7 +103,7 @@ The composite demonstration coordinates multiple buyer agents in one group purch
 
 ## Relationship to ACKRATE NETWORK
 
-ACKRATE at https://reapp.live is the live implementation and demonstration surface. ACKRATE NETWORK at https://ackrate.network is the research and architecture publication. They share ownership and link to each other transparently. Product behavior should be verified against the ACKRATE source repository; market and protocol claims should be checked against the primary sources cited by ACKRATE NETWORK.
+ACKRATE at https://reapp.ackrate.com is the live implementation and demonstration surface. ACKRATE NETWORK at https://ackrate.network is the research and architecture publication. They share ownership and link to each other transparently. Product behavior should be verified against the ACKRATE source repository; market and protocol claims should be checked against the primary sources cited by ACKRATE NETWORK.
 `;
 
   return new Response(text, {

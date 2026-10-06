@@ -5,6 +5,7 @@ import vm from "node:vm";
 import ts from "typescript";
 import * as stellar from "@stellar/stellar-sdk";
 import * as diagnostics from "../lib/wallet/connection-diagnostics";
+import * as transactionProof from "../lib/wallet/transaction-proof";
 import { safeWalletError } from "../lib/wallet/notifications";
 
 const user = stellar.Keypair.random();
@@ -25,7 +26,7 @@ function harness(overrides: Record<string, unknown> = {}, mobile = false) {
     "@stellar/stellar-sdk": stellar, "./walletconnect": {
       usesMobileWallet: () => false, selectMobileWallet: () => {},
       connectMobileWallet: async () => { calls.push("mobile"); return user.publicKey(); },
-    }, "./connection-diagnostics": { ...diagnostics, isMobileBrowser: () => mobile } };
+    }, "./connection-diagnostics": { ...diagnostics, isMobileBrowser: () => mobile }, "./transaction-proof": transactionProof };
   const module = { exports: {} as { connectFreighter: (network: string, onStatus?: (s: string) => void) => Promise<string>;
     signFreighterMessage: (text: string, address: string, network: string) => Promise<string> } };
   vm.runInNewContext(source, { module, exports: module.exports, Error,

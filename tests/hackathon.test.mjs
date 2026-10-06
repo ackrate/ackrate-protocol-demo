@@ -13,9 +13,10 @@ const PERMANENT_SIMPLE_CONTRACT =
 const RETIRED_PACKAGE_SCOPE = new RegExp(`@${String.fromCharCode(114, 101, 97, 112, 112)}-sdk/`);
 const TEMPORARY_HOSTNAME = `${String.fromCharCode(114, 101, 97, 112, 112)}.live`;
 
-// 2026-09-24: theme-aware Express presentation and demo labels. Runtime and recorded receipts are unchanged.
+// 2026-09-25: owner-requested alpha status and integration documentation link.
+// Runtime, recorded receipts, and gateway routes are unchanged.
 const protectedHashes = {
-  "app/express/page.tsx": "2333ee1dcabd4430b5dc877a1a9f6638109cf3d82b196ee5c468f8744f008399",
+  "app/express/page.tsx": "0e6ab1ae24add7754b5aa538051c424c1da56efd550c9068273b98a1398ac0e9",
   "app/express/layout.tsx": "7fb5a1ee24023ddd61ee8092c0c2e3047d51d5a0c4273fb1f4ba6f7374f8b40d",
   "app/api/express/route.ts": "645a2a92788b61f42537ee0d9f4980c7324a0f76fadd68239939da17b0854141",
   "app/api/express/[sessionId]/source/[resource]/route.ts": "022c94e6c368357692c1981f08f52aea41c28ef39eadde56ca501280a6e552a5",
@@ -63,7 +64,7 @@ test("navigation groups developer guides while preserving direct product routes"
   assert.doesNotMatch(nav, /href: "\/consumer", label: "Consumer"/);
   assert.match(nav, /href: "\/docs\/quickstarts", label: "Quick starters"/);
   assert.doesNotMatch(nav, /href: "\/video", label: "Video"/);
-  assert.match(nav, /href: "\/express", label: "Express demo"/);
+  assert.doesNotMatch(nav, /href: "\/(?:express|ap2)"/);
   assert.doesNotMatch(nav, /href: "\/security"/);
   assert.match(consumer, /Preview only · no funds move/);
   assert.match(consumer, /No wallet was created and no transaction was signed/);
@@ -74,12 +75,12 @@ test("navigation groups developer guides while preserving direct product routes"
   assert.ok(video.length > 100);
 });
 
-test("old security website links retain their redirect routing", async () => {
+test("old security website links redirect to canonical project evidence", async () => {
   const [route, sitemap] = await Promise.all([
     read("app/security/page.tsx"), read("app/sitemap.ts"),
   ]);
   assert.match(route, /permanentRedirect/);
-  assert.match(route, /github.com\/ackrate\/ackrate-protocol-contracts/);
+  assert.match(route, /github.com\/ackrate\/ackrate-project\/blob\/main\/instance\/artifacts/);
   assert.doesNotMatch(sitemap, /"\/security"/);
 });
 
@@ -110,10 +111,10 @@ test("the starter is deterministic, typed by package metadata, and testnet-only"
   ];
   const sources = Object.fromEntries(await Promise.all(paths.map(async (path) => [path, await read(path)])));
   const manifest = JSON.parse(sources["starters/research-source-scout/package.json"]);
-  assert.equal(manifest.dependencies["@ackrate/core"], "0.3.1");
-  assert.equal(manifest.dependencies["@ackrate/stellar"], "0.2.2");
-  assert.equal(manifest.dependencies["@ackrate/ap2"], "0.3.0");
-  assert.equal(manifest.dependencies["@ackrate/express-middleware"], "0.2.2");
+  assert.equal(manifest.dependencies["@ackrate/core"], "0.4.1");
+  assert.equal(manifest.dependencies["@ackrate/stellar"], "0.3.0");
+  assert.equal(manifest.dependencies["@ackrate/ap2"], "0.4.0");
+  assert.equal(manifest.dependencies["@ackrate/express-middleware"], "0.3.0");
   assert.ok(manifest.scripts.demo);
   assert.ok(manifest.scripts.fulfillment);
   assert.equal(manifest.scripts.hosted, "node src/hosted.mjs");
@@ -238,4 +239,26 @@ test("the CLI and Docs use the published Mainnet release", async () => {
   assert.equal(packageJson.dependencies["@ackrate/cli"], actualVersion);
   assert.equal(lock.packages["node_modules/@ackrate/cli"].version, actualVersion);
   assert.equal(createHash("sha256").update(bundleSource).digest("hex"), "c2e6c113a6fdcad618927c59a304da525628041c7d10626d430712c2f7e2ce69");
+});
+
+test("starter runtime ships the SDK bytes exercised by the root integration tests", async () => {
+  const [rootLock, starterLock] = await Promise.all([
+    read("package-lock.json"),
+    read("starter-kit-src/template/package-lock.json"),
+  ]).then((locks) => locks.map(JSON.parse));
+  for (const name of [
+    "@ackrate/core", "@ackrate/stellar", "@ackrate/ap2", "@ackrate/cli",
+    "@ackrate/express-middleware", "@stellar/stellar-sdk",
+  ]) {
+    const path = `node_modules/${name}`;
+    const exercised = rootLock.packages[path];
+    const shipped = starterLock.packages[path];
+    assert.ok(exercised?.version && exercised?.integrity, `${name} must be integrity-pinned in the test environment`);
+    assert.ok(shipped?.version && shipped?.integrity, `${name} must be integrity-pinned in the starter`);
+    assert.deepEqual(
+      { version: shipped.version, integrity: shipped.integrity },
+      { version: exercised.version, integrity: exercised.integrity },
+      `${name}: clean starter installations must use the SDK bytes exercised by runtime tests`,
+    );
+  }
 });

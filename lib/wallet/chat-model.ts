@@ -1,4 +1,16 @@
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { createOpenAI } from "@ai-sdk/openai";
 import { APICallError, wrapLanguageModel } from "ai";
+
+/** Compatible endpoints (including Gemini) implement Chat Completions, not Responses. */
+export function createConfiguredOpenAIChat(apiKey: string, model: string, baseURL = process.env.OPENAI_BASE_URL?.trim()) {
+  const provider = createOpenAI({ apiKey, ...(baseURL ? { baseURL } : {}) });
+  return baseURL ? provider.chat(model) : provider(model);
+}
+
+export function createConfiguredGeminiChat(apiKey: string, model: string) {
+  return createGoogleGenerativeAI({ apiKey })(model);
+}
 
 type ConcreteModel = Parameters<typeof wrapLanguageModel>[0]["model"];
 

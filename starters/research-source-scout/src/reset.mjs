@@ -2,6 +2,7 @@ import { resolve } from "node:path";
 
 import { runSafeReset } from "../shared/reset.mjs";
 
+if (process.env.ACKRATE_STATE_ROOT || process.env.ACKRATE_ARCHIVE_ROOT) throw new Error("Research Source Scout reset only supports default Testnet state; preserve .ackrate-mainnet for CLI recovery.");
 const result = await runSafeReset({
   stateRoot: resolve(process.env.ACKRATE_STATE_ROOT ?? ".ackrate"),
   archiveRoot: resolve(process.env.ACKRATE_ARCHIVE_ROOT ?? ".ackrate-archive"),

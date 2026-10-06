@@ -91,3 +91,12 @@ test("Agent402 web search accepts only the published query parameters", () => {
   assert.throws(() => normalizeAgent402SearchInput({ q: "Solana", count: 21 }), /inputs are invalid/);
   assert.throws(() => normalizeAgent402SearchInput({ q: "Solana", madeUp: true }), /inputs are invalid/);
 });
+
+test("search fulfillment accepts publishedAt from the seller's current OpenAPI response", async () => {
+  const { parseAgent402SearchResponse } = await import("../lib/wallet/agent402");
+  const response = { query: "Stellar", count: 1, untrustedContent: true,
+    results: [{ title: "Stellar", url: "https://stellar.org", description: "Payments", age: null, publishedAt: "2026-09-25T00:00:00.000Z" }] };
+  assert.equal(parseAgent402SearchResponse(response).results[0]?.publishedAt, "2026-09-25T00:00:00.000Z");
+  assert.throws(() => parseAgent402SearchResponse({ ...response, untrustedContent: false }));
+  assert.throws(() => parseAgent402SearchResponse({ ...response, results: [{ ...response.results[0], publishedAt: "x".repeat(101) }] }));
+});

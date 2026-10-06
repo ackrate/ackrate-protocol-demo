@@ -27,6 +27,23 @@ export async function fetchWithTimeout(input, init = {}, timeoutMs = 30_000) {
   }
 }
 
+// A restarted server can leave a stale keep-alive socket in fetch's pool.
+// Retry only this GET with the exact retained proof; never create a payment.
+export async function fetchExactRecoveryBytes(input, init, timeoutMs = 30_000) {
+  if (init?.method !== "GET" || init?.redirect !== "error") {
+    throw new Error("exact recovery requires GET with redirects disabled");
+  }
+  const request = { ...init, headers: new Headers(init.headers) };
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      const response = await fetchWithTimeout(input, request, timeoutMs);
+      return { status: response.status, bytes: Buffer.from(await response.arrayBuffer()) };
+    } catch (error) {
+      if (attempt === 1 || init.signal?.aborted) throw error;
+    }
+  }
+}
+
 export async function closeHttpServer(server, timeoutMs = 5_000) {
   if (!server) return;
   if (!server.listening) return;

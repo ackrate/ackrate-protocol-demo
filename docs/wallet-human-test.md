@@ -1,16 +1,22 @@
 # Hosted wallet: human test
 
-Use [the hosted wallet](https://reapp.live/wallet) in Chrome with Freighter.
+Use [the production wallet](https://reapp.ackrate.com/wallet) in Chrome with Freighter. Record the exact origin and source revision before testing; a Preview or retained staging deployment is a separate acceptance target.
+This configured acceptance deployment uses Stellar Mainnet and real USDC; a PR preview may lack payment services.
 No deployment or automated check substitutes for completing this flow.
 
 1. Refresh the page. Disconnect and reconnect your personal mainnet wallet if
    you want to demonstrate the connection from the beginning.
 2. Choose **Web search**. Configure the query **What is Stellar?** and review
    the fresh service quote. The price comes from the marketplace, not this guide.
-3. Set a spending limit covering the quoted price, for example **0.10 USDC**,
-   and an expiry. Approve registration and then the capped USDC allowance in
-   Freighter. If submission is uncertain, **Check USDC approval — no new fee**
-   checks the original transaction instead of submitting another.
+3. Set a spending limit covering the quoted price, for example **0.01 USDC** when that covers one quoted call,
+   and an expiry. Follow the setup shown by the deployed configuration. With a
+   verified setup helper, **Approve spending rules & USDC limit** requests one
+   transaction that registers the mandate and approves the capped allowance.
+   Without that helper, approve registration and then the separate capped USDC
+   allowance. Each transaction has an XLM network fee; setup does not buy a service.
+   If submission is uncertain, use the displayed confirmation check to inspect
+   the original transaction before requesting another signature. Record which
+   setup path ran and retain its transaction evidence.
 4. Press **Run** once. The agent uses the selected inputs and current quote,
    makes the mandate-checked payment, and requests the marketplace service.
    The model formats the returned evidence; it does not invent a purchase.
@@ -24,11 +30,12 @@ adapters are supported.
 
 ## Model configuration
 
-`LLM_PROVIDER_MODE=openai-only` is the default for both streaming chat and
-report composition. Only `OPENAI_API_KEY` is used in this mode, even when an
-alternate key remains in Railway. `LLM_PRIMARY` cannot override this restriction.
-The existing `OPENAI_MODEL` selection is preserved. An operator may explicitly
-enable `LLM_PROVIDER_MODE=failover` later; it is not needed for this demo.
+Check the [production runtime configuration](vercel-native.md#production-runtime)
+for the tested deployment. Production currently uses
+`LLM_PROVIDER_MODE=openai-gemini-failover`: OpenAI through Vercel AI Gateway,
+with a direct Gemini fallback. The source default remains `openai-only` when
+no mode is configured; it is not the production setting. Record the selected
+mode and deployed source revision with the test result.
 
 Model access and credit are separate from the wallet's USDC balance.
 Formatting failure must not trigger another payment: a saved marketplace
@@ -52,3 +59,25 @@ If a payment record exists, recover or inspect it before starting another Run.
 
 Retain the deployed commit and both transaction links with the human result.
 This page does not claim all release requirements are complete.
+
+
+## Mobile connection recovery
+
+Test a fresh Freighter Mobile connection and a restored connection separately.
+After approving the connection, sign the offline ownership message. Then reload
+before another sign-in attempt and verify that the existing approved account,
+network and methods remain valid and the native signing request still appears.
+Neither sign-in step should submit an on-chain transaction or charge a fee.
+
+A page reload can restore WalletConnect's approved session before its separate
+provider routing cache has been written. The adapter rebuilds missing signing
+method routing only from that approved session through the SDK's public
+`updateNamespace` API. Conflicting accounts, chains or methods fail closed;
+transaction and signature verification still run before results are accepted.
+If a wallet session update removes a previously approved account or method,
+reconnect so stale additive provider routing cannot retain that permission.
+
+A development simulator wallet uses its own application URL scheme and may
+need manual pairing. Record that separately from stock Freighter on a real
+phone; a successful simulator connection does not certify native-device payment
+or platform-switching behavior.

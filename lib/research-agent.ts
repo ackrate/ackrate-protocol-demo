@@ -17,10 +17,11 @@
  *
  * Runs only in the Node API route. Streams structured events via an async generator.
  */
-import { ackrate, type CreateIntentMandateInput } from "@ackrate/core";
+import { ackrate } from "@ackrate/core";
 import { AllProvidersExhausted, buildFailoverLlm, type FailoverLlm, type LlmMessage, type LlmTool } from "./llm";
 import { log } from "./log";
 import { journaledPay } from "./payment-journal";
+import { restoreTestnetMandate, type DemoMandateInputs } from "./testnet-mandate";
 
 /** Price per source, in XLM. The mandate budget (see ackrate-server.BUDGET = "3.00")
  *  covers three of these — the contract blocks the fourth. */
@@ -60,7 +61,7 @@ export type ResearchEvent =
 
 export type RunArgs = {
   question: string;
-  inputs: CreateIntentMandateInput;
+  inputs: DemoMandateInputs;
   agentSecret: string;
 };
 
@@ -112,6 +113,7 @@ function degradedReport(question: string, collected: { label: string; text: stri
 /** Drive the agent. Yields events as work happens; payments are sequential
  *  (the mandate sequence increments on-chain, so they must not run in parallel). */
 export async function* runResearch({ question, inputs, agentSecret }: RunArgs): AsyncGenerator<ResearchEvent> {
+  const mandate = restoreTestnetMandate(inputs);
   const llm = buildFailoverLlm(); // reads ANTHROPIC_API_KEY / OPENAI_API_KEY from the environment
 
   const tools: LlmTool[] = [
@@ -190,9 +192,8 @@ export async function* runResearch({ question, inputs, agentSecret }: RunArgs): 
       log.step("agent wants a source", { source: src.name, reason: reason.slice(0, 48) });
       yield { type: "purchase_attempt", source: src.id, label: src.name, icon: src.icon, reason };
       try {
-        const mandate = ackrate.createIntentMandate(inputs); // same nonce, same on-chain id
         const hash = await journaledPay(
-          ackrate.agent({ mandate, signer: agentSecret }),
+          ackrate.agent({ mandate, signer: agentSecret }, ackrate.testnet),
           SOURCE_PRICE,
           `research:${mandate.id}:${spent}`,
           spent,

@@ -1,6 +1,8 @@
 # Presentation conventions
 
-REAPP is the consumer demonstration, powered by ACKRATE SDK. The SDK and CLI were renamed from REAPP to ACKRATE and use the `@ackrate` package scope. Keep ACKRATE CLI and MandateRegistry identifiers unchanged. Do not introduce another product name in this release.
+The header reads **REAPP powered by Ackrate SDK**, with REAPP prominent and the attribution secondary. The SDK and CLI use the `@ackrate` package scope. Keep ACKRATE CLI and MandateRegistry identifiers unchanged.
+
+Wallet disconnect belongs in the main navigation. The wallet page does not need a second network masthead or slogans about payment and receipt counts. Keep chain, asset, cap, fees, relay and seller details at the steps where users authorize spending, and keep both receipt links with the result.
 
 Use white or black backgrounds and neutral gray surfaces. Follow the functional brand palette: Ackrate green identifies infrastructure, enforcement and evidence; Allow It vermilion identifies consumer choices and intervention. No decorative glow, gradients, animated emblems, or multicolor category badges. Preserve explicit status labels and explorer links; color alone must not communicate transaction state.
 
@@ -19,3 +21,5 @@ The static arch replaces the animated solar mark. Its geometry is reused unchang
 ## Functional palette
 
 See [brand-colors.md](brand-colors.md) and `app/brand-colors.css`. Keep consumer action fills at #F34632 with #111110 labels, readable red text at #BA2D22 on light surfaces, and Ackrate green roles at #157A4B / #123D2C with #B9F36A used only on sufficiently dark surfaces or with a dark foreground. Completed state labels retain checkmarks; unknown network/readiness states remain neutral.
+
+The wallet starts with a 0.01 USDC spending cap for one Web search purchase; Stellar network fees are separate. Keep governance/version badges and repeated schema labels out of the purchase flow. Contract diagnostics and payment receipt links remain available where they help verification or recovery. Marketplace entries distinguish “Available” from “Preview only” without promotional readiness badges.

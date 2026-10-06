@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { AGENT402_PRICES } from "./agent402-prices";
 
 export interface MarketplaceInputField {
   name: string;
@@ -24,9 +25,9 @@ export interface MarketplaceService {
 }
 
 const RUNNABLE_AGENT402_SERVICES = {
-  search: { method: "GET", path: "/api/search", price: "0.02", sourceId: "agent402-research" },
-  pdf: { method: "POST", path: "/api/pdf", price: "0.01", sourceId: "agent402-pdf" },
-  "pdf-info": { method: "POST", path: "/api/pdf-info", price: "0.002", sourceId: "agent402-pdf-info" },
+  search: { method: "GET", path: "/api/search", ...AGENT402_PRICES.search, sourceId: "agent402-research" },
+  pdf: { method: "POST", path: "/api/pdf", ...AGENT402_PRICES.pdf, sourceId: "agent402-pdf" },
+  "pdf-info": { method: "POST", path: "/api/pdf-info", ...AGENT402_PRICES["pdf-info"], sourceId: "agent402-pdf-info" },
 } as const;
 
 export function sourceIdForMarketplaceService(service: MarketplaceService): string | null {
@@ -37,6 +38,14 @@ export function sourceIdForMarketplaceService(service: MarketplaceService): stri
     && service.price === expected.price
     ? expected.sourceId
     : null;
+}
+
+/** Refresh a saved draft after a reviewed release; it still needs a fresh signed quote. */
+export function refreshSavedMarketplaceService(service: MarketplaceService): MarketplaceService {
+  const current = RUNNABLE_AGENT402_SERVICES[service.id as keyof typeof RUNNABLE_AGENT402_SERVICES];
+  return current && service.method === current.method && service.path === current.path
+    ? { ...service, price: current.price }
+    : service;
 }
 
 export const WEB_SEARCH_INPUTS: MarketplaceInputField[] = [
@@ -113,7 +122,7 @@ export const FALLBACK_MARKETPLACE_SERVICES: MarketplaceService[] = [
     categoryLabel: "Web & documents",
     method: "GET",
     path: "/api/search",
-    price: "0.02",
+    price: AGENT402_PRICES.search.price,
     docs: "https://agent402.tools/tools/search",
     inputs: WEB_SEARCH_INPUTS,
     schemaSource: "verified-docs",
@@ -152,7 +161,7 @@ export const FALLBACK_MARKETPLACE_SERVICES: MarketplaceService[] = [
     categoryLabel: "Web & documents",
     method: "POST",
     path: "/api/pdf",
-    price: "0.01",
+    price: AGENT402_PRICES.pdf.price,
     docs: "https://agent402.tools/tools/pdf",
     inputs: PDF_URL_INPUTS,
     schemaSource: "verified-docs",
@@ -165,7 +174,7 @@ export const FALLBACK_MARKETPLACE_SERVICES: MarketplaceService[] = [
     categoryLabel: "Web & documents",
     method: "POST",
     path: "/api/pdf-info",
-    price: "0.002",
+    price: AGENT402_PRICES["pdf-info"].price,
     docs: "https://agent402.tools/tools/pdf-info",
     inputs: [{ ...PDF_URL_INPUTS[0]!, description: "Public URL of the PDF", example: "https://arxiv.org/pdf/1706.03762" }],
     schemaSource: "verified-docs",

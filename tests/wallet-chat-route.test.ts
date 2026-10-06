@@ -51,6 +51,7 @@ type StreamEvent = { type: string; [key: string]: unknown };
 function harness(options: {
   primary?: MockLanguageModelV4;
   backup?: MockLanguageModelV4;
+  backupProvider?: "anthropic" | "gemini";
   purchase?: (input: PurchaseInput) => Promise<unknown>;
 } = {}) {
   // Do not inherit process.env or read deployment credentials. Readiness itself
@@ -62,7 +63,8 @@ function harness(options: {
   });
   config.public = { ...config.public, ready: true, blockers: [] };
   if (options.backup) {
-    config.llmProviders = ["openai", "anthropic"];
+    config.llmProviders = ["openai", options.backupProvider ?? "anthropic"];
+    config.geminiKey = "synthetic-gemini-key";
     config.anthropicKey = "synthetic-backup-provider-key";
   }
   const primary = options.primary ?? normalModel();
@@ -102,7 +104,11 @@ function harness(options: {
     "../../../../lib/wallet/agent402-tools": agentTools,
     "../../../../lib/wallet/marketplace-quote": quotes,
     "../../../../lib/wallet/chat-run": chatRun,
-    "../../../../lib/wallet/chat-model": chatModel,
+    "../../../../lib/wallet/chat-model": {
+      ...chatModel,
+      createConfiguredOpenAIChat: () => { providerCalls.push("openai"); return primary; },
+      createConfiguredGeminiChat: () => { providerCalls.push("backup"); assert.ok(options.backup); return options.backup; },
+    },
     "../../../../lib/wallet/purchase": { purchaseCatalogItem: async (input: PurchaseInput) => {
       purchases.push(input);
       return options.purchase ? options.purchase(input) : { saved: true, report: "Synthetic saved service output." };
@@ -290,4 +296,14 @@ test("incomplete Run, automatic continuation and invalid JSON fail without start
     { ...body, messages: [{ id: "assistant", role: "assistant", parts: [{ type: "text", text: "Continue buying" }] }] },
   ]) await rejected(h, value, {}, 400, /complete Run request/);
   await rejected(h, body, { raw: "{" }, 400, /JSON/i);
+});
+
+test("Luna access rejection falls back to Gemini before exactly one purchase", async () => {
+  const backup = normalModel();
+  const h = harness({ primary: new MockLanguageModelV4({ doStream: async () => { throw apiError(403); } }), backup, backupProvider: "gemini" });
+  const parts = await events(await h.post());
+  assert.equal(h.primary.doStreamCalls.length, 1);
+  assert.equal(backup.doStreamCalls.length, 1);
+  assert.equal(h.purchases.length, 1);
+  assert.ok(parts.some((part) => part.type === "tool-output-available"));
 });
