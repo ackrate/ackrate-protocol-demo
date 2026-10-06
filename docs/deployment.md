@@ -21,4 +21,4 @@ GitHub Actions validates source; it does not deploy. Production and Preview vari
 3. Promote reviewed `main` changes to `prod` explicitly. A merge into `main` produces a Preview; it does not publish production.
 4. Check the native Vercel build, served revision, configuration readiness and relevant application behavior. A successful build or homepage response alone does not establish wallet/payment acceptance.
 
-Older staging projects are retained for historical acceptance and are not the destination of the current native Git workflow. Legacy branch decisions are recorded in [branch reconciliation](https://github.com/ackrate/ackrate-project/blob/main/instance/artifacts/108-other-repository-artifacts/ackrate-protocol-demo/docs/branch-reconciliation.md).
+Older staging projects are retained for historical acceptance and are not the destination of the current native Git workflow. Legacy branch decisions are recorded in [branch reconciliation](https://github.com/ackrate/ackrate-protocol-demo/blob/f29ac6d8de5892ea942c881684435fbd4699d083/docs/branch-reconciliation.md).
