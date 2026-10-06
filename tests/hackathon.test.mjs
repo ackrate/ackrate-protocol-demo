@@ -75,12 +75,12 @@ test("navigation groups developer guides while preserving direct product routes"
   assert.ok(video.length > 100);
 });
 
-test("old security website links redirect to canonical project evidence", async () => {
+test("old security website links retain public immutable verification evidence", async () => {
   const [route, sitemap] = await Promise.all([
     read("app/security/page.tsx"), read("app/sitemap.ts"),
   ]);
   assert.match(route, /permanentRedirect/);
-  assert.match(route, /github.com\/ackrate\/ackrate-project\/blob\/main\/instance\/artifacts/);
+  assert.match(route, /github.com\/ackrate\/ackrate-protocol-contracts\/blob\/[0-9a-f]{40}\/docs\/mainnet-v2-security-verification\.md/);
   assert.doesNotMatch(sitemap, /"\/security"/);
 });
 
