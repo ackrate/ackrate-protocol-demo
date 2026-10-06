@@ -63,7 +63,7 @@ for branch routing, project ownership, secrets and the persistent CLI runner lim
   testnet deployment; id pinned in `lib/composites-client.ts`). Source: `app/composites/page.tsx`.
 
 Primary navigation is REAPP home, Consumer app, and Docs. The Docs dropdown
-contains Overview, SDK, CLI, quick starters, and Integrations. Express and AP2 demos remain available by direct link. Security evidence stays in `docs/security-evidence.md` and the contract repository. Legacy research,
+contains Overview, SDK, CLI, quick starters, and Integrations. Express and AP2 demos remain available by direct link. Security evidence stays in [historical artifact](https://github.com/ackrate/ackrate-project/blob/main/instance/artifacts/108-other-repository-artifacts/ackrate-protocol-demo/docs/security-evidence.md) and the contract repository. Legacy research,
 video, consumer preview, toolkit, and composite routes remain direct-link references.
 See `docs/presentation.md` for the current naming and visual conventions.
 
@@ -111,3 +111,9 @@ Infrastructure and ordinary navigation stay predominantly green/neutral. Red mar
 ## Native Vercel deployment (September 27, 2026)
 
 This section supersedes earlier separate-project and Actions deployment instructions. Vercel builds the connected Git repository. GitHub Actions runs validation only. See docs/vercel-native.md for production branch and environment routing. Preserve independent review gates and never promote preview code implicitly.
+
+## Project knowledge and task artifacts
+
+Authored plans, review reports, run evidence, screenshots, and handoff artifacts belong in the canonical [Ackrate project wiki](https://github.com/ackrate/ackrate-project). Commit original Markdown evidence through its `instance/scripts/knowledge.mjs` ingest workflow into `sources/`; retain original artifact bytes under `instance/artifacts/`. Do not commit these task outputs in this code repository. Keep executable source, test fixtures, package/build inputs, and technical API/usage documentation here.
+
+Historical artifacts from this repository are preserved in [the project artifact archive](https://github.com/ackrate/ackrate-project/blob/main/instance/artifacts/108-other-repository-artifacts/ackrate-protocol-demo). Update project task status in the parent wiki.

@@ -61,7 +61,7 @@ The Express page records the historical August Mainnet demonstration using the e
 
 The Merchants page is a legacy reference and is not current governance evidence. Use the GitHub contract verification report for the WR Mainnet registry, native 2-of-3 administration, and its no-timelock boundary.
 
-### Contract verification report — https://github.com/ackrate/ackrate-protocol-contracts/blob/main/docs/mainnet-v2-security-verification.md
+### Contract verification report — https://github.com/ackrate/ackrate-protocol-contracts/blob/e0dc3a7e6a38058031bf2f6489a6604141c6a8aa/docs/mainnet-v2-security-verification.md
 
 The GitHub report records release-gate evidence for ACKRATE Mainnet contracts. It maps named negative paths to exact Rust tests, documents the registry enforcement boundary and atomic USDC data flow, links dependency results and the deployed WR registry, and provides a reproducible local gate command. The recorded V2 gate contains 52 native checks and one optimized-WASM check, for 53 total. Administration uses native Stellar 2-of-3 authorization; this deployment has no timelock. The latest required workflow and versioned report are authoritative for dependency status.
 
