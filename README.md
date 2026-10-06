@@ -4,7 +4,7 @@ REAPP demonstrates bounded agent payments on Stellar. Its SDK and CLI are publis
 
 - [Consumer app](https://reapp.ackrate.com/wallet): Freighter, Stellar Mainnet, Circle USDC. Purchases use real funds and XLM fees.
 - [Developer docs](https://reapp.ackrate.com/docs): [SDK](https://reapp.ackrate.com/docs/sdk), [CLI](https://reapp.ackrate.com/docs/cli), and [quick starters](https://reapp.ackrate.com/docs/quickstarts).
-- [Security evidence](https://github.com/ackrate/ackrate-project/blob/main/instance/artifacts/108-other-repository-artifacts/ackrate-protocol-demo/docs/security-evidence.md): contract checks, receipts, and native 2-of-3 administration with no timelock.
+- [Security evidence](https://github.com/ackrate/ackrate-protocol-demo/blob/f29ac6d8de5892ea942c881684435fbd4699d083/docs/security-evidence.md): contract checks, receipts, and native 2-of-3 administration with no timelock.
 
 ## Choose from 20 starter packs
 
