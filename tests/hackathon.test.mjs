@@ -74,12 +74,10 @@ test("navigation groups developer guides while preserving direct product routes"
   assert.ok(video.length > 100);
 });
 
-test("security evidence stays in the repository and old website links redirect", async () => {
-  const [report, route, sitemap] = await Promise.all([
-    read("docs/security-evidence.md"), read("app/security/page.tsx"), read("app/sitemap.ts"),
+test("old security website links retain their redirect routing", async () => {
+  const [route, sitemap] = await Promise.all([
+    read("app/security/page.tsx"), read("app/sitemap.ts"),
   ]);
-  assert.match(report, /53 \/ 53 PASS/);
-  assert.match(report, /gatecheck-contracts.sh/);
   assert.match(route, /permanentRedirect/);
   assert.match(route, /github.com\/ackrate\/ackrate-protocol-contracts/);
   assert.doesNotMatch(sitemap, /"\/security"/);

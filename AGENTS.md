@@ -58,7 +58,7 @@ for branch routing, project ownership, secrets and the persistent CLI runner lim
   testnet deployment; id pinned in `lib/composites-client.ts`). Source: `app/composites/page.tsx`.
 
 Primary navigation is REAPP home, Consumer app, and Docs. The Docs dropdown
-contains SDK, CLI, quick starters, Express demo, and AP2 demo. Security evidence stays in `docs/security-evidence.md` and the contract repository. Legacy research,
+contains SDK, CLI, quick starters, Express demo, and AP2 demo. Security evidence stays in [historical artifact](https://github.com/ackrate/ackrate-project/blob/main/instance/artifacts/108-other-repository-artifacts/ackrate-protocol-demo/docs/security-evidence.md) and the contract repository. Legacy research,
 video, consumer preview, toolkit, and composite routes remain direct-link references.
 See `docs/presentation.md` for the current naming and visual conventions.
 
@@ -95,3 +95,7 @@ See `docs/presentation.md` for the current naming and visual conventions.
 Follow [docs/brand-colors.md](docs/brand-colors.md) and the mirrored `app/brand-colors.css` tokens: green for Ackrate infrastructure/enforcement/evidence, red for consumer actions and human intervention. Use bright and readable shades deliberately; preserve state labels, contrast, transaction behavior and product names. The canonical cross-repository policy and task register live in ackrate-private (wiki/ackrate/visual-language.md and wiki/tasks/index.md).
 
 Infrastructure and ordinary navigation stay predominantly green/neutral. Red marks a specific intent-setting control, requested user feedback, or denial; do not color a whole chapter red because it describes consumer actions. Specialist ownership is recorded in the private wiki: Fable for UX, Opus 5.5 for frontend design, Codex for backlog/integration/backend. Record blocked reviews truthfully.
+
+## Project knowledge and task artifacts
+
+Authored plans, reviews, run evidence, screenshots, and handoff artifacts belong in the [Ackrate project wiki](https://github.com/ackrate/ackrate-project). Commit original Markdown evidence through its `instance/scripts/knowledge.mjs` ingest workflow into `sources/`, and retain original artifact bytes under `instance/artifacts/`. Do not commit task outputs in this code repository. Keep executable source, test fixtures, package/build inputs, and technical API/usage documentation here.

@@ -23,12 +23,12 @@ Node22 production build, TypeScript, branding gate and276 existing wallet tests 
 
 The local development server encountered the existing instrumentation/Postgres edge-bundling error; visual validation used the successful production build with the background CLI runner disabled. No server/payment code was changed to work around it.
 
-![Light app](previews/dual-brand/desktop-light.png)
+![Light app](https://github.com/ackrate/ackrate-project/blob/main/instance/artifacts/108-other-repository-artifacts/ackrate-protocol-demo/docs/previews/dual-brand/desktop-light.png)
 
-[Dark app](previews/dual-brand/desktop-dark.png) · [Light wallet](previews/dual-brand/wallet-light.png) · [Dark wallet](previews/dual-brand/wallet-dark.png) · [Phone light](previews/dual-brand/mobile-wallet-light.png) · [Phone dark](previews/dual-brand/mobile-wallet-dark.png)
+[Dark app](https://github.com/ackrate/ackrate-project/blob/main/instance/artifacts/108-other-repository-artifacts/ackrate-protocol-demo/docs/previews/dual-brand/desktop-dark.png) · [Light wallet](https://github.com/ackrate/ackrate-project/blob/main/instance/artifacts/108-other-repository-artifacts/ackrate-protocol-demo/docs/previews/dual-brand/wallet-light.png) · [Dark wallet](https://github.com/ackrate/ackrate-project/blob/main/instance/artifacts/108-other-repository-artifacts/ackrate-protocol-demo/docs/previews/dual-brand/wallet-dark.png) · [Phone light](https://github.com/ackrate/ackrate-project/blob/main/instance/artifacts/108-other-repository-artifacts/ackrate-protocol-demo/docs/previews/dual-brand/mobile-wallet-light.png) · [Phone dark](https://github.com/ackrate/ackrate-project/blob/main/instance/artifacts/108-other-repository-artifacts/ackrate-protocol-demo/docs/previews/dual-brand/mobile-wallet-dark.png)
 
 The owner clarified that infrastructure stays predominantly green; red is sparse and tied to intervention, never a whole chapter or ordinary navigation. Fable UX and Opus 5.5 frontend review were attempted on September 25 but both returned HTTP 401 (revoked OAuth), before model usage. The mechanical scope correction is not specialist sign-off.
 
 ## Corrected navigation captures
 
-[Light](previews/intervention-only/app-light.png) · [Dark](previews/intervention-only/app-dark.png). Homepage navigation and descriptive steps remain green/neutral. TypeScript and the production build pass after the correction; wallet/payment behavior is unchanged.
+[Light](https://github.com/ackrate/ackrate-project/blob/main/instance/artifacts/108-other-repository-artifacts/ackrate-protocol-demo/docs/previews/intervention-only/app-light.png) · [Dark](https://github.com/ackrate/ackrate-project/blob/main/instance/artifacts/108-other-repository-artifacts/ackrate-protocol-demo/docs/previews/intervention-only/app-dark.png). Homepage navigation and descriptive steps remain green/neutral. TypeScript and the production build pass after the correction; wallet/payment behavior is unchanged.
