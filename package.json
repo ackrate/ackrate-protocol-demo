@@ -5,10 +5,10 @@
   "description": "Ackrate mainnet demo: an AI agent makes real USDC payments enforced on-chain by MandateRegistry.",
   "type": "module",
   "scripts": {
-    "dev": "ACKRATE_CLI_RUNTIME_START=0 WATCHPACK_POLLING=true NODE_OPTIONS='--disable-warning=DEP0205' next dev --webpack",
-    "build": "ACKRATE_CLI_RUNTIME_START=0 next build --webpack",
-    "start": "ACKRATE_CLI_RUNTIME_START=1 NODE_OPTIONS='--disable-warning=DEP0205' next start",
-    "lint": "next lint",
+    "dev": "node scripts/run-next.mjs dev --webpack",
+    "build": "node scripts/run-next.mjs build --webpack",
+    "start": "node scripts/run-next.mjs start",
+    "lint": "npm run check:branding && npm run check:workflow-pins && npm run check:starters && npm run typecheck",
     "typecheck": "tsc --noEmit",
     "generate:starters": "node scripts/starters/generate.mjs",
     "check:starters": "node scripts/starters/verify.mjs",
@@ -83,7 +83,7 @@
     "nanoid": "3.3.18",
     "postcss": "8.5.26",
     "qs": "6.16.0",
-    "sharp": "0.35.4",
+    "sharp": "0.35.5",
     "undici@^7.0.0": "7.29.1",
     "proxy-addr": "2.0.8",
     "source-map-js": "1.2.2"

@@ -1,0 +1,6 @@
+# Starter archives and manifests compare exact bytes against their inputs.
+/starter-kit-src/** text eol=lf
+/starters/** text eol=lf
+/public/starters/v1/** text eol=lf
+/public/starters/v1/*.zip binary
+/lib/hackathon-starters.generated.ts text eol=lf
