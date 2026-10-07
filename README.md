@@ -1,5 +1,8 @@
 # REAPP, powered by ACKRATE SDK
 
+Starter payment journals require a local POSIX filesystem. On Windows, run starters in Linux/WSL with state outside `/mnt/c` and `/mnt/d`.
+Keep existing journals for recovery. The starter refuses unsupported file stores before creating state.
+
 REAPP demonstrates bounded agent payments on Stellar. Its SDK and CLI are published under `@ackrate`, following the REAPP SDK rename. The contract remains MandateRegistry.
 
 - [Consumer app](https://reapp.ackrate.com/wallet): Freighter, Stellar Mainnet, Circle USDC. Purchases use real funds and XLM fees.

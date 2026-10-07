@@ -4,7 +4,7 @@ archive='ackrate-payment-receipt-firewall.zip'
 cleanup() { rm -f "$archive"; }
 trap cleanup EXIT HUP INT TERM
 curl -fsSLo "$archive" 'https://reapp.ackrate.com/starters/v1/payment-receipt-firewall.zip'
-node -e "const f='ackrate-payment-receipt-firewall.zip',e='e0b9b7d0914a17de4f6e13b3197b06097159156213f24e2abc3a0407d4ab8c05',s=require('node:fs'),a=require('node:crypto').createHash('sha256').update(s.readFileSync(f)).digest('hex');if(a!==e){s.rmSync(f);throw Error('Starter integrity check failed')}"
+node -e "const f='ackrate-payment-receipt-firewall.zip',e='805f7addc9702ca41b935d84bb03fbe7f1db818c00ff706d87c37c66ae2b565c',s=require('node:fs'),a=require('node:crypto').createHash('sha256').update(s.readFileSync(f)).digest('hex');if(a!==e){s.rmSync(f);throw Error('Starter integrity check failed')}"
 unzip -q "$archive"
 rm -f "$archive"
 npm ci

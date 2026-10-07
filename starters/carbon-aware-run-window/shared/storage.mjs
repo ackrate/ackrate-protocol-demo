@@ -40,6 +40,12 @@ const DELIVERY_EVENT_KEYS = new Set([
 ]);
 const queues = new Map();
 
+function requireJournalPlatform() {
+  if (!["linux", "darwin", "freebsd", "openbsd", "netbsd"].includes(process.platform)) {
+    throw new Error("Payment file journals require a local POSIX filesystem. On Windows, use Linux/WSL with state in its Linux filesystem, not /mnt/c or /mnt/d. Keep existing journals for recovery; pending operations remain uncertain.");
+  }
+}
+
 function exactKeys(value, expected) {
   const actual = Object.keys(value).sort();
   const wanted = [...expected].sort();
@@ -174,6 +180,7 @@ function validateReceipt(value) {
 
 export class FileSettlementReceiptStore {
   constructor(filePath) {
+    requireJournalPlatform();
     this.filePath = resolve(filePath);
   }
 
@@ -384,6 +391,7 @@ function validateRunResultFile(value) {
 
 export class FileRunResultStore {
   constructor(filePath) {
+    requireJournalPlatform();
     this.filePath = resolve(filePath);
   }
 
@@ -568,6 +576,7 @@ function responsesEqual(left, right) {
 
 export class FileBoundRedemptionStore {
   constructor(filePath) {
+    requireJournalPlatform();
     this.filePath = resolve(filePath);
   }
 
